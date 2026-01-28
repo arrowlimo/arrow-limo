@@ -2794,6 +2794,13 @@ def create_client():
     detail = None
     try:
         conn = get_db_connection(); cur = conn.cursor()
+        
+        # Generate account_number if not provided
+        if 'account_number' not in payload or not payload['account_number']:
+            cur.execute("SELECT MAX(CAST(account_number AS INTEGER)) FROM clients WHERE account_number ~ '^[0-9]+$'")
+            max_account = cur.fetchone()[0] or 7604
+            payload['account_number'] = str(int(max_account) + 1)
+        
         cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='clients'")
         cols = [r[0] for r in cur.fetchall()]
         data = {k: v for k, v in payload.items() if k in cols}
@@ -2801,14 +2808,14 @@ def create_client():
             columns = ','.join(data.keys())
             placeholders = ','.join(['%s']*len(data))
             values = list(data.values())
-            cur.execute(f"INSERT INTO clients ({columns}) VALUES ({placeholders}) RETURNING id")
+            cur.execute(f"INSERT INTO clients ({columns}) VALUES ({placeholders}) RETURNING client_id")
             row = cur.fetchone(); client_id = row[0] if row else None
             conn.commit(); status = 'saved'
         cur.close(); conn.close()
     except Exception as e:
         logger.warning('create_client fallback (schema mismatch?): %s', e)
         detail = str(e)
-    return jsonify({'status': status, 'id': client_id, 'detail': detail, 'client': payload})
+    return jsonify({'status': status, 'client_id': client_id, 'id': client_id, 'detail': detail, 'client': payload})
 
 # Lightweight client search for autocomplete
 @app.route('/clients/search', methods=['GET'])
