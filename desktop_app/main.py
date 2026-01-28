@@ -2531,42 +2531,73 @@ class CharterFormWidget(QWidget):
         self.charges_table.setRowCount(0)
 
     def add_charge_dialog(self):
-        """Dialog to add a charge line (description, calc type, value)."""
+        """Dialog to add a charge line with auto-fill based on preset table."""
         dialog = QDialog(self)
         dialog.setWindowTitle("Add Charge")
-        dialog.setGeometry(100, 100, 400, 260)
+        dialog.setGeometry(100, 100, 500, 320)
 
         layout = QVBoxLayout()
+
+        # Preset charges table: Description | Calc Type | Default Value
+        preset_charges = {
+            "Charter Charge": ("Hourly", 150.0),
+            "Gratuity": ("Percent", 18.0),
+            "Fuel Surcharge": ("Percent", 10.0),
+            "Wait Time": ("Hourly", 45.0),
+            "Parking Fee": ("Fixed", 25.0),
+            "Tolls": ("Fixed", 0.0),
+            "Airport Fee": ("Fixed", 85.0),
+            "Extra Hour": ("Hourly", 150.0),
+            "Standby Time": ("Hourly", 25.0),
+            "Other": ("Fixed", 0.0)
+        }
 
         # Description dropdown with presets
         type_label = QLabel("Description:")
         type_combo = QComboBox()
-        type_combo.addItems([
-            "Charter Charge", "Gratuity", "Fuel Surcharge", "Wait Time",
-            "Parking Fee", "Tolls", "Airport Fee", "Other"
-        ])
+        type_combo.addItems(list(preset_charges.keys()))
         layout.addWidget(type_label)
         layout.addWidget(type_combo)
 
-        # Calculation type
+        # Calculation type (auto-filled based on description)
         calc_label = QLabel("Calc Type:")
         calc_combo = QComboBox()
         calc_combo.addItems(["Fixed", "Percent", "Hourly"])
         layout.addWidget(calc_label)
         layout.addWidget(calc_combo)
 
-        # Value input (fixed amount, percent, or hourly rate)
-        amount_label = QLabel("Value (Fixed $ / Percent / Hourly Rate):")
+        # Value input (auto-filled from preset)
+        amount_label = QLabel("Value (Fixed $ / Percent % / Hourly Rate):")
         amount_input = QDoubleSpinBox()
         amount_input.setMaximum(99999.99)
         amount_input.setDecimals(2)
         layout.addWidget(amount_label)
         layout.addWidget(amount_input)
 
+        # Extra Time checkbox (for charges that can have extra time)
+        extra_time_layout = QHBoxLayout()
+        extra_time_checkbox = QCheckBox("Apply Extra Time")
+        extra_time_checkbox.setToolTip("Show separate 'Extra Time Cost/Hr' field in form")
+        extra_time_layout.addWidget(extra_time_checkbox)
+        extra_time_layout.addStretch()
+        layout.addLayout(extra_time_layout)
+
+        # Connect description change to auto-fill calc type and value
+        def on_description_changed(text):
+            if text in preset_charges:
+                calc_type, default_val = preset_charges[text]
+                calc_combo.setCurrentText(calc_type)
+                amount_input.setValue(default_val)
+        
+        type_combo.currentTextChanged.connect(on_description_changed)
+        
+        # Initialize with first preset
+        on_description_changed(type_combo.currentText())
+
         # Buttons
         button_layout = QHBoxLayout()
-        ok_btn = QPushButton("Add")
-        cancel_btn = QPushButton("Cancel")
+        ok_btn = QPushButton("✅ Add Charge")
+        cancel_btn = QPushButton("❌ Cancel")
         button_layout.addWidget(ok_btn)
         button_layout.addWidget(cancel_btn)
         layout.addLayout(button_layout)
@@ -2579,6 +2610,11 @@ class CharterFormWidget(QWidget):
                 calc_type=calc_combo.currentText(),
                 value=amount_input.value(),
             )
+            # Handle extra time if checkbox is set
+            if extra_time_checkbox.isChecked():
+                self.extended_hourly_checkbox.setChecked(True)
+                if amount_input.value() > 0:
+                    self.extended_hourly_price.setText(f"${amount_input.value():.2f}")
             dialog.accept()
 
         ok_btn.clicked.connect(add_charge)
