@@ -18,7 +18,7 @@ MDB_FILE = r"L:\limo\backups\lms.mdb"
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 OUT_JSON = r"L:\limo\reports\charges_inserted_specific_reserves.json"
 

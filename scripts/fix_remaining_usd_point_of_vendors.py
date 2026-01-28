@@ -10,7 +10,7 @@ import re
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 def extract_vendor_and_rate(banking_desc):
     """Extract vendor name and conversion rate from banking description."""

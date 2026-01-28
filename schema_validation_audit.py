@@ -10,7 +10,7 @@ from pathlib import Path
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 def get_table_columns():
     """Get all tables and their columns from database"""

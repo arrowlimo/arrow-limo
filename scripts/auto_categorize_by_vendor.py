@@ -13,7 +13,7 @@ import sys
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 def determine_category(vendor, description):
     """Determine category based on vendor/description patterns."""

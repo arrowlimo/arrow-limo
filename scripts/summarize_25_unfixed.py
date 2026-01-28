@@ -8,7 +8,7 @@ import psycopg2
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 UNFIXED_RESERVES = [
     ('015940', '2021-08-27', 'cancelled'),

@@ -11,7 +11,7 @@ from datetime import datetime
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_NAME = os.environ.get("DB_NAME", "almsdata")
 DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", os.environ.get("DB_PASSWORD"))
 
 REPORT_DIR = os.path.join("l:\\limo", "reports", "vendor_accounts")
 CSV_PATH = os.path.join(REPORT_DIR, "MISSING_INVOICES_BY_VENDOR.csv")

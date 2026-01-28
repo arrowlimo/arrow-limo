@@ -16,7 +16,7 @@ import sys
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_NAME = os.environ.get("DB_NAME", "almsdata")
 DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", os.environ.get("DB_PASSWORD"))
 
 file_path = r"L:\limo\CIBC UPLOADS\0228362 (CIBC checking account)\2014-2017 CIBC 8362.xlsx"
 

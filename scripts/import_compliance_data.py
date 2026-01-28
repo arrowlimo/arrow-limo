@@ -12,7 +12,7 @@ from pathlib import Path
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 def import_compliance_csv(csv_file, dry_run=True):
     """Import compliance data from CSV"""

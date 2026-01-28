@@ -10,7 +10,7 @@ from datetime import timedelta
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 def main():
     conn = psycopg2.connect(

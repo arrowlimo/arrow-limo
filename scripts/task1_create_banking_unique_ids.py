@@ -11,7 +11,7 @@ from datetime import datetime
 DB_HOST = 'localhost'
 DB_NAME = 'almsdata'
 DB_USER = 'postgres'
-DB_PASSWORD = '***REMOVED***'
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
 
 def main():
     conn = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD)

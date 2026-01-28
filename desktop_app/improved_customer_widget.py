@@ -83,16 +83,22 @@ class QuickAddClientDialog(QDialog):
         
         try:
             cur = self.db.get_cursor()
+            
+            # Generate account_number (max + 1)
+            cur.execute("SELECT MAX(CAST(account_number AS INTEGER)) FROM clients WHERE account_number ~ '^[0-9]+$'")
+            max_account = cur.fetchone()[0] or 7604
+            new_account_number = str(int(max_account) + 1)
+            
             cur.execute("""
-                INSERT INTO clients (client_name, primary_phone, email, address_line1)
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO clients (account_number, client_name, primary_phone, email, address_line1)
+                VALUES (%s, %s, %s, %s, %s)
                 RETURNING client_id
-            """, (name, phone, email, address))
+            """, (new_account_number, name, phone, email, address))
             self.new_client_id = cur.fetchone()[0]
             self.db.commit()
             cur.close()
             
-            QMessageBox.information(self, "Success", f"Client '{name}' added successfully")
+            QMessageBox.information(self, "Success", f"Client '{name}' (Account #{new_account_number}) added successfully")
             self.accept()
         except Exception as e:
             self.db.rollback()
@@ -410,7 +416,8 @@ class ImprovedCustomerWidget(QWidget):
             
             cur.close()
             
-            # Set autocomplete model
+            # Clear existing items and set autocomplete model
+            self.client_combo.clear()
             self.client_combo.addItems(client_names)
             completer = QCompleter(client_names)
             completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
@@ -458,7 +465,13 @@ class ImprovedCustomerWidget(QWidget):
                 row = cur.fetchone()
                 cur.close()
                 if row:
-                    self.client_combo.setCurrentText(row[0])
+                    client_name = row[0]
+                    # Set the combo box to the new client (triggers on_client_selected)
+                    index = self.client_combo.findText(client_name)
+                    if index >= 0:
+                        self.client_combo.setCurrentIndex(index)
+                        # Also manually trigger the load in case signal doesn't fire
+                        self.on_client_selected(client_name)
     
     def edit_current_client(self):
         """Edit current client"""

@@ -14,7 +14,7 @@ from datetime import datetime
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_NAME = os.environ.get("DB_NAME", "almsdata")
 DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", os.environ.get("DB_PASSWORD"))
 
 def find_duplicate_clients(cur):
     """Find groups of clients with same name (phone can be NULL)"""

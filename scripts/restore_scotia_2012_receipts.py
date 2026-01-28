@@ -11,7 +11,7 @@ import sys
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 BACKUP_FILE = "L:/limo/backups/critical_backup_20251210_123930/scotia_2012_receipts_20251210_123930.csv"
 

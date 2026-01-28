@@ -24,7 +24,7 @@ from datetime import datetime, date
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_NAME = os.environ.get("DB_NAME", "almsdata")
 DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", os.environ.get("DB_PASSWORD"))
 REPORTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "reports")
 
 ALLOWED_METHODS = {"cash", "check", "credit_card", "debit_card", "bank_transfer", "trade_of_services", "unknown"}

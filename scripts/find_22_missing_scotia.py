@@ -32,7 +32,7 @@ print(f"Date range: {df_2012['date'].min()} to {df_2012['date'].max()}")
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 conn = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD)
 cur = conn.cursor()

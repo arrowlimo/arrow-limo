@@ -10,7 +10,7 @@ import hashlib
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_NAME = os.environ.get("DB_NAME", "almsdata")
 DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", os.environ.get("DB_PASSWORD"))
 
 # Load missing records
 missing_file = r"L:\limo\data\scotia_missing_from_db_FINAL.xlsx"

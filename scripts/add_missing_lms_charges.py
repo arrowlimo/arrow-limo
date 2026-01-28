@@ -21,7 +21,7 @@ MDB_FILE = r"L:\limo\backups\lms.mdb"
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 DIFF_FILE = r"L:\limo\reports\lms_vs_alms_charges.json"
 
 

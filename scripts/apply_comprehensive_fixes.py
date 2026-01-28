@@ -129,7 +129,7 @@ def verify_database():
         db_host = os.environ.get("DB_HOST", "localhost")
         db_name = os.environ.get("DB_NAME", "almsdata")
         db_user = os.environ.get("DB_USER", "postgres")
-        db_password = os.environ.get("DB_PASSWORD", "***REMOVED***")
+        db_password = os.environ.get("DB_PASSWORD", os.environ.get("DB_PASSWORD"))
         
         try:
             conn = psycopg2.connect(

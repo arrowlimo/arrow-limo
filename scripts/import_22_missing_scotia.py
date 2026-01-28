@@ -8,7 +8,7 @@ import hashlib
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 # Load missing records
 df_missing = pd.read_excel(r"L:\limo\data\scotia_22_missing_transactions.xlsx")

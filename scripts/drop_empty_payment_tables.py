@@ -11,7 +11,7 @@ from datetime import datetime
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_NAME = os.environ.get("DB_NAME", "almsdata")
 DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", os.environ.get("DB_PASSWORD"))
 
 # Tables to drop (all confirmed empty)
 # Note: zero_payment_summary excluded - has 1 summary row from completed analysis

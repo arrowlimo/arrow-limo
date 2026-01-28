@@ -28,7 +28,7 @@ import psycopg2
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 REPORT_CSV = Path(r"L:\\limo\\reports\\T4_MISSING_MAPPINGS.csv")
 OUT_CSV = Path(r"L:\\limo\\data\\T4_NAME_SIN_MAPPING_suggested.csv")

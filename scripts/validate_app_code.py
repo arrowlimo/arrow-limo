@@ -13,7 +13,7 @@ from decimal import Decimal
 DB_HOST = 'localhost'
 DB_NAME = 'almsdata'
 DB_USER = 'postgres'
-DB_PASSWORD = '***REMOVED***'
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
 
 class ValidationReport:
     def __init__(self):

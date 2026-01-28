@@ -4,7 +4,7 @@ from datetime import datetime
 DB_HOST = os.environ.get('DB_HOST', 'localhost')
 DB_NAME = os.environ.get('DB_NAME', 'almsdata')
 DB_USER = os.environ.get('DB_USER', 'postgres')
-DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REMOVED***')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', os.environ.get("DB_PASSWORD"))
 ACCOUNT_NUMBER = '903990106011'
 
 MISSING_TXS = [

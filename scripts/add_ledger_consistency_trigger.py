@@ -17,7 +17,7 @@ import psycopg2
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_NAME = os.environ.get("DB_NAME", "almsdata")
 DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", os.environ.get("DB_PASSWORD"))
 
 SQL = """
 CREATE OR REPLACE FUNCTION ensure_ledger_on_receipts_update() RETURNS trigger AS $$

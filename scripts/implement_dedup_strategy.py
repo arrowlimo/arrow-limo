@@ -17,7 +17,7 @@ from datetime import datetime
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 DEDUP_STRATEGY = Path(r"L:\limo\reports\T4_DEDUPLICATION_STRATEGY.json")
 

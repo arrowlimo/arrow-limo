@@ -9,7 +9,7 @@ import psycopg2
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 # 7 reserves to write down (confirmed cancelled in LMS)
 WRITEDOWN_RESERVES = [

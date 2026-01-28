@@ -6,7 +6,7 @@ import psycopg2
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 # Read migration file
 with open(r"l:\limo\migrations\2025-12-10_create_charter_routes_table.sql", "r", encoding="utf-8") as f:

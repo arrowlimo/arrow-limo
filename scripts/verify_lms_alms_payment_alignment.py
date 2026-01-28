@@ -9,7 +9,7 @@ except ImportError:
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_NAME = os.environ.get("DB_NAME", "almsdata")
 DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", os.environ.get("DB_PASSWORD"))
 
 OUT_SUMMARY = r"L:\\limo\\reports\\LMS_ALMS_PAYMENT_ALIGNMENT_SUMMARY.csv"
 OUT_MISMATCH = r"L:\\limo\\reports\\LMS_ALMS_PAYMENT_MISMATCHES.csv"

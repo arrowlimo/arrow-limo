@@ -14,7 +14,7 @@ from datetime import datetime
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 AUDIT_LOG = Path(r"L:\limo\reports\T4_CLEANUP_AUDIT_LOG.json")
 BACKUP_SQL = Path(r"L:\limo\reports\T4_BACKUP_BEFORE_CLEANUP.sql")

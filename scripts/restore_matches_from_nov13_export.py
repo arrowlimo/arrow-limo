@@ -27,7 +27,7 @@ EXPORT_PATH = r"L:\limo\reports\complete_almsdata_export_20251113.json.gz"
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 def load_payments_from_export():
     """Load payments table from JSON export (streaming to avoid memory issues)"""

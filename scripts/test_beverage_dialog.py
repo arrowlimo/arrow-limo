@@ -13,7 +13,7 @@ from desktop_app.drill_down_widgets import BeverageShoppingCartDialog
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 try:
     conn = psycopg2.connect(

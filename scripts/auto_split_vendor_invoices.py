@@ -11,7 +11,7 @@ import psycopg2.extras
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_NAME = os.environ.get("DB_NAME", "almsdata")
 DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", os.environ.get("DB_PASSWORD"))
 
 OD_PATTERNS = [
     r"over\s*due\s*charge\s*on\s*(?P<base>[0-9]+\.[0-9]{2})",

@@ -16,7 +16,7 @@ from datetime import datetime
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 def main():
     xls_path = "l:/limo/reports/cheque_vendor_reference.xlsx"

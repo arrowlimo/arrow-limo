@@ -10,7 +10,7 @@ from datetime import datetime
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 PLACEHOLDER_RESERVES = [
     '015901','015902','012861','016011','016021','016009','016010','016022'

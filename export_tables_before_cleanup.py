@@ -14,7 +14,7 @@ import psycopg2
 DB_HOST = 'localhost'
 DB_NAME = 'almsdata'
 DB_USER = 'postgres'
-DB_PASSWORD = '***REMOVED***'
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
 
 # Tables to export (17 total)
 TABLES_TO_EXPORT = {

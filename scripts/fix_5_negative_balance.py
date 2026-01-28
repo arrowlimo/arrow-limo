@@ -9,7 +9,7 @@ import psycopg2
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 # 5 reserves with negative balance - remove payments to match LMS (0 payments)
 RESERVES_TO_FIX = [

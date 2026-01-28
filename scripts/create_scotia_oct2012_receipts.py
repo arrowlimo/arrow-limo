@@ -10,7 +10,7 @@ from datetime import datetime
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_NAME = os.environ.get("DB_NAME", "almsdata")
 DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", os.environ.get("DB_PASSWORD"))
 
 def calculate_gst(gross_amount, tax_rate=0.05):
     """GST is INCLUDED in amount (Alberta 5% GST)."""

@@ -19,7 +19,7 @@ from datetime import datetime
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 XLSX_FILE = "L:/limo/data/2013_scotia_transactions_for_editingfinal.xlsx"
 SCOTIA_ACCOUNT = '903990106011'

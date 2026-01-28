@@ -13,7 +13,7 @@ import re
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 def categorize_from_description(description, vendor, debit, credit):
     """Determine category from transaction description and vendor."""

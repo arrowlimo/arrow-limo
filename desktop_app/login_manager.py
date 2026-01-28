@@ -39,7 +39,7 @@ class LoginManager:
         self.db_port = int(os.environ.get('DB_PORT', 5432))
         self.db_name = os.environ.get('DB_NAME', 'almsdata')
         self.db_user = os.environ.get('DB_USER', 'postgres')
-        self.db_password = os.environ.get('DB_PASSWORD', '***REMOVED***')
+        self.db_password = os.environ.get('DB_PASSWORD', os.environ.get("DB_PASSWORD"))
         self.token_file = Path.home() / '.limo_auth_token'
     
     def _get_connection(self):

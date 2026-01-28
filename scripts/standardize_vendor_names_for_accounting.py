@@ -16,7 +16,7 @@ import sys
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 def standardize_vendor_for_accounting(vendor):
     """Standardize vendor name for accounting consistency."""

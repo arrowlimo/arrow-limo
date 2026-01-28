@@ -23,7 +23,7 @@ from datetime import datetime
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_NAME = os.environ.get("DB_NAME", "almsdata")
 DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", os.environ.get("DB_PASSWORD"))
 
 KEY_COLUMNS = [
     'receipt_date','vendor_name','gross_amount','card_number','vehicle_number','description'
@@ -329,7 +329,7 @@ def insert_rows(rows: List[Dict[str, Any]]) -> None:
     # DB config via env, consistent with import_clean_receipts
     DB_NAME = os.environ.get('DB_NAME', 'almsdata')
     DB_USER = os.environ.get('DB_USER', 'postgres')
-    DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REMOVED***')
+    DB_PASSWORD = os.environ.get('DB_PASSWORD', os.environ.get("DB_PASSWORD"))
     DB_HOST = os.environ.get('DB_HOST', 'localhost')
     DB_PORT = int(os.environ.get('DB_PORT', '5432'))
 

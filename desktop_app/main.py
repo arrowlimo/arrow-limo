@@ -4902,15 +4902,21 @@ class CharterFormWidget(QWidget):
 
             else:
                 # ===== CREATE NEW (WITH RESERVE_NUMBER AUTO-GENERATION) =====
+                # Generate reserve_number (max + 1)
+                cur.execute("SELECT MAX(CAST(reserve_number AS INTEGER)) FROM charters WHERE reserve_number ~ '^\\d+$'")
+                max_val = cur.fetchone()[0] or 0
+                new_reserve_number = f"{int(max_val) + 1:06d}"
+                
                 out_of_town = self.out_of_town_checkbox.isChecked() if hasattr(self, 'out_of_town_checkbox') else False
                 cur.execute(
                     """
                     INSERT INTO charters (
-                        charter_date, pickup_time, passenger_count, notes, status, client_id, is_out_of_town, charter_data
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                        reserve_number, charter_date, pickup_time, passenger_count, notes, status, client_id, is_out_of_town, charter_data
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
                     RETURNING charter_id, reserve_number
                     """,
                     (
+                        new_reserve_number,
                         charter_date_val,
                         pickup_time_val,
                         self.num_passengers.value(),
@@ -8324,18 +8330,23 @@ class CustomersWidget(QWidget):
                 self.db.commit()
                 QMessageBox.information(self, "Saved", f"Customer #{self.current_customer_id} updated")
             else:
+                # Generate account_number (max + 1)
+                cur.execute("SELECT MAX(CAST(account_number AS INTEGER)) FROM clients WHERE account_number ~ '^[0-9]+$'")
+                max_account = cur.fetchone()[0] or 7604
+                new_account_number = str(int(max_account) + 1)
+                
                 cur.execute(
                     """
-                    INSERT INTO clients (client_name, primary_phone, email, address_line1, notes)
-                    VALUES (%s, %s, %s, %s, %s)
+                    INSERT INTO clients (account_number, client_name, primary_phone, email, address_line1, notes)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                     RETURNING client_id
                     """,
-                    (name, phone, email, address, notes)
+                    (new_account_number, name, phone, email, address, notes)
                 )
                 customer_id = cur.fetchone()[0]
                 self.db.commit()
                 self.current_customer_id = customer_id
-                QMessageBox.information(self, "Saved", f"Customer #{customer_id} created")
+                QMessageBox.information(self, "Saved", f"Customer #{customer_id} (Account #{new_account_number}) created")
             self.load_customers()
             self.search_input.clear()
         except Exception as e:

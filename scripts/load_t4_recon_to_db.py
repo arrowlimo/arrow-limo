@@ -19,7 +19,7 @@ from psycopg2.extras import execute_batch
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 RECON_PATH = Path(r"L:\\limo\\reports\\T4_RECONCILIATION_REPORT.json")
 

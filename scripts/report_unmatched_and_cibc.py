@@ -31,7 +31,7 @@ load_dotenv('l:/limo/.env'); load_dotenv()
 DB_NAME = os.environ.get('DB_NAME','almsdata')
 DB_USER = os.environ.get('DB_USER','postgres')
 # Fallback to known default used elsewhere if not provided
-DB_PASSWORD = os.environ.get('DB_PASSWORD','***REMOVED***')
+DB_PASSWORD = os.environ.get('DB_PASSWORD',os.environ.get("DB_PASSWORD"))
 DB_HOST = os.environ.get('DB_HOST','localhost')
 DB_PORT = int(os.environ.get('DB_PORT','5432'))
 

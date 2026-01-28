@@ -18,7 +18,7 @@ import psycopg2
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 PD7A_PATH = Path(r"L:\\limo\\reports\\PD7A_SUMMARY_REPORT.json")
 OUTPUT_JSON = Path(r"L:\\limo\\reports\\T4_DB_PD7A_RECON_SUMMARY.json")

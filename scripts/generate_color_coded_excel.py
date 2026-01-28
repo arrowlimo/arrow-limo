@@ -12,7 +12,7 @@ from openpyxl.styles import PatternFill, Font
 DB_HOST = 'localhost'
 DB_NAME = 'almsdata'
 DB_USER = 'postgres'
-DB_PASSWORD = '***REMOVED***'
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
 
 def extract_vendor_from_description(description):
     """Extract vendor name from banking description."""
