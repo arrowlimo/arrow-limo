@@ -1,0 +1,2498 @@
+# Database Schema Audit Report
+
+Generated for: **almsdata** database
+
+## Summary
+- **Tables**: 414
+- **Views**: 179
+- **Foreign Keys**: 224
+- **Indexes**: 817
+- **Sequences**: 263
+- **Issues Found**: 2446
+
+## Issues Detected
+
+### ALWAYS_NULL_COLUMN (10 found)
+
+- **account_categories.parent_category**
+- **account_categories.gl_account_code_alt**
+- **accounting_periods.closed_by**
+- **accounting_periods.closed_at**
+- **alcohol_business_tracking.transaction_date**
+- **alcohol_business_tracking.quantity**
+- **alcohol_business_tracking.unit_cost**
+- **alcohol_business_tracking.total_cost**
+- **alcohol_business_tracking.sale_price**
+- **alcohol_business_tracking.profit_loss**
+
+### DUPLICATE_COLUMN_NAME (789 found)
+
+- **#** in tables: journal, journal_backup_20251126_192458
+- **Account** in tables: journal, journal_backup_20251126_192458
+- **Arrow Limousine backup 2025** in tables: profit_and_loss, suppliers, trial_balance
+- **Credit** in tables: journal, journal_backup_20251126_192458
+- **Date** in tables: journal, journal_backup_20251126_192458
+- **Debit** in tables: journal, journal_backup_20251126_192458
+- **Memo/Description** in tables: journal, journal_backup_20251126_192458
+- **Name** in tables: journal, journal_backup_20251126_192458
+- **Reference** in tables: journal, journal_backup_20251126_192458
+- **Transaction Type** in tables: journal, journal_backup_20251126_192458
+- **Unnamed: 1** in tables: profit_and_loss, suppliers, trial_balance
+- **Unnamed: 2** in tables: suppliers, trial_balance
+- **accessibility_required** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **account** in tables: financial_transactions, general_ledger, staging_qb_gl_transactions
+- **account_code** in tables: accounting_entries, accounting_records, chart_of_accounts, financing_sources, general_ledger_lines
+- **account_id** in tables: bank_transactions_staging, cibc_accounts, cibc_checking_staging_archived_20251107, credit_lines, deferred_wage_accounts
+- **account_name** in tables: accounting_entries, accounting_records, bank_accounts, bank_transactions_staging, chart_of_accounts
+- **account_no** in tables: lms_charges, lms_customers_enhanced
+- **account_number** in tables: bank_accounts, banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013
+- **account_type** in tables: account_categories, account_number_aliases, account_number_aliases_backup_20251216_145717, account_number_aliases_backup_20251216_145755, bank_accounts
+- **accounting_treatment** in tables: fraud_cases, payment_reconciliation_ledger
+- **action_id** in tables: driver_app_actions, driver_disciplinary_actions
+- **action_timestamp** in tables: driver_app_actions, financial_audit_trail
+- **action_type** in tables: driver_app_actions, driver_disciplinary_actions, financial_audit_trail
+- **activity_type_id** in tables: maintenance_activity_types, maintenance_records
+- **actual_dropoff_time** in tables: charters, charters_backup_vehicle_id_20251224_202231
+- **actual_end_time** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **actual_pickup_time** in tables: charters, charters_backup_vehicle_id_20251224_202231
+- **actual_start_time** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **address_id** in tables: limo_addresses, limo_addresses_clean
+- **address_line1** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, limo_addresses, limo_addresses_clean
+- **address_line2** in tables: limo_addresses, limo_addresses_clean, limo_clients, limo_clients_clean, lms_customers_enhanced
+- **adjustment_id** in tables: financial_adjustments, payroll_adjustments
+- **adjustment_type** in tables: financial_adjustments, payments, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123, payments_backup_20251126_192900
+- **air_filter_interval_km** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **air_filter_part_number** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **airport_dropoff_price** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **airport_pickup_price** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **alcohol_content** in tables: beverage_menu, beverages
+- **alert_date** in tables: cvip_compliance_alerts, maintenance_alerts
+- **alert_id** in tables: cvip_compliance_alerts, maintenance_alerts
+- **alert_type** in tables: alert_policy, cvip_compliance_alerts
+- **alias_id** in tables: account_number_aliases, account_number_aliases_backup_20251216_145717, account_number_aliases_backup_20251216_145755
+- **allocated_amount** in tables: wage_allocation_decisions, wage_allocation_pool
+- **allocation_date** in tables: banking_receipt_matching_ledger, wage_allocation_decisions
+- **allocation_id** in tables: batch_deposit_allocations, wage_allocation_decisions
+- **alternatives** in tables: epson_classifications_map, epson_pay_accounts_map, epson_pay_methods_map
+- **amount** in tables: accounting_records, bank_transactions_staging, banking_inter_account_transfers, billing_audit_issues, billing_audit_log
+- **amount_usd** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_backup_2025_10_25_manual_invoices_20251206_125155, receipts_backup_dedup_20251221_124543, receipts_backup_post_dedup_20251207_003927
+- **applied_to_invoice** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **approval_date** in tables: deferred_wage_transactions, owner_expense_transactions, wage_allocation_decisions
+- **approval_notes** in tables: employee_expenses, owner_expense_transactions
+- **approved_at** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **approved_by** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **archived_at** in tables: orphaned_charges_archive, payments_archived
+- **arrived** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **asset_id** in tables: asset_depreciation_schedule, asset_documentation, assets
+- **assigned_driver_id** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **attention** in tables: limo_clients, limo_clients_clean, lms_customers_enhanced
+- **auction_date** in tables: vehicle_repossessions, vehicle_sales
+- **audit_id** in tables: audit_log, financial_audit_trail, security_audit
+- **audit_notes** in tables: billing_audit_issues, billing_audit_log, gst_audit_trail, transaction_chain
+- **authorization_code** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **auto_categorized** in tables: cibc_card_transactions, receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921
+- **available_credit** in tables: cibc_business_cards, credit_lines
+- **bad_debt_reason** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **bad_debt_status** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **balance** in tables: banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013, banking_transactions_1615_backup_2014
+- **balance_after** in tables: bank_transactions_staging, cash_box_transactions, deferred_wage_transactions, vendor_account_ledger
+- **bank_id** in tables: bank_accounts, banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013
+- **bank_reference** in tables: fee_tracking, missing_receipt_tracking
+- **banking_transaction_id** in tables: banking_payment_links, banking_receipt_matching_ledger, banking_receipt_matching_ledger_1615_backup_20251218_234108, banking_receipt_matching_ledger_scotia_backup_20251218_235557, cash_box_transactions
+- **bankruptcy_status** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **base_wages** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **batch_id** in tables: journal_lines, qb_import_batches
+- **belt_size** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **beverage_id** in tables: beverage_cart, beverage_menu, beverages
+- **beverage_service_required** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **billing_address** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **billing_no** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, lms_customers_enhanced
+- **billing_rate_level** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, vendors
+- **booking_notes** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **booking_status** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **bracket_number** in tables: alberta_tax_brackets, federal_tax_brackets
+- **brake_fluid_change_interval_months** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **brake_fluid_type** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **brand** in tables: beverage_menu, beverages
+- **business_percentage** in tables: bank_transactions_staging, credit_lines, employee_expenses, interest_allocations, personal_expenses
+- **business_personal** in tables: banking_transactions, receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921
+- **business_purpose** in tables: cibc_auto_categorization_rules, cibc_card_transactions
+- **cabin_filter_part_number** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **calculated_hours** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **cancelled** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **canonical_account_number** in tables: account_number_aliases, account_number_aliases_backup_20251216_145717, account_number_aliases_backup_20251216_145755
+- **canonical_pay_method** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **canonical_vendor** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_backup_2025_10_25_manual_invoices_20251206_125155, receipts_backup_dedup_20251221_124543, receipts_backup_post_dedup_20251207_003927
+- **card** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **card_brand** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09, square_processing_fees
+- **card_entry_methods** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **card_id** in tables: cibc_auto_categorization_rules, cibc_business_cards, cibc_card_transactions
+- **card_last4_detected** in tables: banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013, banking_transactions_1615_backup_2014
+- **card_number** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **card_type** in tables: cibc_business_cards, receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921
+- **cash** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **cash_box_transaction_id** in tables: driver_floats, receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251201_140300
+- **category** in tables: accounting_records, agreement_terms, bank_transactions_staging, banking_transactions, banking_transactions_1010_backup_20251203_021934
+- **category_code** in tables: account_categories, categorization_rules, category_to_account_map, receipt_categories
+- **category_id** in tables: account_categories, cash_flow_categories, document_categories, receipt_categories, transaction_subcategories
+- **category_name** in tables: account_categories, cash_flow_categories, document_categories, receipt_categories, transaction_categories
+- **cell_phone** in tables: employees, limo_clients, limo_clients_clean, limo_contacts, lms_customers_enhanced
+- **channel** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **charge_amount** in tables: rent_debt_ledger, rent_debt_ledger_backup_20251126_192458, wcb_debt_ledger
+- **charge_id** in tables: charter_charges, charter_charges_backup_013914_20251123, charter_charges_backup_20251126_192458, charter_charges_backup_lms_sync_20251123, charter_charges_backup_nrd_20260107_225955
+- **charge_type** in tables: charter_charges, charter_charges_backup_013914_20251123, charter_charges_backup_20251126_192458, charter_charges_backup_lms_sync_20251123, charter_charges_backup_nrd_20260107_225955
+- **charter_data** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **charter_date** in tables: charter_payments, charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231
+- **charter_id** in tables: accounting_entries, alcohol_business_tracking, beverage_cart, charity_trade_charters, charter_beverages
+- **charter_reference** in tables: chauffeur_pay_entries, driver_pay_entries
+- **check_number** in tables: banking_transactions, payables, payments, payments_2012_backup_v2, payments_archived
+- **city** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, employees, limo_addresses
+- **classification** in tables: charity_trade_charters, receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921
+- **classification_type** in tables: employee_schedules, employee_work_classifications, non_charter_payroll
+- **client_display_name** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **client_feedback** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **client_id** in tables: charter_credit_ledger, charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231
+- **client_name** in tables: charter_payments, clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **client_notes** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **client_rating** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **closed** in tables: charter_charges, charter_charges_backup_013914_20251123, charter_charges_backup_20251126_192458, charter_charges_backup_lms_sync_20251123, charter_charges_backup_nrd_20260107_225955
+- **closing_balance** in tables: bank_reconciliation, vehicle_loans
+- **collection_attempts_count** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **collection_notes** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **comment** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **commission_date** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **company_name** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, limo_clients, limo_clients_clean
+- **completion_date** in tables: etransfer_fix_final_results, monthly_work_assignments
+- **confidence** in tables: driver_name_employee_map, epson_classifications_map, epson_pay_accounts_map, epson_pay_methods_map, vendor_synonyms
+- **confidence_level** in tables: employee_pay_master, employee_t4_summary, payment_matches_backup_2025_08_09
+- **confidence_score** in tables: driver_employee_mapping, payment_customer_links, payment_imports_archived_20251107, payment_imports_backup_2025_08_09, payment_matches
+- **contact_info** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **contact_person** in tables: limo_clients, limo_clients_clean
+- **contact_phone** in tables: limo_addresses, limo_addresses_clean
+- **coolant_change_interval_km** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **coolant_quantity** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **coolant_type** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **cost** in tables: beverages, cvip_inspections, maintenance_records
+- **country** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, employees, limo_addresses
+- **cpp** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **cpp_employee** in tables: employee_pay_master, staging_pd7a_year_end_summary
+- **cra_reference_number** in tables: cra_vehicle_events, t4_compliance_corrections
+- **created_at** in tables: account_categories, account_number_aliases, account_number_aliases_backup_20251216_145717, account_number_aliases_backup_20251216_145755, accounting_periods
+- **created_by** in tables: banking_receipt_matching_ledger, banking_receipt_matching_ledger_1615_backup_20251218_234108, banking_receipt_matching_ledger_scotia_backup_20251218_235557, business_losses, cash_box_transactions
+- **created_date** in tables: accounting_entries, charter_credit_ledger, limo_addresses, limo_addresses_clean, limo_clients
+- **created_from_banking** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **credit** in tables: financial_transactions, general_ledger, journal_lines
+- **credit_amount** in tables: accounting_entries, banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013
+- **credit_card_expiry** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **credit_card_last4** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **credit_limit** in tables: cibc_business_cards, clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, credit_lines
+- **cross_street** in tables: limo_clients, limo_clients_clean
+- **csv_transaction_id** in tables: staging_scotia_2012_verified, staging_scotia_2012_verified_archived_20251109
+- **curb_weight** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **currency** in tables: bank_accounts, email_financial_events, journal_lines, receipts, receipts_1615_backup_20251218_234108
+- **current_balance** in tables: chart_of_accounts, cibc_business_cards, credit_lines, deferred_wage_accounts, owner_equity_accounts
+- **customer** in tables: charter_refunds, general_ledger
+- **customer_id** in tables: lms_staging_customer_archived_20251109, payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **customer_name** in tables: direct_tips_history, payment_customer_links, payment_imports_archived_20251107, payment_imports_backup_2025_08_09, qb_journal_entries
+- **customer_reference_id** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **cvip_compliance_status** in tables: vehicles, vehicles_backup_class_20251224_203948
+- **cvip_expiry_date** in tables: vehicles, vehicles_backup_class_20251224_203948
+- **cvip_inspection_number** in tables: vehicles, vehicles_backup_class_20251224_203948
+- **data_source** in tables: employee_pay_master, legacy_import_status, performance_metrics
+- **date** in tables: general_ledger, personal_expenses
+- **date_added** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **days_until_due** in tables: cvip_compliance_alerts, maintenance_schedules_auto
+- **debit** in tables: financial_transactions, general_ledger, journal_lines
+- **debit_amount** in tables: accounting_entries, banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013
+- **decommission_date** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **deductible_status** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **default_hourly_price** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **deferred_amount** in tables: deferred_wage_transactions, wage_allocation_decisions
+- **delay_minutes** in tables: charters, charters_backup_vehicle_id_20251224_202231
+- **delay_reason** in tables: charters, charters_backup_vehicle_id_20251224_202231
+- **department** in tables: limo_clients, limo_clients_clean, payables
+- **deposit** in tables: charity_trade_charters, charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231
+- **deposit_amount** in tables: beverage_order_items, beverage_products
+- **deposit_date** in tables: deposit_records, payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **deposit_details** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **deposit_id** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **deposit_key** in tables: deposit_records, payment_matches
+- **deposit_to_account** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **description** in tables: account_categories, accounting_entries, accounting_records, agreement_terms, asset_documentation
+- **details** in tables: financial_audit_trail, payment_imports_archived_20251107, payment_imports_backup_2025_08_09, security_audit
+- **device_name** in tables: driver_app_sessions, payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **device_nickname** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **dining_option** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **direction** in tables: etransfer_transactions, etransfers_processed, loan_transactions
+- **discount_amount** in tables: invoice_line_items, payables
+- **discount_flat** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **discount_name** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **discount_percentage** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **discounts** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **dispatch_authorized_time** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **dispatcher_approved** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **display_color** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_backup_2025_10_25_manual_invoices_20251206_125155, receipts_backup_dedup_20251221_124543, receipts_backup_post_dedup_20251207_003927
+- **doc_type_id** in tables: vehicle_document_types, vehicle_documents
+- **document_date** in tables: asset_documentation, financial_documents
+- **document_id** in tables: documents, invoice_tracking, vehicle_documents
+- **document_number** in tables: driver_documents, vehicle_documents
+- **document_type** in tables: asset_documentation, driver_documents, financial_documents, receipts, receipts_1615_backup_20251218_234108
+- **driver** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_base_pay** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_gratuity** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_gratuity_amount** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_gratuity_percent** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_hourly_rate** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_hours_1** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_hours_2** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_hours_worked** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_id** in tables: charter_time_updates, chauffeur_float_tracking, direct_tips_history, driver_app_actions, driver_app_sessions
+- **driver_name** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_notes** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_paid** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_pay_1** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_pay_2** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_payroll_id** in tables: payroll_adjustments, payroll_approval_workflow, payroll_fix_audit
+- **driver_percentage** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_reported_delay** in tables: charters, charters_backup_vehicle_id_20251224_202231
+- **driver_total** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **driver_total_expense** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **dropoff_address** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **dropoff_location** in tables: charter_routes, quotations
+- **due_date** in tables: cvip_compliance_alerts, email_financial_events, maintenance_alerts, maintenance_schedules_auto, payables
+- **duplicate_check_key** in tables: receipts, receipts_backup_dedup_20251221_124543
+- **duplicate_of** in tables: bank_transactions_staging, email_scanner_staging, qb_accounts_staging, qb_journal_entries
+- **duty_log** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **effective_date** in tables: gst_rates_lookup, vehicle_documents
+- **effective_end_date** in tables: employee_availability, employee_work_classifications
+- **effective_start_date** in tables: employee_availability, employee_work_classifications
+- **ei** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **ei_employee** in tables: employee_pay_master, staging_pd7a_year_end_summary
+- **email** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, employees, limo_clients
+- **email_event_id** in tables: etransfer_transactions, wcb_debt_ledger
+- **email_subject** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **employee_id** in tables: cash_box_transactions, charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231
+- **employee_name** in tables: employee_pay_entries, employee_roe_records, payroll_comparison, qb_journal_entries, staging_employee_reference_data
+- **employee_number** in tables: driver_employee_mapping, employees, payroll_comparison
+- **end_date** in tables: accounting_periods, employee_time_off_requests, tax_periods
+- **engine_oil_type** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **entity_id** in tables: audit_log, journal_lines, tax_overrides
+- **entity_type** in tables: audit_log, journal_lines, tax_overrides
+- **entry_date** in tables: accounting_entries, general_ledger_headers, vendor_account_ledger
+- **entry_id** in tables: chauffeur_pay_entries, driver_pay_entries, employee_pay_entries
+- **equity_account_id** in tables: owner_equity_accounts, owner_expense_transactions
+- **error_message** in tables: migration_log, posting_queue, staging_driver_pay_files
+- **eta_dropoff** in tables: charters, charters_backup_vehicle_id_20251224_202231
+- **eta_pickup** in tables: charters, charters_backup_vehicle_id_20251224_202231
+- **etransfer_date** in tables: etransfers_processed, square_etransfer_reconciliation
+- **etransfer_id** in tables: etransfer_banking_reconciliation, etransfer_transactions
+- **event_batch_id** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **event_date** in tables: cra_vehicle_events, major_events
+- **event_id** in tables: cra_vehicle_events, journal_batches, major_events, security_events
+- **event_type** in tables: cra_vehicle_events, email_financial_events, payment_imports_archived_20251107, payment_imports_backup_2025_08_09, posting_queue
+- **exemption_certificate_expiry** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **exemption_certificate_number** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **exemption_notes** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **exemption_type** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **expense** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **expense_account** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **expense_calculated_at** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **expense_category** in tables: cibc_auto_categorization_rules, cibc_card_transactions, missing_receipt_tracking, owner_expense_transactions
+- **expense_date** in tables: business_expenses, employee_expenses, fuel_expenses
+- **expense_id** in tables: deferred_wage_transactions, employee_expenses, fuel_expenses
+- **expense_reimbursement** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **expenses** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **expiry_date** in tables: driver_documents, vehicle_documents
+- **exported** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **ext_color** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **extra_time_rate** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **fax_phone** in tables: limo_clients, limo_clients_clean, limo_contacts, lms_customers_enhanced
+- **fee_amount** in tables: fee_tracking, vehicle_loan_reconciliation_allocations
+- **fee_fixed_rate** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **fee_id** in tables: fee_tracking, square_processing_fees
+- **fee_percentage_rate** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **fee_type** in tables: fee_tracking, square_processing_fees
+- **fees** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **fees_amount** in tables: beverage_order_items, beverage_products, square_transactions_staging_archived_20251107
+- **field** in tables: tax_overrides, tax_variances
+- **file_hash** in tables: pdf_staging, receipts_ingest_log, vehicle_documents
+- **file_name** in tables: cibc_qbo_staging_archived_20251107, financial_documents, pdf_staging, raw_file_inventory, receipts_ingest_log
+- **file_path** in tables: asset_documentation, documents, driver_documents, financial_documents, pdf_staging
+- **file_size** in tables: documents, driver_documents, financial_documents, pdf_staging
+- **file_type** in tables: staging_driver_pay_files, vehicle_documents
+- **finance_partner** in tables: vehicles, vehicles_backup_class_20251224_203948
+- **financing_amount** in tables: vehicle_purchases, vehicles, vehicles_backup_class_20251224_203948
+- **financing_partner** in tables: vehicle_financing_complete, vehicle_purchases
+- **first_name** in tables: employees, square_customers
+- **first_overdue_date** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **fiscal_quarter** in tables: income_ledger, income_ledger_payment_archive
+- **fiscal_year** in tables: asset_depreciation_schedule, employee_pay_master, employee_t4_summary, income_ledger, income_ledger_payment_archive
+- **fleet_number** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **fleet_position** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **float_id** in tables: driver_floats, float_activity_log
+- **follow_up_date** in tables: driver_internal_notes, incidents
+- **follow_up_required** in tables: driver_internal_notes, incidents
+- **fraud_case_id** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, financial_adjustments, general_ledger_headers
+- **free_processing_applied** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **frozen** in tables: charter_charges, charter_charges_backup_013914_20251123, charter_charges_backup_20251126_192458, charter_charges_backup_lms_sync_20251123, charter_charges_backup_nrd_20260107_225955
+- **fuel** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **fuel_added** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **fuel_amount** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **fuel_efficiency_data** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **fuel_filter_interval_km** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **fuel_filter_number** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **fuel_type** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **fulfillment_note** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **full_name** in tables: driver_employee_mapping, employees
+- **fx_rate** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_backup_2025_10_25_manual_invoices_20251206_125155, receipts_backup_dedup_20251221_124543, receipts_backup_post_dedup_20251207_003927
+- **gift_card_sales** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **gl_account_code** in tables: account_categories, category_to_account_map, receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426
+- **gl_account_name** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **gl_subcategory** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **grace_days** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **gratuity_amount** in tables: charity_trade_charters, driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, employee_pay_master
+- **gratuity_percentage** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **gratuity_type** in tables: charter_charges, charter_charges_backup_nrd_20260107_225955, charter_charges_backup_nrd_all_20260107_230822
+- **gross_amount** in tables: deferred_wage_transactions, gst_audit_trail, income_ledger, income_ledger_payment_archive, owner_expense_transactions
+- **gross_pay** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, employee_pay_master, payroll_comparison
+- **gross_payroll** in tables: staging_pd7a_year_end_summary, wcb_recurring_charges
+- **gross_sales** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **gross_vehicle_weight** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **gst_amount** in tables: beverage_order_items, charter_charges, charter_charges_backup_nrd_20260107_225955, charter_charges_backup_nrd_all_20260107_230822, charter_gst_details_2010_2012
+- **gst_applicable** in tables: banking_transactions, cibc_card_transactions
+- **gst_code** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **gst_collected** in tables: income_ledger, income_ledger_payment_archive
+- **gst_rate** in tables: gst_audit_trail, gst_rates_lookup, quotations, tax_year_reference, vehicle_loan_payments
+- **hash_pattern** in tables: deposit_records, payment_matches
+- **header_id** in tables: general_ledger_headers, general_ledger_lines
+- **height** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **hire_date** in tables: employees, staging_employee_reference_data
+- **home_phone** in tables: limo_clients, limo_clients_clean, limo_contacts, lms_customers_enhanced
+- **hourly_rate** in tables: chauffeur_pay_entries, driver_pay_entries, employee_pay_entries, employee_pay_master, employee_schedules
+- **hours_worked** in tables: chauffeur_pay_entries, driver_pay_entries, driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **id** in tables: accounting_entries, accounting_records, alcohol_business_tracking, bank_transactions_staging, banking_receipt_matching_ledger
+- **image_path** in tables: beverage_products, beverage_products_backup_20260107_191111
+- **image_url** in tables: beverage_products, beverage_products_backup_20260107_191111
+- **import_batch** in tables: accounting_entries, banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013
+- **import_batch_id** in tables: gl_transactions_staging_archived_20251107, qb_accounts_staging
+- **import_date** in tables: financial_transactions, gl_transactions_staging_archived_20251107, legacy_import_status, payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **import_id** in tables: legacy_import_status, qb_accounts_staging
+- **import_notes** in tables: payroll_comparison, qb_import_batches
+- **import_source** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09, personal_expenses, qb_accounts_staging
+- **import_status** in tables: legacy_import_status, qb_import_batches
+- **imported_at** in tables: accounting_records, business_expenses, charter_gst_details_2010_2012, charter_payments, cibc_checking_staging_archived_20251107
+- **incident_date** in tables: incident_damage_tracking, incidents
+- **incident_id** in tables: incident_costs, incidents
+- **incident_type** in tables: incident_damage_tracking, incidents
+- **income_from** in tables: alberta_tax_brackets, federal_tax_brackets
+- **income_id** in tables: income_ledger, income_ledger_payment_archive
+- **income_to** in tables: alberta_tax_brackets, federal_tax_brackets
+- **industry_code** in tables: wcb_ab_industry_rates, wcb_ab_premium_rates
+- **inspection_date** in tables: cvip_inspections, vehicle_pre_inspections
+- **inspection_id** in tables: cvip_defects, cvip_inspections, pre_inspection_issues, vehicle_pre_inspections
+- **institution_name** in tables: account_number_aliases, account_number_aliases_backup_20251216_145717, account_number_aliases_backup_20251216_145755, bank_accounts
+- **insurance_claim_number** in tables: business_losses, cra_vehicle_events, incidents, vehicle_writeoffs
+- **int_color** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **interest_amount** in tables: bank_transactions_staging, financing_payments, personal_expenses, vehicle_loan_reconciliation_allocations
+- **interest_rate** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, credit_lines, deferred_wage_accounts
+- **invoice_date** in tables: invoice_tracking, payables, receipts
+- **invoice_number** in tables: financial_documents, invoice_tracking, payables, qb_journal_entries, vehicle_purchases
+- **ip_address** in tables: audit_log, security_audit, security_events
+- **is_active** in tables: account_categories, agreement_terms, bank_accounts, beverage_menu, beverages
+- **is_business_expense** in tables: employee_expenses, loan_transactions
+- **is_deposited** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **is_driver_reimbursement** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251201_140300, receipts_backup_20251201_140430
+- **is_gst_exempt** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **is_inactive** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **is_mandatory** in tables: maintenance_service_types, training_programs, vehicle_document_types
+- **is_personal_purchase** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251201_140300, receipts_backup_20251201_140430
+- **is_placeholder** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **is_required** in tables: document_categories, training_checklist_items
+- **is_split_receipt** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251201_140300, receipts_backup_20251201_140430
+- **is_tax_deductible** in tables: personal_expenses, receipt_categories
+- **is_taxable** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, income_ledger, income_ledger_payment_archive
+- **is_transfer** in tables: banking_transactions, banking_transactions_scotia_backup_20251218_235448, receipts, receipts_backup_dedup_20251221_124543, receipts_scotia_backup_20251218_235557
+- **is_verified_banking** in tables: receipts, receipts_backup_dedup_20251221_124543
+- **issue_type** in tables: billing_audit_issues, billing_audit_log
+- **issued_date** in tables: driver_documents, driver_floats
+- **issuing_authority** in tables: driver_documents, vehicle_documents
+- **item_id** in tables: beverage_order_items, beverage_products, beverage_products_backup_20260107_191111, training_checklist_items
+- **item_name** in tables: beverage_order_items, beverage_products, beverage_products_backup_20260107_191111, charter_beverages, invoice_line_items
+- **item_type** in tables: invoice_line_items, unmatched_items
+- **journal_entry_id** in tables: deferred_wage_transactions, financing_payments, owner_expense_transactions
+- **journal_id** in tables: journal, journal_backup_20251126_192458
+- **last_collection_date** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **last_cvip_date** in tables: vehicles, vehicles_backup_class_20251224_203948
+- **last_login** in tables: driver_app_sessions, users
+- **last_service_date** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **last_time_update** in tables: charters, charters_backup_vehicle_id_20251224_202231
+- **last_updated** in tables: charter_charges, charter_charges_backup_013914_20251123, charter_charges_backup_20251126_192458, charter_charges_backup_lms_sync_20251123, charter_charges_backup_nrd_20260107_225955
+- **last_updated_by** in tables: charter_charges, charter_charges_backup_013914_20251123, charter_charges_backup_20251126_192458, charter_charges_backup_lms_sync_20251123, charter_charges_backup_nrd_20260107_225955
+- **lease_end_date** in tables: assets, vehicle_financing
+- **lease_monthly_payment** in tables: assets, vehicle_financing
+- **lease_start_date** in tables: assets, vehicle_financing
+- **lender_name** in tables: email_financial_events, loan_transactions, payday_loans, vehicle_financing, vehicle_loan_payments
+- **length** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **license_plate** in tables: email_financial_events, vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **lifecycle_status** in tables: vehicles, vehicles_backup_class_20251224_203948
+- **line_number** in tables: general_ledger_lines, invoice_line_items, journal_lines, receipt_line_items
+- **link_id** in tables: receipt_banking_links, receipt_cashbox_links
+- **liters** in tables: fuel_expenses, personal_expenses, vehicle_fuel_log
+- **lms_customer_number** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **loan_amount** in tables: square_capital_loans, vehicle_financing
+- **loan_end_date** in tables: vehicle_financing, vehicle_loans
+- **loan_id** in tables: payday_loan_payments, square_capital_loans, square_loan_payments
+- **loan_start_date** in tables: vehicle_financing, vehicle_loans
+- **loan_type** in tables: comprehensive_payment_reconciliation, david_richard_vehicle_loans
+- **location** in tables: assets, employee_schedules, incidents, payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **location_id** in tables: driver_location_history, square_payouts
+- **location_notes** in tables: limo_addresses, limo_addresses_clean
+- **locked** in tables: banking_transactions, payment_matches, system_locked_years
+- **log_id** in tables: float_activity_log, migration_log, vehicle_fuel_log, vehicle_mileage_log
+- **maintenance_schedule** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **maintenance_type** in tables: maintenance_alerts, maintenance_schedules_auto
+- **make** in tables: assets, lms_vehicle_mapping, vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **map_reference** in tables: limo_clients, limo_clients_clean
+- **mapped_account_id** in tables: epson_classifications_map, epson_pay_accounts_map
+- **mapped_account_name** in tables: epson_classifications_map, epson_pay_accounts_map
+- **mapped_bank_account_id** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **mapped_expense_account_id** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **mapping_confidence** in tables: category_mappings, qb_accounts_staging
+- **mapping_id** in tables: category_mappings, category_to_account_map, lms_rate_mapping
+- **mapping_notes** in tables: qb_accounts_staging, receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921
+- **mapping_status** in tables: gl_transactions_staging_archived_20251107, qb_accounts_staging, receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426
+- **marginal_rate_description** in tables: alberta_tax_brackets, federal_tax_brackets
+- **match_confidence** in tables: banking_receipt_matching_ledger, banking_receipt_matching_ledger_1615_backup_20251218_234108, banking_receipt_matching_ledger_scotia_backup_20251218_235557, customer_name_mapping, etransfer_transactions
+- **match_date** in tables: banking_receipt_matching_ledger, banking_receipt_matching_ledger_1615_backup_20251218_234108, banking_receipt_matching_ledger_scotia_backup_20251218_235557
+- **match_method** in tables: master_relationships, payday_loan_payments
+- **match_score** in tables: etransfer_banking_reconciliation, payment_matches_backup_2025_08_09
+- **match_status** in tables: banking_receipt_matching_ledger, banking_receipt_matching_ledger_1615_backup_20251218_234108, banking_receipt_matching_ledger_scotia_backup_20251218_235557
+- **match_type** in tables: banking_receipt_matching_ledger, banking_receipt_matching_ledger_1615_backup_20251218_234108, banking_receipt_matching_ledger_scotia_backup_20251218_235557, customer_name_mapping, etransfer_banking_reconciliation
+- **memo** in tables: cheque_register, cibc_checking_staging_archived_20251107, cibc_qbo_staging_archived_20251107, financial_transactions, qb_journal_entries
+- **merchant** in tables: fuel_expenses, journal, journal_backup_20251126_192458, journal_lines
+- **merchant_name** in tables: cibc_card_transactions, missing_receipt_tracking
+- **metadata** in tables: float_activity_log, transaction_log
+- **method** in tables: batch_deposit_allocations, security_events, staging_driver_pay_links
+- **metric_id** in tables: driver_performance_private, performance_metrics
+- **minimum_payment** in tables: cibc_business_cards, credit_lines
+- **model** in tables: assets, lms_vehicle_mapping, vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **month** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, paul_pay_tracking, payroll_adjustments
+- **monthly_payment** in tables: vehicle_financing, vehicle_purchases, vehicles, vehicles_backup_class_20251224_203948
+- **monthly_salary** in tables: employee_work_classifications, non_charter_payroll
+- **name** in tables: beverage_menu, cibc_qbo_staging_archived_20251107, employees, general_ledger
+- **negative_payment_id** in tables: billing_audit_issues, billing_audit_log
+- **net_amount** in tables: employee_expenses, gst_audit_trail, income_ledger, income_ledger_payment_archive, payroll_adjustments
+- **net_cost** in tables: incident_costs, incident_damage_tracking
+- **net_pay** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, employee_pay_master, non_charter_payroll
+- **net_sales** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **net_total** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **next_cvip_due** in tables: vehicles, vehicles_backup_class_20251224_203948
+- **next_service_due** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **note** in tables: charter_charges, charter_charges_backup_013914_20251123, charter_charges_backup_20251126_192458, charter_charges_backup_lms_sync_20251123, charter_charges_backup_nrd_20260107_225955
+- **notes** in tables: account_number_aliases, account_number_aliases_backup_20251216_145717, account_number_aliases_backup_20251216_145755, alcohol_business_tracking, asset_depreciation_schedule
+- **odometer** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **odometer_end** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **odometer_reading** in tables: maintenance_records, vehicle_fuel_log, vehicle_mileage_log
+- **odometer_start** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **odometer_type** in tables: maintenance_records, vehicle_mileage_log, vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **oil_change_interval_km** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **oil_change_interval_months** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **oil_filter_number** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **oil_quantity** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **opened_date** in tables: bank_accounts, receipt_deliveries
+- **opening_balance** in tables: bank_reconciliation, vehicle_loans
+- **operational_status** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **order_id** in tables: beverage_order_items, beverage_orders
+- **order_reference_id** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **original_payment_id** in tables: square_payment_categories, zero_payment_resolutions
+- **other_tender** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **other_tender_type** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **our_cost** in tables: beverage_order_items, beverage_products
+- **overtime_hours** in tables: employee_pay_master, non_charter_payroll, payroll_comparison
+- **overtime_rate** in tables: employee_work_classifications, non_charter_payroll
+- **owner_personal_amount** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251201_140300, receipts_backup_20251201_140430
+- **package_rate** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **paid_amount** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **pan_suffix** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **parent_category** in tables: account_categories, receipt_categories
+- **parent_receipt_id** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_backup_2025_10_25_manual_invoices_20251206_125155, receipts_backup_dedup_20251221_124543, receipts_backup_post_dedup_20251207_003927
+- **partial_refunds** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **parts_replacement_history** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **passenger_capacity** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **passenger_count** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **passenger_load** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **pay_account** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **pay_date** in tables: chauffeur_pay_entries, driver_pay_entries, driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **pay_method** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **pay_period** in tables: paul_pay_tracking, vacation_pay_records
+- **pay_period_end** in tables: non_charter_payroll, payroll_comparison
+- **pay_period_id** in tables: employee_pay_master, pay_periods
+- **pay_period_start** in tables: non_charter_payroll, payroll_comparison
+- **payment_account** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **payment_amount** in tables: financing_payments, payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123
+- **payment_code_4char** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **payment_date** in tables: charter_payments, comprehensive_payment_reconciliation, david_richard_vehicle_loans, financing_payments, payables
+- **payment_due_date** in tables: cibc_business_cards, credit_lines
+- **payment_excluded** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **payment_id** in tables: banking_payment_links, charter_payments, charter_refunds, financing_payments, income_ledger
+- **payment_instructions** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **payment_key** in tables: charter_payments, payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123
+- **payment_method** in tables: charter_payments, charter_refunds, chauffeur_float_tracking, direct_tips_history, income_ledger
+- **payment_reference** in tables: accounting_entries, income_ledger, income_ledger_payment_archive
+- **payment_status** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **payment_terms** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, vendor_accounts, vendors
+- **payment_type** in tables: deposit_records, financing_payments, square_loan_payments, vehicle_loan_payments
+- **payroll_class** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **payroll_id** in tables: deferred_wage_transactions, non_charter_payroll, payroll_approval_workflow
+- **period_end** in tables: receipts, staging_pd7a_year_end_summary
+- **period_end_date** in tables: pay_periods, performance_metrics
+- **period_id** in tables: accounting_periods, tax_returns
+- **period_start** in tables: receipts, staging_pd7a_year_end_summary
+- **period_start_date** in tables: pay_periods, performance_metrics
+- **period_type** in tables: accounting_periods, performance_metrics, tax_periods
+- **phone** in tables: employees, vendors
+- **pickup_address** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **pickup_location** in tables: charter_routes, quotations
+- **pickup_time** in tables: charter_routes, charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231
+- **po_number** in tables: general_ledger, vehicle_purchases
+- **police_report_number** in tables: cra_vehicle_events, incidents
+- **policy_number** in tables: email_financial_events, vehicle_insurance
+- **pool_id** in tables: wage_allocation_decisions, wage_allocation_pool
+- **positive_payment_id** in tables: billing_audit_issues, billing_audit_log
+- **postal_code** in tables: employees, square_customers, staging_employee_reference_data
+- **posted_date** in tables: banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013, banking_transactions_1615_backup_2014
+- **potential_duplicate** in tables: receipts, receipts_backup_dedup_20251221_124543
+- **power_steering_fluid_type** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **preferred_payment_method** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **price_per_liter** in tables: fuel_expenses, personal_expenses
+- **primary_address** in tables: limo_clients, limo_clients_clean
+- **primary_phone** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **principal_amount** in tables: financing_payments, financing_sources, vehicle_loan_reconciliation_allocations
+- **priority** in tables: categorization_rules, category_to_account_map, square_review_status, verification_queue
+- **processed_at** in tables: email_scanner_staging, non_charter_payroll, payment_imports_archived_20251107, payment_imports_backup_2025_08_09, pdf_staging
+- **processing_notes** in tables: deferred_wage_transactions, pdf_staging
+- **program_id** in tables: training_checklist_items, training_programs
+- **province** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, employees
+- **purchase_date** in tables: vehicle_financing, vehicle_purchases, vehicles, vehicles_backup_class_20251224_203948
+- **purchase_price** in tables: vehicle_financing, vehicle_purchases, vehicles, vehicles_backup_class_20251224_203948
+- **purchase_vendor** in tables: vehicle_financing, vehicles, vehicles_backup_class_20251224_203948
+- **qb_account_number** in tables: qb_accounts, qb_accounts_staging
+- **qb_account_type** in tables: chart_of_accounts, qb_accounts, qb_accounts_staging
+- **qb_bank_account_number** in tables: qb_accounts, qb_accounts_staging
+- **qb_customer_id** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **qb_customer_type** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **qb_description** in tables: qb_accounts, qb_accounts_staging
+- **qb_name** in tables: qb_accounts, qb_accounts_staging
+- **qb_payment_type** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **qb_trans_num** in tables: payables, payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123
+- **quantity** in tables: alcohol_business_tracking, beverage_cart, beverage_order_items, charter_beverages, invoice_line_items
+- **quickbooks_id** in tables: employees, vendors
+- **quickbooks_source** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, employees
+- **rate** in tables: charity_trade_charters, charter_charges, charter_charges_backup_013914_20251123, charter_charges_backup_20251126_192458, charter_charges_backup_lms_sync_20251123
+- **raw_data** in tables: comprehensive_payment_reconciliation, lms_staging_customer_archived_20251109, lms_staging_payment_archived_20251109, lms_staging_reserve_archived_20251109, lms_staging_vehicles
+- **reason** in tables: audit_log, charter_time_updates, driver_disciplinary_actions, employee_time_off_requests, fraud_cases
+- **receipt_date** in tables: chauffeur_float_tracking, receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921
+- **receipt_id** in tables: alcohol_business_tracking, banking_receipt_matching_ledger, banking_receipt_matching_ledger_1615_backup_20251218_234108, banking_receipt_matching_ledger_scotia_backup_20251218_235557, banking_transactions
+- **receipt_reference** in tables: chauffeur_float_tracking, owner_expense_transactions
+- **receipt_source** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_backup_2025_10_25_manual_invoices_20251206_125155, receipts_backup_dedup_20251221_124543, receipts_backup_post_dedup_20251207_003927
+- **receipt_uploaded** in tables: cibc_card_transactions, employee_expenses
+- **reconciled** in tables: cash_flow_tracking, cibc_card_transactions, fee_tracking, income_ledger, income_ledger_payment_archive
+- **reconciled_at** in tables: banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013, banking_transactions_1615_backup_2014
+- **reconciled_by** in tables: bank_reconciliation, banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013
+- **reconciled_charter_id** in tables: banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013, banking_transactions_1615_backup_2014
+- **reconciled_date** in tables: bank_reconciliation, chauffeur_float_tracking, income_ledger, income_ledger_payment_archive
+- **reconciled_payment_id** in tables: banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013, banking_transactions_1615_backup_2014
+- **reconciled_receipt_id** in tables: banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013, banking_transactions_1615_backup_2014
+- **reconciliation_id** in tables: bank_reconciliation, payment_reconciliation_ledger, square_etransfer_reconciliation
+- **reconciliation_notes** in tables: banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013, banking_transactions_1615_backup_2014
+- **reconciliation_status** in tables: bank_reconciliation, banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013
+- **record_id** in tables: financial_audit_trail, maintenance_records, unmatched_items
+- **record_notes** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, vacation_pay_records
+- **recorded_at** in tables: vehicle_fuel_log, vehicle_mileage_log
+- **recorded_by** in tables: vehicle_fuel_log, vehicle_mileage_log
+- **records_imported** in tables: legacy_import_status, qb_import_batches
+- **records_processed** in tables: lms_sync_log, migration_log
+- **recovery_probability** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **recurring_invoice_id** in tables: rent_debt_ledger, rent_debt_ledger_backup_20251126_192458
+- **reference** in tables: accounting_entries, accounting_records, charter_refunds, cibc_checking_staging_archived_20251107, financial_documents
+- **reference_id** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09, square_customers
+- **reference_number** in tables: comprehensive_payment_reconciliation, email_scanner_staging, etransfer_transactions, general_ledger_headers, gl_transactions
+- **refund_date** in tables: charter_refunds, refunds_cancellations
+- **refund_reason** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **reimbursed_via** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251201_140300, receipts_backup_20251201_140430
+- **reimbursement_date** in tables: personal_expenses, receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251201_140300
+- **related_payment_id** in tables: payments, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123, payments_backup_20251126_192900, payments_backup_20251203_133028
+- **remaining_balance** in tables: charter_credit_ledger, financing_payments, payables, vehicle_financing, wage_allocation_pool
+- **renewal_date** in tables: vehicle_documents, vehicle_insurance
+- **repossession_date** in tables: vehicle_repossessions, vehicles, vehicles_backup_class_20251224_203948
+- **resale_number** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **reservation_time** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **reserve_no** in tables: lms_charges, lms_staging_payment_archived_20251109, lms_staging_reserve_archived_20251109
+- **reserve_number** in tables: batch_deposit_allocations, beverage_orders, charity_trade_charters, charter_charges, charter_charges_backup_013914_20251123
+- **resolution** in tables: incidents, square_review_status
+- **resolution_notes** in tables: legacy_import_status, pre_inspection_issues, zero_payment_resolutions
+- **resolved** in tables: cvip_compliance_alerts, pre_inspection_issues
+- **resolved_date** in tables: cvip_compliance_alerts, pre_inspection_issues, zero_payment_resolutions
+- **retainer** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **retainer_amount** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **retainer_received** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **return_to_service_date** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **revenue** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **revenue_category** in tables: income_ledger, income_ledger_payment_archive
+- **revenue_subcategory** in tables: income_ledger, income_ledger_payment_archive
+- **reviewed** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **reviewed_at** in tables: employee_time_off_requests, verification_queue
+- **reviewed_by** in tables: employee_time_off_requests, verification_queue
+- **row_hash** in tables: lms_deposits, square_capital_activity, unified_general_ledger
+- **rule_id** in tables: categorization_rules, cibc_auto_categorization_rules
+- **running_balance** in tables: david_account_tracking, gl_transactions, gl_transactions_staging_archived_20251107, rent_debt_ledger, rent_debt_ledger_backup_20251126_192458
+- **salary_deferred** in tables: employee_work_classifications, employees
+- **sale_date** in tables: vehicle_sales, vehicles, vehicles_backup_class_20251224_203948
+- **sale_price** in tables: alcohol_business_tracking, vehicle_sales, vehicles, vehicles_backup_class_20251224_203948
+- **sales_tax** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **sales_tax_code** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **salvage_value** in tables: assets, vehicle_writeoffs
+- **schedule_id** in tables: asset_depreciation_schedule, employee_schedules, maintenance_schedules_auto
+- **sent_date** in tables: maintenance_alerts, quotations, receipt_deliveries
+- **sequence** in tables: charter_charges, charter_charges_backup_013914_20251123, charter_charges_backup_20251126_192458, charter_charges_backup_lms_sync_20251123, charter_charges_backup_nrd_20260107_225955
+- **serpentine_belt_part_number** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **service_charges** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **service_date** in tables: donations_free_rides, maintenance_records
+- **service_history** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **service_preferences** in tables: limo_clients, limo_clients_clean
+- **service_type** in tables: donations_free_rides, invoice_line_items
+- **session_id** in tables: driver_app_sessions, financial_audit_trail
+- **severity** in tables: cvip_compliance_alerts, cvip_defects, incidents, major_events, pre_inspection_issues
+- **sort_order** in tables: training_checklist_items, training_programs
+- **source** in tables: charity_trade_charters, charter_payments, driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **source_client_id** in tables: fraud_cases, transaction_log
+- **source_description** in tables: financing_sources, qb_import_batches
+- **source_file** in tables: accounting_records, banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013
+- **source_hash** in tables: banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013, banking_transactions_1615_backup_2014
+- **source_id** in tables: financing_payments, financing_sources, master_relationships, vendor_account_ledger, verification_queue
+- **source_name** in tables: driver_name_employee_map, financing_sources
+- **source_reference** in tables: cash_flow_tracking, david_account_tracking, general_ledger_headers, payroll_adjustments, receipts
+- **source_row** in tables: business_expenses, charter_refunds
+- **source_sheet** in tables: charter_gst_details_2010_2012, staging_qb_gl_transactions
+- **source_system** in tables: direct_tips_history, income_ledger, income_ledger_payment_archive, receipts, receipts_1615_backup_20251218_234108
+- **source_table** in tables: master_relationships, vendor_account_ledger, verification_queue
+- **source_type** in tables: accounting_entries, email_scanner_staging, financing_sources, qb_journal_entries
+- **special_requirements** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **split_group_total** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **split_key** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **square_card_brand** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **square_customer_email** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **square_customer_id** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, square_customers
+- **square_customer_name** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **square_date** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09, square_etransfer_reconciliation
+- **square_file_source** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **square_gift_card** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **square_gross_sales** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **square_import_batch** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **square_last4** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **square_net_sales** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **square_notes** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **square_payment_id** in tables: charter_refunds, chauffeur_float_tracking, payment_matches, payment_matches_backup_2025_08_09, payment_method_backup_20250810
+- **square_source** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **square_status** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **square_time** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **square_tip** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **square_transaction_id** in tables: payments, payments_2012_backup_v2, payments_archived, payments_backup_013914_250fix_20251123, payments_backup_014140_500fix_20251123
+- **staff_id** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **staff_name** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **staging_id** in tables: qb_journal_entries, staging_driver_pay_links, staging_scotia_2012_verified, staging_scotia_2012_verified_archived_20251109
+- **start_date** in tables: accounting_periods, employee_time_off_requests, monthly_work_assignments, tax_periods
+- **state** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, limo_addresses, limo_addresses_clean
+- **statement_date** in tables: bank_reconciliation, cibc_business_cards
+- **statement_format** in tables: account_number_aliases, account_number_aliases_backup_20251216_145717, account_number_aliases_backup_20251216_145755
+- **statement_type_id** in tables: financial_statement_sections, financial_statement_types
+- **status** in tables: accounting_periods, assets, bank_transactions_staging, beverage_orders, business_losses
+- **stock_quantity** in tables: beverage_products, beverage_products_backup_20260107_191111
+- **sub_classification** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **subcategory** in tables: employee_expenses, payment_reconciliation_ledger, receipt_line_items, square_payment_categories
+- **subject** in tables: email_financial_events, email_scanner_staging
+- **subtotal** in tables: beverage_orders, fuel_expenses
+- **supplier** in tables: beverages, general_ledger
+- **supporting_documents** in tables: fraud_cases, transaction_chain
+- **t4_box_10** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **t4_box_14** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, non_charter_payroll
+- **t4_box_16** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, non_charter_payroll
+- **t4_box_18** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, non_charter_payroll
+- **t4_box_22** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, non_charter_payroll
+- **t4_box_24** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, non_charter_payroll
+- **t4_box_26** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, non_charter_payroll
+- **t4_box_44** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **t4_box_46** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **t4_box_52** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **table_info** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **table_name** in tables: financial_audit_trail, migration_log, unmatched_items
+- **tag** in tables: charter_charges, charter_charges_backup_013914_20251123, charter_charges_backup_20251126_192458, charter_charges_backup_lms_sync_20251123, charter_charges_backup_nrd_20260107_225955
+- **tags** in tables: documents, vehicle_documents
+- **target_client_id** in tables: fraud_cases, transaction_log
+- **tax** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **tax_amount** in tables: invoice_line_items, payables, square_transactions_staging_archived_20251107
+- **tax_category** in tables: personal_expenses, receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921
+- **tax_code** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, general_ledger, invoice_line_items
+- **tax_province** in tables: income_ledger, income_ledger_payment_archive
+- **tax_rate** in tables: alberta_tax_brackets, charter_charges, charter_charges_backup_nrd_20260107_225955, charter_charges_backup_nrd_all_20260107_230822, federal_tax_brackets
+- **tax_return_id** in tables: tax_remittances, tax_variances
+- **tax_year** in tables: direct_tips_history, t4_compliance_corrections
+- **tender_note** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **third_party_fees** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **time_updated_by_driver** in tables: charters, charters_backup_vehicle_id_20251224_202231
+- **time_zone** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **timestamp** in tables: driver_location_history, security_events
+- **tip** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09, receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426
+- **tire_pressure** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **tire_size** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **title** in tables: documents, driver_internal_notes, major_events, verification_queue
+- **total** in tables: balance_sheet, beverage_order_items, beverage_orders, lms_deposits
+- **total_amount** in tables: charter_gst_details_2010_2012, email_processing_stats, fuel_expenses, orphaned_charges_archive, payables
+- **total_amount_due** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **total_collected** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **total_cost** in tables: alcohol_business_tracking, maintenance_records
+- **total_deductions** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, employee_pay_master, non_charter_payroll
+- **total_gross_pay** in tables: non_charter_payroll, wcb_summary
+- **total_hours_worked** in tables: employee_pay_master, employee_schedules
+- **total_interest** in tables: interest_allocations, vehicle_loans
+- **total_kms** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **total_pay** in tables: chauffeur_pay_entries, driver_pay_entries, employee_pay_entries
+- **total_revenue** in tables: alcohol_business_tracking, employees
+- **transaction_count** in tables: square_customers, vendor_name_mapping
+- **transaction_date** in tables: accounting_records, alcohol_business_tracking, bank_transactions_staging, banking_transactions, banking_transactions_1010_backup_20251203_021934
+- **transaction_hash** in tables: banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013, banking_transactions_1615_backup_2014
+- **transaction_id** in tables: banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013, banking_transactions_1615_backup_2014
+- **transaction_number** in tables: deposit_records, unified_general_ledger
+- **transaction_status** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **transaction_type** in tables: accounting_records, alcohol_business_tracking, bank_transactions_staging, cash_box_transactions, cibc_card_transactions
+- **transmission_fluid_quantity** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **transmission_fluid_type** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **transmission_service_interval_km** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **trip_status** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **txn_date** in tables: cibc_checking_staging_archived_20251107, lender_statement_transactions, square_transactions_staging_archived_20251107, staging_qb_gl_transactions
+- **type** in tables: lms_deposits, receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921
+- **unattributed_tips** in tables: payment_imports_archived_20251107, payment_imports_backup_2025_08_09
+- **unit_number** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **unit_price** in tables: beverage_order_items, beverage_products, beverage_products_backup_20260107_191111, invoice_line_items, receipt_line_items
+- **updated_at** in tables: assets, bank_accounts, banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012
+- **uploaded_by** in tables: driver_documents, vehicle_documents
+- **user_agent** in tables: security_audit, security_events
+- **user_id** in tables: security_audit, security_events, users
+- **vacation_pay** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **validation_reason** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **validation_status** in tables: gl_transactions_staging_archived_20251107, legacy_import_status, qb_accounts_staging, receipts, receipts_1615_backup_20251218_234108
+- **vehicle** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **vehicle_booked_id** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **vehicle_category** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **vehicle_class** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **vehicle_code** in tables: fuel_expenses, lms_staging_vehicles, personal_expenses
+- **vehicle_description** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **vehicle_history_id** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **vehicle_id** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **vehicle_name** in tables: email_financial_events, vehicle_loans
+- **vehicle_notes** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **vehicle_number** in tables: receipts, receipts_1615_backup_20251218_234108, receipts_2012_duplicates_backup_20251205_132426, receipts_backup_20251126_190921, receipts_backup_20251126_191026
+- **vehicle_type** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **vehicle_type_requested** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **vendor** in tables: accounting_records, business_expenses, staging_qb_gl_transactions
+- **vendor_extracted** in tables: banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013, banking_transactions_1615_backup_2014
+- **vendor_name** in tables: chauffeur_float_tracking, employee_expenses, owner_expense_transactions, payables, qb_journal_entries
+- **vendor_truncated** in tables: banking_transactions, banking_transactions_1010_backup_20251203_021934, banking_transactions_1615_backup_2012, banking_transactions_1615_backup_2013, banking_transactions_1615_backup_2014
+- **verification_notes** in tables: bank_transactions_staging, email_scanner_staging, verification_queue
+- **verification_status** in tables: accounting_books_final_verification, payment_matches
+- **verified** in tables: banking_transactions, payment_imports_archived_20251107, payment_imports_backup_2025_08_09, payment_matches_backup_2025_08_09
+- **verified_source** in tables: receipts, receipts_backup_dedup_20251221_124543
+- **vin** in tables: assets, email_financial_events, lms_staging_vehicles
+- **vin_number** in tables: lms_vehicle_mapping, vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **warning_flag** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **wcb_payment** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, wcb_summary
+- **wcb_rate** in tables: driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120, wcb_recurring_charges, wcb_summary
+- **width** in tables: vehicles, vehicles_backup_20251126_195011, vehicles_backup_class_20251224_203948
+- **work_phone** in tables: limo_clients, limo_clients_clean, limo_contacts, lms_customers_enhanced
+- **workshift_end** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **workshift_start** in tables: charters, charters_backup_20251203_143025, charters_backup_link_by_account_20251201_164209, charters_backup_vehicle_id_20251224_202231, charters_retainer_cancel_fix_20251204
+- **writeoff_amount** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000
+- **writeoff_date** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, vehicle_writeoffs, vehicles
+- **writeoff_reason** in tables: vehicle_writeoffs, vehicles, vehicles_backup_class_20251224_203948
+- **year** in tables: alberta_tax_brackets, assets, driver_payroll, driver_payroll_backup_20251126_191157, driver_payroll_hours_backup_20251120
+- **zip_code** in tables: clients, clients_backup_20251203_143025, clients_company_name_backup_20251201_153000, limo_addresses, limo_addresses_clean
+
+### EMPTY_ORPHAN_TABLE (13 found)
+
+- **agreement_terms.N/A**
+- **banking_receipt_matching_ledger_1615_backup_20251218_234108.N/A**
+- **charter_charges_backup_nrd_all_20260107_230822.N/A**
+- **donations_free_rides.N/A**
+- **email_processing_stats.N/A**
+- **invoice_line_items.N/A**
+- **paul_pay_tracking.N/A**
+- **quotations.N/A**
+- **refunds_cancellations.N/A**
+- **square_processing_fees.N/A**
+- **tax_overrides.N/A**
+- **tax_rollovers.N/A**
+- **vehicle_financing_complete.N/A**
+
+### NULLABLE_KEY_COLUMN (1624 found)
+
+- **account_categories.gl_account_code**
+- **account_categories.gl_account_code_alt**
+- **account_number_aliases_backup_20251216_145717.alias_id**
+- **account_number_aliases_backup_20251216_145717.canonical_account_number**
+- **account_number_aliases_backup_20251216_145755.alias_id**
+- **account_number_aliases_backup_20251216_145755.canonical_account_number**
+- **accounting_entries.account_code**
+- **accounting_entries.charter_id**
+- **accounting_records.account_code**
+- **alcohol_business_tracking.charter_id**
+- **alcohol_business_tracking.receipt_id**
+- **assets.serial_number**
+- **assets.purchase_receipt_id**
+- **assets.insurance_policy_number**
+- **bank_accounts.account_number**
+- **bank_accounts.routing_number**
+- **bank_accounts.swift_code**
+- **banking_inter_account_transfers.from_account_number**
+- **banking_inter_account_transfers.to_account_number**
+- **banking_inter_account_transfers.from_bank_id**
+- **banking_inter_account_transfers.to_bank_id**
+- **banking_payment_links.link_confidence**
+- **banking_receipt_matching_ledger.receipt_id**
+- **banking_receipt_matching_ledger.match_confidence**
+- **banking_receipt_matching_ledger_1615_backup_20251218_234108.id**
+- **banking_receipt_matching_ledger_1615_backup_20251218_234108.banking_transaction_id**
+- **banking_receipt_matching_ledger_1615_backup_20251218_234108.receipt_id**
+- **banking_receipt_matching_ledger_1615_backup_20251218_234108.match_confidence**
+- **banking_receipt_matching_ledger_scotia_backup_20251218_235557.id**
+- **banking_receipt_matching_ledger_scotia_backup_20251218_235557.banking_transaction_id**
+- **banking_receipt_matching_ledger_scotia_backup_20251218_235557.receipt_id**
+- **banking_receipt_matching_ledger_scotia_backup_20251218_235557.match_confidence**
+- **banking_transactions.bank_id**
+- **banking_transactions.receipt_id**
+- **banking_transactions.reconciled_receipt_id**
+- **banking_transactions.reconciled_payment_id**
+- **banking_transactions.reconciled_charter_id**
+- **banking_transactions.transaction_uid**
+- **banking_transactions.check_number**
+- **banking_transactions_1010_backup_20251203_021934.transaction_id**
+- **banking_transactions_1010_backup_20251203_021934.account_number**
+- **banking_transactions_1010_backup_20251203_021934.bank_id**
+- **banking_transactions_1010_backup_20251203_021934.receipt_id**
+- **banking_transactions_1010_backup_20251203_021934.reconciled_receipt_id**
+- **banking_transactions_1010_backup_20251203_021934.reconciled_payment_id**
+- **banking_transactions_1010_backup_20251203_021934.reconciled_charter_id**
+- **banking_transactions_1615_backup_2012.transaction_id**
+- **banking_transactions_1615_backup_2012.account_number**
+- **banking_transactions_1615_backup_2012.bank_id**
+- **banking_transactions_1615_backup_2012.receipt_id**
+- **banking_transactions_1615_backup_2012.reconciled_receipt_id**
+- **banking_transactions_1615_backup_2012.reconciled_payment_id**
+- **banking_transactions_1615_backup_2012.reconciled_charter_id**
+- **banking_transactions_1615_backup_2013.transaction_id**
+- **banking_transactions_1615_backup_2013.account_number**
+- **banking_transactions_1615_backup_2013.bank_id**
+- **banking_transactions_1615_backup_2013.receipt_id**
+- **banking_transactions_1615_backup_2013.reconciled_receipt_id**
+- **banking_transactions_1615_backup_2013.reconciled_payment_id**
+- **banking_transactions_1615_backup_2013.reconciled_charter_id**
+- **banking_transactions_1615_backup_2014.transaction_id**
+- **banking_transactions_1615_backup_2014.account_number**
+- **banking_transactions_1615_backup_2014.bank_id**
+- **banking_transactions_1615_backup_2014.receipt_id**
+- **banking_transactions_1615_backup_2014.reconciled_receipt_id**
+- **banking_transactions_1615_backup_2014.reconciled_payment_id**
+- **banking_transactions_1615_backup_2014.reconciled_charter_id**
+- **banking_transactions_1615_backup_2015.transaction_id**
+- **banking_transactions_1615_backup_2015.account_number**
+- **banking_transactions_1615_backup_2015.bank_id**
+- **banking_transactions_1615_backup_2015.receipt_id**
+- **banking_transactions_1615_backup_2015.reconciled_receipt_id**
+- **banking_transactions_1615_backup_2015.reconciled_payment_id**
+- **banking_transactions_1615_backup_2015.reconciled_charter_id**
+- **banking_transactions_1615_backup_2016.transaction_id**
+- **banking_transactions_1615_backup_2016.account_number**
+- **banking_transactions_1615_backup_2016.bank_id**
+- **banking_transactions_1615_backup_2016.receipt_id**
+- **banking_transactions_1615_backup_2016.reconciled_receipt_id**
+- **banking_transactions_1615_backup_2016.reconciled_payment_id**
+- **banking_transactions_1615_backup_2016.reconciled_charter_id**
+- **banking_transactions_1615_backup_2017.transaction_id**
+- **banking_transactions_1615_backup_2017.account_number**
+- **banking_transactions_1615_backup_2017.bank_id**
+- **banking_transactions_1615_backup_2017.receipt_id**
+- **banking_transactions_1615_backup_2017.reconciled_receipt_id**
+- **banking_transactions_1615_backup_2017.reconciled_payment_id**
+- **banking_transactions_1615_backup_2017.reconciled_charter_id**
+- **banking_transactions_1615_backup_20251218_233032.transaction_id**
+- **banking_transactions_1615_backup_20251218_233032.account_number**
+- **banking_transactions_1615_backup_20251218_233032.bank_id**
+- **banking_transactions_1615_backup_20251218_233032.receipt_id**
+- **banking_transactions_1615_backup_20251218_233032.reconciled_receipt_id**
+- **banking_transactions_1615_backup_20251218_233032.reconciled_payment_id**
+- **banking_transactions_1615_backup_20251218_233032.reconciled_charter_id**
+- **banking_transactions_1615_fix_backup_20251216_101115.transaction_id**
+- **banking_transactions_1615_fix_backup_20251216_101115.account_number**
+- **banking_transactions_1615_fix_backup_20251216_101115.bank_id**
+- **banking_transactions_1615_fix_backup_20251216_101115.receipt_id**
+- **banking_transactions_1615_fix_backup_20251216_101115.reconciled_receipt_id**
+- **banking_transactions_1615_fix_backup_20251216_101115.reconciled_payment_id**
+- **banking_transactions_1615_fix_backup_20251216_101115.reconciled_charter_id**
+- **banking_transactions_backup_20251126_191429.transaction_id**
+- **banking_transactions_backup_20251126_191429.account_number**
+- **banking_transactions_backup_20251126_191429.bank_id**
+- **banking_transactions_backup_20251126_191429.receipt_id**
+- **banking_transactions_backup_20251126_191429.reconciled_receipt_id**
+- **banking_transactions_backup_20251126_191429.reconciled_payment_id**
+- **banking_transactions_backup_20251126_191429.reconciled_charter_id**
+- **banking_transactions_backup_20251126_193118.transaction_id**
+- **banking_transactions_backup_20251126_193118.account_number**
+- **banking_transactions_backup_20251126_193118.bank_id**
+- **banking_transactions_backup_20251126_193118.receipt_id**
+- **banking_transactions_backup_20251126_193118.reconciled_receipt_id**
+- **banking_transactions_backup_20251126_193118.reconciled_payment_id**
+- **banking_transactions_backup_20251126_193118.reconciled_charter_id**
+- **banking_transactions_backup_20251201_140204.transaction_id**
+- **banking_transactions_backup_20251201_140204.account_number**
+- **banking_transactions_backup_20251201_140204.bank_id**
+- **banking_transactions_backup_20251201_140204.receipt_id**
+- **banking_transactions_backup_20251201_140204.reconciled_receipt_id**
+- **banking_transactions_backup_20251201_140204.reconciled_payment_id**
+- **banking_transactions_backup_20251201_140204.reconciled_charter_id**
+- **banking_transactions_bankid_backup_20251216_150244.transaction_id**
+- **banking_transactions_bankid_backup_20251216_150244.account_number**
+- **banking_transactions_bankid_backup_20251216_150244.bank_id**
+- **banking_transactions_bankid_backup_20251216_150244.receipt_id**
+- **banking_transactions_bankid_backup_20251216_150244.reconciled_receipt_id**
+- **banking_transactions_bankid_backup_20251216_150244.reconciled_payment_id**
+- **banking_transactions_bankid_backup_20251216_150244.reconciled_charter_id**
+- **banking_transactions_blank_backup_20251206_213822.transaction_id**
+- **banking_transactions_blank_backup_20251206_213822.account_number**
+- **banking_transactions_blank_backup_20251206_213822.bank_id**
+- **banking_transactions_blank_backup_20251206_213822.receipt_id**
+- **banking_transactions_blank_backup_20251206_213822.reconciled_receipt_id**
+- **banking_transactions_blank_backup_20251206_213822.reconciled_payment_id**
+- **banking_transactions_blank_backup_20251206_213822.reconciled_charter_id**
+- **banking_transactions_cibc_2014_backup_cleanup.transaction_id**
+- **banking_transactions_cibc_2014_backup_cleanup.account_number**
+- **banking_transactions_cibc_2014_backup_cleanup.bank_id**
+- **banking_transactions_cibc_2014_backup_cleanup.receipt_id**
+- **banking_transactions_cibc_2014_backup_cleanup.reconciled_receipt_id**
+- **banking_transactions_cibc_2014_backup_cleanup.reconciled_payment_id**
+- **banking_transactions_cibc_2014_backup_cleanup.reconciled_charter_id**
+- **banking_transactions_cibc_2014_backup_pre_fix.transaction_id**
+- **banking_transactions_cibc_2014_backup_pre_fix.account_number**
+- **banking_transactions_cibc_2014_backup_pre_fix.bank_id**
+- **banking_transactions_cibc_2014_backup_pre_fix.receipt_id**
+- **banking_transactions_cibc_2014_backup_pre_fix.reconciled_receipt_id**
+- **banking_transactions_cibc_2014_backup_pre_fix.reconciled_payment_id**
+- **banking_transactions_cibc_2014_backup_pre_fix.reconciled_charter_id**
+- **banking_transactions_cibc_qb_backup_20251125_164856.transaction_id**
+- **banking_transactions_cibc_qb_backup_20251125_164856.account_number**
+- **banking_transactions_cibc_qb_backup_20251125_164856.bank_id**
+- **banking_transactions_cibc_qb_backup_20251125_164856.receipt_id**
+- **banking_transactions_cibc_qb_backup_20251125_164856.reconciled_receipt_id**
+- **banking_transactions_cibc_qb_backup_20251125_164856.reconciled_payment_id**
+- **banking_transactions_cibc_qb_backup_20251125_164856.reconciled_charter_id**
+- **banking_transactions_cibc_vendor_fix_backup_20251203_033842.transaction_id**
+- **banking_transactions_cibc_vendor_fix_backup_20251203_033842.account_number**
+- **banking_transactions_cibc_vendor_fix_backup_20251203_033842.bank_id**
+- **banking_transactions_cibc_vendor_fix_backup_20251203_033842.receipt_id**
+- **banking_transactions_cibc_vendor_fix_backup_20251203_033842.reconciled_receipt_id**
+- **banking_transactions_cibc_vendor_fix_backup_20251203_033842.reconciled_payment_id**
+- **banking_transactions_cibc_vendor_fix_backup_20251203_033842.reconciled_charter_id**
+- **banking_transactions_cibc_vendor_fix_backup_20251204_141512.transaction_id**
+- **banking_transactions_cibc_vendor_fix_backup_20251204_141512.account_number**
+- **banking_transactions_cibc_vendor_fix_backup_20251204_141512.bank_id**
+- **banking_transactions_cibc_vendor_fix_backup_20251204_141512.receipt_id**
+- **banking_transactions_cibc_vendor_fix_backup_20251204_141512.reconciled_receipt_id**
+- **banking_transactions_cibc_vendor_fix_backup_20251204_141512.reconciled_payment_id**
+- **banking_transactions_cibc_vendor_fix_backup_20251204_141512.reconciled_charter_id**
+- **banking_transactions_cibc_x_backup_20251206_213310.transaction_id**
+- **banking_transactions_cibc_x_backup_20251206_213310.account_number**
+- **banking_transactions_cibc_x_backup_20251206_213310.bank_id**
+- **banking_transactions_cibc_x_backup_20251206_213310.receipt_id**
+- **banking_transactions_cibc_x_backup_20251206_213310.reconciled_receipt_id**
+- **banking_transactions_cibc_x_backup_20251206_213310.reconciled_payment_id**
+- **banking_transactions_cibc_x_backup_20251206_213310.reconciled_charter_id**
+- **banking_transactions_decimal_fix_20251206_231911.transaction_id**
+- **banking_transactions_decimal_fix_20251206_231911.account_number**
+- **banking_transactions_decimal_fix_20251206_231911.bank_id**
+- **banking_transactions_decimal_fix_20251206_231911.receipt_id**
+- **banking_transactions_decimal_fix_20251206_231911.reconciled_receipt_id**
+- **banking_transactions_decimal_fix_20251206_231911.reconciled_payment_id**
+- **banking_transactions_decimal_fix_20251206_231911.reconciled_charter_id**
+- **banking_transactions_dedup_backup_20251206_225000.transaction_id**
+- **banking_transactions_dedup_backup_20251206_225000.account_number**
+- **banking_transactions_dedup_backup_20251206_225000.bank_id**
+- **banking_transactions_dedup_backup_20251206_225000.receipt_id**
+- **banking_transactions_dedup_backup_20251206_225000.reconciled_receipt_id**
+- **banking_transactions_dedup_backup_20251206_225000.reconciled_payment_id**
+- **banking_transactions_dedup_backup_20251206_225000.reconciled_charter_id**
+- **banking_transactions_dup_backup_20251207.transaction_id**
+- **banking_transactions_dup_backup_20251207.account_number**
+- **banking_transactions_dup_backup_20251207.bank_id**
+- **banking_transactions_dup_backup_20251207.receipt_id**
+- **banking_transactions_dup_backup_20251207.reconciled_receipt_id**
+- **banking_transactions_dup_backup_20251207.reconciled_payment_id**
+- **banking_transactions_dup_backup_20251207.reconciled_charter_id**
+- **banking_transactions_fuzzy_dedup_backup_20251206_225418.transaction_id**
+- **banking_transactions_fuzzy_dedup_backup_20251206_225418.account_number**
+- **banking_transactions_fuzzy_dedup_backup_20251206_225418.bank_id**
+- **banking_transactions_fuzzy_dedup_backup_20251206_225418.receipt_id**
+- **banking_transactions_fuzzy_dedup_backup_20251206_225418.reconciled_receipt_id**
+- **banking_transactions_fuzzy_dedup_backup_20251206_225418.reconciled_payment_id**
+- **banking_transactions_fuzzy_dedup_backup_20251206_225418.reconciled_charter_id**
+- **banking_transactions_liquor_barn_backup_20251203_033051.transaction_id**
+- **banking_transactions_liquor_barn_backup_20251203_033051.account_number**
+- **banking_transactions_liquor_barn_backup_20251203_033051.bank_id**
+- **banking_transactions_liquor_barn_backup_20251203_033051.receipt_id**
+- **banking_transactions_liquor_barn_backup_20251203_033051.reconciled_receipt_id**
+- **banking_transactions_liquor_barn_backup_20251203_033051.reconciled_payment_id**
+- **banking_transactions_liquor_barn_backup_20251203_033051.reconciled_charter_id**
+- **banking_transactions_liquor_consolidation_20251206_231228.transaction_id**
+- **banking_transactions_liquor_consolidation_20251206_231228.account_number**
+- **banking_transactions_liquor_consolidation_20251206_231228.bank_id**
+- **banking_transactions_liquor_consolidation_20251206_231228.receipt_id**
+- **banking_transactions_liquor_consolidation_20251206_231228.reconciled_receipt_id**
+- **banking_transactions_liquor_consolidation_20251206_231228.reconciled_payment_id**
+- **banking_transactions_liquor_consolidation_20251206_231228.reconciled_charter_id**
+- **banking_transactions_misclass_backup_20251216_191803.transaction_id**
+- **banking_transactions_misclass_backup_20251216_191803.account_number**
+- **banking_transactions_misclass_backup_20251216_191803.bank_id**
+- **banking_transactions_misclass_backup_20251216_191803.receipt_id**
+- **banking_transactions_misclass_backup_20251216_191803.reconciled_receipt_id**
+- **banking_transactions_misclass_backup_20251216_191803.reconciled_payment_id**
+- **banking_transactions_misclass_backup_20251216_191803.reconciled_charter_id**
+- **banking_transactions_qb_backup_20251206_213435.transaction_id**
+- **banking_transactions_qb_backup_20251206_213435.account_number**
+- **banking_transactions_qb_backup_20251206_213435.bank_id**
+- **banking_transactions_qb_backup_20251206_213435.receipt_id**
+- **banking_transactions_qb_backup_20251206_213435.reconciled_receipt_id**
+- **banking_transactions_qb_backup_20251206_213435.reconciled_payment_id**
+- **banking_transactions_qb_backup_20251206_213435.reconciled_charter_id**
+- **banking_transactions_scotia_2012_2013_backup_20251203.transaction_id**
+- **banking_transactions_scotia_2012_2013_backup_20251203.account_number**
+- **banking_transactions_scotia_2012_2013_backup_20251203.bank_id**
+- **banking_transactions_scotia_2012_2013_backup_20251203.receipt_id**
+- **banking_transactions_scotia_2012_2013_backup_20251203.reconciled_receipt_id**
+- **banking_transactions_scotia_2012_2013_backup_20251203.reconciled_payment_id**
+- **banking_transactions_scotia_2012_2013_backup_20251203.reconciled_charter_id**
+- **banking_transactions_scotia_2012_backup_20251207_140858.transaction_id**
+- **banking_transactions_scotia_2012_backup_20251207_140858.account_number**
+- **banking_transactions_scotia_2012_backup_20251207_140858.bank_id**
+- **banking_transactions_scotia_2012_backup_20251207_140858.receipt_id**
+- **banking_transactions_scotia_2012_backup_20251207_140858.reconciled_receipt_id**
+- **banking_transactions_scotia_2012_backup_20251207_140858.reconciled_payment_id**
+- **banking_transactions_scotia_2012_backup_20251207_140858.reconciled_charter_id**
+- **banking_transactions_scotia_2012_backup_20251207_203124.transaction_id**
+- **banking_transactions_scotia_2012_backup_20251207_203124.account_number**
+- **banking_transactions_scotia_2012_backup_20251207_203124.bank_id**
+- **banking_transactions_scotia_2012_backup_20251207_203124.receipt_id**
+- **banking_transactions_scotia_2012_backup_20251207_203124.reconciled_receipt_id**
+- **banking_transactions_scotia_2012_backup_20251207_203124.reconciled_payment_id**
+- **banking_transactions_scotia_2012_backup_20251207_203124.reconciled_charter_id**
+- **banking_transactions_scotia_2012_backup_20251207_203720.transaction_id**
+- **banking_transactions_scotia_2012_backup_20251207_203720.account_number**
+- **banking_transactions_scotia_2012_backup_20251207_203720.bank_id**
+- **banking_transactions_scotia_2012_backup_20251207_203720.receipt_id**
+- **banking_transactions_scotia_2012_backup_20251207_203720.reconciled_receipt_id**
+- **banking_transactions_scotia_2012_backup_20251207_203720.reconciled_payment_id**
+- **banking_transactions_scotia_2012_backup_20251207_203720.reconciled_charter_id**
+- **banking_transactions_scotia_2012_backup_20251207_233028.transaction_id**
+- **banking_transactions_scotia_2012_backup_20251207_233028.account_number**
+- **banking_transactions_scotia_2012_backup_20251207_233028.bank_id**
+- **banking_transactions_scotia_2012_backup_20251207_233028.receipt_id**
+- **banking_transactions_scotia_2012_backup_20251207_233028.reconciled_receipt_id**
+- **banking_transactions_scotia_2012_backup_20251207_233028.reconciled_payment_id**
+- **banking_transactions_scotia_2012_backup_20251207_233028.reconciled_charter_id**
+- **banking_transactions_scotia_2012_backup_20251207_233611.transaction_id**
+- **banking_transactions_scotia_2012_backup_20251207_233611.account_number**
+- **banking_transactions_scotia_2012_backup_20251207_233611.bank_id**
+- **banking_transactions_scotia_2012_backup_20251207_233611.receipt_id**
+- **banking_transactions_scotia_2012_backup_20251207_233611.reconciled_receipt_id**
+- **banking_transactions_scotia_2012_backup_20251207_233611.reconciled_payment_id**
+- **banking_transactions_scotia_2012_backup_20251207_233611.reconciled_charter_id**
+- **banking_transactions_scotia_2012_backup_20251207_233644.transaction_id**
+- **banking_transactions_scotia_2012_backup_20251207_233644.account_number**
+- **banking_transactions_scotia_2012_backup_20251207_233644.bank_id**
+- **banking_transactions_scotia_2012_backup_20251207_233644.receipt_id**
+- **banking_transactions_scotia_2012_backup_20251207_233644.reconciled_receipt_id**
+- **banking_transactions_scotia_2012_backup_20251207_233644.reconciled_payment_id**
+- **banking_transactions_scotia_2012_backup_20251207_233644.reconciled_charter_id**
+- **banking_transactions_scotia_2012_corrupted_backup_20251207_2023.transaction_id**
+- **banking_transactions_scotia_2012_corrupted_backup_20251207_2023.account_number**
+- **banking_transactions_scotia_2012_corrupted_backup_20251207_2023.bank_id**
+- **banking_transactions_scotia_2012_corrupted_backup_20251207_2023.receipt_id**
+- **banking_transactions_scotia_2012_corrupted_backup_20251207_2023.reconciled_receipt_id**
+- **banking_transactions_scotia_2012_corrupted_backup_20251207_2023.reconciled_payment_id**
+- **banking_transactions_scotia_2012_corrupted_backup_20251207_2023.reconciled_charter_id**
+- **banking_transactions_scotia_backup_20251218_235448.transaction_id**
+- **banking_transactions_scotia_backup_20251218_235448.account_number**
+- **banking_transactions_scotia_backup_20251218_235448.bank_id**
+- **banking_transactions_scotia_backup_20251218_235448.receipt_id**
+- **banking_transactions_scotia_backup_20251218_235448.reconciled_receipt_id**
+- **banking_transactions_scotia_backup_20251218_235448.reconciled_payment_id**
+- **banking_transactions_scotia_backup_20251218_235448.reconciled_charter_id**
+- **banking_transactions_scotia_cleanup_backup_20251203_032602.transaction_id**
+- **banking_transactions_scotia_cleanup_backup_20251203_032602.account_number**
+- **banking_transactions_scotia_cleanup_backup_20251203_032602.bank_id**
+- **banking_transactions_scotia_cleanup_backup_20251203_032602.receipt_id**
+- **banking_transactions_scotia_cleanup_backup_20251203_032602.reconciled_receipt_id**
+- **banking_transactions_scotia_cleanup_backup_20251203_032602.reconciled_payment_id**
+- **banking_transactions_scotia_cleanup_backup_20251203_032602.reconciled_charter_id**
+- **banking_transactions_scotia_desc_backup_20251203_032154.transaction_id**
+- **banking_transactions_scotia_desc_backup_20251203_032154.account_number**
+- **banking_transactions_scotia_desc_backup_20251203_032154.bank_id**
+- **banking_transactions_scotia_desc_backup_20251203_032154.receipt_id**
+- **banking_transactions_scotia_desc_backup_20251203_032154.reconciled_receipt_id**
+- **banking_transactions_scotia_desc_backup_20251203_032154.reconciled_payment_id**
+- **banking_transactions_scotia_desc_backup_20251203_032154.reconciled_charter_id**
+- **banking_transactions_typo_fix_20251206_230713.transaction_id**
+- **banking_transactions_typo_fix_20251206_230713.account_number**
+- **banking_transactions_typo_fix_20251206_230713.bank_id**
+- **banking_transactions_typo_fix_20251206_230713.receipt_id**
+- **banking_transactions_typo_fix_20251206_230713.reconciled_receipt_id**
+- **banking_transactions_typo_fix_20251206_230713.reconciled_payment_id**
+- **banking_transactions_typo_fix_20251206_230713.reconciled_charter_id**
+- **banking_transactions_vendor_fix_backup_20251203_033559.transaction_id**
+- **banking_transactions_vendor_fix_backup_20251203_033559.account_number**
+- **banking_transactions_vendor_fix_backup_20251203_033559.bank_id**
+- **banking_transactions_vendor_fix_backup_20251203_033559.receipt_id**
+- **banking_transactions_vendor_fix_backup_20251203_033559.reconciled_receipt_id**
+- **banking_transactions_vendor_fix_backup_20251203_033559.reconciled_payment_id**
+- **banking_transactions_vendor_fix_backup_20251203_033559.reconciled_charter_id**
+- **banking_transactions_vendor_standardization_20251206_234542.transaction_id**
+- **banking_transactions_vendor_standardization_20251206_234542.account_number**
+- **banking_transactions_vendor_standardization_20251206_234542.bank_id**
+- **banking_transactions_vendor_standardization_20251206_234542.receipt_id**
+- **banking_transactions_vendor_standardization_20251206_234542.reconciled_receipt_id**
+- **banking_transactions_vendor_standardization_20251206_234542.reconciled_payment_id**
+- **banking_transactions_vendor_standardization_20251206_234542.reconciled_charter_id**
+- **banking_transactions_vendor_standardization_20251206_234601.transaction_id**
+- **banking_transactions_vendor_standardization_20251206_234601.account_number**
+- **banking_transactions_vendor_standardization_20251206_234601.bank_id**
+- **banking_transactions_vendor_standardization_20251206_234601.receipt_id**
+- **banking_transactions_vendor_standardization_20251206_234601.reconciled_receipt_id**
+- **banking_transactions_vendor_standardization_20251206_234601.reconciled_payment_id**
+- **banking_transactions_vendor_standardization_20251206_234601.reconciled_charter_id**
+- **banking_transactions_vendor_standardization_20251206_234629.transaction_id**
+- **banking_transactions_vendor_standardization_20251206_234629.account_number**
+- **banking_transactions_vendor_standardization_20251206_234629.bank_id**
+- **banking_transactions_vendor_standardization_20251206_234629.receipt_id**
+- **banking_transactions_vendor_standardization_20251206_234629.reconciled_receipt_id**
+- **banking_transactions_vendor_standardization_20251206_234629.reconciled_payment_id**
+- **banking_transactions_vendor_standardization_20251206_234629.reconciled_charter_id**
+- **banking_transactions_vendor_standardization_20251206_234648.transaction_id**
+- **banking_transactions_vendor_standardization_20251206_234648.account_number**
+- **banking_transactions_vendor_standardization_20251206_234648.bank_id**
+- **banking_transactions_vendor_standardization_20251206_234648.receipt_id**
+- **banking_transactions_vendor_standardization_20251206_234648.reconciled_receipt_id**
+- **banking_transactions_vendor_standardization_20251206_234648.reconciled_payment_id**
+- **banking_transactions_vendor_standardization_20251206_234648.reconciled_charter_id**
+- **banking_transactions_vendor_std_backup_20251206_225555.transaction_id**
+- **banking_transactions_vendor_std_backup_20251206_225555.account_number**
+- **banking_transactions_vendor_std_backup_20251206_225555.bank_id**
+- **banking_transactions_vendor_std_backup_20251206_225555.receipt_id**
+- **banking_transactions_vendor_std_backup_20251206_225555.reconciled_receipt_id**
+- **banking_transactions_vendor_std_backup_20251206_225555.reconciled_payment_id**
+- **banking_transactions_vendor_std_backup_20251206_225555.reconciled_charter_id**
+- **banking_transactions_vendor_std_backup_20251206_225613.transaction_id**
+- **banking_transactions_vendor_std_backup_20251206_225613.account_number**
+- **banking_transactions_vendor_std_backup_20251206_225613.bank_id**
+- **banking_transactions_vendor_std_backup_20251206_225613.receipt_id**
+- **banking_transactions_vendor_std_backup_20251206_225613.reconciled_receipt_id**
+- **banking_transactions_vendor_std_backup_20251206_225613.reconciled_payment_id**
+- **banking_transactions_vendor_std_backup_20251206_225613.reconciled_charter_id**
+- **batch_deposit_allocations.target_payment_id**
+- **batch_deposit_allocations.reserve_number**
+- **beverage_cart.charter_id**
+- **beverage_cart.beverage_id**
+- **beverage_order_items.item_id**
+- **beverage_order_items.price_override**
+- **beverage_order_items.override_reason**
+- **beverage_products_backup_20260107_191111.item_id**
+- **billing_audit_issues.positive_payment_id**
+- **billing_audit_issues.negative_payment_id**
+- **billing_audit_issues.identified_date**
+- **billing_audit_log.positive_payment_id**
+- **billing_audit_log.negative_payment_id**
+- **business_losses.insurance_claim_number**
+- **cash_box_transactions.banking_transaction_id**
+- **cash_box_transactions.receipt_id**
+- **cash_box_transactions.employee_id**
+- **cash_flow_tracking.supporting_receipt_id**
+- **categorization_rules.category_code**
+- **categorization_rules.confidence_weight**
+- **category_mappings.new_account_code**
+- **category_mappings.mapping_confidence**
+- **charity_trade_charters.charter_id**
+- **chart_of_accounts.bank_account_number**
+- **charter_beverages.beverage_item_id**
+- **charter_charges.account_number**
+- **charter_charges.reserve_number**
+- **charter_charges.charter_id**
+- **charter_charges_backup_013914_20251123.charge_id**
+- **charter_charges_backup_013914_20251123.account_number**
+- **charter_charges_backup_013914_20251123.reserve_number**
+- **charter_charges_backup_013914_20251123.charter_id**
+- **charter_charges_backup_20251126_192458.charge_id**
+- **charter_charges_backup_20251126_192458.account_number**
+- **charter_charges_backup_20251126_192458.reserve_number**
+- **charter_charges_backup_20251126_192458.charter_id**
+- **charter_charges_backup_lms_sync_20251123.charge_id**
+- **charter_charges_backup_lms_sync_20251123.account_number**
+- **charter_charges_backup_lms_sync_20251123.reserve_number**
+- **charter_charges_backup_lms_sync_20251123.charter_id**
+- **charter_charges_backup_nrd_20260107_225955.charge_id**
+- **charter_charges_backup_nrd_20260107_225955.account_number**
+- **charter_charges_backup_nrd_20260107_225955.reserve_number**
+- **charter_charges_backup_nrd_20260107_225955.charter_id**
+- **charter_charges_backup_nrd_all_20260107_230822.charge_id**
+- **charter_charges_backup_nrd_all_20260107_230822.account_number**
+- **charter_charges_backup_nrd_all_20260107_230822.reserve_number**
+- **charter_charges_backup_nrd_all_20260107_230822.charter_id**
+- **charter_credit_ledger.source_charter_id**
+- **charter_credit_ledger.client_id**
+- **charter_credit_ledger.applied_to_reserve_number**
+- **charter_credit_ledger.applied_to_charter_id**
+- **charter_gst_details_2010_2012.charter_id**
+- **charter_payments.payment_id**
+- **charter_payments.charter_id**
+- **charter_payments.payment_key**
+- **charter_reconciliation_status.reserve_number**
+- **charter_reconciliation_status.overpaid_amount**
+- **charter_refunds.reserve_number**
+- **charter_refunds.charter_id**
+- **charter_refunds.payment_id**
+- **charter_refunds.square_payment_id**
+- **charter_time_updates.charter_id**
+- **charter_time_updates.driver_id**
+- **charters.account_number**
+- **charters.client_id**
+- **charters.driver_paid**
+- **charters.assigned_driver_id**
+- **charters.paid_amount**
+- **charters.vehicle_booked_id**
+- **charters.employee_id**
+- **charters.vehicle_id**
+- **charters_backup_20251203_143025.charter_id**
+- **charters_backup_20251203_143025.reserve_number**
+- **charters_backup_20251203_143025.account_number**
+- **charters_backup_20251203_143025.client_id**
+- **charters_backup_20251203_143025.driver_paid**
+- **charters_backup_20251203_143025.assigned_driver_id**
+- **charters_backup_20251203_143025.paid_amount**
+- **charters_backup_20251203_143025.vehicle_booked_id**
+- **charters_backup_20251203_143025.employee_id**
+- **charters_backup_20251203_143025.vehicle_id**
+- **charters_backup_link_by_account_20251201_164209.charter_id**
+- **charters_backup_link_by_account_20251201_164209.reserve_number**
+- **charters_backup_link_by_account_20251201_164209.account_number**
+- **charters_backup_link_by_account_20251201_164209.client_id**
+- **charters_backup_link_by_account_20251201_164209.driver_paid**
+- **charters_backup_link_by_account_20251201_164209.assigned_driver_id**
+- **charters_backup_link_by_account_20251201_164209.paid_amount**
+- **charters_backup_link_by_account_20251201_164209.vehicle_booked_id**
+- **charters_backup_link_by_account_20251201_164209.employee_id**
+- **charters_backup_link_by_account_20251201_164209.vehicle_id**
+- **charters_backup_vehicle_id_20251224_202231.charter_id**
+- **charters_backup_vehicle_id_20251224_202231.reserve_number**
+- **charters_backup_vehicle_id_20251224_202231.account_number**
+- **charters_backup_vehicle_id_20251224_202231.client_id**
+- **charters_backup_vehicle_id_20251224_202231.driver_paid**
+- **charters_backup_vehicle_id_20251224_202231.assigned_driver_id**
+- **charters_backup_vehicle_id_20251224_202231.paid_amount**
+- **charters_backup_vehicle_id_20251224_202231.vehicle_booked_id**
+- **charters_backup_vehicle_id_20251224_202231.employee_id**
+- **charters_backup_vehicle_id_20251224_202231.vehicle_id**
+- **charters_retainer_cancel_fix_20251204.charter_id**
+- **charters_retainer_cancel_fix_20251204.reserve_number**
+- **charters_retainer_cancel_fix_20251204.account_number**
+- **charters_retainer_cancel_fix_20251204.client_id**
+- **charters_retainer_cancel_fix_20251204.driver_paid**
+- **charters_retainer_cancel_fix_20251204.assigned_driver_id**
+- **charters_retainer_cancel_fix_20251204.paid_amount**
+- **charters_retainer_cancel_fix_20251204.vehicle_booked_id**
+- **charters_retainer_cancel_fix_20251204.employee_id**
+- **charters_retainer_cancel_fix_20251204.vehicle_id**
+- **charters_zero_balance_fix_20251111_191705.charter_id**
+- **charters_zero_balance_fix_20251111_191705.reserve_number**
+- **charters_zero_balance_fix_20251111_191705.account_number**
+- **charters_zero_balance_fix_20251111_191705.client_id**
+- **charters_zero_balance_fix_20251111_191705.driver_paid**
+- **charters_zero_balance_fix_20251111_191705.assigned_driver_id**
+- **charters_zero_balance_fix_20251111_191705.paid_amount**
+- **charters_zero_balance_fix_20251111_191705.vehicle_booked_id**
+- **charters_zero_balance_fix_20251111_191705.employee_id**
+- **charters_zero_balance_fix_20251111_191705.vehicle_id**
+- **chauffeur_float_tracking.charter_id**
+- **chauffeur_float_tracking.reserve_number**
+- **chauffeur_float_tracking.driver_id**
+- **chauffeur_float_tracking.matched_payment_id**
+- **chauffeur_float_tracking.square_payment_id**
+- **chauffeur_float_tracking.banking_transaction_id**
+- **chauffeur_pay_entries.chauffeur_id**
+- **cheque_register.banking_transaction_id**
+- **cheque_register.account_number**
+- **cibc_auto_categorization_rules.card_id**
+- **cibc_business_cards.card_number_last4**
+- **cibc_business_cards.owner_equity_account_id**
+- **cibc_card_transactions.card_id**
+- **cibc_card_transactions.banking_transaction_id**
+- **cibc_checking_staging_archived_20251107.account_id**
+- **cibc_qbo_staging_archived_20251107.fitid**
+- **clients.zip_code**
+- **clients.exemption_certificate_number**
+- **clients.fraud_case_id**
+- **clients.lms_customer_number**
+- **clients.qb_customer_id**
+- **clients.tax_code**
+- **clients.sales_tax_code**
+- **clients.resale_number**
+- **clients.square_customer_id**
+- **clients_backup_20251203_143025.client_id**
+- **clients_backup_20251203_143025.account_number**
+- **clients_backup_20251203_143025.zip_code**
+- **clients_backup_20251203_143025.exemption_certificate_number**
+- **clients_backup_20251203_143025.fraud_case_id**
+- **clients_backup_20251203_143025.lms_customer_number**
+- **clients_backup_20251203_143025.qb_customer_id**
+- **clients_backup_20251203_143025.tax_code**
+- **clients_backup_20251203_143025.sales_tax_code**
+- **clients_backup_20251203_143025.resale_number**
+- **clients_backup_20251203_143025.square_customer_id**
+- **clients_company_name_backup_20251201_153000.client_id**
+- **clients_company_name_backup_20251201_153000.account_number**
+- **clients_company_name_backup_20251201_153000.zip_code**
+- **clients_company_name_backup_20251201_153000.exemption_certificate_number**
+- **clients_company_name_backup_20251201_153000.fraud_case_id**
+- **clients_company_name_backup_20251201_153000.lms_customer_number**
+- **clients_company_name_backup_20251201_153000.qb_customer_id**
+- **clients_company_name_backup_20251201_153000.tax_code**
+- **clients_company_name_backup_20251201_153000.sales_tax_code**
+- **clients_company_name_backup_20251201_153000.resale_number**
+- **clients_company_name_backup_20251201_153000.square_customer_id**
+- **comprehensive_payment_reconciliation.reference_number**
+- **comprehensive_payment_reconciliation.charter_id**
+- **comprehensive_payment_reconciliation.client_id**
+- **comprehensive_payment_reconciliation.matched_to_payment_id**
+- **cra_vehicle_events.vehicle_id**
+- **cra_vehicle_events.police_report_number**
+- **cra_vehicle_events.insurance_claim_number**
+- **cra_vehicle_events.cra_reference_number**
+- **credit_lines.account_number**
+- **customer_name_mapping.alms_client_id**
+- **customer_name_mapping.alms_account_number**
+- **customer_name_mapping.match_confidence**
+- **cvip_compliance_alerts.vehicle_id**
+- **cvip_defects.inspection_id**
+- **cvip_defects.defect_code**
+- **cvip_inspections.vehicle_id**
+- **cvip_inspections.inspection_number**
+- **cvip_inspections.valid_until**
+- **cvip_inspections.receipt_id**
+- **deferred_wage_accounts.ytd_paid_amount**
+- **deferred_wage_accounts.lifetime_paid**
+- **deferred_wage_transactions.paid_amount**
+- **deferred_wage_transactions.payroll_id**
+- **deferred_wage_transactions.charter_id**
+- **deferred_wage_transactions.expense_id**
+- **deferred_wage_transactions.journal_entry_id**
+- **deferred_wage_transactions.qb_transaction_id**
+- **deposit_records.deposit_key**
+- **deposit_records.transaction_number**
+- **direct_tips_history.charter_id**
+- **direct_tips_history.reserve_number**
+- **direct_tips_history.driver_id**
+- **direct_tips_history.employee_id**
+- **direct_tips_history.paid_by_customer_directly**
+- **donations_free_rides.charter_id**
+- **donations_free_rides.tax_receipt_number**
+- **driver_app_actions.driver_id**
+- **driver_app_actions.charter_id**
+- **driver_app_sessions.driver_id**
+- **driver_app_sessions.device_id**
+- **driver_disciplinary_actions.driver_id**
+- **driver_documents.employee_id**
+- **driver_documents.document_number**
+- **driver_employee_mapping.employee_id**
+- **driver_employee_mapping.employee_number**
+- **driver_employee_mapping.confidence_score**
+- **driver_floats.cash_box_transaction_id**
+- **driver_hos_log.employee_id**
+- **driver_hos_log.charter_id**
+- **driver_hos_log.vehicle_id**
+- **driver_internal_notes.driver_id**
+- **driver_internal_notes.attached_document_id**
+- **driver_location_history.driver_id**
+- **driver_location_history.charter_id**
+- **driver_name_employee_map.candidate_employee_id**
+- **driver_name_employee_map.candidate_employee_name**
+- **driver_name_employee_map.candidate_method**
+- **driver_name_employee_map.confidence**
+- **driver_pay_entries.driver_id**
+- **driver_payroll.driver_id**
+- **driver_payroll.charter_id**
+- **driver_payroll.reserve_number**
+- **driver_payroll.employee_id**
+- **driver_payroll_backup_20251126_191157.id**
+- **driver_payroll_backup_20251126_191157.driver_id**
+- **driver_payroll_backup_20251126_191157.charter_id**
+- **driver_payroll_backup_20251126_191157.reserve_number**
+- **driver_payroll_backup_20251126_191157.employee_id**
+- **driver_payroll_hours_backup_20251120.id**
+- **driver_payroll_hours_backup_20251120.driver_id**
+- **driver_payroll_hours_backup_20251120.charter_id**
+- **driver_payroll_hours_backup_20251120.reserve_number**
+- **driver_payroll_hours_backup_20251120.employee_id**
+- **driver_performance_private.driver_id**
+- **driver_performance_private.accident_count**
+- **driver_performance_private.incident_count**
+- **email_financial_events.vehicle_id**
+- **email_financial_events.loan_external_id**
+- **email_financial_events.policy_number**
+- **email_financial_events.banking_transaction_id**
+- **email_financial_events.matched_account_number**
+- **email_scanner_staging.reference_number**
+- **employee_expenses.receipt_id**
+- **employee_expenses.work_assignment_id**
+- **employee_pay_entries.employee_id**
+- **employee_pay_master.confidence_level**
+- **employee_roe_records.employee_id**
+- **employee_roe_records.roe_number**
+- **employee_roe_records.reason_code**
+- **employee_t4_summary.confidence_level**
+- **employee_time_off_requests.is_paid**
+- **employees.driver_code**
+- **employees.quickbooks_id**
+- **employees.postal_code**
+- **employees.driver_license_number**
+- **employees.chauffeur_permit_number**
+- **epson_classifications_map.mapped_account_id**
+- **epson_classifications_map.confidence**
+- **epson_pay_accounts_map.mapped_account_id**
+- **epson_pay_accounts_map.confidence**
+- **epson_pay_methods_map.confidence**
+- **etransfer_banking_reconciliation.transaction_id**
+- **etransfer_banking_reconciliation.account_number**
+- **etransfer_transactions.reference_number**
+- **etransfer_transactions.email_event_id**
+- **etransfer_transactions.banking_transaction_id**
+- **etransfer_transactions.match_confidence**
+- **etransfers_processed.reference_code**
+- **etransfers_processed.gl_code**
+- **excluded_charters.charter_id**
+- **fee_tracking.gl_account_id**
+- **financial_adjustments.client_id**
+- **financial_adjustments.fraud_case_id**
+- **financial_audit_trail.session_id**
+- **financial_audit_trail.record_id**
+- **financial_documents.invoice_number**
+- **financial_documents.reservation_number**
+- **financial_documents.scan_number**
+- **financial_statement_sections.statement_type_id**
+- **financial_statement_sections.parent_section_id**
+- **financial_transactions.hash_id**
+- **financing_payments.source_id**
+- **financing_payments.journal_entry_id**
+- **financing_sources.account_code**
+- **float_activity_log.float_id**
+- **fraud_cases.source_client_id**
+- **fraud_cases.target_client_id**
+- **fuel_expenses.expense_id**
+- **fuel_expenses.vehicle_id**
+- **fuel_expenses.vehicle_code**
+- **fuel_expenses.source_key**
+- **general_ledger.distribution_account_number**
+- **general_ledger.account_number**
+- **general_ledger.parent_account_id**
+- **general_ledger.customer_middle_name**
+- **general_ledger.employee_id**
+- **general_ledger.po_number**
+- **general_ledger.transaction_id**
+- **general_ledger.tax_code**
+- **general_ledger.parent_distribution_account_id**
+- **general_ledger_headers.fraud_case_id**
+- **general_ledger_headers.period_key**
+- **general_ledger_lines.header_id**
+- **general_ledger_lines.fraud_case_id**
+- **gl_transactions.reference_number**
+- **gl_transactions.source_batch_id**
+- **gl_transactions.natural_key**
+- **gl_transactions_staging_archived_20251107.import_batch_id**
+- **gl_transactions_staging_archived_20251107.reference_number**
+- **gl_transactions_staging_archived_20251107.validation_status**
+- **gl_transactions_staging_archived_20251107.mapped_account_code**
+- **gratuity_income_links.ugl_id**
+- **gratuity_income_links.reserve_number**
+- **gst_audit_trail.charter_id**
+- **gst_audit_trail.receipt_id**
+- **incident_costs.incident_id**
+- **incident_damage_tracking.incident_date**
+- **incident_damage_tracking.incident_type**
+- **incident_damage_tracking.charter_id**
+- **incident_damage_tracking.vehicle_id**
+- **incident_damage_tracking.deductible_paid**
+- **incident_damage_tracking.receipt_id**
+- **incidents.incident_number**
+- **incidents.incident_date**
+- **incidents.incident_time**
+- **incidents.incident_type**
+- **incidents.police_report_number**
+- **incidents.insurance_claim_number**
+- **incidents.charter_id**
+- **incidents.incident_start_time**
+- **incidents.replacement_vehicle_id**
+- **incidents.total_incident_cost**
+- **income_ledger.payment_id**
+- **income_ledger.client_id**
+- **income_ledger.charter_id**
+- **income_ledger.reserve_number**
+- **income_ledger_payment_archive.income_id**
+- **income_ledger_payment_archive.payment_id**
+- **income_ledger_payment_archive.client_id**
+- **income_ledger_payment_archive.charter_id**
+- **income_ledger_payment_archive.reserve_number**
+- **interest_allocations.credit_line_id**
+- **invoice_line_items.tax_code**
+- **invoice_line_items.account_code**
+- **invoice_line_items.qb_item_id**
+- **invoice_line_items.vehicle_id**
+- **invoice_line_items.driver_id**
+- **invoice_tracking.document_id**
+- **journal.reference_number**
+- **journal_backup_20251126_192458.reference_number**
+- **journal_backup_20251126_192458.journal_id**
+- **journal_lines.reference_number**
+- **journal_lines.split_id**
+- **journal_lines.entity_id**
+- **legacy_import_status.validation_status**
+- **legacy_import_status.issues_identified**
+- **limo_addresses.client_id**
+- **limo_addresses.zip_code**
+- **limo_addresses_clean.client_id**
+- **limo_addresses_clean.zip_code**
+- **limo_clients.account_number**
+- **limo_clients.zip_code**
+- **limo_clients_clean.account_number**
+- **limo_clients_clean.zip_code**
+- **limo_contacts.client_id**
+- **lms_customers_enhanced.zip_code**
+- **lms_deposits.dep_key**
+- **lms_deposits.number**
+- **lms_rate_mapping.field_id**
+- **lms_rate_mapping.sequence_number**
+- **lms_vehicle_mapping.vin_number**
+- **loan_transactions.reference_number**
+- **loan_transactions.reconciliation_payment_id**
+- **maintenance_alerts.vehicle_id**
+- **maintenance_records.work_order_number**
+- **maintenance_records.receipt_id**
+- **maintenance_records.service_order_number**
+- **maintenance_schedules_auto.vehicle_id**
+- **manual_check_payees.matched_banking_id**
+- **master_relationships.source_id**
+- **master_relationships.target_id**
+- **master_relationships.match_confidence**
+- **monthly_work_assignments.client_account_number**
+- **multi_charter_payments.payment_id**
+- **multi_charter_payments.charter_ids**
+- **non_charter_payroll.holiday_hours**
+- **non_charter_payroll.holiday_rate**
+- **non_charter_payroll.gross_holiday_pay**
+- **orphaned_charges_archive.reserve_number**
+- **owner_equity_accounts.cibc_card_number**
+- **owner_expense_transactions.cibc_transaction_id**
+- **owner_expense_transactions.banking_transaction_id**
+- **owner_expense_transactions.journal_entry_id**
+- **payables.invoice_number**
+- **payables.check_number**
+- **payables.paid_amount**
+- **payday_loan_payments.paid_date**
+- **payday_loan_payments.match_confidence**
+- **payday_loan_payments.banking_transaction_id**
+- **payday_loan_payments.receipt_id**
+- **payment_backups.reserve_number**
+- **payment_customer_links.payment_id**
+- **payment_customer_links.confidence_score**
+- **payment_imports_archived_20251107.reference_id**
+- **payment_imports_archived_20251107.confidence_score**
+- **payment_imports_archived_20251107.transaction_id**
+- **payment_imports_archived_20251107.payment_id**
+- **payment_imports_archived_20251107.staff_id**
+- **payment_imports_archived_20251107.customer_id**
+- **payment_imports_archived_20251107.customer_reference_id**
+- **payment_imports_archived_20251107.deposit_id**
+- **payment_imports_archived_20251107.order_reference_id**
+- **payment_imports_backup_2025_08_09.id**
+- **payment_imports_backup_2025_08_09.reference_id**
+- **payment_imports_backup_2025_08_09.confidence_score**
+- **payment_imports_backup_2025_08_09.transaction_id**
+- **payment_imports_backup_2025_08_09.payment_id**
+- **payment_imports_backup_2025_08_09.staff_id**
+- **payment_imports_backup_2025_08_09.customer_id**
+- **payment_imports_backup_2025_08_09.customer_reference_id**
+- **payment_imports_backup_2025_08_09.deposit_id**
+- **payment_imports_backup_2025_08_09.order_reference_id**
+- **payment_matches.charter_id**
+- **payment_matches.square_payment_id**
+- **payment_matches.confidence_score**
+- **payment_matches.deposit_key**
+- **payment_matches_backup_2025_08_09.id**
+- **payment_matches_backup_2025_08_09.square_payment_id**
+- **payment_matches_backup_2025_08_09.charter_id**
+- **payment_matches_backup_2025_08_09.confidence_level**
+- **payment_method_backup_20250810.payment_id**
+- **payment_method_backup_20250810.charter_id**
+- **payment_method_backup_20250810.square_payment_id**
+- **payment_reconciliation_ledger.payment_id**
+- **payments.account_number**
+- **payments.reserve_number**
+- **payments.charter_id**
+- **payments.client_id**
+- **payments.payment_key**
+- **payments.check_number**
+- **payments.authorization_code**
+- **payments.square_transaction_id**
+- **payments.square_payment_id**
+- **payments.payment_code_4char**
+- **payments.reference_number**
+- **payments.banking_transaction_id**
+- **payments.related_payment_id**
+- **payments_2012_backup_v2.payment_id**
+- **payments_2012_backup_v2.account_number**
+- **payments_2012_backup_v2.reserve_number**
+- **payments_2012_backup_v2.charter_id**
+- **payments_2012_backup_v2.client_id**
+- **payments_2012_backup_v2.payment_key**
+- **payments_2012_backup_v2.check_number**
+- **payments_2012_backup_v2.authorization_code**
+- **payments_2012_backup_v2.square_transaction_id**
+- **payments_2012_backup_v2.square_payment_id**
+- **payments_2012_backup_v2.payment_code_4char**
+- **payments_2012_backup_v2.reference_number**
+- **payments_archived.account_number**
+- **payments_archived.reserve_number**
+- **payments_archived.charter_id**
+- **payments_archived.client_id**
+- **payments_archived.payment_key**
+- **payments_archived.check_number**
+- **payments_archived.authorization_code**
+- **payments_archived.square_transaction_id**
+- **payments_archived.square_payment_id**
+- **payments_archived.payment_code_4char**
+- **payments_archived.reference_number**
+- **payments_archived.banking_transaction_id**
+- **payments_backup_013914_250fix_20251123.payment_id**
+- **payments_backup_013914_250fix_20251123.account_number**
+- **payments_backup_013914_250fix_20251123.reserve_number**
+- **payments_backup_013914_250fix_20251123.charter_id**
+- **payments_backup_013914_250fix_20251123.client_id**
+- **payments_backup_013914_250fix_20251123.payment_key**
+- **payments_backup_013914_250fix_20251123.check_number**
+- **payments_backup_013914_250fix_20251123.authorization_code**
+- **payments_backup_013914_250fix_20251123.square_transaction_id**
+- **payments_backup_013914_250fix_20251123.square_payment_id**
+- **payments_backup_013914_250fix_20251123.payment_code_4char**
+- **payments_backup_013914_250fix_20251123.reference_number**
+- **payments_backup_013914_250fix_20251123.banking_transaction_id**
+- **payments_backup_013914_250fix_20251123.related_payment_id**
+- **payments_backup_014140_500fix_20251123.payment_id**
+- **payments_backup_014140_500fix_20251123.account_number**
+- **payments_backup_014140_500fix_20251123.reserve_number**
+- **payments_backup_014140_500fix_20251123.charter_id**
+- **payments_backup_014140_500fix_20251123.client_id**
+- **payments_backup_014140_500fix_20251123.payment_key**
+- **payments_backup_014140_500fix_20251123.check_number**
+- **payments_backup_014140_500fix_20251123.authorization_code**
+- **payments_backup_014140_500fix_20251123.square_transaction_id**
+- **payments_backup_014140_500fix_20251123.square_payment_id**
+- **payments_backup_014140_500fix_20251123.payment_code_4char**
+- **payments_backup_014140_500fix_20251123.reference_number**
+- **payments_backup_014140_500fix_20251123.banking_transaction_id**
+- **payments_backup_014140_500fix_20251123.related_payment_id**
+- **payments_backup_20251126_192900.payment_id**
+- **payments_backup_20251126_192900.account_number**
+- **payments_backup_20251126_192900.reserve_number**
+- **payments_backup_20251126_192900.charter_id**
+- **payments_backup_20251126_192900.client_id**
+- **payments_backup_20251126_192900.payment_key**
+- **payments_backup_20251126_192900.check_number**
+- **payments_backup_20251126_192900.authorization_code**
+- **payments_backup_20251126_192900.square_transaction_id**
+- **payments_backup_20251126_192900.square_payment_id**
+- **payments_backup_20251126_192900.payment_code_4char**
+- **payments_backup_20251126_192900.reference_number**
+- **payments_backup_20251126_192900.banking_transaction_id**
+- **payments_backup_20251126_192900.related_payment_id**
+- **payments_backup_20251203_133028.payment_id**
+- **payments_backup_20251203_133028.account_number**
+- **payments_backup_20251203_133028.reserve_number**
+- **payments_backup_20251203_133028.charter_id**
+- **payments_backup_20251203_133028.client_id**
+- **payments_backup_20251203_133028.payment_key**
+- **payments_backup_20251203_133028.check_number**
+- **payments_backup_20251203_133028.authorization_code**
+- **payments_backup_20251203_133028.square_transaction_id**
+- **payments_backup_20251203_133028.square_payment_id**
+- **payments_backup_20251203_133028.payment_code_4char**
+- **payments_backup_20251203_133028.reference_number**
+- **payments_backup_20251203_133028.banking_transaction_id**
+- **payments_backup_20251203_133028.related_payment_id**
+- **payments_backup_20251203_143025.payment_id**
+- **payments_backup_20251203_143025.account_number**
+- **payments_backup_20251203_143025.reserve_number**
+- **payments_backup_20251203_143025.charter_id**
+- **payments_backup_20251203_143025.client_id**
+- **payments_backup_20251203_143025.payment_key**
+- **payments_backup_20251203_143025.check_number**
+- **payments_backup_20251203_143025.authorization_code**
+- **payments_backup_20251203_143025.square_transaction_id**
+- **payments_backup_20251203_143025.square_payment_id**
+- **payments_backup_20251203_143025.payment_code_4char**
+- **payments_backup_20251203_143025.reference_number**
+- **payments_backup_20251203_143025.banking_transaction_id**
+- **payments_backup_20251203_143025.related_payment_id**
+- **payments_backup_20260107_213544.payment_id**
+- **payments_backup_20260107_213544.account_number**
+- **payments_backup_20260107_213544.reserve_number**
+- **payments_backup_20260107_213544.charter_id**
+- **payments_backup_20260107_213544.client_id**
+- **payments_backup_20260107_213544.payment_key**
+- **payments_backup_20260107_213544.check_number**
+- **payments_backup_20260107_213544.authorization_code**
+- **payments_backup_20260107_213544.square_transaction_id**
+- **payments_backup_20260107_213544.square_payment_id**
+- **payments_backup_20260107_213544.payment_code_4char**
+- **payments_backup_20260107_213544.reference_number**
+- **payments_backup_20260107_213544.banking_transaction_id**
+- **payments_backup_20260107_213544.related_payment_id**
+- **payments_backup_20260107_213718.payment_id**
+- **payments_backup_20260107_213718.account_number**
+- **payments_backup_20260107_213718.reserve_number**
+- **payments_backup_20260107_213718.charter_id**
+- **payments_backup_20260107_213718.client_id**
+- **payments_backup_20260107_213718.payment_key**
+- **payments_backup_20260107_213718.check_number**
+- **payments_backup_20260107_213718.authorization_code**
+- **payments_backup_20260107_213718.square_transaction_id**
+- **payments_backup_20260107_213718.square_payment_id**
+- **payments_backup_20260107_213718.payment_code_4char**
+- **payments_backup_20260107_213718.reference_number**
+- **payments_backup_20260107_213718.banking_transaction_id**
+- **payments_backup_20260107_213718.related_payment_id**
+- **payments_backup_20260107_214335.payment_id**
+- **payments_backup_20260107_214335.account_number**
+- **payments_backup_20260107_214335.reserve_number**
+- **payments_backup_20260107_214335.charter_id**
+- **payments_backup_20260107_214335.client_id**
+- **payments_backup_20260107_214335.payment_key**
+- **payments_backup_20260107_214335.check_number**
+- **payments_backup_20260107_214335.authorization_code**
+- **payments_backup_20260107_214335.square_transaction_id**
+- **payments_backup_20260107_214335.square_payment_id**
+- **payments_backup_20260107_214335.payment_code_4char**
+- **payments_backup_20260107_214335.reference_number**
+- **payments_backup_20260107_214335.banking_transaction_id**
+- **payments_backup_20260107_214335.related_payment_id**
+- **payments_backup_20260110_025229.payment_id**
+- **payments_backup_20260110_025229.account_number**
+- **payments_backup_20260110_025229.reserve_number**
+- **payments_backup_20260110_025229.charter_id**
+- **payments_backup_20260110_025229.client_id**
+- **payments_backup_20260110_025229.payment_key**
+- **payments_backup_20260110_025229.check_number**
+- **payments_backup_20260110_025229.authorization_code**
+- **payments_backup_20260110_025229.square_transaction_id**
+- **payments_backup_20260110_025229.square_payment_id**
+- **payments_backup_20260110_025229.payment_code_4char**
+- **payments_backup_20260110_025229.reference_number**
+- **payments_backup_20260110_025229.banking_transaction_id**
+- **payments_backup_20260110_025229.related_payment_id**
+- **payments_backup_lms_sync_20251123.payment_id**
+- **payments_backup_lms_sync_20251123.account_number**
+- **payments_backup_lms_sync_20251123.reserve_number**
+- **payments_backup_lms_sync_20251123.charter_id**
+- **payments_backup_lms_sync_20251123.client_id**
+- **payments_backup_lms_sync_20251123.payment_key**
+- **payments_backup_lms_sync_20251123.check_number**
+- **payments_backup_lms_sync_20251123.authorization_code**
+- **payments_backup_lms_sync_20251123.square_transaction_id**
+- **payments_backup_lms_sync_20251123.square_payment_id**
+- **payments_backup_lms_sync_20251123.payment_code_4char**
+- **payments_backup_lms_sync_20251123.reference_number**
+- **payments_backup_lms_sync_20251123.banking_transaction_id**
+- **payments_backup_lms_sync_20251123.related_payment_id**
+- **payments_backup_migrate2_20251112.payment_id**
+- **payments_backup_migrate2_20251112.account_number**
+- **payments_backup_migrate2_20251112.reserve_number**
+- **payments_backup_migrate2_20251112.charter_id**
+- **payments_backup_migrate2_20251112.client_id**
+- **payments_backup_migrate2_20251112.payment_key**
+- **payments_backup_migrate2_20251112.check_number**
+- **payments_backup_migrate2_20251112.authorization_code**
+- **payments_backup_migrate2_20251112.square_transaction_id**
+- **payments_backup_migrate2_20251112.square_payment_id**
+- **payments_backup_migrate2_20251112.payment_code_4char**
+- **payments_backup_migrate2_20251112.reference_number**
+- **payments_backup_migrate2_20251112.banking_transaction_id**
+- **payments_backup_migrate2_20251112.related_payment_id**
+- **payroll_approval_workflow.payroll_id**
+- **payroll_approval_workflow.driver_payroll_id**
+- **payroll_comparison.employee_number**
+- **payroll_comparison.hours_paid**
+- **payroll_fix_audit.charter_id**
+- **payroll_fix_audit.reserve_number**
+- **payroll_fix_audit.old_employee_id**
+- **payroll_fix_audit.old_driver_id**
+- **payroll_fix_audit.new_employee_id**
+- **payroll_fix_audit.new_driver_id**
+- **personal_expenses.source_txn_key**
+- **personal_expenses.vehicle_code**
+- **personal_expenses.vehicle_id**
+- **personal_expenses.cra_code**
+- **pre_inspection_issues.inspection_id**
+- **qb_accounts.qb_account_number**
+- **qb_accounts.qb_bank_account_number**
+- **qb_accounts_staging.qb_account_number**
+- **qb_accounts_staging.qb_bank_account_number**
+- **qb_accounts_staging.qb_tax_code**
+- **qb_accounts_staging.qb_currency_code**
+- **qb_accounts_staging.qb_trans_number**
+- **qb_accounts_staging.qb_quickbooks_internal_id**
+- **qb_accounts_staging.mapping_confidence**
+- **qb_accounts_staging.validation_status**
+- **qb_accounts_staging.validation_errors**
+- **qb_import_batches.records_validated**
+- **qb_journal_entries.account_code**
+- **qb_journal_entries.check_number**
+- **qb_journal_entries.invoice_number**
+- **qb_journal_entries.transaction_id_external**
+- **quotations.charter_id**
+- **quotations.reserve_number**
+- **quotations.client_id**
+- **receipt_cashbox_links.driver_id**
+- **receipt_deliveries.charter_id**
+- **receipt_line_items.receipt_id**
+- **receipt_line_items.employee_id**
+- **receipt_line_items.vehicle_id**
+- **receipts.validation_reason**
+- **receipts.event_batch_id**
+- **receipts.card_number**
+- **receipts.mapped_expense_account_id**
+- **receipts.mapped_bank_account_id**
+- **receipts.vehicle_id**
+- **receipts.vehicle_number**
+- **receipts.gst_code**
+- **receipts.split_key**
+- **receipts.gl_account_code**
+- **receipts.cash_box_transaction_id**
+- **receipts.banking_transaction_id**
+- **receipts.parent_receipt_id**
+- **receipts.duplicate_check_key**
+- **receipts.is_voided**
+- **receipts.vendor_account_id**
+- **receipts.employee_id**
+- **receipts.charter_id**
+- **receipts.reserve_number**
+- **receipts.split_group_id**
+- **receipts_1615_backup_20251218_234108.receipt_id**
+- **receipts_1615_backup_20251218_234108.validation_status**
+- **receipts_1615_backup_20251218_234108.validation_reason**
+- **receipts_1615_backup_20251218_234108.event_batch_id**
+- **receipts_1615_backup_20251218_234108.card_number**
+- **receipts_1615_backup_20251218_234108.mapped_expense_account_id**
+- **receipts_1615_backup_20251218_234108.mapped_bank_account_id**
+- **receipts_1615_backup_20251218_234108.vehicle_id**
+- **receipts_1615_backup_20251218_234108.vehicle_number**
+- **receipts_1615_backup_20251218_234108.gst_code**
+- **receipts_1615_backup_20251218_234108.split_key**
+- **receipts_1615_backup_20251218_234108.gl_account_code**
+- **receipts_1615_backup_20251218_234108.cash_box_transaction_id**
+- **receipts_1615_backup_20251218_234108.banking_transaction_id**
+- **receipts_1615_backup_20251218_234108.parent_receipt_id**
+- **receipts_2012_duplicates_backup_20251205_132426.receipt_id**
+- **receipts_2012_duplicates_backup_20251205_132426.validation_status**
+- **receipts_2012_duplicates_backup_20251205_132426.validation_reason**
+- **receipts_2012_duplicates_backup_20251205_132426.event_batch_id**
+- **receipts_2012_duplicates_backup_20251205_132426.card_number**
+- **receipts_2012_duplicates_backup_20251205_132426.mapped_expense_account_id**
+- **receipts_2012_duplicates_backup_20251205_132426.mapped_bank_account_id**
+- **receipts_2012_duplicates_backup_20251205_132426.vehicle_id**
+- **receipts_2012_duplicates_backup_20251205_132426.vehicle_number**
+- **receipts_2012_duplicates_backup_20251205_132426.gst_code**
+- **receipts_2012_duplicates_backup_20251205_132426.split_key**
+- **receipts_2012_duplicates_backup_20251205_132426.gl_account_code**
+- **receipts_2012_duplicates_backup_20251205_132426.cash_box_transaction_id**
+- **receipts_backup_20251126_190921.receipt_id**
+- **receipts_backup_20251126_190921.validation_status**
+- **receipts_backup_20251126_190921.validation_reason**
+- **receipts_backup_20251126_190921.event_batch_id**
+- **receipts_backup_20251126_190921.card_number**
+- **receipts_backup_20251126_190921.mapped_expense_account_id**
+- **receipts_backup_20251126_190921.mapped_bank_account_id**
+- **receipts_backup_20251126_190921.vehicle_id**
+- **receipts_backup_20251126_190921.vehicle_number**
+- **receipts_backup_20251126_190921.gst_code**
+- **receipts_backup_20251126_190921.split_key**
+- **receipts_backup_20251126_190921.gl_account_code**
+- **receipts_backup_20251126_191026.receipt_id**
+- **receipts_backup_20251126_191026.validation_status**
+- **receipts_backup_20251126_191026.validation_reason**
+- **receipts_backup_20251126_191026.event_batch_id**
+- **receipts_backup_20251126_191026.card_number**
+- **receipts_backup_20251126_191026.mapped_expense_account_id**
+- **receipts_backup_20251126_191026.mapped_bank_account_id**
+- **receipts_backup_20251126_191026.vehicle_id**
+- **receipts_backup_20251126_191026.vehicle_number**
+- **receipts_backup_20251126_191026.gst_code**
+- **receipts_backup_20251126_191026.split_key**
+- **receipts_backup_20251126_191026.gl_account_code**
+- **receipts_backup_20251201_140300.receipt_id**
+- **receipts_backup_20251201_140300.validation_status**
+- **receipts_backup_20251201_140300.validation_reason**
+- **receipts_backup_20251201_140300.event_batch_id**
+- **receipts_backup_20251201_140300.card_number**
+- **receipts_backup_20251201_140300.mapped_expense_account_id**
+- **receipts_backup_20251201_140300.mapped_bank_account_id**
+- **receipts_backup_20251201_140300.vehicle_id**
+- **receipts_backup_20251201_140300.vehicle_number**
+- **receipts_backup_20251201_140300.gst_code**
+- **receipts_backup_20251201_140300.split_key**
+- **receipts_backup_20251201_140300.gl_account_code**
+- **receipts_backup_20251201_140300.cash_box_transaction_id**
+- **receipts_backup_20251201_140430.receipt_id**
+- **receipts_backup_20251201_140430.validation_status**
+- **receipts_backup_20251201_140430.validation_reason**
+- **receipts_backup_20251201_140430.event_batch_id**
+- **receipts_backup_20251201_140430.card_number**
+- **receipts_backup_20251201_140430.mapped_expense_account_id**
+- **receipts_backup_20251201_140430.mapped_bank_account_id**
+- **receipts_backup_20251201_140430.vehicle_id**
+- **receipts_backup_20251201_140430.vehicle_number**
+- **receipts_backup_20251201_140430.gst_code**
+- **receipts_backup_20251201_140430.split_key**
+- **receipts_backup_20251201_140430.gl_account_code**
+- **receipts_backup_20251201_140430.cash_box_transaction_id**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.receipt_id**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.validation_status**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.validation_reason**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.event_batch_id**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.card_number**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.mapped_expense_account_id**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.mapped_bank_account_id**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.vehicle_id**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.vehicle_number**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.gst_code**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.split_key**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.gl_account_code**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.cash_box_transaction_id**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.banking_transaction_id**
+- **receipts_backup_2025_10_25_manual_invoices_20251206_125155.parent_receipt_id**
+- **receipts_backup_dedup_20251221_124543.receipt_id**
+- **receipts_backup_dedup_20251221_124543.validation_status**
+- **receipts_backup_dedup_20251221_124543.validation_reason**
+- **receipts_backup_dedup_20251221_124543.event_batch_id**
+- **receipts_backup_dedup_20251221_124543.card_number**
+- **receipts_backup_dedup_20251221_124543.mapped_expense_account_id**
+- **receipts_backup_dedup_20251221_124543.mapped_bank_account_id**
+- **receipts_backup_dedup_20251221_124543.vehicle_id**
+- **receipts_backup_dedup_20251221_124543.vehicle_number**
+- **receipts_backup_dedup_20251221_124543.gst_code**
+- **receipts_backup_dedup_20251221_124543.split_key**
+- **receipts_backup_dedup_20251221_124543.gl_account_code**
+- **receipts_backup_dedup_20251221_124543.cash_box_transaction_id**
+- **receipts_backup_dedup_20251221_124543.banking_transaction_id**
+- **receipts_backup_dedup_20251221_124543.parent_receipt_id**
+- **receipts_backup_dedup_20251221_124543.duplicate_check_key**
+- **receipts_backup_expense_migration_20251130_215040.receipt_id**
+- **receipts_backup_expense_migration_20251130_215040.validation_status**
+- **receipts_backup_expense_migration_20251130_215040.validation_reason**
+- **receipts_backup_expense_migration_20251130_215040.event_batch_id**
+- **receipts_backup_expense_migration_20251130_215040.card_number**
+- **receipts_backup_expense_migration_20251130_215040.mapped_expense_account_id**
+- **receipts_backup_expense_migration_20251130_215040.mapped_bank_account_id**
+- **receipts_backup_expense_migration_20251130_215040.vehicle_id**
+- **receipts_backup_expense_migration_20251130_215040.vehicle_number**
+- **receipts_backup_expense_migration_20251130_215040.gst_code**
+- **receipts_backup_expense_migration_20251130_215040.split_key**
+- **receipts_backup_expense_migration_20251130_215040.gl_account_code**
+- **receipts_backup_expense_migration_20251130_215040.cash_box_transaction_id**
+- **receipts_backup_post_dedup_20251207_003927.receipt_id**
+- **receipts_backup_post_dedup_20251207_003927.validation_status**
+- **receipts_backup_post_dedup_20251207_003927.validation_reason**
+- **receipts_backup_post_dedup_20251207_003927.event_batch_id**
+- **receipts_backup_post_dedup_20251207_003927.card_number**
+- **receipts_backup_post_dedup_20251207_003927.mapped_expense_account_id**
+- **receipts_backup_post_dedup_20251207_003927.mapped_bank_account_id**
+- **receipts_backup_post_dedup_20251207_003927.vehicle_id**
+- **receipts_backup_post_dedup_20251207_003927.vehicle_number**
+- **receipts_backup_post_dedup_20251207_003927.gst_code**
+- **receipts_backup_post_dedup_20251207_003927.split_key**
+- **receipts_backup_post_dedup_20251207_003927.gl_account_code**
+- **receipts_backup_post_dedup_20251207_003927.cash_box_transaction_id**
+- **receipts_backup_post_dedup_20251207_003927.banking_transaction_id**
+- **receipts_backup_post_dedup_20251207_003927.parent_receipt_id**
+- **receipts_backup_pre_dedup_20251207_002018.receipt_id**
+- **receipts_backup_pre_dedup_20251207_002018.validation_status**
+- **receipts_backup_pre_dedup_20251207_002018.validation_reason**
+- **receipts_backup_pre_dedup_20251207_002018.event_batch_id**
+- **receipts_backup_pre_dedup_20251207_002018.card_number**
+- **receipts_backup_pre_dedup_20251207_002018.mapped_expense_account_id**
+- **receipts_backup_pre_dedup_20251207_002018.mapped_bank_account_id**
+- **receipts_backup_pre_dedup_20251207_002018.vehicle_id**
+- **receipts_backup_pre_dedup_20251207_002018.vehicle_number**
+- **receipts_backup_pre_dedup_20251207_002018.gst_code**
+- **receipts_backup_pre_dedup_20251207_002018.split_key**
+- **receipts_backup_pre_dedup_20251207_002018.gl_account_code**
+- **receipts_backup_pre_dedup_20251207_002018.cash_box_transaction_id**
+- **receipts_backup_pre_dedup_20251207_002018.banking_transaction_id**
+- **receipts_backup_pre_dedup_20251207_002018.parent_receipt_id**
+- **receipts_backup_pre_dedup_20251207_002051.receipt_id**
+- **receipts_backup_pre_dedup_20251207_002051.validation_status**
+- **receipts_backup_pre_dedup_20251207_002051.validation_reason**
+- **receipts_backup_pre_dedup_20251207_002051.event_batch_id**
+- **receipts_backup_pre_dedup_20251207_002051.card_number**
+- **receipts_backup_pre_dedup_20251207_002051.mapped_expense_account_id**
+- **receipts_backup_pre_dedup_20251207_002051.mapped_bank_account_id**
+- **receipts_backup_pre_dedup_20251207_002051.vehicle_id**
+- **receipts_backup_pre_dedup_20251207_002051.vehicle_number**
+- **receipts_backup_pre_dedup_20251207_002051.gst_code**
+- **receipts_backup_pre_dedup_20251207_002051.split_key**
+- **receipts_backup_pre_dedup_20251207_002051.gl_account_code**
+- **receipts_backup_pre_dedup_20251207_002051.cash_box_transaction_id**
+- **receipts_backup_pre_dedup_20251207_002051.banking_transaction_id**
+- **receipts_backup_pre_dedup_20251207_002051.parent_receipt_id**
+- **receipts_backup_pre_dedup_20251207_002154.receipt_id**
+- **receipts_backup_pre_dedup_20251207_002154.validation_status**
+- **receipts_backup_pre_dedup_20251207_002154.validation_reason**
+- **receipts_backup_pre_dedup_20251207_002154.event_batch_id**
+- **receipts_backup_pre_dedup_20251207_002154.card_number**
+- **receipts_backup_pre_dedup_20251207_002154.mapped_expense_account_id**
+- **receipts_backup_pre_dedup_20251207_002154.mapped_bank_account_id**
+- **receipts_backup_pre_dedup_20251207_002154.vehicle_id**
+- **receipts_backup_pre_dedup_20251207_002154.vehicle_number**
+- **receipts_backup_pre_dedup_20251207_002154.gst_code**
+- **receipts_backup_pre_dedup_20251207_002154.split_key**
+- **receipts_backup_pre_dedup_20251207_002154.gl_account_code**
+- **receipts_backup_pre_dedup_20251207_002154.cash_box_transaction_id**
+- **receipts_backup_pre_dedup_20251207_002154.banking_transaction_id**
+- **receipts_backup_pre_dedup_20251207_002154.parent_receipt_id**
+- **receipts_backup_pre_dedup_20251207_002226.receipt_id**
+- **receipts_backup_pre_dedup_20251207_002226.validation_status**
+- **receipts_backup_pre_dedup_20251207_002226.validation_reason**
+- **receipts_backup_pre_dedup_20251207_002226.event_batch_id**
+- **receipts_backup_pre_dedup_20251207_002226.card_number**
+- **receipts_backup_pre_dedup_20251207_002226.mapped_expense_account_id**
+- **receipts_backup_pre_dedup_20251207_002226.mapped_bank_account_id**
+- **receipts_backup_pre_dedup_20251207_002226.vehicle_id**
+- **receipts_backup_pre_dedup_20251207_002226.vehicle_number**
+- **receipts_backup_pre_dedup_20251207_002226.gst_code**
+- **receipts_backup_pre_dedup_20251207_002226.split_key**
+- **receipts_backup_pre_dedup_20251207_002226.gl_account_code**
+- **receipts_backup_pre_dedup_20251207_002226.cash_box_transaction_id**
+- **receipts_backup_pre_dedup_20251207_002226.banking_transaction_id**
+- **receipts_backup_pre_dedup_20251207_002226.parent_receipt_id**
+- **receipts_backup_pre_dedup_20251207_003520.receipt_id**
+- **receipts_backup_pre_dedup_20251207_003520.validation_status**
+- **receipts_backup_pre_dedup_20251207_003520.validation_reason**
+- **receipts_backup_pre_dedup_20251207_003520.event_batch_id**
+- **receipts_backup_pre_dedup_20251207_003520.card_number**
+- **receipts_backup_pre_dedup_20251207_003520.mapped_expense_account_id**
+- **receipts_backup_pre_dedup_20251207_003520.mapped_bank_account_id**
+- **receipts_backup_pre_dedup_20251207_003520.vehicle_id**
+- **receipts_backup_pre_dedup_20251207_003520.vehicle_number**
+- **receipts_backup_pre_dedup_20251207_003520.gst_code**
+- **receipts_backup_pre_dedup_20251207_003520.split_key**
+- **receipts_backup_pre_dedup_20251207_003520.gl_account_code**
+- **receipts_backup_pre_dedup_20251207_003520.cash_box_transaction_id**
+- **receipts_backup_pre_dedup_20251207_003520.banking_transaction_id**
+- **receipts_backup_pre_dedup_20251207_003520.parent_receipt_id**
+- **receipts_backup_pre_dedup_20251207_003854.receipt_id**
+- **receipts_backup_pre_dedup_20251207_003854.validation_status**
+- **receipts_backup_pre_dedup_20251207_003854.validation_reason**
+- **receipts_backup_pre_dedup_20251207_003854.event_batch_id**
+- **receipts_backup_pre_dedup_20251207_003854.card_number**
+- **receipts_backup_pre_dedup_20251207_003854.mapped_expense_account_id**
+- **receipts_backup_pre_dedup_20251207_003854.mapped_bank_account_id**
+- **receipts_backup_pre_dedup_20251207_003854.vehicle_id**
+- **receipts_backup_pre_dedup_20251207_003854.vehicle_number**
+- **receipts_backup_pre_dedup_20251207_003854.gst_code**
+- **receipts_backup_pre_dedup_20251207_003854.split_key**
+- **receipts_backup_pre_dedup_20251207_003854.gl_account_code**
+- **receipts_backup_pre_dedup_20251207_003854.cash_box_transaction_id**
+- **receipts_backup_pre_dedup_20251207_003854.banking_transaction_id**
+- **receipts_backup_pre_dedup_20251207_003854.parent_receipt_id**
+- **receipts_backup_pre_dedup_20251207_003925.receipt_id**
+- **receipts_backup_pre_dedup_20251207_003925.validation_status**
+- **receipts_backup_pre_dedup_20251207_003925.validation_reason**
+- **receipts_backup_pre_dedup_20251207_003925.event_batch_id**
+- **receipts_backup_pre_dedup_20251207_003925.card_number**
+- **receipts_backup_pre_dedup_20251207_003925.mapped_expense_account_id**
+- **receipts_backup_pre_dedup_20251207_003925.mapped_bank_account_id**
+- **receipts_backup_pre_dedup_20251207_003925.vehicle_id**
+- **receipts_backup_pre_dedup_20251207_003925.vehicle_number**
+- **receipts_backup_pre_dedup_20251207_003925.gst_code**
+- **receipts_backup_pre_dedup_20251207_003925.split_key**
+- **receipts_backup_pre_dedup_20251207_003925.gl_account_code**
+- **receipts_backup_pre_dedup_20251207_003925.cash_box_transaction_id**
+- **receipts_backup_pre_dedup_20251207_003925.banking_transaction_id**
+- **receipts_backup_pre_dedup_20251207_003925.parent_receipt_id**
+- **receipts_backup_pre_live_delete_20251207_003901.receipt_id**
+- **receipts_backup_pre_live_delete_20251207_003901.validation_status**
+- **receipts_backup_pre_live_delete_20251207_003901.validation_reason**
+- **receipts_backup_pre_live_delete_20251207_003901.event_batch_id**
+- **receipts_backup_pre_live_delete_20251207_003901.card_number**
+- **receipts_backup_pre_live_delete_20251207_003901.mapped_expense_account_id**
+- **receipts_backup_pre_live_delete_20251207_003901.mapped_bank_account_id**
+- **receipts_backup_pre_live_delete_20251207_003901.vehicle_id**
+- **receipts_backup_pre_live_delete_20251207_003901.vehicle_number**
+- **receipts_backup_pre_live_delete_20251207_003901.gst_code**
+- **receipts_backup_pre_live_delete_20251207_003901.split_key**
+- **receipts_backup_pre_live_delete_20251207_003901.gl_account_code**
+- **receipts_backup_pre_live_delete_20251207_003901.cash_box_transaction_id**
+- **receipts_backup_pre_live_delete_20251207_003901.banking_transaction_id**
+- **receipts_backup_pre_live_delete_20251207_003901.parent_receipt_id**
+- **receipts_backup_pre_live_delete_20251207_003927.receipt_id**
+- **receipts_backup_pre_live_delete_20251207_003927.validation_status**
+- **receipts_backup_pre_live_delete_20251207_003927.validation_reason**
+- **receipts_backup_pre_live_delete_20251207_003927.event_batch_id**
+- **receipts_backup_pre_live_delete_20251207_003927.card_number**
+- **receipts_backup_pre_live_delete_20251207_003927.mapped_expense_account_id**
+- **receipts_backup_pre_live_delete_20251207_003927.mapped_bank_account_id**
+- **receipts_backup_pre_live_delete_20251207_003927.vehicle_id**
+- **receipts_backup_pre_live_delete_20251207_003927.vehicle_number**
+- **receipts_backup_pre_live_delete_20251207_003927.gst_code**
+- **receipts_backup_pre_live_delete_20251207_003927.split_key**
+- **receipts_backup_pre_live_delete_20251207_003927.gl_account_code**
+- **receipts_backup_pre_live_delete_20251207_003927.cash_box_transaction_id**
+- **receipts_backup_pre_live_delete_20251207_003927.banking_transaction_id**
+- **receipts_backup_pre_live_delete_20251207_003927.parent_receipt_id**
+- **receipts_backup_qb_dedup_20251130_214652.receipt_id**
+- **receipts_backup_qb_dedup_20251130_214652.validation_status**
+- **receipts_backup_qb_dedup_20251130_214652.validation_reason**
+- **receipts_backup_qb_dedup_20251130_214652.event_batch_id**
+- **receipts_backup_qb_dedup_20251130_214652.card_number**
+- **receipts_backup_qb_dedup_20251130_214652.mapped_expense_account_id**
+- **receipts_backup_qb_dedup_20251130_214652.mapped_bank_account_id**
+- **receipts_backup_qb_dedup_20251130_214652.vehicle_id**
+- **receipts_backup_qb_dedup_20251130_214652.vehicle_number**
+- **receipts_backup_qb_dedup_20251130_214652.gst_code**
+- **receipts_backup_qb_dedup_20251130_214652.split_key**
+- **receipts_backup_qb_dedup_20251130_214652.gl_account_code**
+- **receipts_backup_qb_dedup_20251130_214652.cash_box_transaction_id**
+- **receipts_excel_duplicates_backup_20251205_133523.receipt_id**
+- **receipts_excel_duplicates_backup_20251205_133523.validation_status**
+- **receipts_excel_duplicates_backup_20251205_133523.validation_reason**
+- **receipts_excel_duplicates_backup_20251205_133523.event_batch_id**
+- **receipts_excel_duplicates_backup_20251205_133523.card_number**
+- **receipts_excel_duplicates_backup_20251205_133523.mapped_expense_account_id**
+- **receipts_excel_duplicates_backup_20251205_133523.mapped_bank_account_id**
+- **receipts_excel_duplicates_backup_20251205_133523.vehicle_id**
+- **receipts_excel_duplicates_backup_20251205_133523.vehicle_number**
+- **receipts_excel_duplicates_backup_20251205_133523.gst_code**
+- **receipts_excel_duplicates_backup_20251205_133523.split_key**
+- **receipts_excel_duplicates_backup_20251205_133523.gl_account_code**
+- **receipts_excel_duplicates_backup_20251205_133523.cash_box_transaction_id**
+- **receipts_excel_duplicates_backup_20251205_134033.receipt_id**
+- **receipts_excel_duplicates_backup_20251205_134033.validation_status**
+- **receipts_excel_duplicates_backup_20251205_134033.validation_reason**
+- **receipts_excel_duplicates_backup_20251205_134033.event_batch_id**
+- **receipts_excel_duplicates_backup_20251205_134033.card_number**
+- **receipts_excel_duplicates_backup_20251205_134033.mapped_expense_account_id**
+- **receipts_excel_duplicates_backup_20251205_134033.mapped_bank_account_id**
+- **receipts_excel_duplicates_backup_20251205_134033.vehicle_id**
+- **receipts_excel_duplicates_backup_20251205_134033.vehicle_number**
+- **receipts_excel_duplicates_backup_20251205_134033.gst_code**
+- **receipts_excel_duplicates_backup_20251205_134033.split_key**
+- **receipts_excel_duplicates_backup_20251205_134033.gl_account_code**
+- **receipts_excel_duplicates_backup_20251205_134033.cash_box_transaction_id**
+- **receipts_fibrenew_backup_20251128_182803.receipt_id**
+- **receipts_fibrenew_backup_20251128_182803.validation_status**
+- **receipts_fibrenew_backup_20251128_182803.validation_reason**
+- **receipts_fibrenew_backup_20251128_182803.event_batch_id**
+- **receipts_fibrenew_backup_20251128_182803.card_number**
+- **receipts_fibrenew_backup_20251128_182803.mapped_expense_account_id**
+- **receipts_fibrenew_backup_20251128_182803.mapped_bank_account_id**
+- **receipts_fibrenew_backup_20251128_182803.vehicle_id**
+- **receipts_fibrenew_backup_20251128_182803.vehicle_number**
+- **receipts_fibrenew_backup_20251128_182803.gst_code**
+- **receipts_fibrenew_backup_20251128_182803.split_key**
+- **receipts_fibrenew_backup_20251128_182803.gl_account_code**
+- **receipts_fibrenew_backup_20251128_182803.cash_box_transaction_id**
+- **receipts_gratuity_backup_20251201_143102.receipt_id**
+- **receipts_gratuity_backup_20251201_143102.validation_status**
+- **receipts_gratuity_backup_20251201_143102.validation_reason**
+- **receipts_gratuity_backup_20251201_143102.event_batch_id**
+- **receipts_gratuity_backup_20251201_143102.card_number**
+- **receipts_gratuity_backup_20251201_143102.mapped_expense_account_id**
+- **receipts_gratuity_backup_20251201_143102.mapped_bank_account_id**
+- **receipts_gratuity_backup_20251201_143102.vehicle_id**
+- **receipts_gratuity_backup_20251201_143102.vehicle_number**
+- **receipts_gratuity_backup_20251201_143102.gst_code**
+- **receipts_gratuity_backup_20251201_143102.split_key**
+- **receipts_gratuity_backup_20251201_143102.gl_account_code**
+- **receipts_gratuity_backup_20251201_143102.cash_box_transaction_id**
+- **receipts_gratuity_migration_backup_20251201_150855.receipt_id**
+- **receipts_gratuity_migration_backup_20251201_150855.validation_status**
+- **receipts_gratuity_migration_backup_20251201_150855.validation_reason**
+- **receipts_gratuity_migration_backup_20251201_150855.event_batch_id**
+- **receipts_gratuity_migration_backup_20251201_150855.card_number**
+- **receipts_gratuity_migration_backup_20251201_150855.mapped_expense_account_id**
+- **receipts_gratuity_migration_backup_20251201_150855.mapped_bank_account_id**
+- **receipts_gratuity_migration_backup_20251201_150855.vehicle_id**
+- **receipts_gratuity_migration_backup_20251201_150855.vehicle_number**
+- **receipts_gratuity_migration_backup_20251201_150855.gst_code**
+- **receipts_gratuity_migration_backup_20251201_150855.split_key**
+- **receipts_gratuity_migration_backup_20251201_150855.gl_account_code**
+- **receipts_gratuity_migration_backup_20251201_150855.cash_box_transaction_id**
+- **receipts_missing_creation_20251206_235121.receipt_id**
+- **receipts_missing_creation_20251206_235121.validation_status**
+- **receipts_missing_creation_20251206_235121.validation_reason**
+- **receipts_missing_creation_20251206_235121.event_batch_id**
+- **receipts_missing_creation_20251206_235121.card_number**
+- **receipts_missing_creation_20251206_235121.mapped_expense_account_id**
+- **receipts_missing_creation_20251206_235121.mapped_bank_account_id**
+- **receipts_missing_creation_20251206_235121.vehicle_id**
+- **receipts_missing_creation_20251206_235121.vehicle_number**
+- **receipts_missing_creation_20251206_235121.gst_code**
+- **receipts_missing_creation_20251206_235121.split_key**
+- **receipts_missing_creation_20251206_235121.gl_account_code**
+- **receipts_missing_creation_20251206_235121.cash_box_transaction_id**
+- **receipts_missing_creation_20251206_235121.banking_transaction_id**
+- **receipts_missing_creation_20251206_235121.parent_receipt_id**
+- **receipts_missing_creation_20251206_235143.receipt_id**
+- **receipts_missing_creation_20251206_235143.validation_status**
+- **receipts_missing_creation_20251206_235143.validation_reason**
+- **receipts_missing_creation_20251206_235143.event_batch_id**
+- **receipts_missing_creation_20251206_235143.card_number**
+- **receipts_missing_creation_20251206_235143.mapped_expense_account_id**
+- **receipts_missing_creation_20251206_235143.mapped_bank_account_id**
+- **receipts_missing_creation_20251206_235143.vehicle_id**
+- **receipts_missing_creation_20251206_235143.vehicle_number**
+- **receipts_missing_creation_20251206_235143.gst_code**
+- **receipts_missing_creation_20251206_235143.split_key**
+- **receipts_missing_creation_20251206_235143.gl_account_code**
+- **receipts_missing_creation_20251206_235143.cash_box_transaction_id**
+- **receipts_missing_creation_20251206_235143.banking_transaction_id**
+- **receipts_missing_creation_20251206_235143.parent_receipt_id**
+- **receipts_scotia_backup_20251218_235557.receipt_id**
+- **receipts_scotia_backup_20251218_235557.validation_status**
+- **receipts_scotia_backup_20251218_235557.validation_reason**
+- **receipts_scotia_backup_20251218_235557.event_batch_id**
+- **receipts_scotia_backup_20251218_235557.card_number**
+- **receipts_scotia_backup_20251218_235557.mapped_expense_account_id**
+- **receipts_scotia_backup_20251218_235557.mapped_bank_account_id**
+- **receipts_scotia_backup_20251218_235557.vehicle_id**
+- **receipts_scotia_backup_20251218_235557.vehicle_number**
+- **receipts_scotia_backup_20251218_235557.gst_code**
+- **receipts_scotia_backup_20251218_235557.split_key**
+- **receipts_scotia_backup_20251218_235557.gl_account_code**
+- **receipts_scotia_backup_20251218_235557.cash_box_transaction_id**
+- **receipts_scotia_backup_20251218_235557.banking_transaction_id**
+- **receipts_scotia_backup_20251218_235557.parent_receipt_id**
+- **refunds_cancellations.charter_id**
+- **refunds_cancellations.payment_id**
+- **rent_debt_ledger.banking_transaction_id**
+- **rent_debt_ledger.recurring_invoice_id**
+- **rent_debt_ledger_backup_20251126_192458.id**
+- **rent_debt_ledger_backup_20251126_192458.banking_transaction_id**
+- **rent_debt_ledger_backup_20251126_192458.recurring_invoice_id**
+- **scotia_dec2013_backup_20251128_233941.transaction_id**
+- **scotia_dec2013_backup_20251128_233941.account_number**
+- **scotia_dec2013_backup_20251128_233941.bank_id**
+- **scotia_dec2013_backup_20251128_233941.receipt_id**
+- **scotia_dec2013_backup_20251128_233941.reconciled_receipt_id**
+- **scotia_dec2013_backup_20251128_233941.reconciled_payment_id**
+- **scotia_dec2013_backup_20251128_233941.reconciled_charter_id**
+- **security_audit.user_id**
+- **security_events.user_id**
+- **square_capital_loans.square_loan_id**
+- **square_capital_loans.banking_transaction_id**
+- **square_customers.reference_id**
+- **square_customers.phone_number**
+- **square_customers.postal_code**
+- **square_customers.square_customer_id**
+- **square_etransfer_reconciliation.square_payment_id**
+- **square_etransfer_reconciliation.square_payment_key**
+- **square_etransfer_reconciliation.charter_id**
+- **square_etransfer_reconciliation.banking_transaction_id**
+- **square_etransfer_reconciliation.etransfer_reference_number**
+- **square_etransfer_reconciliation.interac_code_4char**
+- **square_etransfer_reconciliation.etransfer_assessment_id**
+- **square_etransfer_reconciliation.etransfer_analysis_id**
+- **square_loan_payments.loan_id**
+- **square_loan_payments.banking_transaction_id**
+- **square_loan_payments.payout_id**
+- **square_payment_categories.square_payment_id**
+- **square_payment_categories.original_payment_id**
+- **square_payouts.location_id**
+- **square_processing_fees.square_payment_id**
+- **square_review_status.square_payment_id**
+- **staging_banking_pdf_transactions_archived_20251109.account_number**
+- **staging_employee_reference_data.employee_id**
+- **staging_employee_reference_data.postal_code**
+- **staging_pd7a_year_end_summary.num_employees_paid**
+- **staging_qb_gl_transactions.file_id**
+- **staging_qb_gl_transactions.source_row_id**
+- **staging_qb_gl_transactions.driver_id**
+- **staging_scotia_2012_verified.csv_transaction_id**
+- **staging_scotia_2012_verified_archived_20251109.csv_transaction_id**
+- **system_config.validation_rules**
+- **t4_compliance_corrections.cra_reference_number**
+- **tax_overrides.entity_id**
+- **tax_remittances.paid_at**
+- **tax_year_reference.federal_dividend_gross_up_eligible**
+- **tax_year_reference.federal_dividend_gross_up_non_eligible**
+- **training_checklist_items.program_id**
+- **transaction_chain.reference_number**
+- **transaction_chain.charter_id**
+- **transaction_chain.receipt_id**
+- **transaction_chain.square_transaction_id**
+- **transaction_log.source_client_id**
+- **transaction_log.target_client_id**
+- **transaction_log.fraud_case_id**
+- **transaction_log.reference_number**
+- **transaction_subcategories.category_id**
+- **transaction_subcategories.pattern_keywords**
+- **unified_general_ledger.account_code**
+- **unified_general_ledger.source_transaction_id**
+- **unified_general_ledger.transaction_number**
+- **unmatched_items.record_id**
+- **vacation_pay_records.employee_id**
+- **vehicle_document_types.default_validity_months**
+- **vehicle_documents.document_number**
+- **vehicle_financing.vehicle_id**
+- **vehicle_financing.loan_number**
+- **vehicle_financing.lease_contract_number**
+- **vehicle_financing_complete.vehicle_id**
+- **vehicle_financing_complete.actual_total_paid**
+- **vehicle_financing_complete.purchase_vs_paid_difference**
+- **vehicle_fuel_log.charter_id**
+- **vehicle_fuel_log.receipt_id**
+- **vehicle_insurance.vehicle_id**
+- **vehicle_loan_payments.vehicle_id**
+- **vehicle_loan_payments.banking_transaction_id**
+- **vehicle_loan_reconciliation_allocations.bank_txn_id**
+- **vehicle_loan_reconciliation_allocations.bank_txn_id_2**
+- **vehicle_loans.total_paid**
+- **vehicle_mileage_log.vehicle_id**
+- **vehicle_mileage_log.charter_id**
+- **vehicle_pre_inspections.charter_id**
+- **vehicle_pre_inspections.vehicle_id**
+- **vehicle_pre_inspections.driver_id**
+- **vehicle_pre_inspections.previous_inspection_id**
+- **vehicle_purchases.vehicle_id**
+- **vehicle_purchases.invoice_number**
+- **vehicle_purchases.po_number**
+- **vehicle_repossessions.vehicle_id**
+- **vehicle_sales.vehicle_id**
+- **vehicle_sales.lot_number**
+- **vehicle_writeoffs.vehicle_id**
+- **vehicle_writeoffs.insurance_claim_number**
+- **vehicles.vehicle_number**
+- **vehicles.vin_number**
+- **vehicles.width**
+- **vehicles.fuel_filter_number**
+- **vehicles.transmission_fluid_type**
+- **vehicles.transmission_fluid_quantity**
+- **vehicles.oil_filter_number**
+- **vehicles.brake_fluid_type**
+- **vehicles.power_steering_fluid_type**
+- **vehicles.brake_fluid_change_interval_months**
+- **vehicles.air_filter_part_number**
+- **vehicles.cabin_filter_part_number**
+- **vehicles.serpentine_belt_part_number**
+- **vehicles.fleet_number**
+- **vehicles.vehicle_history_id**
+- **vehicles.unit_number**
+- **vehicles.cvip_inspection_number**
+- **vehicles_backup_20251126_195011.vehicle_id**
+- **vehicles_backup_20251126_195011.vehicle_number**
+- **vehicles_backup_20251126_195011.vin_number**
+- **vehicles_backup_20251126_195011.width**
+- **vehicles_backup_20251126_195011.fuel_filter_number**
+- **vehicles_backup_20251126_195011.transmission_fluid_type**
+- **vehicles_backup_20251126_195011.transmission_fluid_quantity**
+- **vehicles_backup_20251126_195011.oil_filter_number**
+- **vehicles_backup_20251126_195011.brake_fluid_type**
+- **vehicles_backup_20251126_195011.power_steering_fluid_type**
+- **vehicles_backup_20251126_195011.brake_fluid_change_interval_months**
+- **vehicles_backup_20251126_195011.air_filter_part_number**
+- **vehicles_backup_20251126_195011.cabin_filter_part_number**
+- **vehicles_backup_20251126_195011.serpentine_belt_part_number**
+- **vehicles_backup_20251126_195011.fleet_number**
+- **vehicles_backup_20251126_195011.vehicle_history_id**
+- **vehicles_backup_20251126_195011.unit_number**
+- **vehicles_backup_class_20251224_203948.vehicle_id**
+- **vehicles_backup_class_20251224_203948.vehicle_number**
+- **vehicles_backup_class_20251224_203948.vin_number**
+- **vehicles_backup_class_20251224_203948.width**
+- **vehicles_backup_class_20251224_203948.fuel_filter_number**
+- **vehicles_backup_class_20251224_203948.transmission_fluid_type**
+- **vehicles_backup_class_20251224_203948.transmission_fluid_quantity**
+- **vehicles_backup_class_20251224_203948.oil_filter_number**
+- **vehicles_backup_class_20251224_203948.brake_fluid_type**
+- **vehicles_backup_class_20251224_203948.power_steering_fluid_type**
+- **vehicles_backup_class_20251224_203948.brake_fluid_change_interval_months**
+- **vehicles_backup_class_20251224_203948.air_filter_part_number**
+- **vehicles_backup_class_20251224_203948.cabin_filter_part_number**
+- **vehicles_backup_class_20251224_203948.serpentine_belt_part_number**
+- **vehicles_backup_class_20251224_203948.fleet_number**
+- **vehicles_backup_class_20251224_203948.vehicle_history_id**
+- **vehicles_backup_class_20251224_203948.unit_number**
+- **vehicles_backup_class_20251224_203948.cvip_inspection_number**
+- **vendor_account_ledger.source_id**
+- **vendor_account_ledger.match_confidence**
+- **vendor_name_mapping.confidence_score**
+- **vendor_standardization.consolidation_reason**
+- **vendors.quickbooks_id**
+- **vendors.account_number**
+- **vendors.tax_id**
+- **vendors.vendor_account_number**
+- **wage_allocation_decisions.deferred_wage_account_id**
+- **wcb_debt_ledger.wcb_charge_id**
+- **wcb_debt_ledger.email_event_id**
+- **wcb_debt_ledger.banking_transaction_id**
+- **wcb_summary.driver_id**
+- **zero_payment_resolutions.payment_id**
+- **zero_payment_resolutions.payment_square_id**
+- **zero_payment_resolutions.refund_square_id**
+- **zero_payment_resolutions.original_payment_id**
+
+### SIMILAR_TABLE_NAMES (10 found)
+
+- account_number_aliases ↔ account_number_aliases_backup_20251216_145717
+- account_number_aliases ↔ account_number_aliases_backup_20251216_145755
+- audit_log ↔ billing_audit_log
+- banking_receipt_matching_ledger ↔ banking_receipt_matching_ledger_1615_backup_20251218_234108
+- banking_receipt_matching_ledger ↔ banking_receipt_matching_ledger_scotia_backup_20251218_235557
+- banking_transactions ↔ banking_transactions_1010_backup_20251203_021934
+- banking_transactions ↔ banking_transactions_1615_backup_2012
+- banking_transactions ↔ banking_transactions_1615_backup_2013
+- banking_transactions ↔ banking_transactions_1615_backup_2014
+- banking_transactions ↔ banking_transactions_1615_backup_2015
+
+
+## Tables By Size
+
+- **master_relationships**: 103.00 MB (766,565 rows)
+- **staging_qb_gl_transactions**: 80.00 MB (262,884 rows)
+- **general_ledger**: 65.00 MB (128,786 rows)
+- **receipts**: 65.00 MB (58,329 rows)
+- **banking_transactions**: 50.00 MB (32,418 rows)
+- **charters**: 47.00 MB (18,679 rows)
+- **lms_staging_reserve_archived_20251109**: 39.00 MB (18,542 rows)
+- **email_financial_events**: 35.00 MB (76,673 rows)
+- **qb_journal_entries**: 34.00 MB (53,680 rows)
+- **charter_charges**: 30.00 MB (66,437 rows)
+- **charters_backup_20251203_143025**: 21.00 MB (18,637 rows)
+- **charters_backup_vehicle_id_20251224_202231**: 21.00 MB (18,571 rows)
+- **square_transactions_staging_archived_20251107**: 20.00 MB (9,989 rows)
+- **receipts_backup_pre_dedup_20251207_002018**: 19.00 MB (59,070 rows)
+- **receipts_backup_pre_dedup_20251207_002051**: 19.00 MB (59,070 rows)
+- **receipts_backup_pre_dedup_20251207_002226**: 19.00 MB (59,070 rows)
+- **receipts_backup_pre_dedup_20251207_003520**: 19.00 MB (59,070 rows)
+- **receipts_backup_pre_dedup_20251207_003854**: 19.00 MB (59,070 rows)
+- **receipts_backup_pre_dedup_20251207_003925**: 19.00 MB (59,070 rows)
+- **receipts_backup_pre_live_delete_20251207_003901**: 19.00 MB (59,070 rows)

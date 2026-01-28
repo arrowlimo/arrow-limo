@@ -1,0 +1,136 @@
+"""Employees API Router: drivers and staff listing"""
+from fastapi import APIRouter, HTTPException
+from typing import List
+from ..db import get_connection
+
+router = APIRouter(prefix="/api/employees", tags=["employees"])
+
+
+@router.get("/")
+def list_employees():
+    """Return active employees (drivers and staff) with basic info.
+    
+    Fields returned:
+    - employee_id
+    - first_name
+    - last_name
+    - display (first + last name)
+    - employee_type (driver, staff, etc)
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT 
+                employee_id,
+                first_name,
+                last_name,
+                employee_category
+            FROM employees
+            ORDER BY first_name, last_name
+            LIMIT 100
+            """
+        )
+        employees = []
+        for row in cur.fetchall():
+            first_name = row[1] or ""
+            last_name = row[2] or ""
+            display_name = f"{first_name} {last_name}".strip() or "Unknown"
+            
+            employees.append({
+                "employee_id": row[0],
+                "first_name": first_name,
+                "last_name": last_name,
+                "display": display_name,
+                "employee_type": row[3] or "unknown"
+            })
+        return employees
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list employees: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
+@router.get("/drivers")
+def list_drivers():
+    """Return active drivers only for assignment dropdown.
+
+    Filters employees where employee_type indicates driver.
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT 
+                employee_id,
+                first_name,
+                last_name,
+                employee_category
+            FROM employees
+            WHERE COALESCE(employee_category,'') ILIKE 'driver%' OR is_chauffeur = true
+            ORDER BY first_name, last_name
+            LIMIT 200
+            """
+        )
+        drivers = []
+        for row in cur.fetchall():
+            first_name = row[1] or ""
+            last_name = row[2] or ""
+            display_name = f"{first_name} {last_name}".strip() or "Unknown"
+            drivers.append({
+                "employee_id": row[0],
+                "first_name": first_name,
+                "last_name": last_name,
+                "display": display_name,
+            })
+        return drivers
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list drivers: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
+
+@router.get("/{employee_id}")
+def get_employee(employee_id: int):
+    """Get specific employee details"""
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT 
+                employee_id,
+                first_name,
+                last_name,
+                employee_category,
+                hire_date,
+                email,
+                phone
+            FROM employees
+            WHERE employee_id = %s
+            """,
+            (employee_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Employee {employee_id} not found")
+        
+        return {
+            "employee_id": row[0],
+            "first_name": row[1],
+            "last_name": row[2],
+            "employee_type": row[3],
+            "hire_date": row[4].isoformat() if row[4] else None,
+            "email": row[5],
+            "phone": row[6]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get employee: {e}")
+    finally:
+        cur.close()
+        conn.close()

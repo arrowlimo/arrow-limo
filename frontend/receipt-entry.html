@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt Entry - Arrow Limousine</title>
+    <script src="https://unpkg.com/vue@3.3.4/dist/vue.global.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; 
+            background: #f5f5f5; 
+            padding: 20px; 
+        }
+        #app { max-width: 1200px; margin: 0 auto; }
+        header {
+            background: #2c5aa0;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        header h1 { margin-bottom: 5px; }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        @media (max-width: 1200px) {
+            .container { grid-template-columns: 1fr; }
+        }
+        .form-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-section h2 {
+            margin-bottom: 20px;
+            color: #2c5aa0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #2c5aa0;
+            box-shadow: 0 0 5px rgba(44, 90, 160, 0.3);
+        }
+        .form-group.inline { display: flex; gap: 10px; align-items: center; }
+        .form-group.inline input { flex: 1; }
+        .form-group.inline label { flex: 1; margin-bottom: 0; }
+        .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; }
+        .checkbox-label input { width: auto; margin: 0; }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #2c5aa0;
+            color: white;
+            width: 100%;
+        }
+        .btn-primary:hover { background: #1e3f5a; }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            width: 100%;
+        }
+        .btn-secondary:hover { background: #5a6268; }
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .tax-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f0f7ff;
+            border-left: 4px solid #2c5aa0;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #333;
+        }
+        .receipts-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .receipts-section h2 { margin-bottom: 20px; color: #2c5aa0; }
+        .receipts-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .receipts-table th,
+        .receipts-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .receipts-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #ddd;
+        }
+        .receipts-table tr:hover { background: #f8f9fa; }
+        .vendor-suggestions {
+            margin-top: 5px;
+            padding: 5px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .suggestion-item {
+            padding: 8px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .suggestion-item:hover {
+            background: #f0f7ff;
+        }
+        .badge.driver { background: #f8d7da; color: #721c24; }
+        .badge.personal { background: #ffeaa7; color: #8a6d3b; }
+        .badge.business { background: #e2e3e5; color: #555; }
+        .loading { text-align: center; color: #999; padding: 20px; }
+        .no-data { text-align: center; color: #999; padding: 20px; font-style: italic; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🧾 Receipt Entry</h1>
+        <p>Arrow Limousine - Expense Management System</p>
+    </header>
+
+    <div id="app" class="container">
+        <!-- Form Section -->
+        <div class="form-section">
+            <h2>Add New Receipt</h2>
+            <form @submit.prevent="submitReceipt">
+                <div class="form-group">
+                    <label for="date">Date *</label>
+                    <input type="date" id="date" v-model="form.receipt_date" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="vendor">Vendor *</label>
+                    <input type="text" id="vendor" v-model="form.vendor_name" 
+                           @input="searchVendors" 
+                           @blur="loadVendorProfile"
+                           placeholder="Type vendor name..." required />
+                    <div v-if="vendorSuggestions.length > 0" class="vendor-suggestions">
+                        <div v-for="v in vendorSuggestions" :key="v" @click="selectVendor(v)" 
+                             class="suggestion-item">
+                            {{ v }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="amount">Amount *</label>
+                    <input type="number" id="amount" v-model.number="form.gross_amount" 
+                           step="0.01" @input="autoCalculateGST" placeholder="0.00" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="tax_mode">Tax Mode *</label>
+                    <select id="tax_mode" v-model="taxMode" @change="autoCalculateGST">
+                        <option value="GST_INCL_5">GST 5% Included (AB)</option>
+                        <option value="GST_PST_INCL_12">GST+PST 12% Included (BC)</option>
+                        <option value="NO_TAX">No Tax / US / Exempt</option>
+                        <option value="CUSTOM">Custom Rate (%)</option>
+                    </select>
+                </div>
+
+                <div v-if="taxMode === 'CUSTOM'" class="form-group">
+                    <label for="custom_tax">Custom Tax Rate (%)</label>
+                    <input type="number" id="custom_tax" v-model.number="customTaxRate" 
+                           step="0.01" @input="autoCalculateGST" placeholder="e.g. 12" />
+                </div>
+
+                <div class="form-group">
+                    <label for="gst_amount">GST Amount</label>
+                    <input type="number" id="gst_amount" v-model.number="form.gst_amount" 
+                           step="0.01" placeholder="Auto-calculated" readonly />
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category *</label>
+                    <select id="category" v-model="form.category" required>
+                        <option value="">-- Select Category --</option>
+                        <option value="fuel">Fuel</option>
+                        <option value="maintenance">Vehicle Maintenance</option>
+                        <option value="insurance">Insurance</option>
+                        <option value="office">Office Supplies</option>
+                        <option value="meals">Meals & Entertainment</option>
+                        <option value="client_beverages">Client Beverages</option>
+                        <option value="client_supplies">Client Supplies</option>
+                        <option value="client_food">Client Food</option>
+                        <option value="professional">Professional Services</option>
+                        <option value="utilities">Utilities</option>
+                        <option value="rent">Rent/Lease</option>
+                        <option value="repairs">Equipment Repairs</option>
+                        <option value="licenses">Licenses & Permits</option>
+                        <option value="advertising">Advertising & Marketing</option>
+                        <option value="travel">Travel & Accommodation</option>
+                        <option value="phone">Phone & Internet</option>
+                        <option value="training">Training & Development</option>
+                        <option value="legal">Legal & Accounting</option>
+                        <option value="equipment">Equipment & Tools</option>
+                        <option value="supplies">Office/Shop Supplies</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="gl_account">GL Account (optional)</label>
+                    <select id="gl_account" v-model="form.gl_account_code">
+                        <option value="">-- Select GL Code --</option>
+                        <option v-for="a in chartAccounts" :key="a.account_code" :value="a.account_code" :disabled="a.is_header_account">
+                            {{ a.account_code }} — {{ a.account_name }}
+                        </option>
+                    </select>
+                    <small style="display:block; margin-top:5px; color:#666;">Header accounts are disabled; pick a posting account.</small>
+                </div>
+
+                <!-- Vehicle selector appears for fuel category -->
+                <div class="form-group" v-if="form.category === 'fuel'">
+                    <label for="vehicle">Vehicle</label>
+                    <select id="vehicle" v-model.number="form.vehicle_id">
+                        <option value="">-- Select Vehicle --</option>
+                        <option v-for="v in vehicles" :key="v.vehicle_id" :value="v.vehicle_id">{{ v.display }}</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" v-model="form.description" rows="3" placeholder="Optional notes..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" v-model="form.is_personal" @change="autoCalculateGST" />
+                        Mark as personal / reimburse driver
+                    </label>
+                </div>
+
+                <div v-if="form.is_personal" class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" v-model="form.is_driver_personal" @change="autoCalculateGST" />
+                        Driver personal (exclude from accounting)
+                    </label>
+                    <small style="display: block; margin-top: 5px; color: #666;">Marks as DRIVER_PERSONAL and excludes from owner reimbursement.</small>
+                </div>
+
+                <button type="submit" class="btn-primary">💾 Save Receipt</button>
+                <button type="button" @click="resetForm" class="btn-secondary" style="margin-top: 8px;">↺ Clear</button>
+
+                <div v-if="successMessage" class="message success">✓ {{ successMessage }}</div>
+                <div v-if="errorMessage" class="message error">✗ {{ errorMessage }}</div>
+
+                <!-- Banking match panel (manual to avoid flicker) -->
+                <div class="tax-info" style="margin-top: 15px;">
+                    <strong>Banking Match</strong>
+                    <p style="margin-top: 6px;">Use after saving, or to preview matches based on amount/date. Searches one week after the purchase date by default.</p>
+                    <div class="form-group inline" style="margin-top: 8px;">
+                        <label style="flex:0 0 120px;">Search Window</label>
+                        <select v-model="matchDirection" style="flex:0 0 160px;">
+                            <option value="after">After (default)</option>
+                            <option value="both">Before & After</option>
+                            <option value="before">Before</option>
+                        </select>
+                        <input type="number" v-model.number="matchWindow" min="1" max="30" step="1" style="flex:0 0 100px;"/>
+                        <button type="button" class="btn-secondary" style="flex:0 0 180px;" @click="findBankMatches">🔎 Find Banking Match</button>
+                    </div>
+                    <div v-if="bankMatches.length > 0" class="message info" style="margin-top:10px;">
+                        <div v-for="m in bankMatches" :key="m.transaction_id" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0;">
+                            <div>
+                                <strong>{{ formatDate(m.transaction_date) }}</strong> — {{ m.description }}
+                                <span style="margin-left:8px;">${{ (m.debit_amount || m.credit_amount || 0).toFixed(2) }}</span>
+                            </div>
+                            <div>
+                                <button type="button" class="btn-secondary" :disabled="!lastSavedReceiptId" @click="linkMatch(m.transaction_id)">🔗 Link to Receipt</button>
+                            </div>
+                        </div>
+                        <small v-if="!lastSavedReceiptId" style="display:block; margin-top:6px; color:#666;">Save the receipt first to enable linking.</small>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Receipts List Section -->
+        <div class="receipts-section">
+            <h2 style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Recent Receipts</span>
+                <button type="button" class="btn-secondary" style="width:auto;" @click="refreshReceipts">🔄 Refresh</button>
+            </h2>
+            <div v-if="loading" class="loading">Loading receipts...</div>
+            <div v-else-if="receipts.length === 0" class="no-data">No receipts yet</div>
+            <table v-else class="receipts-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Vendor</th>
+                        <th>Category</th>
+                        <th>GL Code</th>
+                        <th>Amount</th>
+                        <th>GST</th>
+                        <th>Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="r in receipts" :key="r.receipt_id">
+                        <td>{{ formatDate(r.receipt_date) }}</td>
+                        <td>{{ r.vendor_name }}</td>
+                        <td>{{ r.category || '-' }}</td>
+                        <td>{{ r.gl_account_code || '-' }}</td>
+                        <td>${{ (parseFloat(r.gross_amount) || 0).toFixed(2) }}</td>
+                        <td>${{ (parseFloat(r.gst_amount) || 0).toFixed(2) }}</td>
+                        <td>
+                            <span v-if="r.is_driver_personal" class="badge driver">Driver</span>
+                            <span v-else-if="r.is_personal" class="badge personal">Personal</span>
+                            <span v-else class="badge business">Business</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    form: {
+                        receipt_date: new Date().toISOString().split('T')[0],
+                        vendor_name: '',
+                        gross_amount: null,
+                        gst_amount: 0,
+                        category: '',
+                        gl_account_code: '',
+                        vehicle_id: null,
+                        description: '',
+                        is_personal: false,
+                        is_driver_personal: false
+                    },
+                    taxMode: 'GST_INCL_5',
+                    customTaxRate: null,
+                    allVendors: [],
+                    chartAccounts: [],
+                    vendorSuggestions: [],
+                    receipts: [],
+                    loading: false,
+                    successMessage: '',
+                    errorMessage: '',
+                    vehicles: [],
+                    bankMatches: [],
+                    matchDirection: 'after',
+                    matchWindow: 7,
+                    lastSavedReceiptId: null
+                };
+            },
+            mounted() {
+                this.loadVehicles();
+                this.loadChartOfAccounts();
+                this.loadVendors();
+                this.loadReceipts();
+            },
+            methods: {
+                async loadChartOfAccounts() {
+                    try {
+                        const resp = await fetch('http://127.0.0.1:8001/api/accounting/chart-of-accounts');
+                        if (resp.ok) {
+                            this.chartAccounts = await resp.json();
+                        }
+                    } catch (err) {
+                        console.error('Error loading chart of accounts:', err);
+                    }
+                },
+                async loadVendors() {
+                    try {
+                        const resp = await fetch('http://127.0.0.1:8001/api/receipts-simple/vendors');
+                        if (resp.ok) {
+                            const all = await resp.json();
+                            // Normalize to strings for simple contains matching
+                            this.allVendors = all.map(v => (typeof v === 'string' ? v : (v.name || ''))).filter(Boolean);
+                        }
+                    } catch (err) {
+                        console.error('Error loading vendors:', err);
+                    }
+                },
+                async loadVehicles() {
+                    try {
+                        const resp = await fetch('http://127.0.0.1:8001/api/vehicles/');
+                        if (resp.ok) {
+                            this.vehicles = await resp.json();
+                        }
+                    } catch (err) {
+                        console.error('Error loading vehicles:', err);
+                    }
+                },
+                async loadReceipts(filters = null) {
+                    this.loading = true;
+                    try {
+                        let url = 'http://127.0.0.1:8001/api/receipts-simple/?limit=50';
+                        if (filters) {
+                            const params = new URLSearchParams();
+                            if (filters.vendor) params.set('vendor', filters.vendor);
+                            if (filters.start_date) params.set('start_date', filters.start_date);
+                            if (filters.end_date) params.set('end_date', filters.end_date);
+                            if (filters.limit) params.set('limit', String(filters.limit));
+                            url = `http://127.0.0.1:8001/api/receipts-simple/?${params.toString()}`;
+                        }
+                        const resp = await fetch(url);
+                        if (resp.ok) {
+                            this.receipts = await resp.json();
+                        }
+                    } catch (err) {
+                        console.error('Error loading receipts:', err);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                refreshReceipts() {
+                    this.loadReceipts();
+                },
+                async submitReceipt() {
+                    this.successMessage = '';
+                    this.errorMessage = '';
+                    try {
+                        const resp = await fetch('http://127.0.0.1:8001/api/receipts-simple/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                receipt_date: this.form.receipt_date,
+                                vendor_name: this.form.vendor_name,
+                                gross_amount: this.form.gross_amount,
+                                gst_amount: this.form.gst_amount,
+                                gst_code: this.form.is_driver_personal ? 'DRIVER_PERSONAL' : this.taxMode,
+                                category: this.form.category,
+                                description: this.form.description,
+                                vehicle_id: this.form.vehicle_id || null,
+                                gl_account_code: this.form.gl_account_code || null,
+                                is_personal: this.form.is_personal,
+                                is_driver_personal: this.form.is_driver_personal
+                            })
+                        });
+                        if (!resp.ok) throw new Error('Failed to save receipt');
+                        const saved = await resp.json();
+                        this.lastSavedReceiptId = saved.receipt_id;
+                        this.successMessage = `Receipt #${saved.receipt_id} saved!`;
+                        this.resetForm();
+                        // After saving, focus list on this vendor & date so historical entries appear
+                        await this.loadReceipts({
+                            vendor: saved.vendor_name,
+                            start_date: saved.receipt_date,
+                            end_date: saved.receipt_date,
+                            limit: 50
+                        });
+                        // Auto-match banking after save (after-only window)
+                        await this.autoMatchAfterSave(saved);
+                    } catch (err) {
+                        this.errorMessage = err.message;
+                    }
+                },
+                resetForm() {
+                    this.form = {
+                        receipt_date: new Date().toISOString().split('T')[0],
+                        vendor_name: '',
+                        gross_amount: null,
+                        gst_amount: 0,
+                        category: '',
+                        gl_account_code: '',
+                        vehicle_id: null,
+                        description: '',
+                        is_personal: false,
+                        is_driver_personal: false
+                    };
+                    this.taxMode = 'GST_INCL_5';
+                    this.customTaxRate = null;
+                },
+                async searchVendors() {
+                    if (!this.form.vendor_name) {
+                        this.vendorSuggestions = [];
+                        return;
+                    }
+                    const search = this.form.vendor_name.toLowerCase();
+                    this.vendorSuggestions = this.allVendors
+                        .filter(name => name.toLowerCase().includes(search))
+                        .slice(0, 10);
+                },
+                selectVendor(vendor) {
+                    this.form.vendor_name = vendor;
+                    this.vendorSuggestions = [];
+                    this.loadVendorProfile();
+                },
+                async loadVendorProfile() {
+                    if (!this.form.vendor_name) return;
+                    try {
+                        const resp = await fetch(`http://127.0.0.1:8001/api/receipts-simple/vendor-profile?vendor=${encodeURIComponent(this.form.vendor_name)}`);
+                        if (resp.ok) {
+                            const profile = resp.json();
+                            profile.then(data => {
+                                if (data.suggested_category && !this.form.category) {
+                                    this.form.category = data.suggested_category;
+                                }
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Error loading vendor profile:', err);
+                    }
+                },
+                async findBankMatches() {
+                    this.bankMatches = [];
+                    try {
+                        const params = new URLSearchParams();
+                        params.set('amount', String(this.form.gross_amount || 0));
+                        params.set('date', this.form.receipt_date);
+                        if (this.form.vendor_name) params.set('vendor', this.form.vendor_name);
+                        params.set('days_window', String(this.matchWindow || 7));
+                        params.set('direction', this.matchDirection || 'after');
+                        const url = `http://127.0.0.1:8001/api/receipts-simple/match-banking?${params.toString()}`;
+                        const resp = await fetch(url);
+                        if (resp.ok) {
+                            this.bankMatches = await resp.json();
+                        }
+                    } catch (err) {
+                        console.error('Error finding banking matches:', err);
+                    }
+                },
+                async linkMatch(transactionId) {
+                    if (!this.lastSavedReceiptId) return;
+                    try {
+                        const resp = await fetch(
+                            `http://127.0.0.1:8001/api/receipts-simple/${this.lastSavedReceiptId}/link-banking/${transactionId}`,
+                            { method: 'POST' }
+                        );
+                        if (!resp.ok) throw new Error('Linking failed');
+                        this.successMessage = 'Receipt linked to banking transaction!';
+                    } catch (err) {
+                        this.errorMessage = err.message;
+                    }
+                },
+                async autoMatchAfterSave(saved) {
+                    try {
+                        const params = new URLSearchParams();
+                        params.set('amount', String(saved.gross_amount || 0));
+                        params.set('date', saved.receipt_date);
+                        if (saved.vendor_name) params.set('vendor', saved.vendor_name);
+                        params.set('days_window', '7');
+                        params.set('direction', 'after');
+                        const url = `http://127.0.0.1:8001/api/receipts-simple/match-banking?${params.toString()}`;
+                        const resp = await fetch(url);
+                        if (!resp.ok) return;
+                        const matches = await resp.json();
+                        if (matches && matches.length > 0) {
+                            const m = matches[0];
+                            const amt = (m.debit_amount || m.credit_amount || 0).toFixed(2);
+                            const msg = `Link receipt #${saved.receipt_id} to banking on ${this.formatDate(m.transaction_date)} (${m.description}) for $${amt}?`;
+                            if (window.confirm(msg)) {
+                                await this.linkMatch(m.transaction_id);
+                            }
+                            // Keep panel populated for optional manual choice
+                            this.bankMatches = matches;
+                        } else {
+                            this.bankMatches = [];
+                        }
+                    } catch (err) {
+                        console.error('Auto-match after save failed:', err);
+                    }
+                },
+                autoCalculateGST() {
+                    if (!this.form.gross_amount) {
+                        this.form.gst_amount = 0;
+                        return;
+                    }
+                    if (this.form.is_driver_personal) {
+                        this.form.gst_amount = 0;
+                        return;
+                    }
+                    let rate = 0.05;
+                    if (this.taxMode === 'NO_TAX') rate = 0;
+                    else if (this.taxMode === 'GST_PST_INCL_12') rate = 0.12;
+                    else if (this.taxMode === 'CUSTOM') rate = (this.customTaxRate || 0) / 100;
+
+                    this.form.gst_amount = rate === 0 ? 0 : 
+                        parseFloat((this.form.gross_amount * rate / (1 + rate)).toFixed(2));
+                },
+                formatDate(dateStr) {
+                    if (!dateStr) return '-';
+                    return new Date(dateStr).toLocaleDateString('en-CA');
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

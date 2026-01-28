@@ -1,0 +1,61 @@
+name: Arrow Limousine CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:12
+        env:
+          POSTGRES_PASSWORD: ***REMOVED***
+          POSTGRES_DB: almsdata_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov psycopg2-binary
+    
+    - name: Set up test database
+      env:
+        PGPASSWORD: ***REMOVED***
+      run: |
+        psql -h localhost -U postgres -d almsdata_test -f schema.sql
+    
+    - name: Run tests
+      env:
+        DB_HOST: localhost
+        DB_NAME: almsdata_test
+        DB_USER: postgres
+        DB_PASSWORD: ***REMOVED***
+      run: |
+        pytest tests/ --cov=desktop_app --cov=scripts --cov-report=xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
