@@ -180,30 +180,45 @@ async function createClientIfNeeded(name, phone, email) {
 }
 
 async function submitForm() {
-  const clientId = await createClientIfNeeded(form.value.client_name, form.value.phone, form.value.email)
-  // Map UI form fields to charters table columns (safe; backend intersects too)
+  // Validate required fields
+  if (!form.value.date) { toast.error('Charter date required'); return }
+  if (!form.value.client_name) { toast.error('Client name required'); return }
+  if (!form.value.passenger_load) { toast.error('Passenger load required'); return }
+  if (!form.value.total) { toast.error('Total amount required'); return }
+  
+  // Map UI form fields to booking create endpoint
   const payload = {
-    client_id: clientId,
-    charter_date: form.value.date || null,
+    client_name: form.value.client_name,
+    phone: form.value.phone || null,
+    email: form.value.email || null,
+    charter_date: form.value.date,
+    pickup_time: form.value.itinerary && form.value.itinerary[0] ? form.value.itinerary[0].time24 : '09:00',
+    passenger_load: parseInt(form.value.passenger_load) || 0,
     vehicle_type_requested: form.value.vehicle_type_requested || null,
     vehicle_booked_id: form.value.vehicle_booked_id || null,
     driver_name: form.value.driver_name || null,
-    passenger_load: form.value.passenger_load || null,
     pickup_address: form.value.pickup_address || null,
     dropoff_address: form.value.dropoff_address || null,
-    vehicle_notes: form.value.client_notes || null,
-    notes: form.value.client_notes || null,
+    total_amount_due: parseFloat(form.value.total) || 0,
+    base_charge: parseFloat(form.value.default_hourly_charge) || 0,
+    itinerary: form.value.itinerary || [],
     status: 'quote'
   }
   try {
-    const res = await fetch('/api/charters', {
+    const res = await fetch('/api/bookings/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
     const data = await res.json().catch(() => ({}))
     if (res.ok) {
-      toast.success('Charter saved' + (data.charter_id ? ` (ID ${data.charter_id})` : '!'))
+      toast.success('Charter saved' + (data.reserve_number ? ` (Reserve #${data.reserve_number})` : '!'))
+      // Reset form on success
+      form.value = {
+        date: '', client_name: '', phone: '', email: '', vehicle_type_requested: '',
+        vehicle_booked_id: '', driver_name: '', passenger_load: '', itinerary: [],
+        default_hourly_charge: '', package_rate: '', gst: '', total: '', client_notes: ''
+      }
     } else {
       toast.error('Save failed: ' + (data.error || data.detail || res.statusText))
     }
