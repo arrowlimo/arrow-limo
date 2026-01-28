@@ -2,80 +2,142 @@
   <form @submit.prevent="submitForm">
     <h2>Quote / Charter Booking</h2>
 
-    <!-- Duplicate From Existing -->
+    <!-- Client Lookup Section -->
     <div class="container-box">
-      <h3>Duplicate From Existing</h3>
+      <h3>Client Information</h3>
       <div class="form-row">
-        <input v-model="dupQuery" @input="searchExisting" placeholder="Search by reserve # or client name" />
-        <button type="button" @click="showDupModal = true">Browse…</button>
-      </div>
-      <ul v-if="dupResults.length" class="search-results">
-        <li v-for="r in dupResults" :key="r.charter_id" @click="applyDuplicate(r)">
-          #{{ r.reserve_number || r.charter_id }} — {{ r.client_name }} — {{ r.charter_date?.slice(0,10) }}
-        </li>
-      </ul>
-    </div>
-
-    <!-- Basic Details -->
-    <div class="container-box">
-      <h3>Charter Details</h3>
-      <div class="form-row"><label>Date</label><input v-model="form.date" type="date" /></div>
-      <div class="form-row"><label>Client Name</label>
+        <label>Client Name *</label>
         <div style="flex:1; position: relative;">
-          <input v-model="form.client_name" type="text" @input="onClientInput" @focus="clientDropdownOpen=true" autocomplete="off" />
-          <ul v-if="clientDropdownOpen && clientOptions.length" class="search-results" style="position:absolute; z-index:10; background:#fff; border:1px solid #ddd; width:100%; max-height:200px; overflow:auto;">
-            <li v-for="c in clientOptions" :key="c.client_id" @click="selectClient(c)">
-              {{ c.client_name }} <small v-if="c.phone">— {{ c.phone }}</small>
+          <input 
+            ref="clientNameInput"
+            v-model="form.client_name" 
+            type="text" 
+            placeholder="Type client name (fuzzy search)"
+            @input="onClientNameInput"
+            @keydown.enter="selectClientFromList"
+            @keydown.down="focusFirstClient"
+            @focus="showClientDropdown = true"
+            @blur="setTimeout(() => showClientDropdown = false, 200)"
+            autocomplete="off"
+            tabindex="1"
+          />
+          <!-- Dropdown with fuzzy matched clients -->
+          <ul v-if="showClientDropdown && filteredClients.length" 
+              class="dropdown-list"
+              style="position:absolute; z-index:10; background:#fff; border:1px solid #ccc; width:100%; max-height:250px; overflow-y:auto; list-style:none; padding:0; margin:0.2em 0 0 0;">
+            <li 
+              v-for="(c, idx) in filteredClients" 
+              :key="c.client_id"
+              :ref="el => { if (idx === 0) firstClientItem = el }"
+              @click="selectClient(c)"
+              style="padding:0.5em; cursor:pointer; border-bottom:1px solid #eee; hover-bg:#f5f5f5"
+              @mouseenter="hoveredClientIdx = idx"
+              :style="{ backgroundColor: hoveredClientIdx === idx ? '#f5f5f5' : 'transparent' }"
+            >
+              <strong>{{ c.client_name }}</strong> 
+              <small v-if="c.phone">— {{ c.phone }}</small>
+              <small v-if="c.email"> — {{ c.email }}</small>
             </li>
           </ul>
+          <!-- "Add New Client" option -->
+          <div v-if="form.client_name && !selectedClientId && filteredClients.length === 0"
+               style="position:absolute; z-index:9; background:#f9f9f9; border:1px solid #ccc; width:100%; padding:0.5em; margin-top:0.2em;">
+            <strong style="color:#666;">Client not found</strong><br/>
+            <small>Fill in details below and new client will be created on save</small>
+          </div>
         </div>
       </div>
-      <div class="form-row"><label>Phone</label><input v-model="form.phone" type="tel" /></div>
-      <div class="form-row"><label>Email</label><input v-model="form.email" type="email" /></div>
-      <div class="form-row"><label>Vehicle Type Requested</label><input v-model="form.vehicle_type_requested" type="text" placeholder="e.g. sedan, party bus" /></div>
-      <div class="form-row"><label>Vehicle Booked ID</label><input v-model="form.vehicle_booked_id" type="text" placeholder="e.g. L-24" /></div>
-      <div class="form-row"><label>Driver Name</label><input v-model="form.driver_name" type="text" /></div>
-      <div class="form-row"><label>Passenger Load</label><input v-model="form.passenger_load" type="number" /></div>
+
+      <!-- Auto-filled from selection -->
+      <div class="form-row">
+        <label>Phone</label>
+        <input v-model="form.phone" type="tel" placeholder="(123) 456-7890" tabindex="2" />
+      </div>
+      <div class="form-row">
+        <label>Email</label>
+        <input v-model="form.email" type="email" placeholder="email@example.com" tabindex="3" />
+      </div>
+    </div>
+
+    <!-- Charter Details -->
+    <div class="container-box">
+      <h3>Charter Details</h3>
+      <div class="form-row">
+        <label>Date *</label>
+        <input v-model="form.date" type="date" tabindex="4" />
+      </div>
+      <div class="form-row">
+        <label>Vehicle Type Requested</label>
+        <input v-model="form.vehicle_type_requested" type="text" placeholder="e.g. sedan, party bus" tabindex="5" />
+      </div>
+      <div class="form-row">
+        <label>Vehicle Booked ID</label>
+        <input v-model="form.vehicle_booked_id" type="text" placeholder="e.g. L-24" tabindex="6" />
+      </div>
+      <div class="form-row">
+        <label>Driver Name</label>
+        <input v-model="form.driver_name" type="text" tabindex="7" />
+      </div>
+      <div class="form-row">
+        <label>Passenger Load *</label>
+        <input v-model="form.passenger_load" type="number" tabindex="8" />
+      </div>
     </div>
 
     <!-- Itinerary Section -->
     <div class="container-box">
       <h3>Itinerary</h3>
-      <div v-for="(stop, idx) in form.itinerary" :key="idx" class="itinerary-row">
-        <input v-model="stop.time24" type="time" placeholder="24h" />
-        <select v-model="stop.type">
+      <div v-for="(stop, idx) in form.itinerary" :key="idx" class="itinerary-row" style="display:flex; gap:0.5em; margin-bottom:0.5em; align-items:center;">
+        <input v-model="stop.time24" type="time" placeholder="09:00" :tabindex="100 + idx*4" />
+        <select v-model="stop.type" :tabindex="101 + idx*4">
           <option>Leave Red Deer For</option>
           <option>Returned to Red Deer</option>
           <option>Pick Up At</option>
           <option>Drop Off At</option>
         </select>
-        <input v-model="stop.directions" type="text" placeholder="Directions" />
-        <button type="button" @click="removeStop(idx)">Remove</button>
+        <input v-model="stop.directions" type="text" placeholder="Address/Location" :tabindex="102 + idx*4" />
+        <button type="button" @click="moveStopUp(idx)" v-if="idx > 0" title="Move up">↑</button>
+        <button type="button" @click="moveStopDown(idx)" v-if="idx < form.itinerary.length - 1" title="Move down">↓</button>
+        <button type="button" @click="removeStop(idx)" :tabindex="103 + idx*4">Remove</button>
       </div>
-      <button type="button" @click="addStop">Add Stop</button>
+      <button type="button" @click="addStop" tabindex="200">+ Add Stop</button>
     </div>
 
     <!-- Invoice Section -->
     <div class="container-box">
-      <h3>Invoice</h3>
-      <div class="form-row"><label>Default Hourly Charge</label><input v-model="form.default_hourly_charge" type="number" /></div>
-      <div class="form-row"><label>Package Rate</label><input v-model="form.package_rate" type="number" /></div>
-      <div class="form-row"><label>GST</label><input v-model="form.gst" type="number" /></div>
-      <div class="form-row"><label>Total</label><input v-model="form.total" type="number" /></div>
+      <h3>Charges</h3>
+      <div class="form-row">
+        <label>Charter Charge (Base) *</label>
+        <input v-model="form.default_hourly_charge" type="number" placeholder="0.00" tabindex="300" />
+      </div>
+      <div class="form-row">
+        <label>Additional Charges</label>
+        <input v-model="form.package_rate" type="number" placeholder="0.00" tabindex="301" />
+      </div>
+      <div class="form-row">
+        <label>GST (5%)</label>
+        <input v-model="form.gst" type="number" placeholder="0.00" tabindex="302" />
+      </div>
+      <div class="form-row" style="font-weight:bold; font-size:1.1em;">
+        <label>Total *</label>
+        <input v-model="form.total" type="number" placeholder="0.00" tabindex="303" />
+      </div>
     </div>
 
     <!-- Notes Section -->
     <div class="container-box">
       <label>Client Notes</label>
-      <textarea v-model="form.client_notes" rows="3" placeholder="Notes for client and staff..."></textarea>
+      <textarea v-model="form.client_notes" rows="3" placeholder="Notes for client and staff..." tabindex="400"></textarea>
     </div>
 
-    <button type="submit">Save Booking / Quote</button>
+    <button type="submit" style="font-size:1.2em; padding:1em; background:#007bff; color:#fff; border:none; border-radius:4px; cursor:pointer;">
+      Save Booking / Quote
+    </button>
   </form>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { toast } from '@/toast/toastStore'
 
 const form = ref({
@@ -95,50 +157,75 @@ const form = ref({
   client_notes: ''
 })
 
-const dupQuery = ref('')
-const dupResults = ref([])
-const showDupModal = ref(false)
+const clientNameInput = ref(null)
+const showClientDropdown = ref(false)
 const clientOptions = ref([])
-const clientDropdownOpen = ref(false)
+const filteredClients = ref([])
 const selectedClientId = ref(null)
+const hoveredClientIdx = ref(-1)
+const firstClientItem = ref(null)
+let clientSearchTimer = null
 
-async function searchExisting() {
-  const q = dupQuery.value.trim()
-  if (!q) { dupResults.value = []; return }
-  try {
-    const res = await fetch(`/api/bookings/search?q=${encodeURIComponent(q)}&limit=10`)
-    if (res.ok) {
-      const data = await res.json()
-      dupResults.value = data.results || []
-    }
-  } catch (e) { /* ignore */ }
+// Simple fuzzy match function
+function fuzzyMatch(query, text) {
+  if (!query || !text) return false
+  query = query.toLowerCase()
+  text = text.toLowerCase()
+  let queryIdx = 0
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === query[queryIdx]) queryIdx++
+    if (queryIdx === query.length) return true
+  }
+  return false
 }
 
-async function applyDuplicate(hit) {
-  try {
-    const res = await fetch(`/api/bookings/${hit.charter_id}`)
-    if (!res.ok) return
-    const b = await res.json()
-    // Map fields to our form model
-    form.value.date = (b.charter_date || '').slice(0,10)
-    form.value.client_name = b.client_name || ''
-    form.value.phone = ''
-    form.value.email = ''
-    form.value.vehicle_type_requested = b.vehicle_type_requested || ''
-    form.value.vehicle_booked_id = b.vehicle_booked_id || ''
-    form.value.driver_name = b.driver_name || ''
-    form.value.passenger_load = b.passenger_load || ''
-    form.value.pickup_address = b.pickup_address || ''
-    form.value.dropoff_address = b.dropoff_address || ''
-    form.value.client_notes = (b.vehicle_notes || b.notes || '')
-    // Clear pricing and itinerary for safety
-    form.value.itinerary = []
-    form.value.default_hourly_charge = ''
-    form.value.package_rate = ''
-    form.value.gst = ''
-    form.value.total = ''
-    dupResults.value = []
-  } catch (e) { /* ignore */ }
+async function onClientNameInput() {
+  const q = (form.value.client_name || '').trim()
+  if (clientSearchTimer) clearTimeout(clientSearchTimer)
+  
+  if (!q) {
+    filteredClients.value = []
+    selectedClientId.value = null
+    return
+  }
+  
+  clientSearchTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/clients`)
+      if (res.ok) {
+        const allClients = await res.json()
+        const clients = Array.isArray(allClients) ? allClients : allClients.results || []
+        filteredClients.value = clients.filter(c => 
+          fuzzyMatch(q, c.client_name || '') || 
+          fuzzyMatch(q, c.phone || '')
+        ).slice(0, 10)
+      }
+    } catch (e) {
+      console.error('Client search error:', e)
+    }
+  }, 300)
+}
+
+function selectClient(client) {
+  form.value.client_name = client.client_name || ''
+  form.value.phone = client.phone || ''
+  form.value.email = client.email || ''
+  selectedClientId.value = client.client_id
+  filteredClients.value = []
+  showClientDropdown.value = false
+  toast.success(`Selected: ${client.client_name}`)
+}
+
+function selectClientFromList() {
+  if (filteredClients.value.length > 0) {
+    selectClient(filteredClients.value[0])
+  }
+}
+
+function focusFirstClient() {
+  if (firstClientItem.value) {
+    firstClientItem.value.click?.()
+  }
 }
 
 function addStop() {
@@ -149,34 +236,18 @@ function removeStop(idx) {
   form.value.itinerary.splice(idx, 1)
 }
 
-async function resolveClientIdByName(name) {
-  const query = (name || '').trim().toLowerCase()
-  if (!query) return null
-  try {
-    const res = await fetch('/api/clients')
-    if (res.ok) {
-      const arr = await res.json()
-      const hit = (Array.isArray(arr) ? arr : []).find(c => (c.client_name || c.name || '').toLowerCase() === query)
-      if (hit) return hit.client_id || hit.id || null
-    }
-  } catch (_) { /* ignore */ }
-  return null
+function moveStopUp(idx) {
+  if (idx > 0) {
+    [form.value.itinerary[idx], form.value.itinerary[idx-1]] = 
+    [form.value.itinerary[idx-1], form.value.itinerary[idx]]
+  }
 }
 
-async function createClientIfNeeded(name, phone, email) {
-  if (selectedClientId.value) return selectedClientId.value
-  const existingId = await resolveClientIdByName(name)
-  if (existingId) return existingId
-  if (!name) return null
-  try {
-    const res = await fetch('/api/clients', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_name: name, phone, email })
-    })
-    const data = await res.json().catch(() => ({}))
-    // Return either id or client_id depending on backend
-    return data.id || data.client_id || null
-  } catch (_) { return null }
+function moveStopDown(idx) {
+  if (idx < form.value.itinerary.length - 1) {
+    [form.value.itinerary[idx], form.value.itinerary[idx+1]] = 
+    [form.value.itinerary[idx+1], form.value.itinerary[idx]]
+  }
 }
 
 async function submitForm() {
@@ -197,13 +268,16 @@ async function submitForm() {
     vehicle_type_requested: form.value.vehicle_type_requested || null,
     vehicle_booked_id: form.value.vehicle_booked_id || null,
     driver_name: form.value.driver_name || null,
-    pickup_address: form.value.pickup_address || null,
-    dropoff_address: form.value.dropoff_address || null,
+    pickup_address: form.value.itinerary && form.value.itinerary[0] ? form.value.itinerary[0].directions : null,
+    dropoff_address: form.value.itinerary && form.value.itinerary.length > 1 ? form.value.itinerary[form.value.itinerary.length - 1].directions : null,
     total_amount_due: parseFloat(form.value.total) || 0,
     base_charge: parseFloat(form.value.default_hourly_charge) || 0,
     itinerary: form.value.itinerary || [],
     status: 'quote'
   }
+  
+  console.log('Submitting payload:', payload)
+  
   try {
     const res = await fetch('/api/bookings/create', {
       method: 'POST',
@@ -212,41 +286,23 @@ async function submitForm() {
     })
     const data = await res.json().catch(() => ({}))
     if (res.ok) {
-      toast.success('Charter saved' + (data.reserve_number ? ` (Reserve #${data.reserve_number})` : '!'))
+      toast.success(`✅ Charter saved! Reserve #${data.reserve_number}`)
+      console.log('Response data:', data)
       // Reset form on success
       form.value = {
         date: '', client_name: '', phone: '', email: '', vehicle_type_requested: '',
         vehicle_booked_id: '', driver_name: '', passenger_load: '', itinerary: [],
         default_hourly_charge: '', package_rate: '', gst: '', total: '', client_notes: ''
       }
+      selectedClientId.value = null
     } else {
-      toast.error('Save failed: ' + (data.error || data.detail || res.statusText))
+      toast.error(`❌ Save failed: ${data.error || data.detail || res.statusText}`)
+      console.error('Error response:', data)
     }
   } catch (e) {
-    toast.error('Save failed: ' + e)
+    toast.error(`❌ Save failed: ${e}`)
+    console.error('Exception:', e)
   }
-}
-
-// Client autocomplete handlers
-let clientSearchTimer = null
-async function onClientInput() {
-  selectedClientId.value = null
-  const q = (form.value.client_name || '').trim()
-  if (clientSearchTimer) clearTimeout(clientSearchTimer)
-  if (!q) { clientOptions.value = []; return }
-  clientSearchTimer = setTimeout(async () => {
-    try {
-      const res = await fetch(`/api/clients/search?query=${encodeURIComponent(q)}&limit=10`)
-      const data = await res.json().catch(() => ({}))
-      clientOptions.value = data.results || []
-      clientDropdownOpen.value = true
-    } catch (_) { clientOptions.value = [] }
-  }, 200)
-}
-function selectClient(c) {
-  form.value.client_name = c.client_name
-  selectedClientId.value = c.client_id
-  clientDropdownOpen.value = false
 }
 </script>
 
@@ -289,4 +345,5 @@ button {
 button:hover { background: #4f46e5; }
 .itinerary-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
 h2, h3 { color: #1976d2; }
+.dropdown-list { list-style: none; }
 </style>
