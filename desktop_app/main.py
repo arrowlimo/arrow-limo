@@ -979,6 +979,27 @@ class CharterFormWidget(QWidget):
         layout.addWidget(tab_widget)
         
         self.setLayout(layout)
+        
+        # Install event filter for Enter key = Tab navigation
+        self.installEventFilter(self)
+    
+    def eventFilter(self, obj, event):
+        """Handle Enter key as Tab except in QTextEdit fields"""
+        from PyQt6.QtGui import QKeyEvent
+        if event.type() == 6:  # QEvent.Type.KeyPress
+            if isinstance(event, QKeyEvent):
+                if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                    # Check if we're in a QTextEdit or QPlainTextEdit (allow Enter in notes)
+                    widget = self.focusWidget()
+                    if widget:
+                        if isinstance(widget, (QTextEdit,)):
+                            # Allow normal Enter in text edit fields (for newlines)
+                            return False
+                        else:
+                            # Convert Enter to Tab for other field types
+                            self.focusNextChild()
+                            return True
+        return super().eventFilter(obj, event)
     
     def create_itinerary_section(self) -> QGroupBox:
         """Itinerary section with line-by-line pickup/dropoff"""
