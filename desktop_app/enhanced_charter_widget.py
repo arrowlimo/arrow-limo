@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
     QLabel, QPushButton, QLineEdit, QDoubleSpinBox, QComboBox, QMessageBox, QDialog
 )
-from PyQt6.QtCore import Qt, QDate
+from PyQt6.QtCore import Qt, QDate, pyqtSignal
 from PyQt6.QtGui import QFont
 from datetime import datetime
 from table_mixins import DrillDownTableMixin
@@ -150,6 +150,9 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
     - Lock/unlock, cancel, edit actions
     - Balance due filtering
     """
+    
+    # Signal to notify main window to show/hide booking tab
+    show_booking_tab_signal = pyqtSignal(dict)  # Emit with charter data dict
     
     def __init__(self, db):
         super().__init__()
@@ -561,10 +564,15 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
         self.status_label.setStyleSheet("color: #555; font-style: italic;")
     
     def on_charter_double_clicked(self, index):
-        """Open charter detail on double-click"""
+        """Open charter detail on double-click and emit signal to show booking form"""
         row = index.row()
         if row >= 0:
             res_num = self.table.item(row, 0).text()
+            # Fetch charter data to send to booking form
+            charter_data = self.get_charter_data(res_num)
+            # Emit signal to parent window to show booking tab
+            self.show_booking_tab_signal.emit(charter_data if charter_data else {"reserve_number": res_num})
+            # Also open the detail dialog
             self.open_charter_detail(res_num)
     
     def open_charter_detail(self, reserve_number):
@@ -573,6 +581,42 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
         result = dialog.exec()
         if result:
             self.load_data()  # Refresh after changes
+    
+    def get_charter_data(self, reserve_number):
+        """Fetch charter data from database"""
+        try:
+            cur = self.db.cursor()
+            cur.execute("""
+                SELECT charter_id, reserve_number, client_id, charter_date, 
+                       pickup_time, dropoff_time, pickup_address, dropoff_address,
+                       passenger_load, total_amount_due, vehicle_id, driver_id,
+                       notes, status
+                FROM charters
+                WHERE reserve_number = %s
+            """, (reserve_number,))
+            row = cur.fetchone()
+            cur.close()
+            
+            if row:
+                return {
+                    'charter_id': row[0],
+                    'reserve_number': row[1],
+                    'client_id': row[2],
+                    'charter_date': row[3],
+                    'pickup_time': row[4],
+                    'dropoff_time': row[5],
+                    'pickup_address': row[6],
+                    'dropoff_address': row[7],
+                    'passenger_load': row[8],
+                    'total_amount_due': row[9],
+                    'vehicle_id': row[10],
+                    'driver_id': row[11],
+                    'notes': row[12],
+                    'status': row[13]
+                }
+        except Exception as e:
+            print(f"Error fetching charter data: {e}")
+        return None
     
     def create_new_charter(self):
         """Create new charter"""

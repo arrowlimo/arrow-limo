@@ -8555,6 +8555,12 @@ class MainWindow(QMainWindow):
             print(f"  ❌ Admin tab Error: {e}", flush=True)
             raise
         
+        # Connect browse reservations double-click to show booking form tab
+        if hasattr(self, 'enhanced_charter_widget') and hasattr(self, 'operations_tabs'):
+            self.enhanced_charter_widget.show_booking_tab_signal.connect(
+                self._on_show_booking_tab_requested
+            )
+        
         # ============================================================================
         # PHASE 1 UX UPGRADES - KEYBOARD SHORTCUTS
         # ============================================================================
@@ -8655,6 +8661,19 @@ class MainWindow(QMainWindow):
         if reply == QMessageBox.StandardButton.Yes:
             self.close()
             QApplication.quit()
+    
+    def _on_show_booking_tab_requested(self, charter_data: dict):
+        """Handle request to show booking form tab from browse reservations"""
+        # Show the booking tab
+        if hasattr(self, 'operations_tabs') and hasattr(self, 'booking_tab_index'):
+            self.operations_tabs.setTabVisible(self.booking_tab_index, True)
+            self.operations_tabs.setCurrentIndex(self.booking_tab_index)
+            
+            # Load charter data into form if provided
+            if hasattr(self, 'charter_form') and charter_data:
+                charter_id = charter_data.get('charter_id')
+                if charter_id:
+                    self.charter_form.load_charter(charter_id)
     
     def mousePressEvent(self, event):
         """Track user activity"""
@@ -8781,8 +8800,15 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         
         tabs = QTabWidget()
-        tabs.addTab(self.create_charter_tab(), "📅 Bookings")
-        tabs.addTab(self.create_enhanced_charter_tab(), "📋 Charter List")
+        # Reordered: Browse Reservations first, then Booking form
+        self.operations_tabs = tabs  # Store reference for tab management
+        tabs.addTab(self.create_enhanced_charter_tab(), "🔍 Browse Reservations")
+        
+        # Create booking form tab but mark it as initially hidden
+        self.booking_tab_index = tabs.addTab(self.create_charter_tab(), "📝 Booking/Charter")
+        self.booking_tab_hidden = True  # Initially hidden
+        self.operations_tabs.setTabVisible(self.booking_tab_index, False)
+        
         tabs.addTab(self.create_quote_generator_tab(), "💬 Quote Generator")
         tabs.addTab(self.create_dispatch_tab(), "📡 Dispatch")
         tabs.addTab(self.create_customers_tab(), "👥 Customers")
@@ -9810,7 +9836,7 @@ def set_active_db(target):
         "port": int(os.environ.get('DB_PORT', 5432)),
         "database": os.environ.get('DB_NAME', 'almsdata'),
         "user": os.environ.get('DB_USER', 'postgres'),
-        "password": os.environ.get('DB_PASSWORD', '***REMOVED***'),
+        "password": os.environ.get('DB_PASSWORD'),
         "sslmode": os.environ.get('DB_SSLMODE', None),
     }
 
@@ -9823,7 +9849,7 @@ ACTIVE_DB_CONFIG = {
     "port": int(os.environ.get('DB_PORT', 5432)),
     "database": os.environ.get('DB_NAME', 'almsdata'),
     "user": os.environ.get('DB_USER', 'postgres'),
-    "password": os.environ.get('DB_PASSWORD', '***REMOVED***'),
+    "password": os.environ.get('DB_PASSWORD'),
     "sslmode": os.environ.get('DB_SSLMODE', None),
 }
 
