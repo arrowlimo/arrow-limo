@@ -87,6 +87,9 @@ def update_charter(
         "driver_name",
         "notes",
         "balance",
+        "total_amount_due",
+        "charter_date",
+        "client_id",
     }
     payload = payload or {}
     updates: dict[str, Any] = {k: v for k, v in payload.items() if k in allowed}

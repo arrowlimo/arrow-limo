@@ -32,7 +32,7 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
                    COALESCE(expense, 0) AS expense,
                    COALESCE(gross_amount, 0) AS gross_amount,
                    COALESCE(net_amount, 0) AS net_amount,
-                   parent_receipt_id
+                   parent_receipt_id, gl_account_code
             FROM receipts WHERE receipt_id=%s
             """,
             (receipt_id,),
@@ -53,6 +53,7 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
             "gross_amount": float(r[8] or 0.0),
             "net_amount": float(r[9] or 0.0),
             "parent_receipt_id": r[10],
+            "gl_account_code": r[11],
         }
 
         total, amt_col = _choose_amount_and_column(row)
@@ -91,20 +92,24 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
                 """
                 INSERT INTO receipts (
                     vendor_name, canonical_vendor, vendor_account_id,
-                    receipt_date, expense, description, parent_receipt_id
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING receipt_id
+                    receipt_date, expense, description, parent_receipt_id, gl_account_code
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING receipt_id
                 """,
                 (
                     row["vendor_name"], row["canonical_vendor"], row["vendor_account_id"],
                     row["receipt_date"], fee,
                     signature + " | OD/Late fee",
                     receipt_id,
+                    row["gl_account_code"],
                 ),
             )
             fee_id = cur.fetchone()[0]
 
-        # Update parent amount column to base
-        cur.execute(f"UPDATE receipts SET {amt_col}=%s WHERE receipt_id=%s", (base, receipt_id))
+        # Update parent amount column to base AND mark as split (parent_receipt_id points to itself)
+        cur.execute(
+            f"UPDATE receipts SET {amt_col}=%s, parent_receipt_id=%s WHERE receipt_id=%s",
+            (base, receipt_id, receipt_id)
+        )
         conn.commit()
         return {"status": "ok", "receipt_id": receipt_id, "base": base, "fee": fee, "fee_receipt_id": fee_id, "amount_column": amt_col}
     except Exception as e:
