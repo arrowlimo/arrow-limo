@@ -1,0 +1,919 @@
+{
+  "domains": [
+    {
+      "domain_id": "core",
+      "domain_name": "🏢 Core Operations",
+      "icon": "building2",
+      "description": "Fleet, drivers, and financial core",
+      "widget_count": 16,
+      "categories": [
+        {
+          "category_id": "fleet_mgt",
+          "category_name": "Fleet Management",
+          "icon": "truck",
+          "widgets": [
+            {
+              "widget_id": "fleet_management",
+              "widget_name": "Fleet Management",
+              "class_name": "FleetManagementWidget",
+              "description": "Overview of all vehicles"
+            },
+            {
+              "widget_id": "vehicle_analytics",
+              "widget_name": "Vehicle Analytics",
+              "class_name": "VehicleAnalyticsWidget",
+              "description": "Detailed vehicle performance metrics"
+            },
+            {
+              "widget_id": "fleet_cost",
+              "widget_name": "Fleet Cost Analysis",
+              "class_name": "VehicleFleetCostAnalysisWidget",
+              "description": "Cost breakdown and analysis"
+            },
+            {
+              "widget_id": "maintenance",
+              "widget_name": "Maintenance Tracking",
+              "class_name": "VehicleMaintenanceTrackingWidget",
+              "description": "Schedule and history"
+            },
+            {
+              "widget_id": "fuel_efficiency",
+              "widget_name": "Fuel Efficiency",
+              "class_name": "FuelEfficiencyTrackingWidget",
+              "description": "MPG and consumption analysis"
+            },
+            {
+              "widget_id": "utilization",
+              "widget_name": "Utilization Analysis",
+              "class_name": "VehicleUtilizationWidget",
+              "description": "Vehicle usage patterns"
+            },
+            {
+              "widget_id": "fleet_age",
+              "widget_name": "Fleet Age Analysis",
+              "class_name": "FleetAgeAnalysisWidget",
+              "description": "Vehicle aging metrics"
+            }
+          ]
+        },
+        {
+          "category_id": "driver_mgt",
+          "category_name": "Driver Management",
+          "icon": "person",
+          "widgets": [
+            {
+              "widget_id": "driver_performance",
+              "widget_name": "Driver Performance",
+              "class_name": "DriverPerformanceWidget",
+              "description": "KPIs and metrics"
+            },
+            {
+              "widget_id": "driver_pay",
+              "widget_name": "Driver Pay Analysis",
+              "class_name": "DriverPayAnalysisWidget",
+              "description": "Compensation breakdown"
+            },
+            {
+              "widget_id": "employee_perf",
+              "widget_name": "Employee Performance",
+              "class_name": "EmployeePerformanceMetricsWidget",
+              "description": "Team metrics"
+            },
+            {
+              "widget_id": "payroll_tax",
+              "widget_name": "Payroll Tax Compliance",
+              "class_name": "PayrollTaxComplianceWidget",
+              "description": "Tax and compliance tracking"
+            },
+            {
+              "widget_id": "payroll_audit",
+              "widget_name": "Payroll Audit",
+              "class_name": "EmployeePayrollAuditWidget",
+              "description": "Detailed payroll review"
+            },
+            {
+              "widget_id": "payroll_entry_manual",
+              "widget_name": "Manual Payroll Entry",
+              "class_name": "PayrollEntryWidget",
+              "description": "Enter or correct pay period records"
+            },
+            {
+              "widget_id": "schedule_mgt",
+              "widget_name": "Schedule Management",
+              "class_name": "DriverScheduleManagementWidget",
+              "description": "Shift and schedule planning"
+            }
+          ]
+        },
+        {
+          "category_id": "financial",
+          "category_name": "Financial Core",
+          "icon": "dollar",
+          "widgets": [
+            {
+              "widget_id": "financial_dash",
+              "widget_name": "Financial Dashboard",
+              "class_name": "FinancialDashboardWidget",
+              "description": "Overall financial health"
+            },
+            {
+              "widget_id": "payment_recon",
+              "widget_name": "Payment Reconciliation",
+              "class_name": "PaymentReconciliationWidget",
+              "description": "Basic payment matching"
+            },
+            {
+              "widget_id": "payment_recon_adv",
+              "widget_name": "Advanced Reconciliation",
+              "class_name": "PaymentReconciliationAdvancedWidget",
+              "description": "Complex payment matching"
+            },
+            {
+              "widget_id": "ar_aging",
+              "widget_name": "AR Aging",
+              "class_name": "ARAgingDashboardWidget",
+              "description": "Accounts receivable analysis"
+            },
+            {
+              "widget_id": "cashflow",
+              "widget_name": "Cash Flow Report",
+              "class_name": "CashFlowReportWidget",
+              "description": "Liquidity analysis"
+            },
+            {
+              "widget_id": "pl_report",
+              "widget_name": "P&L Report",
+              "class_name": "ProfitLossReportWidget",
+              "description": "Profitability statement"
+            }
+          ]
+        },
+        {
+          "category_id": "compliance",
+          "category_name": "Compliance & Audit",
+          "icon": "checkmark",
+          "widgets": [
+            {
+              "widget_id": "compliance",
+              "widget_name": "Compliance Tracking",
+              "class_name": "ComplianceTrackingWidget",
+              "description": "Regulatory compliance"
+            },
+            {
+              "widget_id": "wcb_rates",
+              "widget_name": "WCB Rates",
+              "class_name": "WCBRateEntryWidget",
+              "description": "Manage WCB premium rates"
+            },
+            {
+              "widget_id": "roe_form",
+              "widget_name": "ROE Form (One-Click)",
+              "class_name": "ROEFormWidget",
+              "description": "Record of Employment autofill & print"
+            },
+            {
+              "widget_id": "qb_recon",
+              "widget_name": "QuickBooks Recon",
+              "class_name": "QuickBooksReconciliationWidget",
+              "description": "QB system matching"
+            },
+            {
+              "widget_id": "budget",
+              "widget_name": "Budget Analysis",
+              "class_name": "BudgetAnalysisWidget",
+              "description": "Budget vs actual"
+            },
+            {
+              "widget_id": "insurance",
+              "widget_name": "Insurance Tracking",
+              "class_name": "InsuranceTrackingWidget",
+              "description": "Coverage and claims"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "domain_id": "operations",
+      "domain_name": "🚗 Charter Operations",
+      "icon": "car",
+      "description": "Charter management, compliance, and fleet monitoring",
+      "widget_count": 26,
+      "categories": [
+        {
+          "category_id": "charter_core",
+          "category_name": "Charter Management",
+          "icon": "booking",
+          "widgets": [
+            {
+              "widget_id": "charter_mgmt",
+              "widget_name": "Charter Management",
+              "class_name": "CharterManagementDashboardWidget",
+              "description": "Booking and trip overview"
+            },
+            {
+              "widget_id": "charter_analytics",
+              "widget_name": "Charter Analytics",
+              "class_name": "CharterAnalyticsWidget",
+              "description": "Basic charter metrics"
+            },
+            {
+              "widget_id": "charter_analytics_adv",
+              "widget_name": "Advanced Analytics",
+              "class_name": "CharterAnalyticsAdvancedWidget",
+              "description": "Deep-dive analysis"
+            },
+            {
+              "widget_id": "clv",
+              "widget_name": "Customer Lifetime Value",
+              "class_name": "CustomerLifetimeValueWidget",
+              "description": "Customer value analysis"
+            },
+            {
+              "widget_id": "cancellation",
+              "widget_name": "Cancellation Analysis",
+              "class_name": "CharterCancellationAnalysisWidget",
+              "description": "Cancellation patterns"
+            },
+            {
+              "widget_id": "lead_time",
+              "widget_name": "Lead Time Analysis",
+              "class_name": "BookingLeadTimeAnalysisWidget",
+              "description": "Booking advance time"
+            }
+          ]
+        },
+        {
+          "category_id": "operational_analytics",
+          "category_name": "Operational Analytics",
+          "icon": "chart",
+          "widgets": [
+            {
+              "widget_id": "segmentation",
+              "widget_name": "Customer Segmentation",
+              "class_name": "CustomerSegmentationWidget",
+              "description": "Customer grouping"
+            },
+            {
+              "widget_id": "route_profit",
+              "widget_name": "Route Profitability",
+              "class_name": "RouteProfitabilityWidget",
+              "description": "Revenue by route"
+            },
+            {
+              "widget_id": "geo_revenue",
+              "widget_name": "Geographic Revenue",
+              "class_name": "GeographicRevenueDistributionWidget",
+              "description": "Revenue by location"
+            }
+          ]
+        },
+        {
+          "category_id": "compliance_monitoring",
+          "category_name": "Compliance & Monitoring",
+          "icon": "shield",
+          "widgets": [
+            {
+              "widget_id": "hos",
+              "widget_name": "HOS Compliance",
+              "class_name": "HosComplianceTrackingWidget",
+              "description": "Hours of Service tracking"
+            },
+            {
+              "widget_id": "maintenance_adv",
+              "widget_name": "Advanced Maintenance",
+              "class_name": "AdvancedMaintenanceScheduleWidget",
+              "description": "Predictive maintenance"
+            },
+            {
+              "widget_id": "safety",
+              "widget_name": "Safety Incidents",
+              "class_name": "SafetyIncidentTrackingWidget",
+              "description": "Incident tracking"
+            },
+            {
+              "widget_id": "vendor_perf",
+              "widget_name": "Vendor Performance",
+              "class_name": "VendorPerformanceWidget",
+              "description": "Vendor metrics"
+            }
+          ]
+        },
+        {
+          "category_id": "monitoring",
+          "category_name": "Real-Time Monitoring",
+          "icon": "radio",
+          "widgets": [
+            {
+              "widget_id": "fleet_monitoring",
+              "widget_name": "Fleet Monitoring",
+              "class_name": "RealTimeFleetMonitoringWidget",
+              "description": "Live vehicle tracking"
+            },
+            {
+              "widget_id": "system_health",
+              "widget_name": "System Health",
+              "class_name": "SystemHealthDashboardWidget",
+              "description": "System status"
+            },
+            {
+              "widget_id": "data_quality",
+              "widget_name": "Data Quality Audit",
+              "class_name": "DataQualityAuditWidget",
+              "description": "Data integrity check"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "domain_id": "predictive",
+      "domain_name": "🔮 Predictive Analytics",
+      "icon": "crystal-ball",
+      "description": "Forecasting, AI insights, and real-time monitoring",
+      "widget_count": 28,
+      "categories": [
+        {
+          "category_id": "forecasting",
+          "category_name": "Demand & Revenue",
+          "icon": "trending",
+          "widgets": [
+            {
+              "widget_id": "demand_forecast",
+              "widget_name": "Demand Forecasting",
+              "class_name": "DemandForecastingWidget",
+              "description": "Short-term demand prediction"
+            },
+            {
+              "widget_id": "churn_prediction",
+              "widget_name": "Churn Prediction",
+              "class_name": "ChurnPredictionWidget",
+              "description": "Customer churn risk"
+            },
+            {
+              "widget_id": "revenue_opt",
+              "widget_name": "Revenue Optimization",
+              "class_name": "RevenueOptimizationWidget",
+              "description": "Pricing and revenue strategy"
+            },
+            {
+              "widget_id": "customer_worth",
+              "widget_name": "Customer Worth",
+              "class_name": "CustomerWorthWidget",
+              "description": "RFM analysis"
+            },
+            {
+              "widget_id": "nba",
+              "widget_name": "Next Best Action",
+              "class_name": "NextBestActionWidget",
+              "description": "AI recommendations"
+            }
+          ]
+        },
+        {
+          "category_id": "deep_analytics",
+          "category_name": "Advanced Analysis",
+          "icon": "magnifying-glass",
+          "widgets": [
+            {
+              "widget_id": "seasonality",
+              "widget_name": "Seasonality Analysis",
+              "class_name": "SeasonalityAnalysisWidget",
+              "description": "Seasonal patterns"
+            },
+            {
+              "widget_id": "cost_behavior",
+              "widget_name": "Cost Behavior",
+              "class_name": "CostBehaviorAnalysisWidget",
+              "description": "Cost structure analysis"
+            },
+            {
+              "widget_id": "breakeven",
+              "widget_name": "Break-Even Analysis",
+              "class_name": "BreakEvenAnalysisWidget",
+              "description": "Profitability threshold"
+            },
+            {
+              "widget_id": "email_campaign",
+              "widget_name": "Email Campaign Performance",
+              "class_name": "EmailCampaignPerformanceWidget",
+              "description": "Campaign analytics"
+            },
+            {
+              "widget_id": "customer_journey",
+              "widget_name": "Customer Journey",
+              "class_name": "CustomerJourneyAnalysisWidget",
+              "description": "Customer flow analysis"
+            }
+          ]
+        },
+        {
+          "category_id": "market_insights",
+          "category_name": "Market & Compliance",
+          "icon": "globe",
+          "widgets": [
+            {
+              "widget_id": "competitive",
+              "widget_name": "Competitive Intelligence",
+              "class_name": "CompetitiveIntelligenceWidget",
+              "description": "Market analysis"
+            },
+            {
+              "widget_id": "regulatory",
+              "widget_name": "Regulatory Compliance",
+              "class_name": "RegulatoryComplianceTrackingWidget",
+              "description": "Regulatory tracking"
+            },
+            {
+              "widget_id": "cra",
+              "widget_name": "CRA Compliance",
+              "class_name": "CRAComplianceReportWidget",
+              "description": "Tax authority compliance"
+            },
+            {
+              "widget_id": "productivity",
+              "widget_name": "Productivity Tracking",
+              "class_name": "EmployeeProductivityTrackingWidget",
+              "description": "Team productivity"
+            },
+            {
+              "widget_id": "promo",
+              "widget_name": "Promotional Effectiveness",
+              "class_name": "PromotionalEffectivenessWidget",
+              "description": "Campaign ROI"
+            }
+          ]
+        },
+        {
+          "category_id": "realtime",
+          "category_name": "Real-Time Systems",
+          "icon": "broadcast",
+          "widgets": [
+            {
+              "widget_id": "fleet_map",
+              "widget_name": "Fleet Tracking Map",
+              "class_name": "RealTimeFleetTrackingMapWidget",
+              "description": "Live GPS tracking"
+            },
+            {
+              "widget_id": "dispatch",
+              "widget_name": "Dispatch Monitor",
+              "class_name": "LiveDispatchMonitorWidget",
+              "description": "Live dispatch operations"
+            },
+            {
+              "widget_id": "mobile_customer",
+              "widget_name": "Mobile Customer Portal",
+              "class_name": "MobileCustomerPortalWidget",
+              "description": "Mobile experience"
+            },
+            {
+              "widget_id": "mobile_driver",
+              "widget_name": "Mobile Driver Dashboard",
+              "class_name": "MobileDriverDashboardWidget",
+              "description": "Driver mobile view"
+            },
+            {
+              "widget_id": "api_perf",
+              "widget_name": "API Performance",
+              "class_name": "APIEndpointPerformanceWidget",
+              "description": "API metrics"
+            },
+            {
+              "widget_id": "integration",
+              "widget_name": "Third-Party Integration",
+              "class_name": "ThirdPartyIntegrationMonitorWidget",
+              "description": "Integration status"
+            }
+          ]
+        },
+        {
+          "category_id": "visualization",
+          "category_name": "Visualization Tools",
+          "icon": "chart-bubble",
+          "widgets": [
+            {
+              "widget_id": "timeseries",
+              "widget_name": "Time Series Charts",
+              "class_name": "AdvancedTimeSeriesChartWidget",
+              "description": "Temporal analysis"
+            },
+            {
+              "widget_id": "heatmap",
+              "widget_name": "Heatmaps",
+              "class_name": "InteractiveHeatmapWidget",
+              "description": "Density visualization"
+            },
+            {
+              "widget_id": "comparative",
+              "widget_name": "Comparative Analysis",
+              "class_name": "ComparativeAnalysisChartWidget",
+              "description": "Side-by-side comparison"
+            },
+            {
+              "widget_id": "distribution",
+              "widget_name": "Distribution Analysis",
+              "class_name": "DistributionAnalysisChartWidget",
+              "description": "Distribution patterns"
+            },
+            {
+              "widget_id": "correlation",
+              "widget_name": "Correlation Matrix",
+              "class_name": "CorrelationMatrixWidget",
+              "description": "Variable relationships"
+            }
+          ]
+        },
+        {
+          "category_id": "automation",
+          "category_name": "Automation & Alerts",
+          "icon": "zap",
+          "widgets": [
+            {
+              "widget_id": "workflows",
+              "widget_name": "Automation Workflows",
+              "class_name": "AutomationWorkflowsWidget",
+              "description": "Workflow automation"
+            },
+            {
+              "widget_id": "alerts",
+              "widget_name": "Alert Management",
+              "class_name": "AlertManagementWidget",
+              "description": "Alert configuration"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "domain_id": "customer",
+      "domain_name": "👤 Customer Experience",
+      "icon": "user-circle",
+      "description": "Customer-facing portals and engagement",
+      "widget_count": 18,
+      "categories": [
+        {
+          "category_id": "booking",
+          "category_name": "Booking & Reservations",
+          "icon": "calendar-check",
+          "widgets": [
+            {
+              "widget_id": "self_service",
+              "widget_name": "Self-Service Portal",
+              "class_name": "SelfServiceBookingPortalWidget",
+              "description": "Online booking interface"
+            },
+            {
+              "widget_id": "recurring",
+              "widget_name": "Recurring Booking",
+              "class_name": "RecurringBookingManagementWidget",
+              "description": "Subscription rides"
+            },
+            {
+              "widget_id": "quote",
+              "widget_name": "Quote Generator",
+              "class_name": "AutomatedQuoteGeneratorWidget",
+              "description": "Instant pricing"
+            }
+          ]
+        },
+        {
+          "category_id": "account_management",
+          "category_name": "Account Management",
+          "icon": "settings",
+          "widgets": [
+            {
+              "widget_id": "trip_history",
+              "widget_name": "Trip History",
+              "class_name": "TripHistoryWidget",
+              "description": "Past and upcoming trips"
+            },
+            {
+              "widget_id": "invoices",
+              "widget_name": "Invoices & Receipts",
+              "class_name": "InvoiceReceiptManagementWidget",
+              "description": "Billing documents"
+            },
+            {
+              "widget_id": "account_settings",
+              "widget_name": "Account Settings",
+              "class_name": "AccountSettingsWidget",
+              "description": "Profile management"
+            },
+            {
+              "widget_id": "preferences",
+              "widget_name": "Saved Preferences",
+              "class_name": "SavedPreferencesWidget",
+              "description": "Personal preferences"
+            },
+            {
+              "widget_id": "fleet_prefs",
+              "widget_name": "Fleet Preferences",
+              "class_name": "FleetPreferencesWidget",
+              "description": "Vehicle preferences"
+            }
+          ]
+        },
+        {
+          "category_id": "loyalty",
+          "category_name": "Loyalty & Rewards",
+          "icon": "star",
+          "widgets": [
+            {
+              "widget_id": "loyalty",
+              "widget_name": "Loyalty Program",
+              "class_name": "LoyaltyProgramTrackingWidget",
+              "description": "Points and rewards"
+            },
+            {
+              "widget_id": "referral",
+              "widget_name": "Referral Program",
+              "class_name": "ReferralAnalyticsWidget",
+              "description": "Referral tracking"
+            },
+            {
+              "widget_id": "subscription",
+              "widget_name": "Subscription Plans",
+              "class_name": "SubscriptionManagementWidget",
+              "description": "Membership tiers"
+            }
+          ]
+        },
+        {
+          "category_id": "support",
+          "category_name": "Support & Communication",
+          "icon": "headset",
+          "widgets": [
+            {
+              "widget_id": "chat",
+              "widget_name": "Chat Integration",
+              "class_name": "ChatIntegrationWidget",
+              "description": "Live chat support"
+            },
+            {
+              "widget_id": "tickets",
+              "widget_name": "Support Tickets",
+              "class_name": "SupportTicketManagementWidget",
+              "description": "Ticket management"
+            },
+            {
+              "widget_id": "ratings",
+              "widget_name": "Ratings & Reviews",
+              "class_name": "RatingReviewManagementWidget",
+              "description": "Customer feedback"
+            },
+            {
+              "widget_id": "feedback",
+              "widget_name": "Driver Feedback",
+              "class_name": "DriverFeedbackWidget",
+              "description": "Driver-specific feedback"
+            },
+            {
+              "widget_id": "communications",
+              "widget_name": "Communications",
+              "class_name": "CustomerCommunicationsWidget",
+              "description": "Messages and updates"
+            }
+          ]
+        },
+        {
+          "category_id": "corporate",
+          "category_name": "Corporate Accounts",
+          "icon": "briefcase",
+          "widgets": [
+            {
+              "widget_id": "corp_mgmt",
+              "widget_name": "Corporate Management",
+              "class_name": "CorporateAccountManagementWidget",
+              "description": "Business accounts"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "domain_id": "analytics",
+      "domain_name": "📊 Advanced Analytics",
+      "icon": "bar-chart",
+      "description": "Business intelligence, reporting, and analysis",
+      "widget_count": 15,
+      "categories": [
+        {
+          "category_id": "reporting",
+          "category_name": "Reporting Suite",
+          "icon": "document",
+          "widgets": [
+            {
+              "widget_id": "custom_report",
+              "widget_name": "Custom Report Builder",
+              "class_name": "CustomReportBuilderWidget",
+              "description": "Flexible report creation"
+            },
+            {
+              "widget_id": "executive",
+              "widget_name": "Executive Dashboard",
+              "class_name": "ExecutiveDashboardWidget",
+              "description": "Executive summary"
+            },
+            {
+              "widget_id": "scheduler",
+              "widget_name": "Report Scheduler",
+              "class_name": "ReportSchedulerWidget",
+              "description": "Automated reports"
+            },
+            {
+              "widget_id": "export",
+              "widget_name": "Export Management",
+              "class_name": "ExportManagementWidget",
+              "description": "Data export tools"
+            }
+          ]
+        },
+        {
+          "category_id": "financial_analysis",
+          "category_name": "Financial Analysis",
+          "icon": "wallet",
+          "widgets": [
+            {
+              "widget_id": "budget_actual",
+              "widget_name": "Budget vs Actual",
+              "class_name": "BudgetVsActualWidget",
+              "description": "Budget performance"
+            },
+            {
+              "widget_id": "trend",
+              "widget_name": "Trend Analysis",
+              "class_name": "TrendAnalysisWidget",
+              "description": "Historical trends"
+            },
+            {
+              "widget_id": "roi",
+              "widget_name": "ROI Analysis",
+              "class_name": "ROIAnalysisWidget",
+              "description": "Return on investment"
+            },
+            {
+              "widget_id": "forecast",
+              "widget_name": "Forecasting",
+              "class_name": "ForecastingWidget",
+              "description": "Financial forecasts"
+            }
+          ]
+        },
+        {
+          "category_id": "data_analysis",
+          "category_name": "Data Analysis",
+          "icon": "microscope",
+          "widgets": [
+            {
+              "widget_id": "anomaly",
+              "widget_name": "Anomaly Detection",
+              "class_name": "AnomalyDetectionWidget",
+              "description": "Outlier analysis"
+            },
+            {
+              "widget_id": "segmentation",
+              "widget_name": "Segmentation",
+              "class_name": "SegmentationAnalysisWidget",
+              "description": "Group analysis"
+            },
+            {
+              "widget_id": "competitive",
+              "widget_name": "Competitive Analysis",
+              "class_name": "CompetitiveAnalysisWidget",
+              "description": "Market comparison"
+            },
+            {
+              "widget_id": "operational",
+              "widget_name": "Operational Metrics",
+              "class_name": "OperationalMetricsWidget",
+              "description": "Operational KPIs"
+            },
+            {
+              "widget_id": "data_quality",
+              "widget_name": "Data Quality",
+              "class_name": "DataQualityReportWidget",
+              "description": "Data integrity"
+            }
+          ]
+        },
+        {
+          "category_id": "compliance_audit",
+          "category_name": "Compliance & Audit",
+          "icon": "clipboard",
+          "widgets": [
+            {
+              "widget_id": "compliance_report",
+              "widget_name": "Compliance Reporting",
+              "class_name": "ComplianceReportingWidget",
+              "description": "Regulatory reports"
+            },
+            {
+              "widget_id": "audit_trail",
+              "widget_name": "Audit Trail",
+              "class_name": "AuditTrailWidget",
+              "description": "Activity history"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "domain_id": "ml",
+      "domain_name": "🤖 Machine Learning",
+      "icon": "cpu",
+      "description": "AI-powered insights and optimization",
+      "widget_count": 10,
+      "categories": [
+        {
+          "category_id": "demand_pricing",
+          "category_name": "Demand & Pricing",
+          "icon": "trending-up",
+          "widgets": [
+            {
+              "widget_id": "demand_ml",
+              "widget_name": "Demand Forecasting (ML)",
+              "class_name": "DemandForecastingMLWidget",
+              "description": "Deep learning forecasts"
+            },
+            {
+              "widget_id": "pricing_ml",
+              "widget_name": "Pricing Optimization",
+              "class_name": "PricingOptimizationMLWidget",
+              "description": "Dynamic pricing engine"
+            }
+          ]
+        },
+        {
+          "category_id": "customer_insights",
+          "category_name": "Customer Insights",
+          "icon": "people",
+          "widgets": [
+            {
+              "widget_id": "churn_ml",
+              "widget_name": "Churn Prediction (ML)",
+              "class_name": "ChurnPredictionMLWidget",
+              "description": "ML churn models"
+            },
+            {
+              "widget_id": "clustering",
+              "widget_name": "Customer Clustering",
+              "class_name": "CustomerClusteringMLWidget",
+              "description": "Unsupervised segmentation"
+            },
+            {
+              "widget_id": "recommendations",
+              "widget_name": "Recommendation Engine",
+              "class_name": "RecommendationEngineWidget",
+              "description": "Personalized suggestions"
+            }
+          ]
+        },
+        {
+          "category_id": "operational_ml",
+          "category_name": "Operational Optimization",
+          "icon": "cog",
+          "widgets": [
+            {
+              "widget_id": "anomaly_ml",
+              "widget_name": "Anomaly Detection (ML)",
+              "class_name": "AnomalyDetectionMLWidget",
+              "description": "ML anomaly detection"
+            },
+            {
+              "widget_id": "resource_ml",
+              "widget_name": "Resource Optimization",
+              "class_name": "ResourceOptimizationMLWidget",
+              "description": "Optimal resource allocation"
+            },
+            {
+              "widget_id": "maintenance_ml",
+              "widget_name": "Predictive Maintenance",
+              "class_name": "PredictiveMaintenanceMLWidget",
+              "description": "Equipment failure prediction"
+            }
+          ]
+        },
+        {
+          "category_id": "marketing_ml",
+          "category_name": "Marketing & Models",
+          "icon": "megaphone",
+          "widgets": [
+            {
+              "widget_id": "marketing_ml",
+              "widget_name": "Marketing ML",
+              "class_name": "MarketingMLWidget",
+              "description": "Campaign optimization"
+            },
+            {
+              "widget_id": "model_perf",
+              "widget_name": "Model Performance",
+              "class_name": "ModelPerformanceWidget",
+              "description": "Model metrics"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

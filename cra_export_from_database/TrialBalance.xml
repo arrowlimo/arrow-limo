@@ -1,0 +1,1568 @@
+<?xml version="1.0" ?>
+<TrialBalance exportDate="2025-10-19T21:16:47" asOfDate="2025-10-19" company="Arrow Limousine &amp; Sedan Ltd.">
+  <AccountBalance>
+    <AccountName>106.7 The Drive</AccountName>
+    <AccountCode>1000 CIBC Bank 1615</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>5009.75</TotalCredit>
+    <Balance>-5009.75</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>106.7 The Drive</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>10793.00</TotalDebit>
+    <TotalCredit>14753.75</TotalCredit>
+    <Balance>-3960.75</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>106.7 The Drive</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>3717.00</TotalCredit>
+    <Balance>-3717.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Action Pages Canada</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>14380.05</TotalDebit>
+    <TotalCredit>30921.08</TotalCredit>
+    <Balance>-16541.03</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Adobe Creative Cloud</AccountName>
+    <AccountCode>6550 Office Supplies</AccountCode>
+    <AccountType/>
+    <TotalDebit>717.32</TotalDebit>
+    <TotalCredit>129.50</TotalCredit>
+    <Balance>587.82</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Adobe Creative Cloud</AccountName>
+    <AccountCode>2315 RBC Visa 3187</AccountCode>
+    <AccountType/>
+    <TotalDebit>129.50</TotalDebit>
+    <TotalCredit>859.72</TotalCredit>
+    <Balance>-730.22</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>AGLC</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>1800.00</TotalDebit>
+    <TotalCredit>2000.00</TotalCredit>
+    <Balance>-200.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Alta Law</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>4171.49</TotalDebit>
+    <TotalCredit>4806.90</TotalCredit>
+    <Balance>-635.41</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Angel Escobar</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>25943.04</TotalDebit>
+    <TotalCredit>1050.15</TotalCredit>
+    <Balance>24892.89</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Angel Escobar</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>53.00</TotalCredit>
+    <Balance>-53.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Arctic Mechanical</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>2415.90</TotalDebit>
+    <TotalCredit>3067.59</TotalCredit>
+    <Balance>-651.69</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Arrow Limousine</AccountName>
+    <AccountCode>1000 CIBC Bank 1615</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>3800.00</TotalCredit>
+    <Balance>-3800.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Arrow Limousine</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>5200.00</TotalDebit>
+    <TotalCredit>5315.14</TotalCredit>
+    <Balance>-115.14</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>ATB Financial</AccountName>
+    <AccountCode>CAR_LOAN_L5_ATB</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>25000.0</TotalCredit>
+    <Balance>-25000.0</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Automotive Universe</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>7550.95</TotalDebit>
+    <TotalCredit>31501.65</TotalCredit>
+    <Balance>-23950.70</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Bank Charges &amp; Interest</AccountName>
+    <AccountCode>6100 Bank Charges &amp; Interest</AccountCode>
+    <AccountType/>
+    <TotalDebit>76283.02</TotalDebit>
+    <TotalCredit>20.0</TotalCredit>
+    <Balance>76263.02</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Bank Charges &amp; Interest</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>40.0</TotalDebit>
+    <TotalCredit>27802.34</TotalCredit>
+    <Balance>-27762.34</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Bank Deposit</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>1559354.00</TotalDebit>
+    <TotalCredit>2000.0</TotalCredit>
+    <Balance>1557354.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Bank Transaction</AccountName>
+    <AccountCode>3648117 CIBC Business Deposit account</AccountCode>
+    <AccountType/>
+    <TotalDebit>66246.71</TotalDebit>
+    <TotalCredit>11929.15</TotalCredit>
+    <Balance>54317.56</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Bank Transaction</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>146607.05</TotalCredit>
+    <Balance>-146607.05</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Big 105</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>27114.00</TotalDebit>
+    <TotalCredit>36015.75</TotalCredit>
+    <Balance>-8901.75</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Bookkeeping By Jan</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>1575.00</TotalDebit>
+    <TotalCredit>3843.00</TotalCredit>
+    <Balance>-2268.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Brittinee Hills</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>436.74</TotalCredit>
+    <Balance>-436.74</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Bryan Ryder</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>85.94</TotalCredit>
+    <Balance>-85.94</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Cal Red Consulting Ltd.</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>8394.32</TotalDebit>
+    <TotalCredit>6528.96</TotalCredit>
+    <Balance>1865.36</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Cal Red Consulting Ltd.</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>7899.51</TotalCredit>
+    <Balance>-7899.51</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Call Gerry</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>772.00</TotalDebit>
+    <TotalCredit>8952.18</TotalCredit>
+    <Balance>-8180.18</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Canadian Tire</AccountName>
+    <AccountCode>2200 GST/HST Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>756.75</TotalDebit>
+    <TotalCredit>5.00</TotalCredit>
+    <Balance>751.75</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Canadian Tire</AccountName>
+    <AccountCode>0228362 CIBC checking account</AccountCode>
+    <AccountType/>
+    <TotalDebit>52.62</TotalDebit>
+    <TotalCredit>14506.43</TotalCredit>
+    <Balance>-14453.81</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Canadian Tire</AccountName>
+    <AccountCode>6900 Vehicle R&amp;M</AccountCode>
+    <AccountType/>
+    <TotalDebit>8966.56</TotalDebit>
+    <TotalCredit>50.12</TotalCredit>
+    <Balance>8916.44</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Canadian Tire</AccountName>
+    <AccountCode>3648117 CIBC Business Deposit account</AccountCode>
+    <AccountType/>
+    <TotalDebit>52.62</TotalDebit>
+    <TotalCredit>1382.82</TotalCredit>
+    <Balance>-1330.20</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Canwest Productions Inc.</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>3828.20</TotalDebit>
+    <TotalCredit>3028.20</TotalCredit>
+    <Balance>800.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Carpet Superstores</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>4511.94</TotalDebit>
+    <TotalCredit>4967.91</TotalCredit>
+    <Balance>-455.97</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Carriage Auto Upholstery</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>14115.50</TotalDebit>
+    <TotalCredit>12888.00</TotalCredit>
+    <Balance>1227.50</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Cassidy Piesse</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>198.14</TotalCredit>
+    <Balance>-198.14</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Centratech Technical</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>296.57</TotalDebit>
+    <TotalCredit>592.78</TotalCredit>
+    <Balance>-296.21</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>CFIB</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>3380.00</TotalDebit>
+    <TotalCredit>3880.00</TotalCredit>
+    <Balance>-500.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Choice Auto Electric Ltd.</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>12824.24</TotalDebit>
+    <TotalCredit>20788.20</TotalCredit>
+    <Balance>-7963.96</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Co-op</AccountName>
+    <AccountCode>6925 Fuel</AccountCode>
+    <AccountType/>
+    <TotalDebit>25941.35</TotalDebit>
+    <TotalCredit>8.86</TotalCredit>
+    <Balance>25932.49</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Community Networking Solutions</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>2719.50</TotalDebit>
+    <TotalCredit>4908.75</TotalCredit>
+    <Balance>-2189.25</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>David Richard</AccountName>
+    <AccountCode>0952 Rbc Loans</AccountCode>
+    <AccountType/>
+    <TotalDebit>3205.20</TotalDebit>
+    <TotalCredit>69309.52</TotalCredit>
+    <Balance>-66104.32</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>David Richard</AccountName>
+    <AccountCode>2200 GST/HST Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>58.56</TotalDebit>
+    <TotalCredit>780.96</TotalCredit>
+    <Balance>-722.40</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>David Richard</AccountName>
+    <AccountCode>0228362 CIBC checking account</AccountCode>
+    <AccountType/>
+    <TotalDebit>100500.00</TotalDebit>
+    <TotalCredit>4239.48</TotalCredit>
+    <Balance>96260.52</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>David Richard</AccountName>
+    <AccountCode>3648117 CIBC Business Deposit account</AccountCode>
+    <AccountType/>
+    <TotalDebit>16400.00</TotalDebit>
+    <TotalCredit>1229.48</TotalCredit>
+    <Balance>15170.52</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>David W Richard</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>13400.00</TotalDebit>
+    <TotalCredit>17533.53</TotalCredit>
+    <Balance>-4133.53</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Douglas Redmond</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>1769.6</TotalDebit>
+    <TotalCredit>297.26</TotalCredit>
+    <Balance>1472.34</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Douglas Redmond</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>80712.67</TotalDebit>
+    <TotalCredit>2366.43</TotalCredit>
+    <Balance>78346.24</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Driver Advance</AccountName>
+    <AccountCode>1375 Driver Advances</AccountCode>
+    <AccountType/>
+    <TotalDebit>8751.48</TotalDebit>
+    <TotalCredit>35.31</TotalCredit>
+    <Balance>8716.17</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Erles Auto Repair</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>67233.27</TotalCredit>
+    <Balance>-67233.27</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Erles Auto Repair</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>130694.26</TotalDebit>
+    <TotalCredit>133468.97</TotalCredit>
+    <Balance>-2774.71</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Excel Restoration Services Inc</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>440.00</TotalDebit>
+    <TotalCredit>2615.00</TotalCredit>
+    <Balance>-2175.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Fas Gas Plus</AccountName>
+    <AccountCode>6925 Fuel</AccountCode>
+    <AccountType/>
+    <TotalDebit>234411.96</TotalDebit>
+    <TotalCredit>56.96</TotalCredit>
+    <Balance>234355.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Fas Gas Plus</AccountName>
+    <AccountCode>1090 Bank Shareholder</AccountCode>
+    <AccountType/>
+    <TotalDebit>59.81</TotalDebit>
+    <TotalCredit>137808.99</TotalCredit>
+    <Balance>-137749.18</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Fibrenew</AccountName>
+    <AccountCode>1000 CIBC Bank 1615</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>9450.00</TotalCredit>
+    <Balance>-9450.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Fibrenew</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>79806.60</TotalCredit>
+    <Balance>-79806.60</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Fibrenew</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>240605.12</TotalDebit>
+    <TotalCredit>288891.14</TotalCredit>
+    <Balance>-48286.02</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Finance Charges</AccountName>
+    <AccountCode>6100 Bank Charges &amp; Interest</AccountCode>
+    <AccountType/>
+    <TotalDebit>22854.90</TotalDebit>
+    <TotalCredit>59.86</TotalCredit>
+    <Balance>22795.04</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Finance Charges</AccountName>
+    <AccountCode>2320 Canadian Tire MC 0151</AccountCode>
+    <AccountType/>
+    <TotalDebit>2.22</TotalDebit>
+    <TotalCredit>2479.07</TotalCredit>
+    <Balance>-2476.85</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Finance Charges</AccountName>
+    <AccountCode>2300 Capital One Mastercard 9853</AccountCode>
+    <AccountType/>
+    <TotalDebit>87.57</TotalDebit>
+    <TotalCredit>7647.26</TotalCredit>
+    <Balance>-7559.69</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Frame It Store</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>1475.72</TotalDebit>
+    <TotalCredit>1754.46</TotalCredit>
+    <Balance>-278.74</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Gerald Skanderup</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>5677.44</TotalDebit>
+    <TotalCredit>50716.13</TotalCredit>
+    <Balance>-45038.69</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Gerald Skanderup</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>8147.26</TotalCredit>
+    <Balance>-8147.26</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Ginie Sanderson</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>27.00</TotalCredit>
+    <Balance>-27.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Gordon Peterson</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>290.58</TotalCredit>
+    <Balance>-290.58</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Heffner Lexus Toyota</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>457590.78</TotalCredit>
+    <Balance>-457590.78</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>IFS Premium Finance</AccountName>
+    <AccountCode>6400 Insurance</AccountCode>
+    <AccountType/>
+    <TotalDebit>89808.76</TotalDebit>
+    <TotalCredit>3155.0</TotalCredit>
+    <Balance>86653.76</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>IFS Premium Finance</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>6310.0</TotalDebit>
+    <TotalCredit>61580.78</TotalCredit>
+    <Balance>-55270.78</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Indy Graphics</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>803.26</TotalDebit>
+    <TotalCredit>1866.37</TotalCredit>
+    <Balance>-1063.11</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Indy Signs Inc.</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>730.77</TotalDebit>
+    <TotalCredit>487.18</TotalCredit>
+    <Balance>243.59</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Internal Transfer</AccountName>
+    <AccountCode>3648117 CIBC Business Deposit account</AccountCode>
+    <AccountType/>
+    <TotalDebit>59700.75</TotalDebit>
+    <TotalCredit>10920.48</TotalCredit>
+    <Balance>48780.27</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Internal Transfer</AccountName>
+    <AccountCode>1080 Petty Cash</AccountCode>
+    <AccountType/>
+    <TotalDebit>2800.0</TotalDebit>
+    <TotalCredit>2650.0</TotalCredit>
+    <Balance>150.0</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Internal Transfer</AccountName>
+    <AccountCode>1375 Driver Advances</AccountCode>
+    <AccountType/>
+    <TotalDebit>8420.48</TotalDebit>
+    <TotalCredit>35.31</TotalCredit>
+    <Balance>8385.17</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Jeannie Shillington</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>97927.17</TotalDebit>
+    <TotalCredit>44462.77</TotalCredit>
+    <Balance>53464.40</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Jeannie Shillington</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>1622.98</TotalDebit>
+    <TotalCredit>9626.54</TotalCredit>
+    <Balance>-8003.56</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Jesse Gordon</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>89682.90</TotalDebit>
+    <TotalCredit>13368.61</TotalCredit>
+    <Balance>76314.29</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>John Sheldon</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>378.28</TotalCredit>
+    <Balance>-378.28</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Jordan Schidlowsky</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>186.70</TotalCredit>
+    <Balance>-186.70</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Jose Fajordo</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>1799.90</TotalCredit>
+    <Balance>-1799.90</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>1090 Bank Shareholder</AccountCode>
+    <AccountType/>
+    <TotalDebit>1142185.06</TotalDebit>
+    <TotalCredit>156811.50</TotalCredit>
+    <Balance>985373.56</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>6751 Hospitality Supplies</AccountCode>
+    <AccountType/>
+    <TotalDebit>282067.30</TotalDebit>
+    <TotalCredit>315.72</TotalCredit>
+    <Balance>281751.58</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>6900 Vehicle R&amp;M</AccountCode>
+    <AccountType/>
+    <TotalDebit>474120.14</TotalDebit>
+    <TotalCredit>22.32</TotalCredit>
+    <Balance>474097.82</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>1000 CIBC Bank 1615</AccountCode>
+    <AccountType/>
+    <TotalDebit>24586.66</TotalDebit>
+    <TotalCredit>25299.88</TotalCredit>
+    <Balance>-713.22</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>2300 Capital One Mastercard 9853</AccountCode>
+    <AccountType/>
+    <TotalDebit>2297.04</TotalDebit>
+    <TotalCredit>8581.36</TotalCredit>
+    <Balance>-6284.32</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>4200 Other Charges</AccountCode>
+    <AccountType/>
+    <TotalDebit>1189.75</TotalDebit>
+    <TotalCredit>104072.57</TotalCredit>
+    <Balance>-102882.82</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>3600 Retained Earnings</AccountCode>
+    <AccountType/>
+    <TotalDebit>1337234.58</TotalDebit>
+    <TotalCredit>7050.44</TotalCredit>
+    <Balance>1330184.14</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>2900 Shareholder Loan</AccountCode>
+    <AccountType/>
+    <TotalDebit>9924.05</TotalDebit>
+    <TotalCredit>370680.22</TotalCredit>
+    <Balance>-360756.17</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>6400 Insurance</AccountCode>
+    <AccountType/>
+    <TotalDebit>252856.40</TotalDebit>
+    <TotalCredit>6023.0</TotalCredit>
+    <Balance>246833.40</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>2200 GST/HST Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>3118960.55</TotalDebit>
+    <TotalCredit>3275412.91</TotalCredit>
+    <Balance>-156452.36</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>6750 Supplies</AccountCode>
+    <AccountType/>
+    <TotalDebit>67681.99</TotalDebit>
+    <TotalCredit>29.98</TotalCredit>
+    <Balance>67652.01</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>1020 Personal CIBC 8362</AccountCode>
+    <AccountType/>
+    <TotalDebit>648319.25</TotalDebit>
+    <TotalCredit>70327.38</TotalCredit>
+    <Balance>577991.87</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>149656.88</TotalDebit>
+    <TotalCredit>149875.97</TotalCredit>
+    <Balance>-219.09</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>6925 Fuel</AccountCode>
+    <AccountType/>
+    <TotalDebit>402867.84</TotalDebit>
+    <TotalCredit>56.96</TotalCredit>
+    <Balance>402810.88</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>2400 Prepaid Deposits</AccountCode>
+    <AccountType/>
+    <TotalDebit>17520.75</TotalDebit>
+    <TotalCredit>14973.50</TotalCredit>
+    <Balance>2547.25</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>168106.18</TotalDebit>
+    <TotalCredit>517561.78</TotalCredit>
+    <Balance>-349455.60</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Journal Entry</AccountName>
+    <AccountCode>Limousines &amp; Busses:L-6 2001 Lincoln TownCar 659569</AccountCode>
+    <AccountType/>
+    <TotalDebit>194488.00</TotalDebit>
+    <TotalCredit>16000.00</TotalCredit>
+    <Balance>178488.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Kal-Tire</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>7310.00</TotalDebit>
+    <TotalCredit>10234.80</TotalCredit>
+    <Balance>-2924.80</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Karen. Richard</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>18500.00</TotalCredit>
+    <Balance>-18500.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Keith Dixon</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>17882.69</TotalDebit>
+    <TotalCredit>10122.78</TotalCredit>
+    <Balance>7759.91</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Keith Dixon</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>2643.06</TotalCredit>
+    <Balance>-2643.06</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Kevin Boulley</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>15243.87</TotalCredit>
+    <Balance>-15243.87</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Kirk's Tire (Red Deer) Ltd.</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>22573.28</TotalDebit>
+    <TotalCredit>25542.06</TotalCredit>
+    <Balance>-2968.78</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Kirk's Tire (Red Deer) Ltd.</AccountName>
+    <AccountCode>2200 GST/HST Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>1253.19</TotalDebit>
+    <TotalCredit>5.46</TotalCredit>
+    <Balance>1247.73</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Kirk's Tire (Red Deer) Ltd.</AccountName>
+    <AccountCode>6900 Vehicle R&amp;M</AccountCode>
+    <AccountType/>
+    <TotalDebit>21688.94</TotalDebit>
+    <TotalCredit>109.14</TotalCredit>
+    <Balance>21579.80</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Korax Inc.</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>3458.07</TotalDebit>
+    <TotalCredit>2514.96</TotalCredit>
+    <Balance>943.11</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Kyle Maier</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>2296.84</TotalCredit>
+    <Balance>-2296.84</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Kyle Martens</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>701.40</TotalCredit>
+    <Balance>-701.40</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Larry Taylor</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>18987.20</TotalDebit>
+    <TotalCredit>9525.60</TotalCredit>
+    <Balance>9461.60</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Larry Taylor</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>830.52</TotalCredit>
+    <Balance>-830.52</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Len Whitney</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>1067.66</TotalCredit>
+    <Balance>-1067.66</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Limousine Management Systems(LMS)</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>6217.96</TotalDebit>
+    <TotalCredit>26784.28</TotalCredit>
+    <Balance>-20566.32</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Liquor Barn</AccountName>
+    <AccountCode>6751 Hospitality Supplies</AccountCode>
+    <AccountType/>
+    <TotalDebit>335687.87</TotalDebit>
+    <TotalCredit>1560.48</TotalCredit>
+    <Balance>334127.39</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Liquor Barn</AccountName>
+    <AccountCode>1020 Personal CIBC 8362</AccountCode>
+    <AccountType/>
+    <TotalDebit>332.38</TotalDebit>
+    <TotalCredit>112584.74</TotalCredit>
+    <Balance>-112252.36</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Liquor Barn</AccountName>
+    <AccountCode>1090 Bank Shareholder</AccountCode>
+    <AccountType/>
+    <TotalDebit>993.29</TotalDebit>
+    <TotalCredit>206640.24</TotalCredit>
+    <Balance>-205646.95</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Madeleine Escobar</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>718.18</TotalCredit>
+    <Balance>-718.18</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Mark Linton</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>12232.70</TotalDebit>
+    <TotalCredit>647.58</TotalCredit>
+    <Balance>11585.12</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Mark Linton</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>19.88</TotalCredit>
+    <Balance>-19.88</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Matt Kapustinsky</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>104.26</TotalCredit>
+    <Balance>-104.26</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>MGM Ford</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>863.47</TotalDebit>
+    <TotalCredit>2683.80</TotalCredit>
+    <Balance>-1820.33</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>MGM Ford</AccountName>
+    <AccountCode>6900 Vehicle R&amp;M</AccountCode>
+    <AccountType/>
+    <TotalDebit>10957.65</TotalDebit>
+    <TotalCredit>863.47</TotalCredit>
+    <Balance>10094.18</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Michael Richard</AccountName>
+    <AccountCode>1375 Driver Advances</AccountCode>
+    <AccountType/>
+    <TotalDebit>39461.80</TotalDebit>
+    <TotalCredit>900.00</TotalCredit>
+    <Balance>38561.80</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Michael Richard</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>15850.02</TotalCredit>
+    <Balance>-15850.02</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Michael Richard</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>58226.88</TotalDebit>
+    <TotalCredit>71085.28</TotalCredit>
+    <Balance>-12858.40</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Michael Richard</AccountName>
+    <AccountCode>0228362 CIBC checking account</AccountCode>
+    <AccountType/>
+    <TotalDebit>900.00</TotalDebit>
+    <TotalCredit>61638.84</TotalCredit>
+    <Balance>-60738.84</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Mikasa Performance</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>780.00</TotalDebit>
+    <TotalCredit>1170.00</TotalCredit>
+    <Balance>-390.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Niteline Limousine Service Ltd.</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>10807.68</TotalDebit>
+    <TotalCredit>7705.12</TotalCredit>
+    <Balance>3102.56</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Norman Therrien</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>3552.86</TotalCredit>
+    <Balance>-3552.86</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Norman Therrien</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>15120.07</TotalDebit>
+    <TotalCredit>7871.41</TotalCredit>
+    <Balance>7248.66</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Northland Radiator Service</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>12222.39</TotalDebit>
+    <TotalCredit>11969.78</TotalCredit>
+    <Balance>252.61</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Parr's Automotive</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>69171.89</TotalDebit>
+    <TotalCredit>62751.98</TotalCredit>
+    <Balance>6419.91</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Parr's Automotive</AccountName>
+    <AccountCode>1000 CIBC Bank 1615</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>24744.23</TotalCredit>
+    <Balance>-24744.23</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>PartsSource</AccountName>
+    <AccountCode>6900 Vehicle R&amp;M</AccountCode>
+    <AccountType/>
+    <TotalDebit>3798.52</TotalDebit>
+    <TotalCredit>11.72</TotalCredit>
+    <Balance>3786.80</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>PartsSource</AccountName>
+    <AccountCode>1090 Bank Shareholder</AccountCode>
+    <AccountType/>
+    <TotalDebit>11.72</TotalDebit>
+    <TotalCredit>2924.04</TotalCredit>
+    <Balance>-2912.32</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Paul D Richard</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>7181.56</TotalCredit>
+    <Balance>-7181.56</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Paul D Richard</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>27200.00</TotalDebit>
+    <TotalCredit>38702.07</TotalCredit>
+    <Balance>-11502.07</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Paul Mansell</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>1395.66</TotalCredit>
+    <Balance>-1395.66</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Paul Mansell</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>100058.16</TotalDebit>
+    <TotalCredit>9164.60</TotalCredit>
+    <Balance>90893.56</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Paul Richard (v)</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>4500.00</TotalDebit>
+    <TotalCredit>210001.60</TotalCredit>
+    <Balance>-205501.60</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Payment Processing</AccountName>
+    <AccountCode>1095 Deposit Clearing</AccountCode>
+    <AccountType/>
+    <TotalDebit>5489024.19</TotalDebit>
+    <TotalCredit>4262394.49</TotalCredit>
+    <Balance>1226629.70</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Petty Cash Transaction</AccountName>
+    <AccountCode>1080 Petty Cash</AccountCode>
+    <AccountType/>
+    <TotalDebit>3177.67</TotalDebit>
+    <TotalCredit>2650.00</TotalCredit>
+    <Balance>527.67</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Polar Mobility Research Ltd.</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>1000.00</TotalDebit>
+    <TotalCredit>6782.16</TotalCredit>
+    <Balance>-5782.16</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Receiver General</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>5997.56</TotalCredit>
+    <Balance>-5997.56</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Red Deer Registries</AccountName>
+    <AccountCode>2900 Shareholder Loan</AccountCode>
+    <AccountType/>
+    <TotalDebit>215.45</TotalDebit>
+    <TotalCredit>641.00</TotalCredit>
+    <Balance>-425.55</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Rogers</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>11733.88</TotalCredit>
+    <Balance>-11733.88</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Rogers</AccountName>
+    <AccountCode>2200 GST/HST Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>3735.44</TotalDebit>
+    <TotalCredit>13.14</TotalCredit>
+    <Balance>3722.30</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Rogers</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>67115.50</TotalDebit>
+    <TotalCredit>65396.21</TotalCredit>
+    <Balance>1719.29</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Rogers</AccountName>
+    <AccountCode>6800 Telephone</AccountCode>
+    <AccountType/>
+    <TotalDebit>48698.34</TotalDebit>
+    <TotalCredit>287.62</TotalCredit>
+    <Balance>48410.72</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Rogers</AccountName>
+    <AccountCode>1090 Bank Shareholder</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>18206.11</TotalCredit>
+    <Balance>-18206.11</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Rona</AccountName>
+    <AccountCode>1090 Bank Shareholder</AccountCode>
+    <AccountType/>
+    <TotalDebit>283.50</TotalDebit>
+    <TotalCredit>1164.18</TotalCredit>
+    <Balance>-880.68</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Rona</AccountName>
+    <AccountCode>6750 Supplies</AccountCode>
+    <AccountType/>
+    <TotalDebit>922.99</TotalDebit>
+    <TotalCredit>283.50</TotalCredit>
+    <Balance>639.49</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Royal Refrigeration Ltd</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>5127.48</TotalDebit>
+    <TotalCredit>5911.29</TotalCredit>
+    <Balance>-783.81</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Safeway</AccountName>
+    <AccountCode>1090 Bank Shareholder</AccountCode>
+    <AccountType/>
+    <TotalDebit>22.50</TotalDebit>
+    <TotalCredit>5033.32</TotalCredit>
+    <Balance>-5010.82</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Safeway</AccountName>
+    <AccountCode>6751 Hospitality Supplies</AccountCode>
+    <AccountType/>
+    <TotalDebit>1786.77</TotalDebit>
+    <TotalCredit>22.50</TotalCredit>
+    <Balance>1764.27</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Save On Foods</AccountName>
+    <AccountCode>2900 Shareholder Loan</AccountCode>
+    <AccountType/>
+    <TotalDebit>593.25</TotalDebit>
+    <TotalCredit>80.0</TotalCredit>
+    <Balance>513.25</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Shareholder Loan</AccountName>
+    <AccountCode>2900 Shareholder Loan</AccountCode>
+    <AccountType/>
+    <TotalDebit>1061102.00</TotalDebit>
+    <TotalCredit>2986153.14</TotalCredit>
+    <Balance>-1925051.14</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Staples</AccountName>
+    <AccountCode>1090 Bank Shareholder</AccountCode>
+    <AccountType/>
+    <TotalDebit>0.95</TotalDebit>
+    <TotalCredit>12998.58</TotalCredit>
+    <Balance>-12997.63</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Staples</AccountName>
+    <AccountCode>6550 Office Supplies</AccountCode>
+    <AccountType/>
+    <TotalDebit>21795.27</TotalDebit>
+    <TotalCredit>1.90</TotalCredit>
+    <Balance>21793.37</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Stephen Meek</AccountName>
+    <AccountCode>1090 Bank Shareholder</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>7180.20</TotalCredit>
+    <Balance>-7180.20</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Sully Chapman Beattie</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>6567.43</TotalDebit>
+    <TotalCredit>7108.75</TotalCredit>
+    <Balance>-541.32</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Sully Chapman Beattie</AccountName>
+    <AccountCode>1000 CIBC Bank 1615</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>593.49</TotalCredit>
+    <Balance>-593.49</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Sully Chapman Beattie</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>597.54</TotalCredit>
+    <Balance>-597.54</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Tammy Pettitt</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>36956.73</TotalDebit>
+    <TotalCredit>49978.14</TotalCredit>
+    <Balance>-13021.41</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Telus Communications</AccountName>
+    <AccountCode>6800 Telephone</AccountCode>
+    <AccountType/>
+    <TotalDebit>61599.68</TotalDebit>
+    <TotalCredit>6340.49</TotalCredit>
+    <Balance>55259.19</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Telus Communications</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>76463.11</TotalCredit>
+    <Balance>-76463.11</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Telus Communications</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>337284.04</TotalDebit>
+    <TotalCredit>357611.06</TotalCredit>
+    <Balance>-20327.02</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Telus Communications</AccountName>
+    <AccountCode>2200 GST/HST Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>18407.72</TotalDebit>
+    <TotalCredit>354.57</TotalCredit>
+    <Balance>18053.15</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Telus Communications</AccountName>
+    <AccountCode>1090 Bank Shareholder</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>37479.55</TotalCredit>
+    <Balance>-37479.55</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Telus Mobility</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>5446.65</TotalDebit>
+    <TotalCredit>1252.32</TotalCredit>
+    <Balance>4194.33</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Terry Donaldson</AccountName>
+    <AccountCode>2100 Payroll Liabilities</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>511.36</TotalCredit>
+    <Balance>-511.36</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>The Phone Experts</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>456.75</TotalDebit>
+    <TotalCredit>1040.55</TotalCredit>
+    <Balance>-583.80</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Tire Garage</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>14574.20</TotalDebit>
+    <TotalCredit>13209.15</TotalCredit>
+    <Balance>1365.05</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Tredd Mayfair Insurance Brokers Ltd.</AccountName>
+    <AccountCode>1000 CIBC Bank 1615</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>2490.00</TotalCredit>
+    <Balance>-2490.00</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Unclassified Transaction</AccountName>
+    <AccountCode>1710 · Class 16 Limousines</AccountCode>
+    <AccountType/>
+    <TotalDebit>12630.84</TotalDebit>
+    <TotalCredit>25261.68</TotalCredit>
+    <Balance>-12630.84</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Unclassified Transaction</AccountName>
+    <AccountCode>1100 · Chequing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>391637.89</TotalDebit>
+    <TotalCredit>203977.48</TotalCredit>
+    <Balance>187660.41</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Unclassified Transaction</AccountName>
+    <AccountCode>1190 · Payroll Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>580.0</TotalDebit>
+    <TotalCredit>237927.74</TotalCredit>
+    <Balance>-237347.74</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Unclassified Transaction</AccountName>
+    <AccountCode>1010 · Cash Drawer</AccountCode>
+    <AccountType/>
+    <TotalDebit>657371.42</TotalDebit>
+    <TotalCredit>538862.29</TotalCredit>
+    <Balance>118509.13</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Unclassified Transaction</AccountName>
+    <AccountCode>2200 GST/HST Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>61.71</TotalDebit>
+    <TotalCredit>14.29</TotalCredit>
+    <Balance>47.42</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Vibe Car Auto</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>2467.48</TotalDebit>
+    <TotalCredit>2882.23</TotalCredit>
+    <Balance>-414.75</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Victor Youngman</AccountName>
+    <AccountCode>1085 Payroll Clearing Account</AccountCode>
+    <AccountType/>
+    <TotalDebit>400.00</TotalDebit>
+    <TotalCredit>37325.01</TotalCredit>
+    <Balance>-36925.01</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Walmart</AccountName>
+    <AccountCode>1090 Bank Shareholder</AccountCode>
+    <AccountType/>
+    <TotalDebit>31.46</TotalDebit>
+    <TotalCredit>3843.81</TotalCredit>
+    <Balance>-3812.35</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Walmart</AccountName>
+    <AccountCode>6900 Vehicle R&amp;M</AccountCode>
+    <AccountType/>
+    <TotalDebit>567.05</TotalDebit>
+    <TotalCredit>47.19</TotalCredit>
+    <Balance>519.86</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>WCB</AccountName>
+    <AccountCode>6950 WCB</AccountCode>
+    <AccountType/>
+    <TotalDebit>57409.40</TotalDebit>
+    <TotalCredit>22243.82</TotalCredit>
+    <Balance>35165.58</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>WCB</AccountName>
+    <AccountCode>1010 Scotia Bank Main</AccountCode>
+    <AccountType/>
+    <TotalDebit>5000.00</TotalDebit>
+    <TotalCredit>11473.67</TotalCredit>
+    <Balance>-6473.67</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>WCB</AccountName>
+    <AccountCode>1090 Bank Shareholder</AccountCode>
+    <AccountType/>
+    <TotalDebit>0</TotalDebit>
+    <TotalCredit>6955.78</TotalCredit>
+    <Balance>-6955.78</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>WCB</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>85204.48</TotalDebit>
+    <TotalCredit>77869.58</TotalCredit>
+    <Balance>7334.90</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Welcome Wagon</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>628.00</TotalDebit>
+    <TotalCredit>647.53</TotalCredit>
+    <Balance>-19.53</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Welcome Wagon</AccountName>
+    <AccountCode>2200 GST/HST Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>45.81</TotalDebit>
+    <TotalCredit>9.15</TotalCredit>
+    <Balance>36.66</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Welcome Wagon</AccountName>
+    <AccountCode>6000 Advertising</AccountCode>
+    <AccountType/>
+    <TotalDebit>515.24</TotalDebit>
+    <TotalCredit>121.90</TotalCredit>
+    <Balance>393.34</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Wholesale Club.</AccountName>
+    <AccountCode>1090 Bank Shareholder</AccountCode>
+    <AccountType/>
+    <TotalDebit>58.20</TotalDebit>
+    <TotalCredit>6185.67</TotalCredit>
+    <Balance>-6127.47</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Wholesale Club.</AccountName>
+    <AccountCode>6751 Hospitality Supplies</AccountCode>
+    <AccountType/>
+    <TotalDebit>7294.38</TotalDebit>
+    <TotalCredit>58.20</TotalCredit>
+    <Balance>7236.18</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Wine and beyond</AccountName>
+    <AccountCode>2200 GST/HST Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>747.99</TotalDebit>
+    <TotalCredit>2652.64</TotalCredit>
+    <Balance>-1904.65</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Wine and beyond</AccountName>
+    <AccountCode>0228362 CIBC checking account</AccountCode>
+    <AccountType/>
+    <TotalDebit>55706.40</TotalDebit>
+    <TotalCredit>15632.45</TotalCredit>
+    <Balance>40073.95</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Wine and beyond</AccountName>
+    <AccountCode>Charter Client purchases</AccountCode>
+    <AccountType/>
+    <TotalDebit>9726.16</TotalDebit>
+    <TotalCredit>38736.41</TotalCredit>
+    <Balance>-29010.25</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>With This Ring Bridal Gala</AccountName>
+    <AccountCode>2000 Accounts Payable</AccountCode>
+    <AccountType/>
+    <TotalDebit>8610.00</TotalDebit>
+    <TotalCredit>14017.50</TotalCredit>
+    <Balance>-5407.50</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Woodridge Ford</AccountName>
+    <AccountCode>2813 Cap Lease 03 Ford Excurs 799.03</AccountCode>
+    <AccountType/>
+    <TotalDebit>22829.40</TotalDebit>
+    <TotalCredit>24000.0</TotalCredit>
+    <Balance>-1170.60</Balance>
+  </AccountBalance>
+  <AccountBalance>
+    <AccountName>Yellow Pages</AccountName>
+    <AccountCode>6000 Advertising</AccountCode>
+    <AccountType/>
+    <TotalDebit>6016.76</TotalDebit>
+    <TotalCredit>344.76</TotalCredit>
+    <Balance>5672.00</Balance>
+  </AccountBalance>
+  <Summary>
+    <TotalDebits>20717434.52</TotalDebits>
+    <TotalCredits>16878377.24</TotalCredits>
+    <Difference>3839057.28</Difference>
+  </Summary>
+</TrialBalance>

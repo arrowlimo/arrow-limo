@@ -1,0 +1,17 @@
+-- Migration: Add extra columns to receipts table for Arrow Limousine
+ALTER TABLE receipts
+    ADD COLUMN IF NOT EXISTS reviewed BOOLEAN,
+    ADD COLUMN IF NOT EXISTS exported BOOLEAN,
+    ADD COLUMN IF NOT EXISTS document_type VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS date_added TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS tax NUMERIC(10,2),
+    ADD COLUMN IF NOT EXISTS sales_tax NUMERIC(10,2),
+    ADD COLUMN IF NOT EXISTS tip NUMERIC(10,2),
+    ADD COLUMN IF NOT EXISTS type VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS tax_category VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS classification VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS sub_classification VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS pay_account VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS card_type VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS card_number VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS comment TEXT;

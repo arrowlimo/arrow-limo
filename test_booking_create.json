@@ -1,0 +1,17 @@
+{
+  "client_name": "Test Customer Bravo",
+  "phone": "403-555-0200",
+  "charter_date": "2026-02-16",
+  "pickup_time": "15:00",
+  "passenger_load": 6,
+  "pickup_location": "456 Test Avenue, Calgary",
+  "dropoff_location": "Downtown Calgary",
+  "vehicle_type": "Sedan",
+  "assigned_driver_id": 2,
+  "base_charge": 200.00,
+  "airport_fee": 0,
+  "additional_charges_amount": 25.00,
+  "total_amount_due": 236.25,
+  "deposit_paid": 75.00,
+  "status": "Confirmed"
+}

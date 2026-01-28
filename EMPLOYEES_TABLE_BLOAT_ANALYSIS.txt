@@ -1,0 +1,95 @@
+================================================================================
+EMPLOYEES TABLE BLOAT ANALYSIS
+================================================================================
+
+CURRENT STATE:
+  58 columns in employees table
+  BUT ONLY 42 are actually used!
+  16 columns are completely empty (0 values out of 1003 rows)
+
+SEPARATE TABLES THAT SHOULD HOLD THE DATA:
+  ✓ driver_payroll              (16,381 rows)  - Driver pay, hours, rates
+  ✓ driver_documents            (420 rows)     - Licenses, permits, certs
+  ✓ employee_schedules          (0 rows)       - Work schedules
+  ✓ employee_availability       (0 rows)       - Availability
+  ✓ employee_time_off_requests  (0 rows)       - Vacation, sick days
+  ✓ employee_work_classifications (5 rows)     - Job classifications
+  ✓ employee_roe_records        (2 rows)       - ROE data
+
+COLUMNS THAT ARE EMPTY & SHOULD BE DELETED:
+  ❌ phone_number                (duplicate of: phone or cell_phone)
+  ❌ email_address               (should be in separate contact_info table)
+  ❌ driver_license_number       (should be in driver_documents)
+  ❌ driver_license_expiry       (should be in driver_documents)
+  ❌ license_expiry              (should be in driver_documents)
+  ❌ medical_cert_expiry         (should be in driver_documents)
+  ❌ chauffeur_permit_expiry     (should be in driver_documents)
+  ❌ average_rating              (should be calculated from driver_performance)
+  ❌ last_login                  (should be in user_sessions or login_audit)
+  ❌ payroll_id                  (not used; employee_id is primary key)
+  ❌ tax_exemption_code          (should be in payroll or tax records)
+  ❌ year_to_date_pay            (should be CALCULATED, not stored)
+  ❌ ytd_cpp                     (should be CALCULATED, not stored)
+  ❌ ytd_ei                      (should be CALCULATED, not stored)
+  ❌ ytd_tax                     (should be CALCULATED, not stored)
+  ❌ termination_date            (should be in separate employment_history)
+
+COLUMNS THAT ARE REDUNDANT:
+  ⚠️  phone_number               ← DUPLICATE of 'phone'
+  ⚠️  email_address              ← DUPLICATE of 'email' (in column 45)
+  ⚠️  emergency_contact_name     ← Should be in separate emergency_contacts table
+  ⚠️  emergency_contact_phone    ← Should be in separate emergency_contacts table
+  ⚠️  legacy_name                ← Probably for QB migration tracking (799 values)
+  ⚠️  quickbooks_id              ← For QB mapping (853 values)
+  ⚠️  quickbooks_source          ← For QB mapping (799 values)
+  ⚠️  legacy_employee            ← Migration flag (boolean)
+
+WHAT SHOULD STAY IN EMPLOYEES:
+  ✓ employee_id, employee_number
+  ✓ first_name, last_name, full_name
+  ✓ phone, cell_phone (contact info)
+  ✓ employee_category, status, employment_status
+  ✓ position, is_chauffeur
+  ✓ salary, hourly_rate, rate_effective_date
+  ✓ tax_exemptions, deduction_* (payroll config)
+  ✓ driver_code
+  ✓ hire_date
+  ✓ street_address, city, province, postal_code, country
+  ✓ created_at, updated_at, profile_updated
+  ✓ total_trips, total_hours, total_revenue (summary stats)
+  ✓ compliance_status (active status)
+  ✓ t4_sin (tax info - minimal)
+
+RECOMMENDED CLEANUP:
+  PHASE 1: Delete 16 empty columns (0 risk)
+    ALTER TABLE employees DROP COLUMN phone_number;
+    ALTER TABLE employees DROP COLUMN email_address;
+    ALTER TABLE employees DROP COLUMN driver_license_number;
+    ALTER TABLE employees DROP COLUMN driver_license_expiry;
+    ALTER TABLE employees DROP COLUMN license_expiry;
+    ALTER TABLE employees DROP COLUMN medical_cert_expiry;
+    ALTER TABLE employees DROP COLUMN chauffeur_permit_expiry;
+    ALTER TABLE employees DROP COLUMN average_rating;
+    ALTER TABLE employees DROP COLUMN last_login;
+    ALTER TABLE employees DROP COLUMN payroll_id;
+    ALTER TABLE employees DROP COLUMN tax_exemption_code;
+    ALTER TABLE employees DROP COLUMN year_to_date_pay;
+    ALTER TABLE employees DROP COLUMN ytd_cpp;
+    ALTER TABLE employees DROP COLUMN ytd_ei;
+    ALTER TABLE employees DROP COLUMN ytd_tax;
+    ALTER TABLE employees DROP COLUMN termination_date;
+    
+    Result: 58 → 42 columns, 100% safe (no data loss)
+
+  PHASE 2: Move multi-value data to separate tables (future)
+    - Move licenses/permits → driver_documents (already table exists!)
+    - Move emergency contacts → separate emergency_contacts table
+    - Move QB mapping → keep as internal field for now
+
+FINAL RESULT:
+  Before: 58 columns, bloated
+  After:  42 columns, clean core employee data
+  Risk:   ZERO (only deleting empty columns)
+  Benefit: Clearer schema, faster queries, easier to maintain
+
+================================================================================

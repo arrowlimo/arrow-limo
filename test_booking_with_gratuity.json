@@ -1,0 +1,20 @@
+{
+  "client_name": "Test Customer Charlie",
+  "phone": "403-555-0201",
+  "charter_date": "2026-03-01",
+  "pickup_time": "18:00",
+  "passenger_load": 8,
+  "pickup_location": "789 Celebration Way, Calgary",
+  "dropoff_location": "Downtown Event Center",
+  "vehicle_type": "Stretch Limo",
+  "assigned_driver_id": 3,
+  "base_charge": 300.00,
+  "airport_fee": 0,
+  "additional_charges_amount": 50.00,
+  "beverage_total": 85.00,
+  "gratuity_percentage": 18.0,
+  "total_amount_due": 513.38,
+  "deposit_paid": 150.00,
+  "status": "Confirmed",
+  "separate_customer_printout": true
+}

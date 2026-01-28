@@ -1,0 +1,387 @@
+"""
+Driver Calendar Widget
+Monthly calendar with drill-down: charters per day, vehicle/driver assignment, yard depart time, pickup time,
+customer info, customer notes, dispatch-only notes. Includes buttons to print charter documentation and open a
+simple driver entry form (times, odometer, fuel receipts, floats, HOS).
+
+Note: This implementation reads common columns if present and safely skips missing ones using information_schema.
+It does not alter database schema. Driver entry form currently saves to JSON under reports/driver_logs_submissions/.
+"""
+
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCalendarWidget, QTableWidget,
+    QTableWidgetItem, QPushButton, QSplitter, QGroupBox, QFormLayout, QLineEdit,
+    QTextEdit, QTimeEdit, QSpinBox, QDialog, QDialogButtonBox, QMessageBox
+)
+from PyQt6.QtCore import Qt, QDate
+from PyQt6.QtGui import QFont
+from datetime import datetime
+import os
+import json
+
+class DriverCalendarWidget(QWidget):
+    def __init__(self, db):
+        super().__init__()
+        self.db = db
+        self._init_ui()
+        self._ensure_submission_dir()
+        self.load_day_events(QDate.currentDate())
+
+    def _ensure_submission_dir(self):
+        try:
+            base = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'reports', 'driver_logs_submissions')
+            os.makedirs(base, exist_ok=True)
+            self.submission_dir = base
+        except Exception:
+            self.submission_dir = os.path.join(os.getcwd(), 'driver_logs_submissions')
+            os.makedirs(self.submission_dir, exist_ok=True)
+
+    def _init_ui(self):
+        layout = QVBoxLayout()
+        title = QLabel("🗓️ Driver Calendar")
+        title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        layout.addWidget(title)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        # Left: month calendar
+        left = QWidget()
+        left_layout = QVBoxLayout()
+        self.calendar = QCalendarWidget()
+        self.calendar.setGridVisible(True)
+        self.calendar.selectionChanged.connect(self._on_date_changed)
+        left_layout.addWidget(self.calendar)
+        left.setLayout(left_layout)
+        splitter.addWidget(left)
+
+        # Right: day details
+        right = QWidget()
+        right_layout = QVBoxLayout()
+
+        # Day summary table
+        self.day_table = QTableWidget()
+        self.day_table.setColumnCount(8)
+        self.day_table.setHorizontalHeaderLabels([
+            "Reserve #", "Charter ID", "Pickup", "Depart Yard", "Vehicle", "Driver",
+            "Customer", "Status"
+        ])
+        self.day_table.itemSelectionChanged.connect(self._load_selected_charter)
+        right_layout.addWidget(self.day_table)
+
+        # Charter details + actions
+        box = QGroupBox("Charter Details")
+        form = QFormLayout()
+        self.detail_reserve = QLineEdit(); self.detail_reserve.setReadOnly(True)
+        self.detail_charter_id = QLineEdit(); self.detail_charter_id.setReadOnly(True)
+        self.detail_pickup_time = QLineEdit(); self.detail_pickup_time.setReadOnly(True)
+        self.detail_depart_yard = QLineEdit(); self.detail_depart_yard.setReadOnly(True)
+        self.detail_vehicle = QLineEdit(); self.detail_vehicle.setReadOnly(True)
+        self.detail_driver = QLineEdit(); self.detail_driver.setReadOnly(True)
+        self.detail_customer = QLineEdit(); self.detail_customer.setReadOnly(True)
+        self.detail_customer_notes = QTextEdit(); self.detail_customer_notes.setReadOnly(True)
+        self.detail_dispatch_notes = QTextEdit(); self.detail_dispatch_notes.setReadOnly(True)
+        form.addRow("Reserve #", self.detail_reserve)
+        form.addRow("Charter ID", self.detail_charter_id)
+        form.addRow("Pickup Time", self.detail_pickup_time)
+        form.addRow("Depart Yard", self.detail_depart_yard)
+        form.addRow("Vehicle", self.detail_vehicle)
+        form.addRow("Driver", self.detail_driver)
+        form.addRow("Customer", self.detail_customer)
+        form.addRow("Customer Notes", self.detail_customer_notes)
+        form.addRow("Dispatch Notes", self.detail_dispatch_notes)
+
+        action_layout = QHBoxLayout()
+        self.print_btn = QPushButton("🖨️ Print Charter")
+        self.print_btn.clicked.connect(self._print_charter)
+        self.driver_form_btn = QPushButton("✍️ Driver Entry Form")
+        self.driver_form_btn.clicked.connect(self._open_driver_form)
+        action_layout.addWidget(self.print_btn)
+        action_layout.addWidget(self.driver_form_btn)
+        form.addRow(action_layout)
+
+        box.setLayout(form)
+        right_layout.addWidget(box)
+
+        right.setLayout(right_layout)
+        splitter.addWidget(right)
+
+        splitter.setSizes([400, 600])
+        layout.addWidget(splitter)
+        self.setLayout(layout)
+
+    def _on_date_changed(self):
+        self.load_day_events(self.calendar.selectedDate())
+
+    def _get_columns(self, table_name):
+        try:
+            # Rollback any failed transactions first
+            try:
+                self.db.rollback()
+            except:
+                try:
+                    self.db.rollback()
+                except:
+                    pass
+                pass
+            
+            cur = self.db.get_cursor()
+            cur.execute(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema='public' AND table_name=%s
+                """,
+                (table_name,)
+            )
+            cols = {r[0] for r in cur.fetchall()}
+            return cols
+        except Exception:
+            return set()
+
+    def load_day_events(self, qdate: QDate):
+        try:
+            # Rollback any failed transactions first
+            try:
+                self.db.rollback()
+            except:
+                try:
+                    self.db.rollback()
+                except:
+                    pass
+                pass
+            
+            cur = self.db.get_cursor()
+            date_str = qdate.toString("MM/dd/yyyy")
+            # Build safe select
+            ccols = self._get_columns('charters')
+            ecols = self._get_columns('employees')
+            vcols = self._get_columns('vehicles')
+            cols = [
+                'charter_id', 'reserve_number', 'pickup_time', 'depart_yard_time', 'status',
+                'vehicle_id', 'employee_id', 'customer_name',
+            ]
+            select_cols = [c for c in cols if c in ccols]
+            select_clause = ", ".join(select_cols) if select_cols else "charter_id, reserve_number"
+            cur.execute(
+                f"""
+                SELECT {select_clause}
+                FROM charters
+                WHERE charter_date = %s AND (status IS NULL OR status NOT IN ('cancelled','no-show'))
+                ORDER BY pickup_time NULLS LAST
+                """,
+                (date_str,)
+            )
+            rows = cur.fetchall()
+            self.day_table.setRowCount(len(rows))
+            # Map
+            for r, row in enumerate(rows):
+                data = dict(zip(select_cols, row)) if select_cols else {}
+                reserve = str(data.get('reserve_number') or '')
+                charter_id = str(data.get('charter_id') or '')
+                pickup = str(data.get('pickup_time') or '')
+                depart = str(data.get('depart_yard_time') or '')
+                vehicle = self._lookup_vehicle(vcols, data.get('vehicle_id'))
+                driver = self._lookup_driver(ecols, data.get('employee_id'))
+                customer = str(data.get('customer_name') or '')
+                status = str(data.get('status') or '')
+                items = [
+                    QTableWidgetItem(reserve),
+                    QTableWidgetItem(charter_id),
+                    QTableWidgetItem(pickup),
+                    QTableWidgetItem(depart),
+                    QTableWidgetItem(vehicle),
+                    QTableWidgetItem(driver),
+                    QTableWidgetItem(customer),
+                    QTableWidgetItem(status),
+                ]
+                for c, it in enumerate(items):
+                    self.day_table.setItem(r, c, it)
+        except Exception as e:
+            QMessageBox.warning(self, "Load Error", f"Failed to load day events: {e}")
+
+    def _lookup_vehicle(self, vcols, vehicle_id):
+        if not vehicle_id or 'vehicle_id' not in vcols:
+            return ''
+        try:
+            # Rollback any failed transactions first
+            try:
+                self.db.rollback()
+            except:
+                try:
+                    self.db.rollback()
+                except:
+                    pass
+                pass
+            
+            cur = self.db.get_cursor()
+            # Always prefer vehicle_number for display
+            sel = 'vehicle_number'
+            cur.execute(f"SELECT {sel} FROM vehicles WHERE vehicle_id=%s LIMIT 1", (vehicle_id,))
+            r = cur.fetchone()
+            if not r:
+                return ''
+            parts = [str(x) for x in r if x]
+            return " / ".join(parts)
+        except Exception:
+            return ''
+
+    def _lookup_driver(self, ecols, employee_id):
+        if not employee_id or 'employee_id' not in ecols:
+            return ''
+        try:
+            # Rollback any failed transactions first
+            try:
+                self.db.rollback()
+            except:
+                try:
+                    self.db.rollback()
+                except:
+                    pass
+                pass
+            
+            cur = self.db.get_cursor()
+            cols = ['full_name','phone_number']
+            existing = [c for c in cols if c in ecols]
+            sel = ", ".join(existing) if existing else 'full_name'
+            cur.execute(f"SELECT {sel} FROM employees WHERE employee_id=%s LIMIT 1", (employee_id,))
+            r = cur.fetchone()
+            if not r:
+                return ''
+            parts = [str(x) for x in r if x]
+            return " / ".join(parts)
+        except Exception:
+            return ''
+
+    def _load_selected_charter(self):
+        items = self.day_table.selectedItems()
+        if not items:
+            return
+        row = self.day_table.row(items[0])
+        reserve = self.day_table.item(row, 0).text()
+        charter_id = self.day_table.item(row, 1).text()
+        self.detail_reserve.setText(reserve)
+        self.detail_charter_id.setText(charter_id)
+        # Fill the rest from table directly
+        self.detail_pickup_time.setText(self.day_table.item(row, 2).text())
+        self.detail_depart_yard.setText(self.day_table.item(row, 3).text())
+        self.detail_vehicle.setText(self.day_table.item(row, 4).text())
+        self.detail_driver.setText(self.day_table.item(row, 5).text())
+        self.detail_customer.setText(self.day_table.item(row, 6).text())
+        # Load notes if available
+        try:
+            ccols = self._get_columns('charters')
+            if {'customer_notes','dispatch_notes'} & ccols:
+                # Rollback any failed transactions first
+                try:
+                    self.db.rollback()
+                except:
+                    try:
+                        self.db.rollback()
+                    except:
+                        pass
+                    pass
+                
+                cur = self.db.get_cursor()
+                fields = [f for f in ['customer_notes','dispatch_notes'] if f in ccols]
+                sel = ", ".join(fields)
+                cur.execute(f"SELECT {sel} FROM charters WHERE reserve_number=%s LIMIT 1", (reserve,))
+                r = cur.fetchone()
+                vals = dict(zip(fields, r)) if r else {}
+                self.detail_customer_notes.setPlainText(str(vals.get('customer_notes') or ''))
+                self.detail_dispatch_notes.setPlainText(str(vals.get('dispatch_notes') or ''))
+        except Exception:
+            pass
+
+    def _print_charter(self):
+        reserve = self.detail_reserve.text().strip()
+        if not reserve:
+            QMessageBox.information(self, "Print", "Select a charter first")
+            return
+        # Placeholder: emit JSON for now; integrate PDF generator later
+        out = {
+            'reserve_number': reserve,
+            'charter_id': self.detail_charter_id.text(),
+            'vehicle': self.detail_vehicle.text(),
+            'driver': self.detail_driver.text(),
+            'pickup_time': self.detail_pickup_time.text(),
+            'depart_yard': self.detail_depart_yard.text(),
+            'customer': self.detail_customer.text(),
+            'notes': {
+                'customer': self.detail_customer_notes.toPlainText(),
+                'dispatch': self.detail_dispatch_notes.toPlainText(),
+            }
+        }
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        path = os.path.join(self.submission_dir, f"charter_print_{reserve}_{ts}.json")
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(out, f, indent=2)
+            QMessageBox.information(self, "Print", f"Saved charter doc to {path}")
+        except Exception as e:
+            QMessageBox.warning(self, "Print", f"Failed to save: {e}")
+
+    def _open_driver_form(self):
+        reserve = self.detail_reserve.text().strip()
+        if not reserve:
+            QMessageBox.information(self, "Driver Form", "Select a charter first")
+            return
+        dlg = DriverEntryDialog(reserve, self.submission_dir, self)
+        dlg.exec()
+
+
+class DriverEntryDialog(QDialog):
+    def __init__(self, reserve_number: str, submission_dir: str, parent=None):
+        super().__init__(parent)
+        self.reserve_number = reserve_number
+        self.submission_dir = submission_dir
+        self.setWindowTitle(f"Driver Entry - {reserve_number}")
+        self._init_ui()
+
+    def _init_ui(self):
+        layout = QFormLayout(self)
+        self.depart_time = QTimeEdit(); self.depart_time.setDisplayFormat('HH:mm')
+        self.pickup_time = QTimeEdit(); self.pickup_time.setDisplayFormat('HH:mm')
+        self.start_odometer = QSpinBox(); self.start_odometer.setMaximum(9999999)
+        self.end_odometer = QSpinBox(); self.end_odometer.setMaximum(9999999)
+        self.fuel_liters = QSpinBox(); self.fuel_liters.setMaximum(2000)
+        self.fuel_amount = QSpinBox(); self.fuel_amount.setMaximum(100000)
+        self.float_amount = QSpinBox(); self.float_amount.setMaximum(100000)
+        self.hos_notes = QTextEdit()
+        self.driver_notes = QTextEdit()
+        layout.addRow("Depart Yard", self.depart_time)
+        layout.addRow("Pickup Time", self.pickup_time)
+        layout.addRow("Start Odometer", self.start_odometer)
+        layout.addRow("End Odometer", self.end_odometer)
+        layout.addRow("Fuel Liters", self.fuel_liters)
+        layout.addRow("Fuel Amount", self.fuel_amount)
+        layout.addRow("Float Used", self.float_amount)
+        layout.addRow("HOS Notes", self.hos_notes)
+        layout.addRow("Driver Notes", self.driver_notes)
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        btns.accepted.connect(self._save)
+        btns.rejected.connect(self.reject)
+        layout.addRow(btns)
+
+    def _save(self):
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        payload = {
+            'reserve_number': self.reserve_number,
+            'depart_yard': self.depart_time.text(),
+            'pickup_time': self.pickup_time.text(),
+            'start_odometer': self.start_odometer.value(),
+            'end_odometer': self.end_odometer.value(),
+            'fuel_liters': self.fuel_liters.value(),
+            'fuel_amount': self.fuel_amount.value(),
+            'float_amount': self.float_amount.value(),
+            'hos_notes': self.hos_notes.toPlainText(),
+            'driver_notes': self.driver_notes.toPlainText(),
+            'submitted_at': datetime.now().isoformat(),
+        }
+        path = os.path.join(self.submission_dir, f"driver_log_{self.reserve_number}_{ts}.json")
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(payload, f, indent=2)
+            QMessageBox.information(self, "Saved", f"Driver entry saved to {path}")
+            self.accept()
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to save: {e}")

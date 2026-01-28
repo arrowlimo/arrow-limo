@@ -1,0 +1,72 @@
+{
+  "form": "GST34",
+  "description": "GST/HST Return mapping using actual Arrow Limousine chart of accounts",
+  "accounts_discovered": {
+    "gst_payable": ["2200 GST/HST Payable", "GST/HST Payable", "2205 GST Remits"],
+    "revenue": ["4000 Limousine Service Income", "4300 Gratuity Income", "4800 Other Income"],
+    "payroll": ["1085 Payroll Clearing Account", "2100 Payroll Liabilities", "6605 Payroll Expenses"]
+  },
+  "fields": {
+    "Line101_TotalSales": {
+      "description": "Total sales and other revenue (supply value before GST)",
+      "sql": "SELECT ROUND(COALESCE(SUM(COALESCE(credit,0) - COALESCE(debit,0)),0),2) FROM general_ledger WHERE account IN ('4000 Limousine Service Income', '4300 Gratuity Income', '4800 Other Income') AND date BETWEEN '{period_start}' AND '{period_end}'",
+      "default": 0.0
+    },
+    "Line105_TotalGSTHSTCollected": {
+      "description": "GST/HST collected on sales (5% of taxable supplies)",
+      "sql": "SELECT ROUND(COALESCE(SUM(COALESCE(credit,0) - COALESCE(debit,0)),0),2) FROM general_ledger WHERE account IN ('2200 GST/HST Payable', 'GST/HST Payable') AND date BETWEEN '{period_start}' AND '{period_end}'",
+      "default": 0.0
+    },
+    "Line108_ITCs": {
+      "description": "Input Tax Credits - GST paid on purchases and expenses",
+      "sql": "SELECT ROUND(COALESCE(SUM(COALESCE(debit,0) - COALESCE(credit,0)),0),2) FROM general_ledger WHERE account LIKE '%GST%' AND (account LIKE '%Paid%' OR account LIKE '%Recoverable%' OR account LIKE '%ITC%') AND date BETWEEN '{period_start}' AND '{period_end}'",
+      "default": 0.0,
+      "note": "Currently no ITC accounts found - may need to add if expense GST is tracked separately"
+    },
+    "Line109_NetTax": {
+      "description": "Net tax (Line 105 - Line 108)",
+      "formula": "Line105_TotalGSTHSTCollected - Line108_ITCs"
+    },
+    "Line111_Adjustments": {
+      "description": "Other adjustments",
+      "sql": "SELECT 0.0",
+      "default": 0.0
+    },
+    "Line112_NetTaxAdjustments": {
+      "description": "Net tax after adjustments",
+      "formula": "Line109_NetTax + Line111_Adjustments"
+    },
+    "Line113A_Installments": {
+      "description": "Installments paid during period",
+      "sql": "SELECT ROUND(COALESCE(SUM(COALESCE(debit,0)),0),2) FROM general_ledger WHERE account = '2205 GST Remits' AND date BETWEEN '{period_start}' AND '{period_end}'",
+      "default": 0.0
+    },
+    "Line113B_Other": {
+      "description": "Other credits",
+      "sql": "SELECT 0.0",
+      "default": 0.0
+    },
+    "Line114_NetTaxToRemit": {
+      "description": "Net tax to remit or refund",
+      "formula": "Line112_NetTaxAdjustments - Line113A_Installments - Line113B_Other"
+    },
+    "Line115_AmountOwingOrRefund": {
+      "description": "Final amount owing or refund",
+      "formula": "Line114_NetTaxToRemit"
+    },
+    "Line135_TangiblePersonalProperty": {
+      "description": "Tax on imported tangible personal property",
+      "sql": "SELECT 0.0",
+      "default": 0.0
+    },
+    "Line136_ImportedServicesIntangibles": {
+      "description": "Tax on imported services and intangibles",
+      "sql": "SELECT 0.0",
+      "default": 0.0
+    },
+    "Line138_NetTaxIncludingAdjustments": {
+      "description": "Total net tax including all adjustments",
+      "formula": "Line114_NetTaxToRemit + Line135_TangiblePersonalProperty + Line136_ImportedServicesIntangibles"
+    }
+  }
+}

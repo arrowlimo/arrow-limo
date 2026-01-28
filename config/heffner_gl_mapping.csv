@@ -1,0 +1,85 @@
+# Heffner GL Code Mapping Configuration
+# Map payment amounts to GL codes for accounting categorization
+# Columns: amount, account_number, description_contains, gl_code, gl_description
+
+amount,account_number,description_contains,gl_code,gl_description
+117.05,0228362,HEFFNER,6500-01,Vehicle Loan Payment - Vehicle 1
+143.97,0228362,HEFFNER,6500-02,Vehicle Loan Payment - Vehicle 2
+146.71,0228362,HEFFNER,6500-03,Vehicle Loan Payment - Vehicle 3
+152.25,0228362,HEFFNER,6500-04,Vehicle Loan Payment - Vehicle 4
+166.9,0228362,HEFFNER,6500-05,Vehicle Loan Payment - Vehicle 5
+168.65,0228362,HEFFNER,6500-06,Vehicle Loan Payment - Vehicle 6
+173.86,0228362,HEFFNER,6500-07,Vehicle Loan Payment - Vehicle 7
+187.18,0228362,HEFFNER,6500-08,Vehicle Loan Payment - Vehicle 8
+197.6,0228362,HEFFNER,6500-09,Vehicle Loan Payment - Vehicle 9
+224.81,0228362,HEFFNER,6500-10,Vehicle Loan Payment - Vehicle 10
+460.41,0228362,HEFFNER,6500-11,Vehicle Loan Payment - Vehicle 11
+484.51,0228362,HEFFNER,6500-12,Vehicle Loan Payment - Vehicle 12
+# Smaller amounts / one-time payments
+71.77,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+74.61,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+84.27,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+84.33,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+115.06,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+# --- AUTO-GENERATED PLACEHOLDERS FOR UNMAPPED AMOUNTS ---
+144.99,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+154.97,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+162.83,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+171.71,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+173.69,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+175.15,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+187.19,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+189.8,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+193.65,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+194.24,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+200.0,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+219.24,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+227.58,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+230.11,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+238.58,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+262.09,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+265.55,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+266.54,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+273.48,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+276.55,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+289.8,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+299.22,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+299.61,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+303.77,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+307.26,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+309.79,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+313.94,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+318.26,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+324.85,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+334.96,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+337.3,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+342.85,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+347.71,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+350.0,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+372.71,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+374.37,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+410.71,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+435.71,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+474.16,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+485.16,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+495.81,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+500.0,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+503.57,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+509.16,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+528.57,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+533.08,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+547.71,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+558.08,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+574.37,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+599.37,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+720.42,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+745.42,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+812.66,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+841.41,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+962.18,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+1058.08,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+1622.25,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+2683.79,0228362,HEFFNER,6500-99,Vehicle Loan Payment - Other
+# NSF fees
+2.00,0228362,NSF,6900-01,NSF Fee - Heffner
+1.50,0228362,NETWORK TRANSACTION FEE,6900-02,ATM/Network Transaction Fee

@@ -1,0 +1,18 @@
+import psycopg2, os
+DB_HOST=os.environ.get('DB_HOST','localhost')
+DB_NAME=os.environ.get('DB_NAME','almsdata')
+DB_USER=os.environ.get('DB_USER','postgres')
+DB_PASSWORD=os.environ.get('DB_PASSWORD','***REMOVED***')
+conn=psycopg2.connect(host=DB_HOST,dbname=DB_NAME,user=DB_USER,password=DB_PASSWORD)
+cur=conn.cursor()
+print('--- receipts table columns ---')
+cur.execute("""SELECT column_name FROM information_schema.columns WHERE table_name='receipts' ORDER BY ordinal_position""")
+print([r[0] for r in cur.fetchall()])
+cur.execute("SELECT receipt_id, category, description FROM receipts WHERE (LOWER(category) LIKE '%gratuity%') OR (LOWER(description) LIKE '%gratuity%') LIMIT 5")
+rows=cur.fetchall()
+print('Sample current gratuity-like rows:',rows)
+cur.execute("SELECT table_name FROM information_schema.tables WHERE table_name LIKE 'receipts_gratuity_migration_backup_%' ORDER BY table_name DESC LIMIT 1")
+bt=cur.fetchone()[0]
+cur.execute(f"SELECT receipt_id, category, description FROM {bt} LIMIT 5")
+print('Backup sample:',cur.fetchall())
+conn.close()

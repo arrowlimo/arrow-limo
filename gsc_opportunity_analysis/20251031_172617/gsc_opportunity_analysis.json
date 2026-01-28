@@ -1,0 +1,202 @@
+{
+  "current_status": {
+    "positive_indicators": [
+      "\u2705 GSC properly set up and verified",
+      "\u2705 712 clicks shows active search traffic",
+      "\u2705 47 pages successfully indexed by Google",
+      "\u2705 Data collection active since at least July 2025",
+      "\u2705 Performance trending data available for analysis"
+    ],
+    "immediate_opportunities": [
+      "\ud83c\udfaf 14 pages not indexed - investigate and fix indexing issues",
+      "\ud83d\udcc8 712 clicks baseline - identify top performing queries to optimize",
+      "\ud83d\udd0d 4-month data history available - analyze seasonal trends",
+      "\ud83d\udcca Performance data ready for query and page analysis",
+      "\ud83c\udfaf 77% indexing rate - room for improvement to 90%+"
+    ],
+    "technical_issues": [
+      "\u2757 14 pages not indexed (23% of discoverable pages)",
+      "\ud83d\udd0d Need to investigate why 14 pages aren't indexed",
+      "\ud83d\udcf1 Check mobile usability status",
+      "\u26a1 Review Core Web Vitals performance",
+      "\ud83d\uddfa\ufe0f Verify sitemap submission and coverage"
+    ],
+    "next_actions": [
+      "Access Performance \u2192 Search Results to see actual query data",
+      "Check Indexing \u2192 Pages to see which 14 pages aren't indexed",
+      "Review Core Web Vitals for performance issues",
+      "Analyze top-performing pages and queries for optimization",
+      "Create weekly GSC monitoring routine"
+    ]
+  },
+  "data_extraction_guide": {
+    "performance_analysis": {
+      "priority": "CRITICAL - Do This First",
+      "location": "Performance \u2192 Search Results",
+      "what_to_extract": [
+        "Top 20 search queries by impressions",
+        "Queries with high impressions but low CTR (optimization targets)",
+        "Pages with most clicks and impressions",
+        "Average position for key Saskatchewan/limousine keywords",
+        "Seasonal trends in search volume"
+      ],
+      "action_items": [
+        "Export query data to identify content opportunities",
+        "Find page 2 rankings (positions 11-20) to optimize",
+        "Identify low CTR queries for title/description optimization"
+      ]
+    },
+    "indexing_investigation": {
+      "priority": "HIGH - Fix Technical Issues",
+      "location": "Indexing \u2192 Pages",
+      "what_to_extract": [
+        "Which 14 pages are not indexed and why",
+        "Error types preventing indexing",
+        "Pages excluded by coverage issues",
+        "Crawl errors affecting page discovery"
+      ],
+      "action_items": [
+        "Fix technical issues preventing indexing",
+        "Submit important pages for re-crawling",
+        "Update sitemap if pages are missing"
+      ]
+    },
+    "mobile_and_performance": {
+      "priority": "HIGH - User Experience",
+      "location": "Experience \u2192 Core Web Vitals & Mobile Usability",
+      "what_to_extract": [
+        "Mobile usability issues",
+        "Core Web Vitals performance scores",
+        "Pages with poor loading performance",
+        "Mobile-specific ranking factors"
+      ],
+      "action_items": [
+        "Fix mobile usability issues",
+        "Improve page loading speed",
+        "Optimize for mobile-first indexing"
+      ]
+    }
+  },
+  "keyword_analysis_framework": {
+    "priority_keywords_to_track": {
+      "primary_service_keywords": [
+        "limousine service saskatchewan",
+        "party bus rental saskatchewan",
+        "wedding transportation saskatchewan",
+        "airport limo saskatchewan",
+        "corporate transportation saskatchewan"
+      ],
+      "local_area_keywords": [
+        "limo service saskatoon",
+        "party bus regina",
+        "wedding limo saskatoon",
+        "airport limo saskatoon",
+        "limousine rental regina"
+      ],
+      "commercial_intent_keywords": [
+        "how much does limo rental cost",
+        "limousine service near me",
+        "party bus rental prices",
+        "wedding transportation quotes",
+        "airport limo booking"
+      ],
+      "seasonal_keywords": [
+        "prom limo rental 2025",
+        "graduation limo service",
+        "wedding transportation summer",
+        "holiday party bus rental",
+        "new years eve limo"
+      ]
+    },
+    "gsc_analysis_steps": [
+      "1. Go to Performance \u2192 Search Results",
+      "2. Filter by Date: Last 3 months for recent trends",
+      "3. Sort by Impressions to see high-volume queries",
+      "4. Identify Saskatchewan/local keywords in top 50 queries",
+      "5. Note current position and CTR for each priority keyword",
+      "6. Export data for trend analysis"
+    ],
+    "optimization_targets": {
+      "page_2_opportunities": "Keywords ranking 11-20 (easy wins)",
+      "low_ctr_optimization": "High impression keywords with <5% CTR",
+      "new_content_needs": "High volume queries you don't rank for",
+      "seasonal_preparation": "Prom season (March-May) and wedding season prep"
+    }
+  },
+  "weekly_monitoring_checklist": {
+    "monday_performance_review": [
+      "\ud83d\udcca Check Performance \u2192 Search Results for weekly changes",
+      "\ud83c\udfaf Review top 10 queries by impressions",
+      "\ud83d\udcc8 Track ranking changes for priority Saskatchewan keywords",
+      "\ud83d\udd0d Identify new queries appearing in results",
+      "\ud83d\udcf1 Check mobile vs desktop performance differences"
+    ],
+    "tuesday_technical_health": [
+      "\ud83d\udd27 Review Indexing \u2192 Pages for new issues",
+      "\u26a1 Check Core Web Vitals for performance problems",
+      "\ud83d\udcf1 Monitor Mobile Usability alerts",
+      "\ud83d\uddfa\ufe0f Verify sitemap coverage and submission",
+      "\ud83d\udea8 Check for manual actions or security issues"
+    ],
+    "wednesday_optimization_planning": [
+      "\ud83c\udfaf Identify pages with optimization potential",
+      "\ud83d\udcdd Plan content updates based on query data",
+      "\ud83d\udd04 Review pages that need title/description optimization",
+      "\ud83d\udcca Analyze competitor presence in search results",
+      "\ud83d\udca1 Generate content ideas from search queries"
+    ],
+    "friday_progress_tracking": [
+      "\ud83d\udcc8 Compare week-over-week performance metrics",
+      "\u2705 Document completed optimization tasks",
+      "\ud83d\udccb Plan next week's optimization priorities",
+      "\ud83d\udcca Update SEO performance dashboard",
+      "\ud83c\udfaf Set goals for upcoming week"
+    ]
+  },
+  "immediate_action_plan": {
+    "this_week": {
+      "priority": "CRITICAL",
+      "tasks": [
+        "Export Performance data to identify top queries and optimization opportunities",
+        "Investigate 14 non-indexed pages and fix technical issues",
+        "Analyze current keyword rankings for Saskatchewan limousine terms",
+        "Check Core Web Vitals and mobile usability status",
+        "Set up weekly GSC monitoring routine"
+      ]
+    },
+    "next_week": {
+      "priority": "HIGH",
+      "tasks": [
+        "Optimize pages with high impressions but low CTR",
+        "Create content for high-volume queries you don't rank for",
+        "Fix any technical issues identified in indexing review",
+        "Submit updated sitemap if needed",
+        "Begin weekly performance tracking"
+      ]
+    },
+    "month_2": {
+      "priority": "MEDIUM",
+      "tasks": [
+        "Analyze seasonal trends for prom and wedding seasons",
+        "Develop content calendar based on search query patterns",
+        "Track ROI of GSC-based optimizations",
+        "Expand keyword tracking to cover competitor terms",
+        "Implement advanced GSC monitoring and reporting"
+      ]
+    }
+  },
+  "success_metrics": {
+    "short_term_goals": [
+      "Increase indexing rate from 77% to 90%+",
+      "Identify and optimize 5 page-2 ranking opportunities",
+      "Improve average CTR by 1-2% for top queries",
+      "Fix all technical indexing issues"
+    ],
+    "long_term_goals": [
+      "Achieve top 3 rankings for priority Saskatchewan keywords",
+      "Increase organic search traffic by 50%",
+      "Establish seasonal content optimization routine",
+      "Build comprehensive local search dominance"
+    ]
+  }
+}
