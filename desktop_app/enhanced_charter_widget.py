@@ -619,11 +619,21 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
         return None
     
     def create_new_charter(self):
-        """Create new charter"""
-        dialog = CharterDetailDialog(self.db, None, self)
-        result = dialog.exec()
+        """Create new charter - search for client first or create new client"""
+        from client_search_dialog import ClientSearchDialog
+        
+        search_dialog = ClientSearchDialog(self.db, self)
+        result = search_dialog.exec()
+        
         if result:
-            self.load_data()
+            # User selected or created a client
+            selected_client_id = search_dialog.get_selected_client_id()
+            if selected_client_id:
+                # Open charter form with pre-selected client
+                dialog = CharterDetailDialog(self.db, None, self, client_id=selected_client_id)
+                result = dialog.exec()
+                if result:
+                    self.load_data()
     
     def edit_selected(self):
         """Edit selected charter"""

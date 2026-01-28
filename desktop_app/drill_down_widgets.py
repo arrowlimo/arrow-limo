@@ -26,10 +26,11 @@ class CharterDetailDialog(QDialog):
     
     saved = pyqtSignal(dict)  # Emit when changes saved
     
-    def __init__(self, db, reserve_number=None, parent=None, initial_tab=None):
+    def __init__(self, db, reserve_number=None, parent=None, initial_tab=None, client_id=None):
         super().__init__(parent)
         self.db = db
         self.reserve_number = reserve_number
+        self.client_id = client_id  # Pre-selected client for new charters
         self.is_locked = False
         self.charter_data = None
         
@@ -120,6 +121,10 @@ class CharterDetailDialog(QDialog):
         # Load dropdown options BEFORE loading data
         self.load_driver_options()
         self.load_vehicle_options()
+        
+        # If client_id is provided (pre-selected for new charter), load that client info
+        if client_id and not reserve_number:
+            self.load_client_info(client_id)
         
         # Load data if reserve_number provided
         if reserve_number:
@@ -1559,6 +1564,26 @@ class CharterDetailDialog(QDialog):
         layout.addStretch()
         widget.setLayout(layout)
         return widget
+    
+    def load_client_info(self, client_id):
+        """Load client info and populate client field for new charter"""
+        try:
+            cur = self.db.cursor()
+            cur.execute("""
+                SELECT client_id, client_name
+                FROM clients
+                WHERE client_id = %s
+            """, (client_id,))
+            
+            row = cur.fetchone()
+            cur.close()
+            
+            if row:
+                self.client.setText(row[1])  # Set client name display
+                # Store client_id for saving later
+                self.selected_client_id = row[0]
+        except Exception as e:
+            print(f"Error loading client info: {e}")
     
     def load_charter_data(self):
         """Load charter data from database"""
