@@ -417,16 +417,22 @@ class BeverageOrderingDialog(QDialog):
 
     # Images removed: no icon loading needed
     
+    def add_selected_beverage(self):
+        """Add beverage from double-click (uses selected row's quantity)"""
+        row = self.beverage_list.currentRow()
+        if row >= 0:
+            self.add_from_row(row)
+    
     def add_from_row(self, row):
         """Add beverage from selected row"""
-        qty_widget = self.beverage_list.cellWidget(row, 6)
+        qty_widget = self.beverage_list.cellWidget(row, 5)  # Column 5 is the Qty spinbox
         qty = qty_widget.value()
         
         if qty <= 0:
             QMessageBox.warning(self, "Warning", "Please enter quantity > 0")
             return
         
-        bev_name = self.beverage_list.item(row, 1).text()
+        bev_name = self.beverage_list.item(row, 0).text()  # Column 0 is the Name
         bev = next((b for b in self.system.beverages if b["name"] == bev_name), None)
         
         if bev:
