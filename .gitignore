@@ -16,11 +16,20 @@ reports/
 # Test files (not needed for web)
 tests/
 
-# Documentation (not needed for web deployment)
+# Project documentation - organized structure
+project-docs/conversation-outputs/
+project-docs/session-logs/
+# Keep these tracked:
+# project-docs/copilot-config/ ✅
+# project-docs/reference-guides/ ✅
+# project-docs/code-snippets/ ✅
+# project-docs/README.md ✅
+
+# Legacy documentation (not needed for web deployment)
 docs/
 *.md
 !README.md
-!.github/*.md
+!project-docs/**/*.md
 
 # Config files (local only)
 config/
