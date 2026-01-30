@@ -25,34 +25,54 @@ class LoginRequest(BaseModel):
 
 
 def verify_user_credentials(username: str, password: str) -> dict:
-    """Verify user login credentials against employees table"""
+    """Verify user login credentials against users table"""
     try:
+        import bcrypt
         conn = get_connection()
         cur = conn.cursor()
         
-        # Query employee with matching username/name (any role)
+        # Check users table first (for authenticated access)
         cur.execute("""
-            SELECT employee_id, name, role, phone 
-            FROM employees 
-            WHERE LOWER(name) = LOWER(%s)
+            SELECT user_id, username, email, role, password_hash, permissions, status
+            FROM users 
+            WHERE username = %s
             LIMIT 1
         """, (username,))
         
-        employee = cur.fetchone()
+        user = cur.fetchone()
+        
+        if user:
+            user_id, uname, email, role, pwd_hash, perms, status = user
+            
+            # Check status
+            if status and status.lower() != 'active':
+                cur.close()
+                conn.close()
+                return None
+            
+            # Verify password with bcrypt
+            if pwd_hash and bcrypt.checkpw(password.encode('utf-8'), pwd_hash.encode('utf-8')):
+                # Parse permissions
+                import json
+                permissions = {}
+                if perms:
+                    try:
+                        permissions = json.loads(perms) if isinstance(perms, str) else perms
+                    except:
+                        permissions = {}
+                
+                cur.close()
+                conn.close()
+                return {
+                    "employee_id": user_id,
+                    "name": uname,
+                    "role": role or "user",
+                    "permissions": permissions
+                }
+        
         cur.close()
         conn.close()
-        
-        if not employee:
-            return None
-        
-        # For now, accept any password (demo mode)
-        # In production, check against hashed password
-        return {
-            "employee_id": employee[0],
-            "name": employee[1],
-            "role": employee[2],
-            "phone": employee[3]
-        }
+        return None
     except Exception as e:
         print(f"Auth error: {e}")
         return None
@@ -217,7 +237,7 @@ async def login_submit(
     password: str = Form(...),
     response: Response = None
 ):
-    """Handle login form submission"""
+    """Handle login form submission (HTML form)"""
     user = verify_user_credentials(username, password)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -231,6 +251,30 @@ async def login_submit(
         samesite="lax"
     )
     return {"status": "success", "redirect": "/auth/dashboard"}
+
+
+@router.post("/login")
+async def login_json(login_request: LoginRequest):
+    """Handle JSON login (for Vue frontend)"""
+    user = verify_user_credentials(login_request.username, login_request.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Create session token
+    session_token = create_session(user["employee_id"], user["name"])
+    
+    # Return JWT-style response for frontend
+    return {
+        "access_token": session_token,
+        "token_type": "bearer",
+        "user": {
+            "user_id": user["employee_id"],
+            "username": login_request.username,
+            "name": user["name"],
+            "role": user.get("role", "user"),
+            "permissions": user.get("permissions", {})
+        }
+    }
 
 
 @router.get("/dashboard", response_class=HTMLResponse)

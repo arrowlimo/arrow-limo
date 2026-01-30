@@ -58,7 +58,7 @@ export default {
       this.loading = true
       
       try {
-        const response = await fetch('/api/driver-auth/login', {
+        const response = await fetch('/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
