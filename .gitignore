@@ -70,6 +70,16 @@ BUILD_DEPLOYMENT.md
 DEPLOYMENT_QUICK_START.md
 DISPATCHER_SETUP.md
 
+# Test files with credentials (keep local only)
+check_matt_password.py
+check_users_table.py
+passwords.txt
+render_health_check.py
+pre_render_deployment_check.py
+RENDER_DEPLOYMENT_READY.md
+RENDER_DEPLOYMENT_GUIDE.md
+render.yaml
+
 # Logs
 *.log
 logs/
