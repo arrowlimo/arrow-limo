@@ -1,6 +1,7 @@
 """
 User authentication routes - supports any user role (admin, driver, manager, super_user, etc.)
 Serves login page and handles login for all user types
+Last updated: 2026-01-30 11:45 AM - Added JSON login endpoint
 """
 
 import os
