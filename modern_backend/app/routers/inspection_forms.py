@@ -22,8 +22,10 @@ router = APIRouter(prefix="/api/inspection-forms", tags=["inspection-forms"])
 security = HTTPBearer()
 settings = get_settings()
 
-# Use settings SECRET_KEY or fallback
-SECRET_KEY = os.environ.get("SECRET_KEY", "your-secret-key-change-in-production")
+# Use settings SECRET_KEY - MUST be set in environment
+if not os.environ.get("SECRET_KEY"):
+    raise ValueError("SECRET_KEY environment variable is required for inspection form authentication")
+SECRET_KEY = os.environ.get("SECRET_KEY")
 
 
 def verify_jwt_token(credentials: HTTPAuthorizationCredentials) -> dict:

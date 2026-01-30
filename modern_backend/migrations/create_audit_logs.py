@@ -11,7 +11,7 @@ def setup_audit_logs_table():
         "host": os.environ.get("DB_HOST", "localhost"),
         "database": os.environ.get("DB_NAME", "almsdata"),
         "user": os.environ.get("DB_USER", "postgres"),
-        "password": os.environ.get("DB_PASSWORD", "***REMOVED***"),
+        "password": os.environ.get("DB_PASSWORD"),
     }
     
     conn = psycopg2.connect(**conn_params)
