@@ -265,10 +265,13 @@ async def login_submit(
 @router.post("/login")
 async def login_json(login_request: LoginRequest):
     """Handle JSON login (for Vue frontend)"""
+    print(f"[LOGIN] Attempting login for username: {login_request.username}")
     user = verify_user_credentials(login_request.username, login_request.password)
     if not user:
+        print(f"[LOGIN] Failed - invalid credentials for {login_request.username}")
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
+    print(f"[LOGIN] Success - authenticated {login_request.username} as {user.get('role')}")
     # Create session token
     session_token = create_session(user["employee_id"], user["name"])
     
