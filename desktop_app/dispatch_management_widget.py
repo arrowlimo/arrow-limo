@@ -181,28 +181,19 @@ class DispatchManagementWidget(QWidget):
         self.display_bookings(filtered)
     
     def handle_double_click(self, item):
-        """Handle double-click on table - open charter booking form (auto-filled)"""
+        """Handle double-click on table - open charter detail dialog"""
         row = item.row()
         if row < 0 or row >= len(self.bookings_data):
             return
             
         booking = self.bookings_data[row]
-        charter_id = booking[0]  # charter_id
+        reserve_number = booking[1]  # reserve_number is second column
         
-        # Open charter form with existing data
+        # Open charter detail dialog (drill-down)
         try:
-            from main import CharterFormWidget
+            from drill_down_widgets import CharterDetailDialog
             
-            dialog = QDialog(self)
-            dialog.setWindowTitle(f"Charter Booking - {booking[1]}")
-            dialog.setGeometry(100, 100, 1400, 800)
-            
-            layout = QVBoxLayout()
-            charter_form = CharterFormWidget(self.db, charter_id=charter_id)
-            charter_form.saved.connect(lambda: self.on_charter_saved(dialog))
-            layout.addWidget(charter_form)
-            dialog.setLayout(layout)
-            
+            dialog = CharterDetailDialog(self.db, reserve_number=str(reserve_number), parent=self)
             dialog.exec()
             # Refresh the table after closing dialog
             self.load_bookings()
@@ -211,7 +202,7 @@ class DispatchManagementWidget(QWidget):
                 self.db.rollback()
             except:
                 pass
-            QMessageBox.warning(self, "Error", f"Failed to open charter: {e}")
+            QMessageBox.warning(self, "Error", f"Failed to open charter details: {e}")
 
     def new_booking(self):
         """Create new booking - check calendar first, then client finder, then open charter form"""
