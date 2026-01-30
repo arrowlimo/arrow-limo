@@ -9,7 +9,7 @@ NEON_CONFIG = {
     "port": int(os.getenv("NEON_PORT", "5432")),
     "database": os.getenv("NEON_DB", "neondb"),
     "user": os.getenv("NEON_USER", "neondb_owner"),
-    "password": os.getenv("NEON_PASSWORD", "***REMOVED***"),
+    "password": os.getenv("NEON_PASSWORD", "npg_89MbcFmZwUWo"),
     "sslmode": os.getenv("NEON_SSLMODE", "require"),
 }
 

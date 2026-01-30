@@ -2,7 +2,7 @@
 """Apply reserve_number linkage from email_financial_events to ETR payments"""
 import psycopg2
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 print("\n" + "="*80)

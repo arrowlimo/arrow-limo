@@ -7,7 +7,7 @@ Verify whether receipts already exist for today's inserted entries.
 import psycopg2
 from datetime import date
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 WCB_VENDOR = "WCB Alberta (Account 4973477)"
 WCB_DATES = [date(2019,7,19), date(2019,9,19), date(2019,11,19)]

@@ -12,7 +12,7 @@ import os
 os.environ['DB_HOST'] = 'localhost'
 os.environ['DB_NAME'] = 'almsdata'
 os.environ['DB_USER'] = 'postgres'
-os.environ['DB_PASSWORD'] = '***REMOVED***'
+os.environ['DB_PASSWORD'] = '***REDACTED***'
 
 # Complete statement data from PDF
 STATEMENT_DATA = """
@@ -186,7 +186,7 @@ def main():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     cur = conn.cursor()
     

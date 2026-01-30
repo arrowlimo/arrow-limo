@@ -15,7 +15,7 @@ from datetime import datetime
 from decimal import Decimal
 import sys
 
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REDACTED***")
 LMS_DB = r"L:\limo\data\lms.mdb"
 
 def load_lms_data():

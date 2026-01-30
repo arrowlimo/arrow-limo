@@ -6,7 +6,7 @@ Analyze and fix account 1615 -> Move to proper CIBC account (0228362)
 import psycopg2
 import hashlib
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 print("="*80)

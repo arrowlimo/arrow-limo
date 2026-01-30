@@ -34,7 +34,7 @@ class MockDB:
                 host='localhost',
                 database='almsdata',
                 user='postgres',
-                password='***REMOVED***'
+                password='***REDACTED***'
             )
         except Exception as e:
             print(f"❌ Database connection failed: {e}")

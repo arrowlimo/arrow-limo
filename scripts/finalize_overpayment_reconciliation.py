@@ -3,7 +3,7 @@
 import psycopg2
 from decimal import Decimal
 
-PG = dict(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+PG = dict(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 
 pg = psycopg2.connect(**PG); cur = pg.cursor()
 

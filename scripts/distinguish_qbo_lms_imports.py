@@ -5,7 +5,7 @@ Determine if 2013-2015 have QBO data or only LMS data.
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor(cursor_factory=RealDictCursor)
 
 print("="*80)

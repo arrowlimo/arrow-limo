@@ -61,7 +61,7 @@ def extract_pg_data():
             host="localhost",
             database="almsdata",
             user="postgres",
-            password="***REMOVED***"
+            password="***REDACTED***"
         )
         conn.autocommit = True
         cursor = conn.cursor()

@@ -15,7 +15,7 @@ def get_connection():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
 
 def analyze_gst_accounts():

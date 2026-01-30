@@ -16,7 +16,7 @@ def get_db_connection():
         host="localhost",
         database="almsdata",
         user="postgres",
-        password="***REMOVED***"
+        password="***REDACTED***"
     )
 
 def fix_missing_charges(write_mode=False):

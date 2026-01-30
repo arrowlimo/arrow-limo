@@ -16,7 +16,7 @@ from datetime import datetime
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_NAME = os.getenv('DB_NAME', 'almsdata')
 DB_USER = os.getenv('DB_USER', 'postgres')
-DB_PASSWORD = os.getenv('DB_PASSWORD', '***REMOVED***')
+DB_PASSWORD = os.getenv('DB_PASSWORD', '***REDACTED***')
 
 def get_connections():
     """Get both LMS and PostgreSQL connections."""
@@ -386,6 +386,6 @@ if __name__ == "__main__":
     os.environ['DB_HOST'] = 'localhost'
     os.environ['DB_NAME'] = 'almsdata'
     os.environ['DB_USER'] = 'postgres'
-    os.environ['DB_PASSWORD'] = '***REMOVED***'
+    os.environ['DB_PASSWORD'] = '***REDACTED***'
     
     main()

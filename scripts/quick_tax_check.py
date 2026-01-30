@@ -1,5 +1,5 @@
 import psycopg2
-c = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+c = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 r = c.cursor()
 
 # Revenue by year

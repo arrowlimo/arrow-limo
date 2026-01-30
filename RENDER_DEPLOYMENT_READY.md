@@ -74,7 +74,7 @@ Copy these into Render Dashboard:
 DB_HOST=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech
 DB_NAME=neondb
 DB_USER=neondb_owner
-DB_PASSWORD=***REMOVED***
+DB_PASSWORD=npg_89MbcFmZwUWo
 DB_SSLMODE=require
 DB_PORT=5432
 API_HOST=0.0.0.0

@@ -4,7 +4,7 @@ import json
 conn = psycopg2.connect(
     dbname="almsdata",
     user="postgres",
-    password="***REMOVED***",
+    password="***REDACTED***",
     host="localhost"
 )
 

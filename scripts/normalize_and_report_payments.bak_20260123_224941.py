@@ -11,7 +11,7 @@ This script creates (or replaces) a view `payments_tender_normalized` and prints
 import psycopg2
 from decimal import Decimal
 
-DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 
 def fmt(x):

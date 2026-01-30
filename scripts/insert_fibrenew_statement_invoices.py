@@ -20,7 +20,7 @@ import pandas as pd
 import psycopg2
 import re
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 EXCEL_FILE = r"L:\\limo\\receipts\\Document_20171129_0001.xlsx"
 
 INVOICE_PREFIX_PATTERN = re.compile(r'(?:[1I]?NV)\s*#?\s*(\d+)', re.IGNORECASE)

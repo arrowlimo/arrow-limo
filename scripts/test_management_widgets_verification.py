@@ -20,7 +20,7 @@ def test_widgets():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     
     # Create Qt application

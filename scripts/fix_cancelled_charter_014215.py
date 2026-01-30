@@ -19,7 +19,7 @@ def get_conn():
         host='localhost',
         dbname='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
 
 def fetch_payments(cur):

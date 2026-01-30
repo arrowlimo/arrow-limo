@@ -7,7 +7,7 @@ import pandas as pd
 import psycopg2
 from datetime import datetime
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # Get all banking accounts with transaction counts for 2012-2014
 query_accounts = """

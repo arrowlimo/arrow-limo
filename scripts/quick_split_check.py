@@ -5,7 +5,7 @@ Quick check: Are multi-receipt banking TXs legitimate splits or duplicates?
 import psycopg2, os
 from decimal import Decimal
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 # Sample the first problematic TX we identified

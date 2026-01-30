@@ -20,7 +20,7 @@ def get_db_connection():
         host="localhost",
         database="almsdata",
         user="postgres",
-        password="***REMOVED***"
+        password="***REDACTED***"
     )
 
 # 2015 CIBC 1615 monthly data extracted from verified statements

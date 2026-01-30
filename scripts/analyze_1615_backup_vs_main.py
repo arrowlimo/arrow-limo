@@ -5,7 +5,7 @@ Check what's in the 1615 backup tables vs main table to understand the data loss
 
 import psycopg2
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 print("="*80)

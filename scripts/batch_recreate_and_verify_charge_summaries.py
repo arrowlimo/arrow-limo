@@ -38,7 +38,7 @@ def get_db_connection():
     host = os.environ.get("DB_HOST", "localhost")
     name = os.environ.get("DB_NAME", "almsdata")
     user = os.environ.get("DB_USER", "postgres")
-    password = os.environ.get("DB_PASSWORD", "***REMOVED***")
+    password = os.environ.get("DB_PASSWORD", "***REDACTED***")
     port = int(os.environ.get("DB_PORT", "5432"))
     return psycopg2.connect(host=host, dbname=name, user=user, password=password, port=port)
 

@@ -16,7 +16,7 @@ def get_db_connection():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
 
 # Extracted transactions from CIBC statement (Jan 2012)

@@ -5,7 +5,7 @@ The vendor name is often truncated - need to look at linked banking transactions
 """
 import psycopg2
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 # Get all POINT OF SALE receipts with their banking descriptions

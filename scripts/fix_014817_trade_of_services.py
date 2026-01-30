@@ -10,7 +10,7 @@ import pyodbc
 pg_conn = psycopg2.connect(
     dbname='almsdata',
     user='postgres',
-    password='***REMOVED***',
+    password='***REDACTED***',
     host='localhost'
 )
 pg_cur = pg_conn.cursor()

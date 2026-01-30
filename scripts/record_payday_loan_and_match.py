@@ -18,7 +18,7 @@ import psycopg2
 from datetime import date, timedelta
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # Defaults; can be overridden by CLI args
 LOAN = {

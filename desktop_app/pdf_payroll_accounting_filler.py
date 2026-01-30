@@ -30,7 +30,7 @@ import json
 class PayrollAccountingPDFFiller:
     """Generate PDF forms for payroll and accounting functions"""
     
-    def __init__(self, db_host="localhost", db_name="almsdata", db_user="postgres", db_password="***REMOVED***"):
+    def __init__(self, db_host="localhost", db_name="almsdata", db_user="postgres", db_password="***REDACTED***"):
         self.db_config = {
             'host': db_host,
             'database': db_name,

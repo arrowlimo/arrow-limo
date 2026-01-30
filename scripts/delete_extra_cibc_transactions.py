@@ -5,7 +5,7 @@ Transaction IDs: 55604 (2018-02-06, $520.93), 55596 (2018-07-09, $1921.28)
 """
 import psycopg2
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 # Get transaction details before deletion

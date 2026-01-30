@@ -6,7 +6,7 @@ Analyze whether any WCB or Fibrenew banking transactions are not matched to our 
 import psycopg2
 from datetime import timedelta
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 
 def fetchall(cur, q, params=None):

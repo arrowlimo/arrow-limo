@@ -8,7 +8,7 @@ import psycopg2
 from datetime import datetime, timedelta
 import re
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 print('='*80)

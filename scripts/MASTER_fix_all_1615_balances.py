@@ -12,7 +12,7 @@ def get_db_connection():
         host="localhost",
         database="almsdata",
         user="postgres",
-        password="***REMOVED***"
+        password="***REDACTED***"
     )
 
 def fix_null_balances_for_year(cur, account_number, year, apply_fixes=False):

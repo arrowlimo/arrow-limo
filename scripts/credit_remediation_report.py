@@ -1,7 +1,7 @@
 import psycopg2
 import csv
 
-c = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+c = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 cur = c.cursor()
 
 print("=" * 70)

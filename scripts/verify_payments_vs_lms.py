@@ -25,7 +25,7 @@ def get_pg_connection():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
 
 def compare_payment_totals():

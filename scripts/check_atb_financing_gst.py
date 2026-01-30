@@ -6,7 +6,7 @@ and shows how many have gst_amount > 0 vs = 0, with a few sample rows.
 """
 import psycopg2
 
-DB = dict(dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost')
+DB = dict(dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost')
 
 KEYWORDS = [
     'atb',

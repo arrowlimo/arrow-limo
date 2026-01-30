@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 
 LMS_DB = r"L:\limo\data\lms.mdb"
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REDACTED***")
 
 def main():
     try:

@@ -15,7 +15,7 @@ PG_DB = os.getenv('PGDATABASE', 'almsdata')
 PG_USER = os.getenv('PGUSER', 'postgres')
 PG_HOST = os.getenv('PGHOST', 'localhost')
 PG_PORT = os.getenv('PGPORT', '5432')
-PG_PASSWORD = os.getenv('PGPASSWORD', '***REMOVED***')
+PG_PASSWORD = os.getenv('PGPASSWORD', '***REDACTED***')
 
 QB_DIRS = [
     r"L:\\limo\\quickbooks",

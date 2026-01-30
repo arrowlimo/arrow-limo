@@ -1,7 +1,7 @@
 """Check 2012 imported data."""
 import psycopg2
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 cur.execute("""

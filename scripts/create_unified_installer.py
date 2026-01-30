@@ -648,7 +648,7 @@ class DatabaseMigrator:
                 'port': 5432,
                 'database': 'almsdata',
                 'user': 'postgres',
-                'password': '***REMOVED***'
+                'password': '***REDACTED***'
             },
             'enterprise': {
                 'type': 'postgresql',
@@ -656,7 +656,7 @@ class DatabaseMigrator:
                 'port': 5432,
                 'database': 'almsdata',
                 'user': 'postgres',
-                'password': '***REMOVED***'
+                'password': '***REDACTED***'
             }
         }
         return configs.get(self.install_type, configs['standard'])

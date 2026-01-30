@@ -10,7 +10,7 @@ READ-ONLY: Does not modify data. Designed to be idempotent and safe after a cras
 import psycopg2
 from collections import defaultdict
 
-DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 RENT_CODES = {'6800', 'Rent', 'rent'}
 UTIL_CODES = {'6820', 'Utilities', 'utilities'}

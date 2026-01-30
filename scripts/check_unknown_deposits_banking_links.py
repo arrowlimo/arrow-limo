@@ -2,7 +2,7 @@ import psycopg2
 
 VENDORS = ['UNKNOWN PAYEE','DEPOSIT','DEPOSIT #X']
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 print("Banking linkage summary for UNKNOWN PAYEE / DEPOSIT / DEPOSIT #X:")

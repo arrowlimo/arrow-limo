@@ -13,7 +13,7 @@ CSV_PATH = r"L:/limo/new_system/receipts/items-2025-07-01-2025-08-16.csv"
 DB_CONFIG = {
     'dbname': 'almsdata',
     'user': 'postgres',
-    'password': '***REMOVED***',
+    'password': '***REDACTED***',
     'host': 'localhost',
     'port': 5432
 }

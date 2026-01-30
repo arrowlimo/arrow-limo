@@ -12,7 +12,7 @@ VENDOR_PATTERNS = [
     '%cineplex%',
 ]
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 like_clauses = ["LOWER(vendor_name) LIKE %s" for _ in VENDOR_PATTERNS]

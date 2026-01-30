@@ -14,7 +14,7 @@ def get_db_connection():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
 
 def extract_text_from_pdf(pdf_path):

@@ -11,7 +11,7 @@ LMS_PATH = r'L:\limo\database_backups\lms2026.mdb'
 PG_HOST = "localhost"
 PG_DB = "almsdata"
 PG_USER = "postgres"
-PG_PASSWORD = "***REMOVED***"
+PG_PASSWORD = "***REDACTED***"
 
 def connect_lms():
     """Connect to LMS Access database"""

@@ -17,7 +17,7 @@ Dry-run only; does not modify data.
 import psycopg2, pyodbc, csv, math
 from decimal import Decimal
 
-PG = dict(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+PG = dict(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 LMS_PATH = r'L:\\limo\\backups\\lms.mdb'
 
 LARGE_PAYMENT_THRESHOLD = Decimal('2500')  # heuristic for multi-charter prepay

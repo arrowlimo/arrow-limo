@@ -19,7 +19,7 @@ from datetime import datetime
 
 KEYWORDS_REFUND = ["refund", "refunded", "reversal", "chargeback", "cancelled", "canceled"]
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 def get_conn():
     return psycopg2.connect(**DB)

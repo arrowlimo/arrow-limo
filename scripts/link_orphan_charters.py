@@ -9,7 +9,7 @@ import pyodbc
 import sys
 from difflib import SequenceMatcher
 
-DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REMOVED***')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REDACTED***')
 LMS_PATH = r'L:\limo\database_backups\lms2026.mdb'
 
 def similarity(a, b):

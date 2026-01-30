@@ -18,7 +18,7 @@ Safety:
 - Verifies totals match payroll entry values (base_wages, gratuity_amount, expense_reimbursement) when possible.
 
 Environment:
-- DB_HOST, DB_NAME, DB_USER, DB_PASSWORD (fallbacks: localhost, almsdata, postgres, ***REMOVED***)
+- DB_HOST, DB_NAME, DB_USER, DB_PASSWORD (fallbacks: localhost, almsdata, postgres, ***REDACTED***)
 """
 import os
 import sys
@@ -64,7 +64,7 @@ def get_conn():
     host = os.environ.get('DB_HOST', 'localhost')
     name = os.environ.get('DB_NAME', 'almsdata')
     user = os.environ.get('DB_USER', 'postgres')
-    pwd = os.environ.get('DB_PASSWORD', '***REMOVED***')
+    pwd = os.environ.get('DB_PASSWORD', '***REDACTED***')
     return psycopg2.connect(host=host, database=name, user=user, password=pwd)
 
 

@@ -6,7 +6,7 @@ import psycopg2
 REPORT_PATH = r"L:\limo\reports\lms_duplicate_candidates.csv"
 
 conn = psycopg2.connect(
-    dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost'
+    dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost'
 )
 cur = conn.cursor()
 

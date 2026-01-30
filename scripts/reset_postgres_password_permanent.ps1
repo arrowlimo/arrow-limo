@@ -3,7 +3,7 @@
 # This temporarily uses 'trust' auth to reset, then restores 'scram-sha-256'
 
 param(
-    [string]$NewPassword = '***REMOVED***'
+    [string]$NewPassword = '***REDACTED***'
 )
 
 Write-Host "PostgreSQL Password Reset (PowerShell)" -ForegroundColor Cyan

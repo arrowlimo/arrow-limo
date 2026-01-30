@@ -2,7 +2,7 @@ import psycopg2
 import pyodbc
 
 # Connect to PostgreSQL
-pg = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+pg = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 pg_cur = pg.cursor()
 
 # Connect to LMS

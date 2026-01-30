@@ -11,7 +11,7 @@ DB_CONFIG = {
     'host': 'localhost',
     'database': 'almsdata',
     'user': 'postgres',
-    'password': '***REMOVED***'
+    'password': '***REDACTED***'
 }
 
 # Correct GL code for client beverages

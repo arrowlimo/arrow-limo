@@ -10,7 +10,7 @@ START = date(2018, 9, 1)
 END = date(2019, 6, 30)
 
 def main():
-    conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+    conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
     cur = conn.cursor()
     print(f"Scan {START}..{END} for debit amounts: {', '.join([f'{a:.2f}' for a in AMOUNTS])}")
     for amt in AMOUNTS:

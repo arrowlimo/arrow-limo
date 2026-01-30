@@ -16,7 +16,7 @@ conn = psycopg2.connect(
     host="localhost",
     database="almsdata",
     user="postgres",
-    password="***REMOVED***"
+    password="***REDACTED***"
 )
 
 print("=" * 80)

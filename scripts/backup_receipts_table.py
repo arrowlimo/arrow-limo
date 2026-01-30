@@ -10,7 +10,7 @@ backup_file = f"L:\\limo\\almsdata_backup_BEFORE_RECEIPT_REBUILD_{timestamp}.sql
 print(f"Creating Python-based backup of receipts table...")
 print(f"Target: {backup_file}\n")
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 # Get receipt count

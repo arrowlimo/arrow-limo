@@ -34,7 +34,7 @@ def get_db_connection():
         host="localhost",
         database="almsdata",
         user="postgres",
-        password="***REMOVED***"
+        password="***REDACTED***"
     )
 
 def backup_table(cur, table_name, backup_suffix):

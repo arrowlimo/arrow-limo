@@ -4,7 +4,7 @@
 import psycopg2
 import pyodbc
 
-pg_conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+pg_conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 pg_cur = pg_conn.cursor()
 
 lms_conn = pyodbc.connect(f'DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ=L:\\limo\\backups\\lms.mdb;')

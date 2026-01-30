@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 def get_conn():
-    return psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+    return psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 
 
 def ensure_charges_backup(cur, backup_table):

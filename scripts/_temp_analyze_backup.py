@@ -41,7 +41,7 @@ with open(csv_file, 'r', encoding='utf-8') as f:
 
 # Compare to current database
 print("\n=== CURRENT DATABASE ===")
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 cur.execute("""

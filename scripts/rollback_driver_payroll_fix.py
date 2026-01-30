@@ -10,7 +10,7 @@ from psycopg2 import sql
 from datetime import datetime
 
 def connect():
-    return psycopg2.connect(dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost')
+    return psycopg2.connect(dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost')
 
 
 def get_latest_backup_table(cur):

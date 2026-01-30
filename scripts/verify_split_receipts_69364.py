@@ -3,7 +3,7 @@
 
 import psycopg2
 
-conn = psycopg2.connect('host=localhost user=postgres password=***REMOVED*** dbname=almsdata')
+conn = psycopg2.connect('host=localhost user=postgres password=***REDACTED*** dbname=almsdata')
 cur = conn.cursor()
 
 print("✅ Verification of Split Receipts Created:\n")

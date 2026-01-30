@@ -16,7 +16,7 @@ from datetime import datetime
 from typing import Dict, List, Tuple
 
 LMS_PATH = r"L:\limo\database_backups\lms2026.mdb"
-DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REMOVED***')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REDACTED***')
 
 class ParentChildLinker:
     def __init__(self):

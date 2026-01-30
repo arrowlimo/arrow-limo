@@ -16,7 +16,7 @@ parser.add_argument('--verify-lms', action='store_true', help='Verify against LM
 args = parser.parse_args()
 
 # Connect to PostgreSQL
-pg_conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+pg_conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 pg_cur = pg_conn.cursor()
 
 print('='*100)

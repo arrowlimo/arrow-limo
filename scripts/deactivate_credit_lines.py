@@ -8,7 +8,7 @@ parser = argparse.ArgumentParser(description="Deactivate credit_lines")
 parser.add_argument("--write", action="store_true", help="Apply changes")
 args = parser.parse_args()
 
-conn = psycopg2.connect(host="localhost", database="almsdata", user="postgres", password="***REMOVED***")
+conn = psycopg2.connect(host="localhost", database="almsdata", user="postgres", password="***REDACTED***")
 cur = conn.cursor()
 
 cur.execute("SELECT COUNT(*) FROM credit_lines WHERE COALESCE(is_active, true) = true")

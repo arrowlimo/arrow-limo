@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import psycopg2
 
-conn = psycopg2.connect(host='localhost', user='postgres', password='***REMOVED***', database='almsdata')
+conn = psycopg2.connect(host='localhost', user='postgres', password='***REDACTED***', database='almsdata')
 cur = conn.cursor()
 
 # Check 2014-2017 summary by account number

@@ -28,7 +28,7 @@ def get_conn():
         host='localhost',
         dbname='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
 
 def fetch_charter(cur, reserve_number):

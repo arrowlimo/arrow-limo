@@ -27,7 +27,7 @@ DB_CONFIG = {
     'host': 'localhost',
     'database': 'almsdata',
     'user': 'postgres',
-    'password': '***REMOVED***'
+    'password': '***REDACTED***'
 }
 
 def get_all_tables():

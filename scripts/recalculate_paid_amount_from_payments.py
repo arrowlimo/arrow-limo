@@ -9,7 +9,7 @@ from datetime import datetime
 
 conn = psycopg2.connect(
     host='localhost', database='almsdata',
-    user='postgres', password='***REMOVED***'
+    user='postgres', password='***REDACTED***'
 )
 cur = conn.cursor()
 

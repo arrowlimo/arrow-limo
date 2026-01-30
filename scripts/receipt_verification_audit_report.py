@@ -11,7 +11,7 @@ DB_CONFIG = {
     'host': 'localhost',
     'database': 'almsdata',
     'user': 'postgres',
-    'password': '***REMOVED***'
+    'password': '***REDACTED***'
 }
 
 def generate_verification_report():

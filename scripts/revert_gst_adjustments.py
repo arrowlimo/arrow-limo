@@ -21,7 +21,7 @@ import argparse
 import psycopg2
 from collections import defaultdict
 
-DB = dict(dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost')
+DB = dict(dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost')
 
 
 def find_latest_audits(conn, reason_substr: str):

@@ -14,7 +14,7 @@ pg_conn = psycopg2.connect(
     host='localhost',
     database='almsdata',
     user='postgres',
-    password='***REMOVED***'
+    password='***REDACTED***'
 )
 
 CHARTERS = ['016086', '013690', '017720']

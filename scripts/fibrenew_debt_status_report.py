@@ -10,7 +10,7 @@ Shows:
 import psycopg2
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 with psycopg2.connect(**DB) as cn:
     with cn.cursor() as cur:

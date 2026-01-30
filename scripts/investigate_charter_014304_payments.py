@@ -17,7 +17,7 @@ Output: console report + CSV under reports/investigate_charter_014304_YYYYMMDD_H
 import psycopg2, csv
 from datetime import datetime
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 TARGET = '014304'
 
 SEARCH_LIKE_COLUMNS = ['notes','status','payment_key','reference_number']

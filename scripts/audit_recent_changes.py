@@ -7,7 +7,7 @@ Shows exactly which records were modified and what changed
 import psycopg2
 import os
 
-DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REMOVED***')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REDACTED***')
 conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password=DB_PASSWORD)
 cur = conn.cursor()
 

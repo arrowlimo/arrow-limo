@@ -2,7 +2,7 @@
 """Investigate Fink Shannon overpayment details (PG vs LMS)."""
 import psycopg2, pyodbc, os
 
-PG_DSN = dict(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+PG_DSN = dict(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 LMS_PATH = r'L:\limo\backups\lms.mdb'
 
 def main():

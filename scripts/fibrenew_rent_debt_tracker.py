@@ -20,7 +20,7 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 MONTHLY_TOTAL = Decimal('682.50')      # Total price including GST
 MONTHLY_GST = Decimal('32.50')         # GST included in total

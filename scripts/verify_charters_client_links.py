@@ -14,7 +14,7 @@ import psycopg2
 import pyodbc
 from datetime import datetime
 
-DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REMOVED***')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REDACTED***')
 LMS_PATH = r"L:\limo\database_backups\lms2026.mdb"
 
 def get_alms_conn():

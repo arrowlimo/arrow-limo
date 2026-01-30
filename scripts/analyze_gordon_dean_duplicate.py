@@ -10,7 +10,7 @@ def analyze_gordon_dean():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     cur = conn.cursor()
     

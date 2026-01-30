@@ -10,7 +10,7 @@ from decimal import Decimal
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = "***REDACTED***"
 
 # 24 charters with missing payments (paid_amount > 0 but SUM(charter_payments) = $0.00)
 MISSING_PAYMENT_CHARTERS = [

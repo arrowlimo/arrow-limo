@@ -6,7 +6,7 @@ Amounts: 965.50 (monthly), 130.30 (final), 131.26 (e-transfer)
 import psycopg2
 from datetime import date
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 # Search for 965.50 (the monthly preauthorized payment amount)

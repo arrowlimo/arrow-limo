@@ -4,7 +4,7 @@ Find Money Mart payments of exactly $287.50 in banking_transactions
 import psycopg2
 
 def main():
-    conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+    conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
     cur = conn.cursor()
     print("\nSearching banking_transactions for Money Mart debits of exactly $287.50 ...\n")
     cur.execute(

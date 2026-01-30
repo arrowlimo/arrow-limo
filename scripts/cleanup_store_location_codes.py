@@ -6,7 +6,7 @@ Default is dry-run; pass --execute to apply changes.
 import psycopg2
 import sys
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 consolidations = {

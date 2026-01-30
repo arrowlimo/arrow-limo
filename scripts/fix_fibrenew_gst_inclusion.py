@@ -19,7 +19,7 @@ import psycopg2
 from decimal import Decimal, ROUND_HALF_UP
 from psycopg2.extras import RealDictCursor
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 GST_RATE = Decimal('0.05')
 

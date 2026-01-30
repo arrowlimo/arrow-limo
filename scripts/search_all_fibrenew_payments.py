@@ -4,7 +4,7 @@ using various pattern variations
 """
 import psycopg2
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # Multiple search patterns to catch variations
 patterns = [

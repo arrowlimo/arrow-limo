@@ -37,7 +37,7 @@ class AIFunctionRegistry:
         self.db_host = db_host or os.environ.get("DB_HOST", "localhost")
         self.db_name = db_name or os.environ.get("DB_NAME", "almsdata")
         self.db_user = db_user or os.environ.get("DB_USER", "postgres")
-        self.db_password = db_password or os.environ.get("DB_PASSWORD", "***REMOVED***")
+        self.db_password = db_password or os.environ.get("DB_PASSWORD", "***REDACTED***")
         self.conn = None
         self._connect()
     
@@ -782,7 +782,7 @@ if __name__ == "__main__":
         db_host="localhost",
         db_name="almsdata",
         db_user="postgres",
-        db_password="***REMOVED***"
+        db_password="***REDACTED***"
     )
     
     print("=" * 80)

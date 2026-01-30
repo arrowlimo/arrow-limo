@@ -9,7 +9,7 @@ from collections import defaultdict
 conn = psycopg2.connect(
     dbname="almsdata",
     user="postgres",
-    password="***REMOVED***",
+    password="***REDACTED***",
     host="localhost",
     port="5432"
 )

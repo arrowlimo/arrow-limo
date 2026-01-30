@@ -1,7 +1,7 @@
 import psycopg2
 from collections import defaultdict
 
-c = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+c = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 cur = c.cursor()
 
 print("Checking for $774 payments that may have been imported multiple times...")

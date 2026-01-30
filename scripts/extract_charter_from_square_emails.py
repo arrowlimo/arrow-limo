@@ -39,7 +39,7 @@ for row in square_data:
 print(f"Extracted {len(charter_matches)} charter-amount-date combos from Square emails\n")
 
 # Match to orphans
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 cur.execute('''
     SELECT payment_id, amount, payment_date, square_payment_id 

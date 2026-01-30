@@ -3,8 +3,8 @@
 import psycopg2
 import json
 
-LOCAL_CONN_STRING = "dbname=almsdata host=localhost user=postgres password=***REMOVED***"
-NEON_CONN_STRING = "dbname=neondb host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech user=neondb_owner password=***REMOVED*** sslmode=require"
+LOCAL_CONN_STRING = "dbname=almsdata host=localhost user=postgres password=***REDACTED***"
+NEON_CONN_STRING = "dbname=neondb host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech user=neondb_owner password=npg_89MbcFmZwUWo sslmode=require"
 
 # JSON columns that need conversion
 JSON_COLUMNS = {'fuel_efficiency_data', 'maintenance_schedule', 'service_history', 'parts_replacement_history'}

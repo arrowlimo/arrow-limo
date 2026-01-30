@@ -17,7 +17,7 @@ import psycopg2
 from decimal import Decimal
 
 def conn():
-    return psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+    return psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 INVOICES = [
     {

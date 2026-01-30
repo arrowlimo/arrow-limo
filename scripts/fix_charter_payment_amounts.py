@@ -21,7 +21,7 @@ from decimal import Decimal
 
 
 def get_conn():
-    return psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+    return psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 def create_backup(cur, table_name='charter_payments'):
     import datetime

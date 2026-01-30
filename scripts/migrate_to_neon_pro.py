@@ -22,13 +22,13 @@ import time
 # Neon Pro credentials
 NEON_HOST = 'ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech'
 NEON_USER = 'neondb_owner'
-NEON_PASSWORD = '***REMOVED***'
+NEON_PASSWORD = 'npg_89MbcFmZwUWo'
 NEON_DB = 'neondb'
 
 # Local PostgreSQL
 LOCAL_HOST = 'localhost'
 LOCAL_USER = 'postgres'
-LOCAL_PASSWORD = '***REMOVED***'
+LOCAL_PASSWORD = '***REDACTED***'
 LOCAL_DB = 'almsdata'
 
 def verify_neon_connection():

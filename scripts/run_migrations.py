@@ -8,7 +8,7 @@ DB_CONFIG = {
     'port': int(os.environ.get('DB_PORT', '5432')),
     'dbname': os.environ.get('DB_NAME', 'almsdata'),
     'user': os.environ.get('DB_USER', 'postgres'),
-    'password': os.environ.get('DB_PASSWORD', '***REMOVED***'),
+    'password': os.environ.get('DB_PASSWORD', '***REDACTED***'),
 }
 
 MIGRATIONS_DIR = os.path.join(os.path.dirname(__file__), '..', 'migrations')

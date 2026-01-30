@@ -17,7 +17,7 @@ import json
 from datetime import datetime, timedelta
 import os
 
-class ***REMOVED***GSCAnalyzer:
+class ***REDACTED***GSCAnalyzer:
     """Analyze Arrow Limousine's actual Google Search Console data."""
     
     def __init__(self):
@@ -446,7 +446,7 @@ def main():
     print()
     
     # Initialize analyzer
-    analyzer = ***REMOVED***GSCAnalyzer()
+    analyzer = ***REDACTED***GSCAnalyzer()
     
     # Create output directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

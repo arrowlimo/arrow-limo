@@ -6,7 +6,7 @@ import psycopg2
 from datetime import datetime
 from collections import defaultdict
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 # Get all transactions for account 3648117

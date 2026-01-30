@@ -306,7 +306,7 @@ def main():
         host=os.getenv('DB_HOST', 'localhost'),
         database=os.getenv('DB_NAME', 'almsdata'),
         user=os.getenv('DB_USER', 'postgres'),
-        password=os.getenv('DB_PASSWORD', '***REMOVED***'),
+        password=os.getenv('DB_PASSWORD', '***REDACTED***'),
     )
 
     results = process(args.events, conn)

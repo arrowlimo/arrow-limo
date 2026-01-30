@@ -8,7 +8,7 @@ import os
 import psycopg2
 import sys
 
-DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REMOVED***')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REDACTED***')
 
 def convert_duplicates_to_parent_child(dry_run=True):
     """Convert all duplicate groups to parent-child relationships."""

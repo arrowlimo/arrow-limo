@@ -19,7 +19,7 @@ import psycopg2
 
 def get_conn():
     return psycopg2.connect(
-        host="localhost", database="almsdata", user="postgres", password="***REMOVED***"
+        host="localhost", database="almsdata", user="postgres", password="***REDACTED***"
     )
 
 

@@ -21,7 +21,7 @@ LMS_DB = r"L:\limo\data\lms.mdb"
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REDACTED***")
 
 DRY_RUN = "--dry-run" in sys.argv or len(sys.argv) == 1
 WRITE_MODE = "--write" in sys.argv

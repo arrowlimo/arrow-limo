@@ -55,7 +55,7 @@ DB_USER = os.environ.get("DB_USER", "postgres")
 DB_PASSWORD = os.environ.get("DB_PASSWORD")
 if not DB_PASSWORD:
     # Fallback to default
-    DB_PASSWORD = "***REMOVED***"
+    DB_PASSWORD = "***REDACTED***"
 
 # Knowledge base paths
 KB_ROOT = Path("knowledge")

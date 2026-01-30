@@ -7,7 +7,7 @@ import pyodbc
 
 reserves = ['019536', '017328', '019571', '014089', '019657', '003708', '019586', '014147', '010999']
 
-pg_conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+pg_conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 pg_cur = pg_conn.cursor()
 
 LMS_PATH = r'L:\limo\backups\lms.mdb'

@@ -136,7 +136,7 @@ def get_conn():
     host = os.environ.get('DB_HOST', 'localhost')
     name = os.environ.get('DB_NAME', 'almsdata')
     user = os.environ.get('DB_USER', 'postgres')
-    pwd = os.environ.get('DB_PASSWORD', '***REMOVED***')
+    pwd = os.environ.get('DB_PASSWORD', '***REDACTED***')
     return psycopg2.connect(host=host, database=name, user=user, password=pwd)
 
 

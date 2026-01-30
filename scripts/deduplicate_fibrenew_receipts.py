@@ -11,7 +11,7 @@ import os
 os.environ['DB_HOST'] = 'localhost'
 os.environ['DB_NAME'] = 'almsdata'
 os.environ['DB_USER'] = 'postgres'
-os.environ['DB_PASSWORD'] = '***REMOVED***'
+os.environ['DB_PASSWORD'] = '***REDACTED***'
 
 def generate_hash(date, vendor, amount):
     """Generate deterministic hash for receipt."""
@@ -28,7 +28,7 @@ def main():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     cur = conn.cursor()
     

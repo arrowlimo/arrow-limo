@@ -15,7 +15,7 @@ try:
         host='localhost', 
         dbname='almsdata', 
         user='postgres', 
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     cur = conn.cursor()
     

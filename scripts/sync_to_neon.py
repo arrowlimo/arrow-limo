@@ -12,13 +12,13 @@ from datetime import datetime
 LOCAL_HOST = "localhost"
 LOCAL_NAME = "almsdata"
 LOCAL_USER = "postgres"
-LOCAL_PASSWORD = "***REMOVED***"
+LOCAL_PASSWORD = "***REDACTED***"
 
 # Neon database (destination)
 NEON_HOST = "ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech"
 NEON_NAME = "neondb"
 NEON_USER = "neondb_owner"
-NEON_PASSWORD = "***REMOVED***"
+NEON_PASSWORD = "npg_89MbcFmZwUWo"
 
 print("=" * 100)
 print("SYNCING LOCAL ALMSDATA TO NEON PRODUCTION")

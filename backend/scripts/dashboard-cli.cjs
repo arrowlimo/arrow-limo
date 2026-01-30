@@ -9,7 +9,7 @@ const cfg = {
   user: process.env.PGUSER || 'postgres',
   host: process.env.PGHOST || 'localhost',
   database: process.env.PGDATABASE || 'almsdata',
-  password: process.env.PGPASSWORD || '***REMOVED***',
+  password: process.env.PGPASSWORD || '***REDACTED***',
   port: Number(process.env.PGPORT || 5432),
   connectionTimeoutMillis: 3000,
   idleTimeoutMillis: 10000,
@@ -20,7 +20,7 @@ if (!process.env.PGUSER && process.env.USERNAME) {
   process.env.PGUSER = 'postgres';
 }
 if (!process.env.PGPASSWORD) {
-  process.env.PGPASSWORD = '***REMOVED***';
+  process.env.PGPASSWORD = '***REDACTED***';
 }
 if (!process.env.PGHOST) {
   process.env.PGHOST = 'localhost';

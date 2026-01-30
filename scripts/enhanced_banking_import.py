@@ -13,7 +13,7 @@ import os
 DB_CONFIG = {
     'dbname': 'almsdata',
     'user': 'postgres', 
-    'password': '***REMOVED***',
+    'password': '***REDACTED***',
     'host': 'localhost',
     'port': 5432
 }

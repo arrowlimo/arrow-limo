@@ -18,7 +18,7 @@ except ImportError:
     def log_deletion_audit(table_name, row_count, condition=None, script_name=None):
         pass
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 TARGET = [
     ('FIBRENEW-8487-RENT', 'FIBRENEW-8487'),

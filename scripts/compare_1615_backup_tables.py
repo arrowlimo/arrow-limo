@@ -6,7 +6,7 @@ Compare 1615 backup tables vs main banking_transactions table
 import psycopg2
 import pandas as pd
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 print("="*80)
 print("COMPARING ACCOUNT 1615 - MAIN TABLE VS BACKUP TABLES")

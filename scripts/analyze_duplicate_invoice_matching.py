@@ -12,7 +12,7 @@ Focus on Rent/Utilities duplicates to understand the invoice matching patterns.
 import psycopg2
 from collections import defaultdict
 
-DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 
 def main():

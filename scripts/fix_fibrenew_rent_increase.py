@@ -11,7 +11,7 @@ import psycopg2
 from decimal import Decimal
 import argparse
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # Rent increase schedule
 OLD_RENT = Decimal('682.50')

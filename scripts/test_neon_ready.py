@@ -10,7 +10,7 @@ NEON_CONFIG = {
     "port": 5432,
     "database": "neondb",
     "user": "neondb_owner",
-    "password": "***REMOVED***",
+    "password": "npg_89MbcFmZwUWo",
     "sslmode": "require",
 }
 

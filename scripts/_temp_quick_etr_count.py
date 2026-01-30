@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Count ETR payments missing reserve or banking"""
 import psycopg2
-c = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+c = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = c.cursor()
 
 cur.execute("""

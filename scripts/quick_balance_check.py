@@ -1,5 +1,5 @@
 import psycopg2
-c=psycopg2.connect(host='localhost',database='almsdata',user='postgres',password='***REMOVED***')
+c=psycopg2.connect(host='localhost',database='almsdata',user='postgres',password='***REDACTED***')
 r=c.cursor()
 r.execute("SELECT data_type FROM information_schema.columns WHERE table_name='banking_transactions' AND column_name='balance'")
 print('balance column type:', r.fetchone()[0])

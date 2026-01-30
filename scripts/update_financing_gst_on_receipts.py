@@ -16,7 +16,7 @@ Notes:
 import argparse
 import psycopg2
 
-DB = dict(dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost')
+DB = dict(dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost')
 
 
 def get_cols(conn, table):

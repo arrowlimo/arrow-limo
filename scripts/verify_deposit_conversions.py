@@ -5,7 +5,7 @@ Check descriptions, amounts, and linked banking info
 """
 import psycopg2
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 # Get details for the suspicious deposits we just changed

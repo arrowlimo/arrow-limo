@@ -2,7 +2,7 @@
 """Verify FK constraints now work in Neon with vehicles restored."""
 import psycopg2
 
-NEON_CONN = "dbname=neondb host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech user=neondb_owner password=***REMOVED*** sslmode=require"
+NEON_CONN = "dbname=neondb host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech user=neondb_owner password=npg_89MbcFmZwUWo sslmode=require"
 
 try:
     conn = psycopg2.connect(NEON_CONN)

@@ -9,7 +9,7 @@ import psycopg2
 
 def get_db_connection():
     return psycopg2.connect(
-        host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***'
+        host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***'
     )
 
 OUT_DIR = Path('l:/limo/exports/cra')

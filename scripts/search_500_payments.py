@@ -8,7 +8,7 @@ Look for payments with amount=$500 that have either:
 import psycopg2
 from collections import defaultdict
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 print('='*100)

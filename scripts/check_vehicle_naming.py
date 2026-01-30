@@ -7,7 +7,7 @@ DB_CONFIG = {
     'host': 'localhost',
     'database': 'almsdata',
     'user': 'postgres',
-    'password': '***REMOVED***'
+    'password': '***REDACTED***'
 }
 
 conn = psycopg2.connect(**DB_CONFIG)

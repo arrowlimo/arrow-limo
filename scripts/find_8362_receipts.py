@@ -2,7 +2,7 @@
 """Find what makes up the 8,362 receipts the user wants to keep."""
 import psycopg2
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 print("=== SEARCHING FOR 8,362 RECEIPTS ===\n")

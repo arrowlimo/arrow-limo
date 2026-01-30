@@ -51,7 +51,7 @@ def get_pg_vehicles():
         host=os.getenv('DB_HOST', 'localhost'),
         database=os.getenv('DB_NAME', 'almsdata'),
         user=os.getenv('DB_USER', 'postgres'),
-        password=os.getenv('DB_PASSWORD', '***REMOVED***')
+        password=os.getenv('DB_PASSWORD', '***REDACTED***')
     )
     cur = conn.cursor()
     
@@ -173,7 +173,7 @@ def create_lookup_table(mappings, write=False):
         host=os.getenv('DB_HOST', 'localhost'),
         database=os.getenv('DB_NAME', 'almsdata'),
         user=os.getenv('DB_USER', 'postgres'),
-        password=os.getenv('DB_PASSWORD', '***REMOVED***')
+        password=os.getenv('DB_PASSWORD', '***REDACTED***')
     )
     cur = conn.cursor()
     

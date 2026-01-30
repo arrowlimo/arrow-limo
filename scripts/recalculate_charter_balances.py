@@ -12,7 +12,7 @@ import psycopg2
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_NAME = os.getenv('DB_NAME', 'almsdata')
 DB_USER = os.getenv('DB_USER', 'postgres')
-DB_PASSWORD = os.getenv('DB_PASSWORD', '***REMOVED***')
+DB_PASSWORD = os.getenv('DB_PASSWORD', '***REDACTED***')
 
 SQL = """
 WITH payment_sums AS (
@@ -88,7 +88,7 @@ def get_conn():
         host="localhost",
         database="almsdata",
         user="postgres",
-        password="***REMOVED***",
+        password="***REDACTED***",
     )
 
 

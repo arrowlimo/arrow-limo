@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import psycopg2
 
-c = psycopg2.connect('dbname=almsdata user=postgres password=***REMOVED***')
+c = psycopg2.connect('dbname=almsdata user=postgres password=***REDACTED***')
 r = c.cursor()
 r.execute("SELECT DISTINCT account FROM general_ledger WHERE account IS NOT NULL ORDER BY account")
 accts = [x[0] for x in r.fetchall()]

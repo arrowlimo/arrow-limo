@@ -75,7 +75,7 @@ if __name__ == '__main__':
         print('  DB_PORT =', os.environ.get('DB_PORT', '5432'))
         print('  DB_NAME =', os.environ.get('DB_NAME', 'almsdata'))
         print('  DB_USER =', os.environ.get('DB_USER', 'postgres'))
-        print('  DB_PASSWORD =', '(set)' if os.environ.get('DB_PASSWORD') else '***REMOVED*** (default)')
+        print('  DB_PASSWORD =', '(set)' if os.environ.get('DB_PASSWORD') else '***REDACTED*** (default)')
         raise
     cur = conn.cursor()
 

@@ -13,7 +13,7 @@ def get_db_connection():
         host='localhost',
         dbname='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
 
 def parse_2012_sheet(file_path):

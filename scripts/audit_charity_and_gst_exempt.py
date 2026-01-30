@@ -2,7 +2,7 @@ import re
 import psycopg2
 from decimal import Decimal
 
-DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 CHARITY_KEYWORDS = [
   # High-signal words that indicate donated/promo/trade activity

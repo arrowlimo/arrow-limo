@@ -17,7 +17,7 @@ from decimal import Decimal
 from datetime import date
 import argparse
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 STATEMENT_BALANCE = Decimal('14734.56')
 STATEMENT_DATE = date(2025, 11, 26)

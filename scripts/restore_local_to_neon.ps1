@@ -9,7 +9,7 @@ Write-Host "RESTORE LOCAL BACKUP TO NEON" -ForegroundColor Cyan
 Write-Host "="*80 -ForegroundColor Cyan
 
 $backupFile = "backups\almsdata_PRE_NEON_20260124_022515.dump"
-$neonConnStr = "postgresql://neondb_owner:***REMOVED***@ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech:5432/neondb?sslmode=require"
+$neonConnStr = "postgresql://neondb_owner:npg_89MbcFmZwUWo@ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech:5432/neondb?sslmode=require"
 
 if (-not (Test-Path $backupFile)) {
     Write-Host "❌ Backup file not found: $backupFile" -ForegroundColor Red

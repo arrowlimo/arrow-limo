@@ -5,7 +5,7 @@ from datetime import date
 TARGET_AMOUNT = 1604.85
 TARGET_DATE = date(2013, 1, 4)
 
-conn = psycopg2.connect(dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost')
+conn = psycopg2.connect(dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost')
 cur = conn.cursor()
 
 print('='*80)

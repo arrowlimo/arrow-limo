@@ -28,7 +28,7 @@ DB_CONFIG = {
     'host': 'localhost',
     'dbname': 'almsdata',
     'user': 'postgres',
-    'password': '***REMOVED***'
+    'password': '***REDACTED***'
 }
 
 IMAGES_DIR = Path("L:/limo/data/product_images")

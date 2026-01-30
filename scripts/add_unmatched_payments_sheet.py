@@ -8,7 +8,7 @@ def main():
         host='localhost',
         dbname='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     
     print("=" * 100)

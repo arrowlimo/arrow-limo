@@ -5,7 +5,7 @@ from datetime import datetime
 # DRY RUN by default - set to True to apply changes
 DRY_RUN = False
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import psycopg2
-conn = psycopg2.connect('host=localhost dbname=almsdata user=postgres password=***REMOVED***')
+conn = psycopg2.connect('host=localhost dbname=almsdata user=postgres password=***REDACTED***')
 cur = conn.cursor()
 
 tables = ['limo_clients', 'limo_clients_clean', 'limo_addresses', 'limo_addresses_clean']

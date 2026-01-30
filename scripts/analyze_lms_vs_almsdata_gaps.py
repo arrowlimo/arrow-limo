@@ -9,7 +9,7 @@ from datetime import datetime
 PG_HOST = "localhost"
 PG_DB = "almsdata"
 PG_USER = "postgres"
-PG_PASSWORD = "***REMOVED***"
+PG_PASSWORD = "***REDACTED***"
 
 def connect():
     return psycopg2.connect(host=PG_HOST, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD)

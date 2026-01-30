@@ -15,14 +15,14 @@ import sys
 LOCAL_CONN = {
     'host': 'localhost',
     'user': 'postgres',
-    'password': '***REMOVED***',
+    'password': '***REDACTED***',
     'database': 'almsdata'
 }
 
 NEON_CONN = {
     'host': 'ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech',
     'user': 'neondb_owner',
-    'password': '***REMOVED***',
+    'password': 'npg_89MbcFmZwUWo',
     'database': 'neondb',
     'sslmode': 'require'
 }

@@ -1,7 +1,7 @@
 import psycopg2
 from collections import defaultdict
 
-c = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+c = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 cur = c.cursor()
 
 # Get all $774 payments for Waste Connections

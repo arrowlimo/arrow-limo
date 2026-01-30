@@ -36,7 +36,7 @@ def get_conn():
     return psycopg2.connect(
         dbname=os.getenv('DB_NAME','almsdata'),
         user=os.getenv('DB_USER','postgres'),
-        password=os.getenv('DB_PASSWORD','***REMOVED***'),
+        password=os.getenv('DB_PASSWORD','***REDACTED***'),
         host=os.getenv('DB_HOST','localhost'),
         port=int(os.getenv('DB_PORT','5432')),
     )

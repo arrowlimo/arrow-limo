@@ -7,7 +7,7 @@ Identify all edge cases, data quality issues, and validation rules needed
 import psycopg2
 from collections import defaultdict
 
-conn = psycopg2.connect('host=localhost user=postgres password=***REMOVED*** dbname=almsdata')
+conn = psycopg2.connect('host=localhost user=postgres password=***REDACTED*** dbname=almsdata')
 cur = conn.cursor()
 
 print("="*80)

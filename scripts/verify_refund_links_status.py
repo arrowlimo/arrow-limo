@@ -7,7 +7,7 @@ Quick verifier for specific refunds:
 import psycopg2
 from datetime import datetime
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 checks = [
     {"amount": 91.88, "reserve": "012567", "start": datetime(2016,6,30), "end": datetime(2016,7,10)},

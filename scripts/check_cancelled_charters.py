@@ -7,7 +7,7 @@ lms_conn = pyodbc.connect('DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ
 lms_cur = lms_conn.cursor()
 
 # Connect to PostgreSQL
-pg_conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+pg_conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 pg_cur = pg_conn.cursor()
 
 discrepancies = ['015808', '016854', '019610', '019678']

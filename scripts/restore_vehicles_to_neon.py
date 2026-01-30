@@ -6,14 +6,14 @@ LOCAL_CONN = {
     'host': 'localhost',
     'dbname': 'almsdata',
     'user': 'postgres',
-    'password': '***REMOVED***',
+    'password': '***REDACTED***',
 }
 
 NEON_CONN = {
     'host': 'ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech',
     'dbname': 'neondb',
     'user': 'neondb_owner',
-    'password': '***REMOVED***',
+    'password': 'npg_89MbcFmZwUWo',
     'sslmode': 'require',
 }
 

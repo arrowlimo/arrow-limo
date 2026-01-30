@@ -46,7 +46,7 @@ conn = psycopg2.connect(
     host='localhost',
     database='almsdata',
     user='postgres',
-    password='***REMOVED***'
+    password='***REDACTED***'
 )
 cur = conn.cursor()
 cur.execute('''

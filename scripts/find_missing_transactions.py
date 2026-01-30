@@ -33,7 +33,7 @@ with open(csv_file, 'r', encoding='utf-8') as f:
                 pass
 
 # Get from DB
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 cur.execute("""

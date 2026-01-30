@@ -7,7 +7,7 @@ lms_conn = pyodbc.connect(lms_conn_str)
 lms_cur = lms_conn.cursor()
 
 # Connect to ALMS
-alms_conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+alms_conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 alms_cur = alms_conn.cursor()
 
 reserve_num = '019618'

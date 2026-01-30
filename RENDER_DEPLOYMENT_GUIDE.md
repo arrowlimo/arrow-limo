@@ -44,7 +44,7 @@ In Render Dashboard → Environment:
 DB_HOST=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech
 DB_NAME=neondb
 DB_USER=neondb_owner
-DB_PASSWORD=***REMOVED***
+DB_PASSWORD=npg_89MbcFmZwUWo
 DB_SSLMODE=require
 DB_PORT=5432
 
@@ -67,12 +67,12 @@ Click "Create Web Service" → Render will auto-deploy on push
 
 **Neon (Cloud - PRIMARY):**
 ```
-postgresql://neondb_owner:***REMOVED***@ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech:5432/neondb?sslmode=require
+postgresql://neondb_owner:npg_89MbcFmZwUWo@ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech:5432/neondb?sslmode=require
 ```
 
 **Local (Development only):**
 ```
-postgresql://postgres:***REMOVED***@localhost:5432/almsdata
+postgresql://postgres:***REDACTED***@localhost:5432/almsdata
 ```
 
 ## Architecture

@@ -11,7 +11,7 @@ def get_db_connection():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
 
 conn = get_db_connection()

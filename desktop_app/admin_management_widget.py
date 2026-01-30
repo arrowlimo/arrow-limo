@@ -667,7 +667,7 @@ class AdminManagementWidget(QWidget):
             
             # Set PGPASSWORD environment variable
             env = os.environ.copy()
-            env["PGPASSWORD"] = "***REMOVED***"
+            env["PGPASSWORD"] = "***REDACTED***"
             
             result = subprocess.run(cmd, env=env, capture_output=True, text=True, shell=True)
             
@@ -758,7 +758,7 @@ class AdminManagementWidget(QWidget):
             
             # Set PGPASSWORD environment variable
             env = os.environ.copy()
-            env["PGPASSWORD"] = "***REMOVED***"
+            env["PGPASSWORD"] = "***REDACTED***"
             
             result = subprocess.run(cmd, env=env, capture_output=True, text=True)
             

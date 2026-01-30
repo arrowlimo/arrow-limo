@@ -10,7 +10,7 @@ import psycopg2
 
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), '..', 'reports', 'duplicate_receipts_by_amount_date.csv')
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 cur.execute(

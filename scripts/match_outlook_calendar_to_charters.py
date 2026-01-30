@@ -119,7 +119,7 @@ def match_and_update_charters(json_file, dry_run=True, write=False):
         host=os.getenv('DB_HOST', 'localhost'),
         database=os.getenv('DB_NAME', 'almsdata'),
         user=os.getenv('DB_USER', 'postgres'),
-        password=os.getenv('DB_PASSWORD', '***REMOVED***')
+        password=os.getenv('DB_PASSWORD', '***REDACTED***')
     )
     cur = conn.cursor()
     

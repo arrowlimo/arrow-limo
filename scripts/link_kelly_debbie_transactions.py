@@ -16,7 +16,7 @@ DEFAULT_REFUND_TXN = 32890   # $520 debit (choose first occurrence)
 POSSIBLE_DUPLICATE_REFUND = 32892  # second $520 debit (not linked by default)
 
 def get_conn():
-    return psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+    return psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 
 def ensure_table(cur):
     cur.execute("""

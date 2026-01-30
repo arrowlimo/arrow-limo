@@ -29,7 +29,7 @@ DB_CONFIG = {
     'host': 'localhost',
     'database': 'almsdata',
     'user': 'postgres',
-    'password': os.environ.get('DB_PASSWORD', '***REMOVED***')
+    'password': os.environ.get('DB_PASSWORD', '***REDACTED***')
 }
 
 

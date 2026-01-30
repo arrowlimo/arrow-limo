@@ -18,7 +18,7 @@ def get_db_connection():
         host=os.getenv('DB_HOST', 'localhost'),
         database=os.getenv('DB_NAME', 'almsdata'),
         user=os.getenv('DB_USER', 'postgres'),
-        password=os.getenv('DB_PASSWORD', '***REMOVED***')
+        password=os.getenv('DB_PASSWORD', '***REDACTED***')
     )
 
 def get_lms_connection():

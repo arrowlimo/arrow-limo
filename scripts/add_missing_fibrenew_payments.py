@@ -14,7 +14,7 @@ from decimal import Decimal
 from datetime import date
 import argparse
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 missing_payments = [
     (date(2025, 5, 14), Decimal('1102.50'), 'Missing May payment'),

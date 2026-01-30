@@ -417,7 +417,7 @@ try:
     try:
         with open('modern_backend/app/main.py', 'r') as f:
             main_content = f.read()
-        if '***REMOVED***' in main_content:
+        if '***REDACTED***' in main_content:
             found_creds = True
     except:
         pass

@@ -10,7 +10,7 @@ conn = psycopg2.connect(
     port=5432,
     database="almsdata",
     user="postgres",
-    password="***REMOVED***"
+    password="***REDACTED***"
 )
 
 cur = conn.cursor()

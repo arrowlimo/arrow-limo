@@ -12,7 +12,7 @@ from collections import defaultdict
 DB_HOST = "ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech"
 DB_NAME = "neondb"
 DB_USER = "neondb_owner"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = "npg_89MbcFmZwUWo"
 
 def get_db_columns():
     """Fetch all columns from critical tables"""

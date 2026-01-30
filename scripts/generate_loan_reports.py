@@ -15,7 +15,7 @@ os.makedirs(REPORTS_DIR, exist_ok=True)
 DB = dict(
     dbname=os.environ.get('DB_NAME', 'almsdata'),
     user=os.environ.get('DB_USER', 'postgres'),
-    password=os.environ.get('DB_PASSWORD', '***REMOVED***'),
+    password=os.environ.get('DB_PASSWORD', '***REDACTED***'),
     host=os.environ.get('DB_HOST', 'localhost'),
     port=int(os.environ.get('DB_PORT', '5432')),
 )

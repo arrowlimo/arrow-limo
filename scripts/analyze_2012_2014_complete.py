@@ -9,7 +9,7 @@ Comprehensive analysis of 2012-2014 data:
 import psycopg2
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 print("\n" + "="*100)
 print("2012-2014 FINANCIAL DATA ANALYSIS")

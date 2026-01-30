@@ -22,7 +22,7 @@ import csv
 from pathlib import Path
 from collections import defaultdict
 
-DB = dict(dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost')
+DB = dict(dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost')
 
 EXPORT_DIR = Path(__file__).parent.parent / 'exports' / 'driver_audit'
 EXPORT_DIR.mkdir(parents=True, exist_ok=True)

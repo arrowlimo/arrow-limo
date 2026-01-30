@@ -20,7 +20,7 @@ from collections import defaultdict
 
 import psycopg2
 
-DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 
 def fetchall(cur, sql, params=None):

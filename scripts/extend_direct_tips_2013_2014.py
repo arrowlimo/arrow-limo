@@ -15,7 +15,7 @@ def get_db_connection():
         host='localhost',
         dbname='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
 
 def extend_direct_tips(cur, write=False):

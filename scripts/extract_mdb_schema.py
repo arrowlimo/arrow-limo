@@ -63,7 +63,7 @@ def get_postgres_schema():
             host="localhost",
             database="almsdata",
             user="postgres",
-            password="***REMOVED***"
+            password="***REDACTED***"
         )
         conn.autocommit = True
         cursor = conn.cursor()

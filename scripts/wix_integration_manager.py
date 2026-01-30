@@ -347,7 +347,7 @@ class WixIntegrationManager:
             host='localhost',
             database='almsdata',
             user='postgres',
-            password='***REMOVED***'
+            password='***REDACTED***'
         )
     
     def generate_website_report(self) -> Dict:

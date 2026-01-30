@@ -12,7 +12,7 @@ def get_connection():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
 
 def import_checks(filepath: Path):

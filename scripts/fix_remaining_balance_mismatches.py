@@ -16,7 +16,7 @@ pg_conn = psycopg2.connect(
     host='localhost',
     database='almsdata',
     user='postgres',
-    password='***REMOVED***'
+    password='***REDACTED***'
 )
 
 def get_lms_payments(reserve_no):

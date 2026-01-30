@@ -10,7 +10,7 @@ import sys
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = "***REMOVED***"
+DB_PASSWORD = "***REDACTED***"
 
 def get_table_columns(cur, table_name):
     """Get all columns for a table with data types"""

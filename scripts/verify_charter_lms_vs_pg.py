@@ -16,7 +16,7 @@ except Exception as e:
     exit(1)
 
 # Connect to current PostgreSQL database
-pg_conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+pg_conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 pg_cur = pg_conn.cursor()
 
 # Check Reserve table columns

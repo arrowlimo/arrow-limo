@@ -18,7 +18,7 @@ from decimal import Decimal
 def analyze_year_simple(year):
     """Simple, robust analysis for a single year."""
     
-    conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+    conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
     cur = conn.cursor()
     
     print(f"\n📅 YEAR {year} ANALYSIS")

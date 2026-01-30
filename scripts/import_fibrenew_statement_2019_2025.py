@@ -11,7 +11,7 @@ import os
 os.environ['DB_HOST'] = 'localhost'
 os.environ['DB_NAME'] = 'almsdata'
 os.environ['DB_USER'] = 'postgres'
-os.environ['DB_PASSWORD'] = '***REMOVED***'
+os.environ['DB_PASSWORD'] = '***REDACTED***'
 
 def parse_statement_text():
     """Parse the statement text from the PDF extraction."""
@@ -178,7 +178,7 @@ def main():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     cur = conn.cursor()
     

@@ -17,7 +17,7 @@ result = subprocess.run([
     "-U", "postgres",
     "-d", "almsdata",
     "-f", backup_file
-], env={**os.environ, 'PGPASSWORD': '***REMOVED***'}, capture_output=True, text=True)
+], env={**os.environ, 'PGPASSWORD': '***REDACTED***'}, capture_output=True, text=True)
 
 if result.returncode == 0:
     size = os.path.getsize(backup_file) / (1024*1024)

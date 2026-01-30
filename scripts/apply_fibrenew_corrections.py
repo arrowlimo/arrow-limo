@@ -13,7 +13,7 @@ from decimal import Decimal
 from datetime import date
 import argparse
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # Missing payments from statement comparison
 missing_payments = [

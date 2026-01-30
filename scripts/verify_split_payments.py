@@ -6,7 +6,7 @@ LAST4 = '2198'
 AUTH = '#tGl6'
 EXPECTED_SPLIT = 500.00
 
-conn = psycopg2.connect(dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost')
+conn = psycopg2.connect(dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost')
 cur = conn.cursor()
 
 print('Charter status:')

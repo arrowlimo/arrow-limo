@@ -20,7 +20,7 @@ def get_connection():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
 
 def import_journal_entries(filepath: Path, source_label: str):

@@ -13,7 +13,7 @@ def get_db_connection():
         host='localhost',
         dbname='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
 
 # Vendor name corrections based on receipt analysis

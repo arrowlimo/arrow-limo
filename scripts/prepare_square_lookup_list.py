@@ -16,7 +16,7 @@ import psycopg2
 import csv
 from datetime import datetime
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 def get_conn():
     return psycopg2.connect(**DB)

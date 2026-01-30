@@ -3,7 +3,7 @@ import csv
 import psycopg2
 from decimal import Decimal
 
-DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 REPORT_DIR = os.path.join(os.getcwd(), 'reports')
 
 os.makedirs(REPORT_DIR, exist_ok=True)

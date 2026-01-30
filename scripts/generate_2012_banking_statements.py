@@ -25,7 +25,7 @@ def generate_banking_statements_2012():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     cur = conn.cursor()
     

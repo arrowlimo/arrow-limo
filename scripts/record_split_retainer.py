@@ -14,7 +14,7 @@ NOTES = 'Retainer split $1,000 across 019223 and 019224 (MC 2198, auth #tGl6)'
 
 def get_conn():
     return psycopg2.connect(
-        dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost'
+        dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost'
     )
 
 

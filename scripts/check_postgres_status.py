@@ -15,7 +15,7 @@ conn = psycopg2.connect(
     host='localhost',
     dbname='postgres',
     user='postgres',
-    password='***REMOVED***'
+    password='***REDACTED***'
 )
 cur = conn.cursor()
 
@@ -43,7 +43,7 @@ conn = psycopg2.connect(
     host='localhost',
     dbname='almsdata',
     user='postgres',
-    password='***REMOVED***'
+    password='***REDACTED***'
 )
 cur = conn.cursor()
 

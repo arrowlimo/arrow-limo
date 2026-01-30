@@ -2,7 +2,7 @@ import psycopg2
 import pyodbc
 
 # Check PostgreSQL
-pg = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+pg = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 cur = pg.cursor()
 
 cur.execute('SELECT reserve_number, charter_date, total_amount_due, paid_amount, balance FROM charters WHERE reserve_number=%s', ('019311',))

@@ -27,7 +27,7 @@ def connect_db():
             host=os.getenv('DB_HOST', 'localhost'),
             dbname=os.getenv('DB_NAME', 'almsdata'),
             user=os.getenv('DB_USER', 'postgres'),
-            password=os.getenv('DB_PASSWORD', '***REMOVED***'),
+            password=os.getenv('DB_PASSWORD', '***REDACTED***'),
         )
         return conn
     except Exception as e:

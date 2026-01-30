@@ -78,7 +78,7 @@ def main():
         row_dict = dict(zip(lms_cols, r))
         reserve_numbers.append(str(row_dict.get('Reserve_No')).strip())
 
-    pg_conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+    pg_conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
     pg_cur = pg_conn.cursor()
     # Fetch matching charters + payment aggregates
     pg_cur.execute("""

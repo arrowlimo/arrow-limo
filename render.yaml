@@ -28,7 +28,7 @@ services:
         value: neondb_owner
       - key: DB_PASSWORD
         sync: false
-        # Provide in Render dashboard: ***REMOVED***
+        # Provide in Render dashboard: npg_89MbcFmZwUWo
       - key: DB_SSLMODE
         value: require
       - key: DB_PORT

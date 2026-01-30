@@ -287,7 +287,7 @@ WIX_WEBHOOK_SECRET=your-webhook-secret-here
 DB_HOST=localhost
 DB_NAME=almsdata
 DB_USER=postgres
-DB_PASSWORD=***REMOVED***
+DB_PASSWORD=***REDACTED***
 """
         
         with open(env_path, 'w') as f:

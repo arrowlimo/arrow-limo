@@ -19,7 +19,7 @@ try:
             host=os.environ.get('DB_HOST', 'ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech'),
             database=os.environ.get('DB_NAME', 'neondb'),
             user=os.environ.get('DB_USER', 'neondb_owner'),
-            password=os.environ.get('DB_PASSWORD', '***REMOVED***'),
+            password=os.environ.get('DB_PASSWORD', 'npg_89MbcFmZwUWo'),
             sslmode=os.environ.get('DB_SSLMODE', 'require')
         )
         print("Connected to NEON database")

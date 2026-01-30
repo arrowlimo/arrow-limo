@@ -22,14 +22,14 @@ LOCAL_CONN = {
     'host': os.environ.get('DB_HOST_LOCAL', 'localhost'),
     'database': os.environ.get('DB_NAME_LOCAL', 'almsdata'),
     'user': os.environ.get('DB_USER_LOCAL', 'postgres'),
-    'password': os.environ.get('DB_PASSWORD_LOCAL', '***REMOVED***'),
+    'password': os.environ.get('DB_PASSWORD_LOCAL', '***REDACTED***'),
 }
 
 NEON_CONN = {
     # Prefer explicit NEON_* vars; fall back to generic DB_* if provided
     'host': os.environ.get('NEON_HOST') or os.environ.get('DB_HOST') or 'ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech',
     'user': os.environ.get('NEON_USER') or os.environ.get('DB_USER') or 'neondb_owner',
-    'password': os.environ.get('NEON_PASSWORD') or os.environ.get('DB_PASSWORD') or '***REMOVED***',
+    'password': os.environ.get('NEON_PASSWORD') or os.environ.get('DB_PASSWORD') or 'npg_89MbcFmZwUWo',
     'database': os.environ.get('NEON_DB') or os.environ.get('DB_NAME') or 'neondb',
     'sslmode': os.environ.get('NEON_SSLMODE') or os.environ.get('DB_SSLMODE') or 'require',
     'port': int(os.environ.get('NEON_PORT') or os.environ.get('DB_PORT') or 5432),

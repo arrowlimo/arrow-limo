@@ -5,7 +5,7 @@ Fix 015978: Remove charges to match LMS (driver's own run, fixed).
 
 import psycopg2
 
-conn = psycopg2.connect(host="localhost", database="almsdata", user="postgres", password="***REMOVED***")
+conn = psycopg2.connect(host="localhost", database="almsdata", user="postgres", password="***REDACTED***")
 cur = conn.cursor()
 
 print("Fixing 015978 (driver's own run - remove charges)...")

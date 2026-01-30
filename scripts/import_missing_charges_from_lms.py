@@ -12,7 +12,7 @@ args = parser.parse_args()
 
 reserves = ['019536', '019571', '019657', '019586', '016771']
 
-pg_conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+pg_conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 pg_cur = pg_conn.cursor()
 
 LMS_PATH = r'L:\limo\backups\lms.mdb'

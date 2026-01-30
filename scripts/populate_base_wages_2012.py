@@ -30,7 +30,7 @@ def main(write=False, skip_backup=False):
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     cur = conn.cursor()
     

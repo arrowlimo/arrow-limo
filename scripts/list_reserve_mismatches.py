@@ -2,7 +2,7 @@ import psycopg2, os
 from psycopg2.extras import RealDictCursor
 
 def main():
-    conn = psycopg2.connect(host=os.getenv('DB_HOST','localhost'),database=os.getenv('DB_NAME','almsdata'),user=os.getenv('DB_USER','postgres'),password=os.getenv('DB_PASSWORD','***REMOVED***'))
+    conn = psycopg2.connect(host=os.getenv('DB_HOST','localhost'),database=os.getenv('DB_NAME','almsdata'),user=os.getenv('DB_USER','postgres'),password=os.getenv('DB_PASSWORD','***REDACTED***'))
     cur = conn.cursor(cursor_factory=RealDictCursor)
     expected_map = {
         12202: '013305', 16078: '017186', 18550: '019572', 18606: '019627', 18608: '019628',

@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, date
 from typing import List, Dict, Tuple, Optional
 import psycopg2
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # Provided cheques from attachment
 CHEQUES: List[Dict] = [

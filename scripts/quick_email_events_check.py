@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Quick check of email_financial_events amounts"""
 import os, psycopg2
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 cur.execute("""
     SELECT event_type, COUNT(*), SUM(amount) 

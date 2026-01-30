@@ -7,7 +7,7 @@ try:
         host='ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech',
         database='neondb',
         user='neondb_owner',
-        password='***REMOVED***',
+        password='npg_89MbcFmZwUWo',
         sslmode='require'
     )
     cur = conn.cursor()

@@ -11,7 +11,7 @@ SAMPLE_CHARTERS = ['009854', '017328', '010073', '019536', '019571',
                    '017429', '009973', '014089', '007346', '008866']
 
 # Connect to databases
-pg_conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+pg_conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 pg_cur = pg_conn.cursor()
 
 LMS_PATH = r'L:\limo\backups\lms.mdb'

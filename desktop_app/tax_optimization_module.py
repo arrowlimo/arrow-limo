@@ -46,7 +46,7 @@ class TaxOptimizer:
         self.db_host = db_host or os.environ.get("DB_HOST", "localhost")
         self.db_name = db_name or os.environ.get("DB_NAME", "almsdata")
         self.db_user = db_user or os.environ.get("DB_USER", "postgres")
-        self.db_password = db_password or os.environ.get("DB_PASSWORD", "***REMOVED***")
+        self.db_password = db_password or os.environ.get("DB_PASSWORD", "***REDACTED***")
         self.conn = None
         self._connect()
     

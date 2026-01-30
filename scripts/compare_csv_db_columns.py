@@ -44,7 +44,7 @@ print("=" * 85)
 print()
 
 # Get same dates from DB
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 dates_to_check = [t['date'] for t in csv_txns]

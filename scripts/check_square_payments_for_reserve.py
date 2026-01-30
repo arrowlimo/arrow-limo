@@ -36,7 +36,7 @@ DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = int(os.getenv("DB_PORT", "5432"))
 DB_NAME = os.getenv("DB_NAME", "almsdata")
 DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "***REDACTED***")
 
 SQUARE_TOKEN = (os.getenv("SQUARE_ACCESS_TOKEN", "").strip())
 SQUARE_ENV = os.getenv("SQUARE_ENV", "production").strip().lower()

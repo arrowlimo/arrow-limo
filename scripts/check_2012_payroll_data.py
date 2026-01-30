@@ -1,6 +1,6 @@
 import psycopg2
 
-c=psycopg2.connect(dbname='almsdata',user='postgres',host='localhost',password='***REMOVED***')
+c=psycopg2.connect(dbname='almsdata',user='postgres',host='localhost',password='***REDACTED***')
 r=c.cursor()
 r.execute('SELECT COUNT(*), SUM(COALESCE(gross_pay,0)), SUM(COALESCE(t4_box_14,0)), SUM(COALESCE(t4_box_22,0)) FROM driver_payroll WHERE year=2012')
 row=r.fetchone()

@@ -34,7 +34,7 @@ def to_decimal(x) -> Decimal | None:
 
 
 def get_connection():
-    return psycopg2.connect(host="localhost", database="almsdata", user="postgres", password="***REMOVED***")
+    return psycopg2.connect(host="localhost", database="almsdata", user="postgres", password="***REDACTED***")
 
 
 def already_inserted(cur, date, num, account, credit) -> bool:

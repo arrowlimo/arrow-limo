@@ -1,7 +1,7 @@
 import os, csv, re, psycopg2, hashlib
 from decimal import Decimal
 
-DB = dict(host=os.getenv('DB_HOST','localhost'),database=os.getenv('DB_NAME','almsdata'),user=os.getenv('DB_USER','postgres'),password=os.getenv('DB_PASSWORD','***REMOVED***'))
+DB = dict(host=os.getenv('DB_HOST','localhost'),database=os.getenv('DB_NAME','almsdata'),user=os.getenv('DB_USER','postgres'),password=os.getenv('DB_PASSWORD','***REDACTED***'))
 CSV_PATH = r"L:\limo\reports\pdf_employee_data_20251017_140241.csv"
 TARGET_DOC_SUMMARY = 'August 2012 - Payroll Summary.pdf'
 TARGET_DOC_PDTA = 'August 2012 PDTA Report.pdf'

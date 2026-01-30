@@ -3,7 +3,7 @@
 import psycopg2
 from datetime import datetime
 
-conn = psycopg2.connect(dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost')
+conn = psycopg2.connect(dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost')
 cur = conn.cursor()
 
 print("=" * 100)

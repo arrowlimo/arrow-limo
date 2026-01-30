@@ -5,7 +5,7 @@ Check if the 3 blank descriptions are duplicates that should be deleted.
 
 import psycopg2
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 print('='*80)

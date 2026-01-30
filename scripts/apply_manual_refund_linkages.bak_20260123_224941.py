@@ -8,7 +8,7 @@ Safety: updates only when a single unlinked row matches amount/date window.
 import psycopg2
 from datetime import datetime, timedelta
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 RESERVE = '012567'
 AMOUNT = 91.88

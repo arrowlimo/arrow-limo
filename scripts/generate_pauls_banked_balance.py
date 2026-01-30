@@ -13,7 +13,7 @@ import csv
 from pathlib import Path
 from collections import defaultdict
 
-DB = dict(dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost')
+DB = dict(dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost')
 OUT = Path(__file__).parent.parent / 'exports' / 'driver_audit' / 'paul_banked_balance_by_year.csv'
 
 

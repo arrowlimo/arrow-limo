@@ -15,7 +15,7 @@ load_dotenv()
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_NAME = os.getenv("DB_NAME", "almsdata")
 DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "***REDACTED***")
 
 ACCESS_DB_PATH = r'L:\limo\database_backups\lms2026.mdb'
 

@@ -84,7 +84,7 @@ def main():
         port=5432,
         dbname='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     # Avoid transaction aborts from a single failing SELECT; all queries are read-only
     conn.autocommit = True

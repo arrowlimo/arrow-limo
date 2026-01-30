@@ -99,7 +99,7 @@ def export_lms_promo_trade():
 
 def export_pg_charters_fallback():
     import psycopg2
-    conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+    conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
     cur = conn.cursor()
     # Build fallback by joining payments for payment_method since charters table has no payment_method column.
     cur.execute("""

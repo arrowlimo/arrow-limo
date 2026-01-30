@@ -7,7 +7,7 @@ import psycopg2
 from decimal import Decimal
 from datetime import date
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # From screenshot - the statement shows final balance of $14,734.56
 STATEMENT_FINAL_BALANCE = Decimal('14734.56')

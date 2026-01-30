@@ -1,5 +1,5 @@
 import psycopg2
-c = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+c = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 r = c.cursor()
 r.execute('SELECT * FROM receipts LIMIT 1')
 print("Receipts table columns:")

@@ -6,7 +6,7 @@ Usage: hardcoded for now to search 'WOODRIDGE' 2018-01-01..2020-12-31
 import psycopg2
 
 def main():
-    conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+    conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
     cur = conn.cursor()
     cur.execute("""
         SELECT transaction_id, transaction_date, debit_amount, credit_amount, description

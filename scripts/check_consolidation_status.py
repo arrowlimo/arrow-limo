@@ -5,7 +5,7 @@ conn = psycopg2.connect(
     host='localhost',
     database='almsdata',
     user='postgres',
-    password='***REMOVED***'
+    password='***REDACTED***'
 )
 # Set isolation level after connection
 conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED)

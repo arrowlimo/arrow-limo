@@ -13,7 +13,7 @@ import csv, psycopg2, pyodbc, datetime
 from decimal import Decimal
 from argparse import ArgumentParser
 
-PG = dict(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+PG = dict(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 LMS_PATH = r'L:\\limo\\backups\\lms.mdb'
 
 DUP_FILES = ['duplicates_deletions.csv','zero_due_duplicates.csv']

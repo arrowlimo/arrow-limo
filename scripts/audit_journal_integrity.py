@@ -11,7 +11,7 @@ Checks:
 """
 import psycopg2
 
-DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 
 def get_columns(cur, table):

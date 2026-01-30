@@ -25,7 +25,7 @@ from pathlib import Path
 from datetime import datetime
 import psycopg2
 
-DB = dict(dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost')
+DB = dict(dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost')
 MISMATCH_CSV = Path(__file__).parent.parent / 'exports' / 'driver_audit' / 'mismatches_2021_2024.csv'
 
 

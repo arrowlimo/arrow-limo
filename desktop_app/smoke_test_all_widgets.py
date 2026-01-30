@@ -24,7 +24,7 @@ class DatabaseConnection:
                 host='localhost',
                 database='almsdata',
                 user='postgres',
-                password='***REMOVED***'
+                password='***REDACTED***'
             )
             print(f"{GREEN}✅ Database connection successful{RESET}")
         except Exception as e:

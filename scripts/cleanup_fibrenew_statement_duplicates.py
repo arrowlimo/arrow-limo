@@ -19,7 +19,7 @@ except ImportError:
     def log_deletion_audit(table_name, row_count, condition=None, script_name=None):
         pass
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 TARGET_INVOICES = ['8488']  # statement entries to remove
 
 q_find = """

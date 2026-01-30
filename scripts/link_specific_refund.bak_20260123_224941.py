@@ -1,7 +1,7 @@
 import psycopg2
 from datetime import datetime
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 RESERVE = '016086'
 AMOUNT = 1983.84

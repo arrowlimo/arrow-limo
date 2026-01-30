@@ -4,7 +4,7 @@ Check if alcohol refund to Shaye Callin was recorded as a negative payment or ad
 """
 import psycopg2
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 print('='*100)

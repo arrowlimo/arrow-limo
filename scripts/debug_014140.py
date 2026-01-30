@@ -26,7 +26,7 @@ lms_cur.close()
 lms_conn.close()
 
 # ALMS
-alms_conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+alms_conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 alms_cur = alms_conn.cursor()
 
 print("\n=== ALMS Charter 014140 ===")

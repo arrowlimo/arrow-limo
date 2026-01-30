@@ -23,7 +23,7 @@ import hashlib
 from datetime import date
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # Invoice structure: separate invoice numbers for rent and utilities
 INVOICES = [

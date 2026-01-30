@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(description='Fix charter 016771 deposit error.'
 parser.add_argument('--write', action='store_true', help='Apply fix; default is dry-run.')
 args = parser.parse_args()
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 reserve = '016771'

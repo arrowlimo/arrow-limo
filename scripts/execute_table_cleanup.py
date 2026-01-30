@@ -80,7 +80,7 @@ def main():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     
     # First, verify all tables are empty

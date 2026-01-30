@@ -19,7 +19,7 @@ df_excel = df_excel[df_excel['date'].notna()].sort_values('date').reset_index(dr
 df_2014 = df_excel[df_excel['date'].dt.year == 2014].copy().reset_index(drop=True)
 
 # Load database
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 cur.execute("""

@@ -16,7 +16,7 @@ def get_db_connection():
         port=5432,
         database="almsdata",
         user="postgres",
-        password="***REMOVED***"
+        password="***REDACTED***"
     )
 
 # QuickBooks reports directory

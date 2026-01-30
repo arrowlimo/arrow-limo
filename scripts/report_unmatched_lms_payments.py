@@ -6,7 +6,7 @@ import psycopg2
 LMS_PATH = r'L:\New folder\lms.mdb'
 
 lms_conn = pyodbc.connect(f'DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={LMS_PATH};')
-pg_conn = psycopg2.connect(dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost')
+pg_conn = psycopg2.connect(dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost')
 
 lms_cur = lms_conn.cursor()
 pg_cur = pg_conn.cursor()

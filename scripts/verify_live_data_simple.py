@@ -2,7 +2,7 @@
 """Verify Backend Uses Live Data - Simplified"""
 import psycopg2, os
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password=os.environ.get('DB_PASSWORD', '***REMOVED***'))
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password=os.environ.get('DB_PASSWORD', '***REDACTED***'))
 cur = conn.cursor()
 
 print("="*80)

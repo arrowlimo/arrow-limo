@@ -8,7 +8,7 @@ If same info, consolidate to single client.
 import os
 import psycopg2
 
-DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REMOVED***')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '***REDACTED***')
 
 def main():
     conn = psycopg2.connect(

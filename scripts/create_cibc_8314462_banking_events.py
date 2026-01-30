@@ -14,7 +14,7 @@ def get_db_connection():
         host="localhost",
         database="almsdata",
         user="postgres",
-        password="***REMOVED***"
+        password="***REDACTED***"
     )
 
 def create_source_hash(transaction_id, date, amount):

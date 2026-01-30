@@ -7,7 +7,7 @@ Statement final balance: $14,734.56 as of Nov 17, 2025
 import psycopg2
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # From screenshot - ALL transactions visible (extending the earlier partial list)
 # These are charges at $1,102.50 (Oct 2024-July 2025) and $1,260.00 (Aug 2025+)

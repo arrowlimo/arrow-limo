@@ -50,7 +50,7 @@ def find_missing_charters(calendar_reserves):
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     cur = conn.cursor(cursor_factory=RealDictCursor)
     

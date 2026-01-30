@@ -5,7 +5,7 @@ Analyze Fibrenew receipts, payments, and checks for 2012-2014
 import psycopg2
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 print("\n" + "="*100)
 print("FIBRENEW 2012-2014 ANALYSIS")

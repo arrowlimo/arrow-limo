@@ -13,7 +13,7 @@ import csv, psycopg2, datetime
 from decimal import Decimal
 from argparse import ArgumentParser
 
-PG = dict(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+PG = dict(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 CANCEL_FILE = 'cancelled_deposit_credits.csv'
 
 def load_rows():

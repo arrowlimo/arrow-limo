@@ -1,7 +1,7 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor(cursor_factory=RealDictCursor)
 
 print("\nSample Square payment data:\n")

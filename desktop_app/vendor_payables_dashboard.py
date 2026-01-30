@@ -182,7 +182,7 @@ if __name__ == "__main__":
         'host': 'localhost',
         'dbname': 'almsdata',
         'user': 'postgres',
-        'password': '***REMOVED***'
+        'password': '***REDACTED***'
     }
     
     widget = VendorPayablesDashboard(db_config)

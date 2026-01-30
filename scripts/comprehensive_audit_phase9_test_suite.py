@@ -66,7 +66,7 @@ DB_CONFIG = {
     "host": "localhost",
     "database": "almsdata_test",  # Use separate test database
     "user": "postgres",
-    "password": "***REMOVED***"
+    "password": "***REDACTED***"
 }
 
 @pytest.fixture(scope="session")
@@ -595,7 +595,7 @@ jobs:
       postgres:
         image: postgres:12
         env:
-          POSTGRES_PASSWORD: ***REMOVED***
+          POSTGRES_PASSWORD: ***REDACTED***
           POSTGRES_DB: almsdata_test
         options: >-
           --health-cmd pg_isready
@@ -620,7 +620,7 @@ jobs:
     
     - name: Set up test database
       env:
-        PGPASSWORD: ***REMOVED***
+        PGPASSWORD: ***REDACTED***
       run: |
         psql -h localhost -U postgres -d almsdata_test -f schema.sql
     
@@ -629,7 +629,7 @@ jobs:
         DB_HOST: localhost
         DB_NAME: almsdata_test
         DB_USER: postgres
-        DB_PASSWORD: ***REMOVED***
+        DB_PASSWORD: ***REDACTED***
       run: |
         pytest tests/ --cov=desktop_app --cov=scripts --cov-report=xml
     
@@ -754,7 +754,7 @@ CREATE DATABASE almsdata_test;
 export DB_HOST=localhost
 export DB_NAME=almsdata_test
 export DB_USER=postgres
-export DB_PASSWORD=***REMOVED***
+export DB_PASSWORD=***REDACTED***
 ```
 
 ## TEST CATEGORIES

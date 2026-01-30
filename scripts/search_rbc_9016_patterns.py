@@ -10,7 +10,7 @@ def search_rbc_patterns():
         host='localhost',
         database='almsdata', 
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     cur = conn.cursor()
 

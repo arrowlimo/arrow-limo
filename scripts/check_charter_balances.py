@@ -13,7 +13,7 @@ def get_db():
         host="localhost",
         database="almsdata",
         user="postgres",
-        password="***REMOVED***",
+        password="***REDACTED***",
     )
 
 

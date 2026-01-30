@@ -24,7 +24,7 @@ logging.basicConfig(
 db_config = {
     'dbname': 'almsdata',
     'user': 'postgres',
-    'password': '***REMOVED***',  # Added default password
+    'password': '***REDACTED***',  # Added default password
     'host': 'localhost'
 }
 

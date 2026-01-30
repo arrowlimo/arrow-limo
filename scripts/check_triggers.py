@@ -1,5 +1,5 @@
 import psycopg2
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 cur.execute("SELECT tgname FROM pg_trigger WHERE tgrelid = 'banking_transactions'::regclass")
 triggers = cur.fetchall()

@@ -15,7 +15,7 @@ import psycopg2
 from datetime import date
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 def conn():
     return psycopg2.connect(**DB)

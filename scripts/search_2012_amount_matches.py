@@ -2,7 +2,7 @@
 import psycopg2, os
 
 def main():
-    conn = psycopg2.connect(host=os.environ.get('DB_HOST','localhost'), database=os.environ.get('DB_NAME','almsdata'), user=os.environ.get('DB_USER','postgres'), password=os.environ.get('DB_PASSWORD','***REMOVED***'))
+    conn = psycopg2.connect(host=os.environ.get('DB_HOST','localhost'), database=os.environ.get('DB_NAME','almsdata'), user=os.environ.get('DB_USER','postgres'), password=os.environ.get('DB_PASSWORD','***REDACTED***'))
     cur = conn.cursor()
     amounts = [1900.50, 2700.00]
     accounts = ['1615','3648117','903990106011','8314462']

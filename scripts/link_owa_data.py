@@ -18,7 +18,7 @@ except Exception:
             port=int(os.environ.get('DB_PORT', '5432')),
             database=os.environ.get('DB_NAME', 'almsdata'),
             user=os.environ.get('DB_USER', 'postgres'),
-            password=os.environ.get('DB_PASSWORD', '***REMOVED***'),
+            password=os.environ.get('DB_PASSWORD', '***REDACTED***'),
         )
 
 CAL_LOG_PATH = os.path.join(os.path.dirname(__file__), '..', 'reports', 'owa_calendar_linkage_log.json')

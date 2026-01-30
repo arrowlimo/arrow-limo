@@ -13,7 +13,7 @@ Categories:
 import psycopg2, pyodbc, csv
 from decimal import Decimal
 
-PG = dict(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+PG = dict(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 LMS_PATH = r'L:\\limo\\backups\\lms.mdb'
 
 pg = psycopg2.connect(**PG); cur = pg.cursor()

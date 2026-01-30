@@ -2,7 +2,7 @@
 """Check how auto loans and NSF fees are currently categorized."""
 import psycopg2
 
-conn = psycopg2.connect(dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost')
+conn = psycopg2.connect(dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost')
 cur = conn.cursor()
 
 # Check receipts for loan and NSF patterns

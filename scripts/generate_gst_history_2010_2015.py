@@ -11,7 +11,7 @@ import psycopg2
 BASE = Path('l:/limo/exports/cra')
 
 def get_db_connection():
-    return psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+    return psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 
 
 def gst_from_details_2010_2012():

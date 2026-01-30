@@ -2,7 +2,7 @@
 import psycopg2
 from decimal import Decimal
 
-c = psycopg2.connect('dbname=almsdata user=postgres password=***REMOVED***')
+c = psycopg2.connect('dbname=almsdata user=postgres password=***REDACTED***')
 r = c.cursor()
 
 r.execute("""

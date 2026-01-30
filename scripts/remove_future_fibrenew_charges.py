@@ -8,7 +8,7 @@ import psycopg2
 from datetime import date
 import argparse
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 STATEMENT_DATE = date(2025, 11, 26)
 

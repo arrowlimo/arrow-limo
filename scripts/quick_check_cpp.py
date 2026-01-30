@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os, psycopg2
 
-DB_HOST, DB_NAME, DB_USER, DB_PASSWORD = 'localhost', 'almsdata', 'postgres', '***REMOVED***'
+DB_HOST, DB_NAME, DB_USER, DB_PASSWORD = 'localhost', 'almsdata', 'postgres', '***REDACTED***'
 conn = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD)
 cur = conn.cursor()
 

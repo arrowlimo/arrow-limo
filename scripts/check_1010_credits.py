@@ -1,5 +1,5 @@
 import psycopg2, os
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 cur.execute("SELECT transaction_date, credit_amount, description FROM banking_transactions WHERE account_number = '1010' AND credit_amount > 0 ORDER BY credit_amount DESC")
 print("CIBC 1010 Credits (Deposits):")

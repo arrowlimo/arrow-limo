@@ -82,7 +82,7 @@ def main():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     pg_cur = pg_conn.cursor()
     

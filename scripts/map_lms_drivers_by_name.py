@@ -7,7 +7,7 @@ lms_conn = pyodbc.connect(lms_conn_str)
 lms_cur = lms_conn.cursor()
 
 # Connect to PostgreSQL
-pg_conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+pg_conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 pg_cur = pg_conn.cursor()
 
 print('=== Building LMS -> ALMS mapping by NAME ===\n')

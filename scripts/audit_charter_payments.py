@@ -1,6 +1,6 @@
 import psycopg2
 
-pg_conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+pg_conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 pg_cur = pg_conn.cursor()
 
 print('=== CHARTER-PAYMENT VERIFICATION AUDIT ===\n')

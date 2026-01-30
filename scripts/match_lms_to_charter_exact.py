@@ -13,7 +13,7 @@ LMS_DB = r"L:\limo\data\lms.mdb"
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REDACTED***")
 
 def get_lms_charter_data():
     """Load reserve/client/date from authoritative LMS source."""

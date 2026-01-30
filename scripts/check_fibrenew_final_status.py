@@ -5,7 +5,7 @@ Check final Fibrenew status after importing invoices from statement.
 import psycopg2
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 STATEMENT_BALANCE = Decimal('14734.56')
 

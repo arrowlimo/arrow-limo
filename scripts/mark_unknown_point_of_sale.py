@@ -6,7 +6,7 @@ import psycopg2
 import re
 import sys
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 # Get all remaining POINTOFSALE receipts that still have no vendor name,

@@ -15,7 +15,7 @@ conn = psycopg2.connect(
     host='localhost',
     database='almsdata',
     user='postgres',
-    password=os.environ.get('DB_PASSWORD', '***REMOVED***')
+    password=os.environ.get('DB_PASSWORD', '***REDACTED***')
 )
 cur = conn.cursor(cursor_factory=RealDictCursor)
 

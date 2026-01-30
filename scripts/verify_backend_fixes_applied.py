@@ -19,7 +19,7 @@ def check_settings_py():
     print("=" * 60)
     
     # Check if password has hardcoded value
-    if 'db_password: str = "***REMOVED***"' in content:
+    if 'db_password: str = "***REDACTED***"' in content:
         print("❌ FAILED: Hardcoded password still exists")
         return False
     elif 'db_password: str' in content:

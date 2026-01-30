@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 LMS_PATH = r'L:\oldlms.mdb'
 LMS_CONN_STR = f'DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={LMS_PATH};'
 
-PG_CONN_KW = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+PG_CONN_KW = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # Records to verify (deposit_number, date, key_text, total)
 TARGETS = [

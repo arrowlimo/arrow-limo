@@ -3,7 +3,7 @@ import psycopg2, sys
 
 def main():
     table = sys.argv[1] if len(sys.argv) > 1 else 'receipts'
-    conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+    conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
     cur = conn.cursor()
     cur.execute("""
         SELECT column_name, data_type

@@ -5,7 +5,7 @@ Search fields: notes, status, payment_key, reference_number, description, square
 """
 import psycopg2
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 SEARCH_TERM = '37IX'
 

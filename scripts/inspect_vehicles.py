@@ -2,7 +2,7 @@
 import psycopg2
 import json
 
-LOCAL_CONN_STRING = "dbname=almsdata host=localhost user=postgres password=***REMOVED***"
+LOCAL_CONN_STRING = "dbname=almsdata host=localhost user=postgres password=***REDACTED***"
 
 conn = psycopg2.connect(LOCAL_CONN_STRING)
 cur = conn.cursor()

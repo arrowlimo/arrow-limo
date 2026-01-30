@@ -9,7 +9,7 @@ Shows:
 """
 import psycopg2
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 def conn():
     return psycopg2.connect(**DB)

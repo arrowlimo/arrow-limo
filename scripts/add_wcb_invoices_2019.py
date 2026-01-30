@@ -16,7 +16,7 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 WCB_ACCOUNT = '4973477'
 

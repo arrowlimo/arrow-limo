@@ -5,7 +5,7 @@ Summary of remaining LIMO tables: row counts, column counts, and key data sample
 """
 import psycopg2
 
-conn = psycopg2.connect('host=localhost dbname=almsdata user=postgres password=***REMOVED***')
+conn = psycopg2.connect('host=localhost dbname=almsdata user=postgres password=***REDACTED***')
 cur = conn.cursor()
 
 limo_tables = ['limo_addresses', 'limo_addresses_clean', 'limo_clients', 'limo_clients_clean']

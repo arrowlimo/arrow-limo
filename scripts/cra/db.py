@@ -7,5 +7,5 @@ def get_connection():
         port=int(os.environ.get('DB_PORT', '5432')),
         database=os.environ.get('DB_NAME', 'almsdata'),
         user=os.environ.get('DB_USER', 'postgres'),
-        password=os.environ.get('DB_PASSWORD', '***REMOVED***'),
+        password=os.environ.get('DB_PASSWORD', '***REDACTED***'),
     )

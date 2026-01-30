@@ -14,7 +14,7 @@ import os
 import psycopg2
 from collections import defaultdict
 
-DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DSN = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 
 def main():

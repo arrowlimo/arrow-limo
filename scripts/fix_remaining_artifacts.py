@@ -5,7 +5,7 @@ Fix remaining Cheque #dd and X artifacts in CIBC banking descriptions.
 
 import psycopg2
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 print('='*80)

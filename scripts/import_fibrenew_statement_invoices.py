@@ -10,7 +10,7 @@ from decimal import Decimal
 from datetime import date
 import argparse
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # All invoices from statement with amounts and dates extracted from PDF
 statement_invoices = [

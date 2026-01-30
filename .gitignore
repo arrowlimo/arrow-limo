@@ -61,6 +61,15 @@ build/
 dist/
 *.egg-info/
 
+# Build scripts (keep local only)
+build_desktop_app.spec
+build_exe.bat
+build_exe.ps1
+check_build_status.ps1
+BUILD_DEPLOYMENT.md
+DEPLOYMENT_QUICK_START.md
+DISPATCHER_SETUP.md
+
 # Logs
 *.log
 logs/

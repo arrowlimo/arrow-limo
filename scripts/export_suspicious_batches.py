@@ -8,7 +8,7 @@ import csv
 import psycopg2
 from decimal import Decimal
 
-DB = dict(host=os.getenv('DB_HOST','localhost'), database=os.getenv('DB_NAME','almsdata'), user=os.getenv('DB_USER','postgres'), password=os.getenv('DB_PASSWORD','***REMOVED***'))
+DB = dict(host=os.getenv('DB_HOST','localhost'), database=os.getenv('DB_NAME','almsdata'), user=os.getenv('DB_USER','postgres'), password=os.getenv('DB_PASSWORD','***REDACTED***'))
 
 FIELDS = [
     'payment_key', 'payment_count', 'distinct_reserves', 'distinct_charters', 'mismatch',

@@ -44,7 +44,7 @@ def test_neon_connectivity():
     header("TEST 1: Neon Database Connectivity")
     
     try:
-        NEON_CONN = "host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech dbname=neondb user=neondb_owner password=***REMOVED*** sslmode=require"
+        NEON_CONN = "host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech dbname=neondb user=neondb_owner password=npg_89MbcFmZwUWo sslmode=require"
         conn = psycopg2.connect(NEON_CONN)
         cur = conn.cursor()
         
@@ -195,7 +195,7 @@ def test_sample_queries():
     header("TEST 5: Sample Data Queries")
     
     try:
-        NEON_CONN = "host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech dbname=neondb user=neondb_owner password=***REMOVED*** sslmode=require"
+        NEON_CONN = "host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech dbname=neondb user=neondb_owner password=npg_89MbcFmZwUWo sslmode=require"
         conn = psycopg2.connect(NEON_CONN)
         cur = conn.cursor()
         
@@ -256,7 +256,7 @@ def test_data_integrity():
     header("TEST 6: Data Integrity Checks")
     
     try:
-        NEON_CONN = "host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech dbname=neondb user=neondb_owner password=***REMOVED*** sslmode=require"
+        NEON_CONN = "host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech dbname=neondb user=neondb_owner password=npg_89MbcFmZwUWo sslmode=require"
         conn = psycopg2.connect(NEON_CONN)
         cur = conn.cursor()
         

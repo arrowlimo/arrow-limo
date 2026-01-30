@@ -20,7 +20,7 @@ def get_conn():
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
 
 def get_cancel_filter(cur):

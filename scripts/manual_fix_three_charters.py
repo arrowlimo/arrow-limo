@@ -8,7 +8,7 @@ pg_conn = psycopg2.connect(
     host='localhost',
     database='almsdata',
     user='postgres',
-    password='***REMOVED***'
+    password='***REDACTED***'
 )
 
 cur = pg_conn.cursor()

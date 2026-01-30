@@ -24,7 +24,7 @@ from typing import Dict, List, Set, Tuple
 import psycopg2
 import psycopg2.extras
 
-PG_CONN = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+PG_CONN = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 VIN_REGEX = re.compile(r"^[A-HJ-NPR-Z0-9]{17}$")  # Excludes I, O, Q
 

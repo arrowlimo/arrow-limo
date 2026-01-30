@@ -7,7 +7,7 @@ import psycopg2
 import os
 
 LMS_DB = r"L:\limo\data\lms.mdb"
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "***REDACTED***")
 
 # Get LMS reserves
 lms_conn_str = "Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=" + LMS_DB

@@ -6,7 +6,7 @@ to what's in the receipts/rent_debt_ledger tables.
 import psycopg2
 import re
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # All invoices visible in the two statement screenshots
 statement_invoices = [

@@ -20,7 +20,7 @@ def main():
     journal['Date'] = pd.to_datetime(journal['Date'], format='%d/%m/%Y', errors='coerce')
     
     # Connect to DB
-    conn = psycopg2.connect(host="localhost", database="almsdata", user="postgres", password="***REMOVED***")
+    conn = psycopg2.connect(host="localhost", database="almsdata", user="postgres", password="***REDACTED***")
     cur = conn.cursor()
     
     # Report sections

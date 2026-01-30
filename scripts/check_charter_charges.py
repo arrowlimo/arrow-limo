@@ -1,5 +1,5 @@
 import psycopg2
-c = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+c = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = c.cursor()
 cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name LIKE '%charge%' ORDER BY table_name")
 print('Tables with "charge" in name:')

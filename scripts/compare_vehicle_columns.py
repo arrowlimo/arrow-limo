@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import psycopg2
 
-LOCAL_CONN = "dbname=almsdata host=localhost user=postgres password=***REMOVED***"
-NEON_CONN = "dbname=neondb host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech user=neondb_owner password=***REMOVED*** sslmode=require"
+LOCAL_CONN = "dbname=almsdata host=localhost user=postgres password=***REDACTED***"
+NEON_CONN = "dbname=neondb host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech user=neondb_owner password=npg_89MbcFmZwUWo sslmode=require"
 
 # Get local columns
 local_conn = psycopg2.connect(LOCAL_CONN)

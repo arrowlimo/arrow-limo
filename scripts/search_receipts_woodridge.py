@@ -5,7 +5,7 @@ from datetime import date
 START = date(2018,9,1)
 END = date(2019,6,30)
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 cur.execute("""
   SELECT id, receipt_date, vendor_name, gross_amount, description

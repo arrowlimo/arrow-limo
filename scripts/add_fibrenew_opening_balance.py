@@ -20,7 +20,7 @@ import psycopg2
 from datetime import date
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 OPENING_BALANCE = Decimal('16119.69')
 OPENING_DATE = date(2019, 1, 1)

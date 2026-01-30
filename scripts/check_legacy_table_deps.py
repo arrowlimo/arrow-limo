@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import psycopg2
 
-conn = psycopg2.connect('host=localhost dbname=almsdata user=postgres password=***REMOVED***')
+conn = psycopg2.connect('host=localhost dbname=almsdata user=postgres password=***REDACTED***')
 cur = conn.cursor()
 
 legacy_tables = ['limo_clients', 'limo_clients_clean', 'limo_contacts', 'lms_charges', 'lms_customers_enhanced', 'lms_deposits']

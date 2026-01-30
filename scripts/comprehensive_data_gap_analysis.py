@@ -20,7 +20,7 @@ def get_db_connection():
         host=env("DB_HOST", "localhost"),
         dbname=env("DB_NAME", "almsdata"),
         user=env("DB_USER", "postgres"),
-        password=env("DB_PASSWORD", "***REMOVED***"),
+        password=env("DB_PASSWORD", "***REDACTED***"),
     )
 
 

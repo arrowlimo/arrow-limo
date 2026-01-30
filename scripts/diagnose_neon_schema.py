@@ -5,7 +5,7 @@ import psycopg2
 neon_conn = psycopg2.connect(
     host="ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech",
     user="neondb_owner",
-    password="***REMOVED***",
+    password="npg_89MbcFmZwUWo",
     database="neondb",
     sslmode="require"
 )

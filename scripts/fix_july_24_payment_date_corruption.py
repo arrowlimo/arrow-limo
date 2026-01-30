@@ -24,7 +24,7 @@ def fix_july_24_corruption(dry_run=True, override_key=None):
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     cur = conn.cursor()
     

@@ -86,7 +86,7 @@ def main():
         "--db-user", default="postgres", help="Database user (default: postgres)."
     )
     parser.add_argument(
-        "--db-password", default="***REMOVED***", help="Database password."
+        "--db-password", default="***REDACTED***", help="Database password."
     )
     args = parser.parse_args()
 

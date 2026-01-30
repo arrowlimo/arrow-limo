@@ -11,7 +11,7 @@ DB_CONFIG = {
     "host": "localhost",
     "database": "almsdata_test",  # Use separate test database
     "user": "postgres",
-    "password": "***REMOVED***"
+    "password": "***REDACTED***"
 }
 
 @pytest.fixture(scope="session")

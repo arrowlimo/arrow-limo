@@ -3,7 +3,7 @@ Debug the ledger balance calculation issue
 """
 import psycopg2
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 with psycopg2.connect(**DB) as cn:
     with cn.cursor() as cur:

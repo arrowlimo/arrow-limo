@@ -15,7 +15,7 @@ This is MUCH less than our calculated $37,992.26, suggesting we may have:
 import psycopg2
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # Transactions visible in screenshot (partial list from what's readable):
 screenshot_transactions = [

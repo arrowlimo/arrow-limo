@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser(description='Remove duplicate 2025-07-24 paymen
 parser.add_argument('--write', action='store_true', help='Apply deletions; default is dry-run.')
 args = parser.parse_args()
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 # Specific duplicate payment_ids identified

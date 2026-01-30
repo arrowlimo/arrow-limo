@@ -36,7 +36,7 @@ for idx, row in df_2014.iterrows():
         print(f"{idx:<5} {str(row['date'].date()):<12} {desc:<50} ${debit:>11.2f} ${credit:>11.2f} ${balance:>11.2f}")
 
 # Load database
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 cur.execute("""

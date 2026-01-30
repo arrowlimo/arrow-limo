@@ -18,7 +18,7 @@ def connect_db():
         user=os.getenv('PGUSER', 'postgres'),
         host=os.getenv('PGHOST', 'localhost'),
         port=os.getenv('PGPORT', '5432'),
-        password=os.getenv('PGPASSWORD', '***REMOVED***')
+        password=os.getenv('PGPASSWORD', '***REDACTED***')
     )
 
 def load_cra_data():

@@ -5,7 +5,7 @@ Compare invoice numbers from Fibrenew statement against database receipts table.
 import psycopg2
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # All invoice numbers from statement
 statement_invoices = {

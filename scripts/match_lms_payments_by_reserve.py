@@ -32,7 +32,7 @@ def get_db_connection():
     return psycopg2.connect(
         dbname='almsdata',
         user='postgres',
-        password='***REMOVED***',
+        password='***REDACTED***',
         host='localhost'
     )
 

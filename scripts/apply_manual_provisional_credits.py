@@ -9,7 +9,7 @@ import csv, psycopg2, datetime
 from decimal import Decimal
 from argparse import ArgumentParser
 
-PG = dict(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+PG = dict(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
 MANUAL_FILE = 'manual_review.csv'
 
 

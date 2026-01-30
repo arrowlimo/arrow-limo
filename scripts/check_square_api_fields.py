@@ -19,7 +19,7 @@ SQUARE_API_BASE = 'https://connect.squareup.com'
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_NAME = os.getenv("DB_NAME", "almsdata")
 DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "***REMOVED***")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "***REDACTED***")
 
 def get_recent_square_payment_details():
     """Fetch a recent Square payment and show all available fields."""

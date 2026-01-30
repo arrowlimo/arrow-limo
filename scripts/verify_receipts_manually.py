@@ -10,7 +10,7 @@ DB_CONFIG = {
     'host': 'localhost',
     'database': 'almsdata',
     'user': 'postgres',
-    'password': '***REMOVED***'
+    'password': '***REDACTED***'
 }
 
 def verify_receipts(receipt_ids, user='manual_verification', dry_run=True):

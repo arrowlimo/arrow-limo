@@ -16,7 +16,7 @@ import psycopg2
 from argparse import ArgumentParser
 
 def fix(dry_run=True):
-    conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REMOVED***')
+    conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='***REDACTED***')
     cur = conn.cursor()
     
     try:

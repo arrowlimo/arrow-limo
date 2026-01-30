@@ -17,7 +17,7 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 
-DB = dict(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+DB = dict(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 
 # WCB rates for Charter/Limousine Services (industry code 74100 / 42201)
 WCB_RATES = {

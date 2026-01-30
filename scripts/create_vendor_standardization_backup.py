@@ -37,7 +37,7 @@ if not os.path.exists(pg_dump_path):
 print(f"Using: {pg_dump_path}")
 
 # Set password environment variable
-os.environ['PGPASSWORD'] = '***REMOVED***'
+os.environ['PGPASSWORD'] = '***REDACTED***'
 
 # Run pg_dump
 cmd = [

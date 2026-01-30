@@ -58,7 +58,7 @@ Uses existing PostgreSQL database (almsdata):
 - Port: 5432
 - Database: almsdata
 - User: postgres
-- Password: ***REMOVED***
+- Password: ***REDACTED***
 
 ## Keyboard Shortcuts
 

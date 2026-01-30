@@ -20,7 +20,7 @@ conn = psycopg2.connect(
     host=os.getenv('DB_HOST', 'localhost'),
     database='almsdata',
     user='postgres',
-    password='***REMOVED***'
+    password='***REDACTED***'
 )
 cur = conn.cursor()
 

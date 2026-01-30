@@ -17,7 +17,7 @@ def fix_incorrect_refund_pair():
     conn = psycopg2.connect(
         dbname='almsdata',
         user='postgres',
-        password='***REMOVED***',
+        password='***REDACTED***',
         host='localhost'
     )
     cur = conn.cursor()

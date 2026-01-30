@@ -4,7 +4,7 @@ import csv
 from datetime import datetime
 import psycopg2
 
-conn = psycopg2.connect(dbname='almsdata', user='postgres', password='***REMOVED***', host='localhost')
+conn = psycopg2.connect(dbname='almsdata', user='postgres', password='***REDACTED***', host='localhost')
 cur = conn.cursor()
 
 print("=== FINDING DUPLICATE FROM CIBC 4462 2025.CSV ===\n")

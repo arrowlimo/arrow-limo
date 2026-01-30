@@ -7,7 +7,7 @@ import psycopg2
 import re
 import sys
 
-conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REMOVED***')
+conn = psycopg2.connect(host='localhost', database='almsdata', user='postgres', password='***REDACTED***')
 cur = conn.cursor()
 
 receipts_only = '--receipts-only' in sys.argv or '--skip-banking' in sys.argv

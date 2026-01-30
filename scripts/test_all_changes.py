@@ -68,7 +68,7 @@ try:
         host='localhost',
         database='almsdata',
         user='postgres',
-        password='***REMOVED***'
+        password='***REDACTED***'
     )
     cur = conn.cursor()
     cur.execute("SELECT COUNT(*) FROM receipts")
