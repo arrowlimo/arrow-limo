@@ -2,6 +2,7 @@ import os
 import time
 import uuid
 
+# Force rebuild: 2026-01-30 14:35:00 UTC - Login endpoint deployment
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
