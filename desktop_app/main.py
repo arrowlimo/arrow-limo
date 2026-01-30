@@ -13,6 +13,11 @@ CRITICAL BUSINESS RULES IMPLEMENTED:
 import sys
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file FIRST
+load_dotenv()
+
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout,
     QHBoxLayout, QLabel, QLineEdit, QTextEdit, QPushButton, QTableWidget,

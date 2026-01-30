@@ -7,6 +7,11 @@ from typing import Optional, Dict, Callable
 import json
 import os
 import webbrowser
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QPushButton, QCheckBox, QMessageBox, QFrame, QRadioButton, QButtonGroup

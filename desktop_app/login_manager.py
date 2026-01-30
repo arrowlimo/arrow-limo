@@ -9,6 +9,10 @@ import hashlib
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Tuple
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 import psycopg2
 import bcrypt
