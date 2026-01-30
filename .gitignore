@@ -16,14 +16,8 @@ reports/
 # Test files (not needed for web)
 tests/
 
-# Project documentation - organized structure
-project-docs/conversation-outputs/
-project-docs/session-logs/
-# Keep these tracked:
-# project-docs/copilot-config/ ✅
-# project-docs/reference-guides/ ✅
-# project-docs/code-snippets/ ✅
-# project-docs/README.md ✅
+# Project documentation - ALL LOCAL, NOT PUSHED
+project-docs/
 
 # Legacy documentation (not needed for web deployment)
 docs/
