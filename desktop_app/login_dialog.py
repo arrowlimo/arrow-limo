@@ -432,23 +432,23 @@ class LoginDialog(QDialog):
         self._show_credential_fields()
 
         if target == "local":
-            # Local database configuration (localhost)
+            # Local database configuration (localhost) - use environment variables
             os.environ["DB_TARGET"] = "local"
             os.environ["DB_HOST"] = "localhost"
             os.environ["DB_PORT"] = "5432"
-            os.environ["DB_NAME"] = "almsdata"
-            os.environ["DB_USER"] = "postgres"
-            os.environ["DB_PASSWORD"] = "***REMOVED***"
+            os.environ["DB_NAME"] = os.getenv("LOCAL_DB_NAME", "almsdata")
+            os.environ["DB_USER"] = os.getenv("LOCAL_DB_USER", "postgres")
+            os.environ["DB_PASSWORD"] = os.getenv("LOCAL_DB_PASSWORD", "")
             os.environ["DB_SSLMODE"] = ""
         
         elif target == "neon":
-            # Neon cloud database configuration
+            # Neon cloud database configuration - use environment variables
             os.environ["DB_TARGET"] = "neon"
-            os.environ["DB_HOST"] = "ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech"
+            os.environ["DB_HOST"] = os.getenv("NEON_DB_HOST", "ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech")
             os.environ["DB_PORT"] = "5432"
-            os.environ["DB_NAME"] = "neondb"
-            os.environ["DB_USER"] = "neondb_owner"
-            os.environ["DB_PASSWORD"] = "***REMOVED***"
+            os.environ["DB_NAME"] = os.getenv("NEON_DB_NAME", "neondb")
+            os.environ["DB_USER"] = os.getenv("NEON_DB_USER", "neondb_owner")
+            os.environ["DB_PASSWORD"] = os.getenv("NEON_DB_PASSWORD", "")
             os.environ["DB_SSLMODE"] = "require"
 
         if self.set_db_callback:
