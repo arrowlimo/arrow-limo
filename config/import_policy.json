@@ -1,6 +1,0 @@
-{
-  "policy_version": "2025-12-25",
-  "quickbooks_import_allowed": false,
-  "reason": "Data corruption risk; do not import entries of any kind.",
-  "notes": "Scanning/analysis is permitted; importing is prohibited until policy changes."
-}

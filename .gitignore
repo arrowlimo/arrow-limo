@@ -128,6 +128,10 @@ gsc_opportunity_analysis/
 PAYMENT-CHARTER-MATCHING/
 move/
 
+# SECURITY RISK: Customer payment data with PII
+PAYMENT-CHARTER-MATCHING/
+**/matching-report-*.json
+
 # QuickBooks files
 *.qbw
 *.QBW
