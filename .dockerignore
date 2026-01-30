@@ -1,0 +1,43 @@
+# Git
+.git
+.github
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+
+# Development
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Database
+*.dump
+*.sql
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local files
+node_modules/
+.ruff_cache/
+desktop_app/
+tests/
+scripts/
+docs/
