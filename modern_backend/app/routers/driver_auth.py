@@ -52,24 +52,32 @@ def verify_user_credentials(username: str, password: str) -> dict:
                 return None
             
             # Verify password with bcrypt
-            if pwd_hash and bcrypt.checkpw(password.encode('utf-8'), pwd_hash.encode('utf-8')):
-                # Parse permissions
-                import json
-                permissions = {}
-                if perms:
-                    try:
-                        permissions = json.loads(perms) if isinstance(perms, str) else perms
-                    except:
+            if pwd_hash:
+                try:
+                    # Ensure hash is bytes
+                    hash_bytes = pwd_hash.encode('utf-8') if isinstance(pwd_hash, str) else pwd_hash
+                    pwd_bytes = password.encode('utf-8')
+                    if bcrypt.checkpw(pwd_bytes, hash_bytes):
+                        # Parse permissions
+                        import json
                         permissions = {}
-                
-                cur.close()
-                conn.close()
-                return {
-                    "employee_id": user_id,
-                    "name": uname,
-                    "role": role or "user",
-                    "permissions": permissions
-                }
+                        if perms:
+                            try:
+                                permissions = json.loads(perms) if isinstance(perms, str) else perms
+                            except:
+                                permissions = {}
+                        
+                        cur.close()
+                        conn.close()
+                        return {
+                            "employee_id": user_id,
+                            "name": uname,
+                            "role": role or "user",
+                            "permissions": permissions
+                        }
+                except Exception as pwd_err:
+                    print(f"Password verification error: {pwd_err}")
+                    pass
         
         cur.close()
         conn.close()
