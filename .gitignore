@@ -20,6 +20,7 @@ tests/
 docs/
 *.md
 !README.md
+!.github/*.md
 
 # Config files (local only)
 config/
