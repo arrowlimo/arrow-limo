@@ -10914,8 +10914,8 @@ def set_active_db(target):
     }
 
 
-# Global DB target configuration (defaults)
-ACTIVE_DB_TARGET = "local"
+# Global DB target configuration (defaults to Neon cloud database)
+ACTIVE_DB_TARGET = "neon"
 OFFLINE_READONLY = False
 ACTIVE_DB_CONFIG = {
     "host": os.environ.get('DB_HOST', 'localhost'),

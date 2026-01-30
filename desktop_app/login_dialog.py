@@ -270,7 +270,7 @@ class LoginDialog(QDialog):
         card_layout.addLayout(remember_row)
         card_layout.addSpacing(8)
         
-        # Database target selection row (LOCAL ONLY FOR NOW)
+        # Database target selection row
         options_row = QHBoxLayout()
         options_row.setSpacing(12)
         options_row.setContentsMargins(0, 0, 0, 0)
@@ -280,10 +280,33 @@ class LoginDialog(QDialog):
         db_label.setStyleSheet("color: #374151; font-size: 11px;")
         options_row.addWidget(db_label)
         
-        local_label = QLabel('Local (PostgreSQL)')
-        local_label.setStyleSheet("color: #374151; font-size: 11px; font-weight: bold;")
-        options_row.addWidget(local_label)
+        # Radio buttons for database selection
+        self.db_button_group = QButtonGroup(self)
+        
+        self.local_radio = QRadioButton('Local')
+        self.local_radio.setStyleSheet("color: #374151; font-size: 11px;")
+        self.local_radio.setChecked(self.active_db_target == "local")
+        self.db_button_group.addButton(self.local_radio)
+        options_row.addWidget(self.local_radio)
+        
+        self.neon_radio = QRadioButton('Neon Cloud')
+        self.neon_radio.setStyleSheet("color: #374151; font-size: 11px;")
+        self.neon_radio.setChecked(self.active_db_target == "neon")
+        self.db_button_group.addButton(self.neon_radio)
+        options_row.addWidget(self.neon_radio)
+        
+        self.web_radio = QRadioButton('Web')
+        self.web_radio.setStyleSheet("color: #374151; font-size: 11px;")
+        self.web_radio.setChecked(self.active_db_target == "web")
+        self.db_button_group.addButton(self.web_radio)
+        options_row.addWidget(self.web_radio)
+        
         options_row.addStretch()
+        
+        # Connect radio button signals
+        self.local_radio.toggled.connect(lambda checked: checked and self._on_db_target_changed("local"))
+        self.neon_radio.toggled.connect(lambda checked: checked and self._on_db_target_changed("neon"))
+        self.web_radio.toggled.connect(lambda checked: checked and self._on_db_target_changed("web"))
         
         card_layout.addLayout(options_row)
         card_layout.addSpacing(4)
@@ -384,22 +407,36 @@ class LoginDialog(QDialog):
         self.login_manager.db_password = os.getenv('DB_PASSWORD', self.login_manager.db_password)
 
     def _on_db_target_changed(self, target: str) -> None:
-        """Handle DB target - LOCAL ONLY FOR NOW"""
-        # Always use local database
-        target = "local"
-        self.active_db_target = target
+        """Handle DB target selection (Local, Neon, or Web)"""
+        self.active_db_target = target.lower().strip()
 
-        # Show credential fields for Local login
+        if target == "web":
+            # Web option opens browser to Render deployment
+            self._open_remote_web_interface()
+            return
+
+        # Show credential fields for Local/Neon login
         self._show_credential_fields()
 
-        # Local database configuration (localhost)
-        os.environ["DB_TARGET"] = "local"
-        os.environ["DB_HOST"] = "localhost"
-        os.environ["DB_PORT"] = "5432"
-        os.environ["DB_NAME"] = "almsdata"
-        os.environ["DB_USER"] = "postgres"
-        os.environ["DB_PASSWORD"] = "***REMOVED***"
-        os.environ["DB_SSLMODE"] = ""
+        if target == "local":
+            # Local database configuration (localhost)
+            os.environ["DB_TARGET"] = "local"
+            os.environ["DB_HOST"] = "localhost"
+            os.environ["DB_PORT"] = "5432"
+            os.environ["DB_NAME"] = "almsdata"
+            os.environ["DB_USER"] = "postgres"
+            os.environ["DB_PASSWORD"] = "***REMOVED***"
+            os.environ["DB_SSLMODE"] = ""
+        
+        elif target == "neon":
+            # Neon cloud database configuration
+            os.environ["DB_TARGET"] = "neon"
+            os.environ["DB_HOST"] = "ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech"
+            os.environ["DB_PORT"] = "5432"
+            os.environ["DB_NAME"] = "neondb"
+            os.environ["DB_USER"] = "neondb_owner"
+            os.environ["DB_PASSWORD"] = "***REMOVED***"
+            os.environ["DB_SSLMODE"] = "require"
 
         if self.set_db_callback:
             self.set_db_callback(target)
@@ -503,22 +540,21 @@ class LoginDialog(QDialog):
         
     def _open_remote_web_interface(self):
         """Open remote web interface via Render deployment"""
-        # Configure Neon database for remote web login
-        self._on_db_target_changed("remote")
-        
         # Render deployment URL
-        render_url = "https://arrow-limo-api.onrender.com"
+        render_url = "https://arrow-limo.onrender.com"
         message = (
-            "Opening Render-deployed web interface...\n\n"
+            "Opening web-based management system...\n\n"
             f"URL: {render_url}\n\n"
-            "Your default browser will open with the application.\n"
-            "You can access the full application and database there."
+            "Your default browser will open with the login page.\n"
+            "The web interface connects to the Neon cloud database."
         )
-        QMessageBox.information(self, "Remote Web Login", message)
+        QMessageBox.information(self, "Web Access", message)
         
         # Open the web interface in default browser
         try:
             webbrowser.open(render_url)
+            # Close the desktop login dialog since user is using web
+            self.reject()
         except Exception as e:
             QMessageBox.warning(self, "Browser Error", f"Could not open browser: {e}\n\nVisit manually: {render_url}")
     

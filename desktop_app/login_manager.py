@@ -40,6 +40,7 @@ class LoginManager:
         self.db_name = os.environ.get('DB_NAME', 'almsdata')
         self.db_user = os.environ.get('DB_USER', 'postgres')
         self.db_password = os.environ.get('DB_PASSWORD', '***REMOVED***')
+        self.db_sslmode = os.environ.get('DB_SSLMODE', 'prefer')
         self.token_file = Path.home() / '.limo_auth_token'
     
     def _get_connection(self):
@@ -49,7 +50,8 @@ class LoginManager:
             port=self.db_port,
             dbname=self.db_name,
             user=self.db_user,
-            password=self.db_password
+            password=self.db_password,
+            sslmode=self.db_sslmode
         )
     
     def authenticate(self, username: str, password: str, ip_address: str = '127.0.0.1') -> Dict:
