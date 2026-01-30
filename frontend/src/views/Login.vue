@@ -76,9 +76,12 @@ export default {
         
         const data = await response.json()
         
-        // Store JWT token
+        // Store JWT token and user data
         localStorage.setItem('auth_token', data.access_token)
-        localStorage.setItem('user', JSON.stringify(data.user || {}))
+        const user = data.user || {}
+        localStorage.setItem('user', JSON.stringify(user))
+        localStorage.setItem('user_role', user.role || 'user')
+        localStorage.setItem('user_permissions', JSON.stringify(user.permissions || {}))
         
         // Redirect to main page
         this.$router.push('/')

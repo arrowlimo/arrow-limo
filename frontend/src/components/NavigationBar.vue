@@ -3,22 +3,55 @@
     <div class="logo">Arrow Limousine</div>
     <nav>
               <router-link to="/" class="nav-link">Main</router-link>
-      <router-link to="/dispatch">Dispatch</router-link>
-      <router-link to="/charter">Charter</router-link>
-      <router-link to="/vehicles">Vehicles</router-link>
-      <router-link to="/employees">Employees</router-link>
-      <router-link to="/customers">Customers</router-link>
-      <router-link to="/accounting">Accounting</router-link>
-      <router-link to="/reports">Reports</router-link>
-      <router-link to="/documents">Documents</router-link>
-      <router-link to="/owe-david">Owe David</router-link>
-      <router-link to="/admin">Admin</router-link>
+      
+      <!-- Driver-only sections -->
+      <router-link v-if="canAccess('drivers')" to="/drivers">My Schedule</router-link>
+      <router-link v-if="canAccess('driver-hos')" to="/driver-hos">HOS Log</router-link>
+      
+      <!-- Admin/Manager sections -->
+      <router-link v-if="canAccess('dispatch')" to="/dispatch">Dispatch</router-link>
+      <router-link v-if="canAccess('charter')" to="/charter">Charter</router-link>
+      <router-link v-if="canAccess('vehicles')" to="/vehicles">Vehicles</router-link>
+      <router-link v-if="canAccess('employees')" to="/employees">Employees</router-link>
+      <router-link v-if="canAccess('customers')" to="/customers">Customers</router-link>
+      <router-link v-if="canAccess('accounting')" to="/accounting">Accounting</router-link>
+      <router-link v-if="canAccess('reports')" to="/reports">Reports</router-link>
+      <router-link v-if="canAccess('documents')" to="/documents">Documents</router-link>
+      <router-link v-if="canAccess('admin')" to="/admin">Admin</router-link>
     </nav>
   </header>
 </template>
 
 <script setup>
-// Navigation logic if needed
+import { ref } from 'vue'
+
+const userRole = ref(localStorage.getItem('user_role') || 'user')
+const permissions = ref(JSON.parse(localStorage.getItem('user_permissions') || '{}'))
+
+function canAccess(section) {
+  // Driver role: only access driver sections
+  if (userRole.value === 'driver' || userRole.value === 'operator') {
+    return ['drivers', 'driver-hos'].includes(section)
+  }
+  
+  // Admin/Superuser: access everything
+  if (userRole.value === 'admin' || userRole.value === 'superuser') {
+    return true
+  }
+  
+  // Accountant: limited access
+  if (userRole.value === 'accountant') {
+    return ['charter', 'accounting', 'reports', 'customers'].includes(section)
+  }
+  
+  // Check permissions object
+  if (permissions.value[section]) {
+    return true
+  }
+  
+  // Default deny
+  return false
+}
 </script>
 
 <style scoped>
