@@ -140,13 +140,21 @@ class CustomReportBuilder(QWidget):
         self.chart_btn.clicked.connect(self.show_chart_preview)
         btn_layout.addWidget(self.chart_btn)
         
-        self.excel_btn = QPushButton("📑 Export to Excel")
+        self.excel_btn = QPushButton("📑 Excel")
         self.excel_btn.clicked.connect(self.export_to_excel)
         btn_layout.addWidget(self.excel_btn)
         
-        self.pdf_btn = QPushButton("📄 Export to PDF")
+        self.pdf_btn = QPushButton("📄 PDF")
         self.pdf_btn.clicked.connect(self.export_to_pdf_with_charts)
         btn_layout.addWidget(self.pdf_btn)
+        
+        self.csv_btn = QPushButton("📊 CSV")
+        self.csv_btn.clicked.connect(self.export_to_csv)
+        btn_layout.addWidget(self.csv_btn)
+        
+        self.word_btn = QPushButton("📝 Word")
+        self.word_btn.clicked.connect(self.export_to_word)
+        btn_layout.addWidget(self.word_btn)
         
         self.print_preview_btn = QPushButton("🖨️ Print Preview")
         self.print_preview_btn.clicked.connect(self.print_preview)
@@ -1048,6 +1056,183 @@ class CustomReportBuilder(QWidget):
         
         for col in range(col_count):
             table.setColumnWidth(col, col_width - 2)  # -2 for borders
+    
+    def print_preview(self):
+        """Show print preview with professional formatting"""
+        # Dialog to get metadata
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Print Settings")
+        dialog.setGeometry(200, 200, 400, 250)
+        layout = QVBoxLayout()
+        
+        form = QFormLayout()
+        
+        report_name = QLineEdit()
+        report_name.setText(self.primary_table.currentText())
+        form.addRow("Report Name:", report_name)
+        
+        report_type = QLineEdit()
+        report_type.setPlaceholderText("e.g., Financial Summary")
+        form.addRow("Report Type:", report_type)
+        
+        period = QLineEdit()
+        period.setPlaceholderText("e.g., Q1 2026")
+        form.addRow("Period/Description:", period)
+        
+        # Additional filter info (optional)
+        filter_info = QLineEdit()
+        filter_info.setPlaceholderText("e.g., John Doe, Vehicle L-25, Fuzzy Match")
+        form.addRow("Filter Info:", filter_info)
+        
+        layout.addLayout(form)
+        
+        # Buttons
+        btn_layout = QHBoxLayout()
+        ok_btn = QPushButton("Preview")
+        ok_btn.clicked.connect(dialog.accept)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        btn_layout.addWidget(ok_btn)
+        btn_layout.addWidget(cancel_btn)
+        layout.addLayout(btn_layout)
+        
+        dialog.setLayout(layout)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Create printer
+            printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+            printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
+            printer.setOrientation(QPrinter.Orientation.Landscape)
+            printer.setPageMargins(QMarginsF(10, 10, 10, 10), QPrinter.Unit.Millimeter)
+            
+            # Get metadata
+            name = report_name.text() or "Report"
+            rtype = report_type.text() or ""
+            period_text = period.text() or ""
+            filter_text = filter_info.text() or ""
+            
+            # Print preview dialog
+            preview_dialog = QPrintPreviewDialog(printer, self)
+            preview_dialog.paintRequested.connect(
+                lambda p: self.render_report(
+                    p, name, rtype, period_text, filter_text
+                )
+            )
+            preview_dialog.exec()
+
+    def export_to_csv(self):
+        """Export table data to CSV"""
+        try:
+            import csv
+            from datetime import datetime
+            
+            filename, _ = QFileDialog.getSaveFileName(
+                self,
+                "Export to CSV",
+                f"{self.primary_table.currentText()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                "CSV Files (*.csv);;All Files (*)"
+            )
+            
+            if not filename:
+                return
+            
+            with open(filename, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                
+                # Write headers
+                headers = []
+                for col in range(self.preview_table.columnCount()):
+                    header_item = self.preview_table.horizontalHeaderItem(col)
+                    headers.append(header_item.text() if header_item else "")
+                writer.writerow(headers)
+                
+                # Write data rows
+                for row in range(self.preview_table.rowCount()):
+                    row_data = []
+                    for col in range(self.preview_table.columnCount()):
+                        item = self.preview_table.item(row, col)
+                        row_data.append(item.text() if item else "")
+                    writer.writerow(row_data)
+            
+            row_count = self.preview_table.rowCount()
+            QMessageBox.information(
+                self,
+                "Success",
+                f"✅ Exported {row_count} rows to CSV:\n{filename}"
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"CSV export failed:\n{e}")
+
+    def export_to_word(self):
+        """Export table data to Word (.docx)"""
+        try:
+            from docx import Document
+            from docx.shared import Pt, RGBColor
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+            from datetime import datetime
+            
+            filename, _ = QFileDialog.getSaveFileName(
+                self,
+                "Export to Word",
+                f"{self.primary_table.currentText()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
+                "Word Files (*.docx);;All Files (*)"
+            )
+            
+            if not filename:
+                return
+            
+            doc = Document()
+            
+            # Add title
+            title_para = doc.add_paragraph(f"{self.primary_table.currentText()} Report")
+            title_para.style = 'Heading 1'
+            title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Add timestamp
+            timestamp_para = doc.add_paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            timestamp_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            timestamp_para_format = timestamp_para.runs[0]
+            timestamp_para_format.italic = True
+            timestamp_para_format.font.size = Pt(10)
+            
+            doc.add_paragraph()
+            
+            # Create table
+            col_count = self.preview_table.columnCount()
+            row_count = self.preview_table.rowCount()
+            
+            if col_count > 0 and row_count > 0:
+                word_table = doc.add_table(rows=row_count + 1, cols=col_count)
+                word_table.style = 'Light Grid Accent 1'
+                
+                # Write headers
+                for col in range(col_count):
+                    header_item = self.preview_table.horizontalHeaderItem(col)
+                    header_text = header_item.text() if header_item else ""
+                    word_table.cell(0, col).text = header_text
+                
+                # Write data
+                for row in range(row_count):
+                    for col in range(col_count):
+                        item = self.preview_table.item(row, col)
+                        word_table.cell(row + 1, col).text = item.text() if item else ""
+            
+            doc.save(filename)
+            
+            QMessageBox.information(
+                self,
+                "Success",
+                f"✅ Exported to Word:\n{filename}"
+            )
+        except ImportError:
+            QMessageBox.warning(
+                self,
+                "Missing Library",
+                "Word export requires python-docx.\n\nInstall with: pip install python-docx\n\nFalling back to CSV."
+            )
+            self.export_to_csv()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Word export failed:\n{e}")
     
     def print_preview(self):
         """Show print preview with professional formatting"""

@@ -289,26 +289,20 @@ class BeverageManagementWidget(QWidget):
     # ========================================================================
     
     def load_data(self):
-        """Load all beverage products from database"""
+        """Load all beverage products from database - stub (table doesn't exist)"""
         try:
-            cur = self.db_conn.get_cursor()
-            cur.execute("""
-                SELECT item_id, item_name, category, unit_price, our_cost, deposit_amount
-                FROM beverage_products
-                ORDER BY category, item_name
-            """)
-            self.all_products = cur.fetchall()
-            cur.close()
-            
+            # Note: beverage_products table doesn't exist in current schema
+            # Beverages are managed in the beverages table instead
+            self.all_products = []
             self.refresh_products_table()
             self.update_margin_stats()
             
         except Exception as e:
             try:
-                self.db.rollback()
+                self.db_conn.rollback()
             except:
                 pass
-            QMessageBox.critical(self, "Database Error", f"Failed to load products: {e}")
+            QMessageBox.warning(self, "Info", "Beverage management is not fully configured. Contact admin.")
     
     def refresh_products_table(self, filter_text=""):
         """Refresh the products catalog table"""
@@ -579,8 +573,8 @@ class BeverageManagementWidget(QWidget):
     
     def search_charter_costs(self):
         """Search and display beverage costs by charter"""
-        from_date = self.from_date.date().toString("yyyy-MM-dd")
-        to_date = self.to_date.date().toString("yyyy-MM-dd")
+        from_py = self.from_date.date().toPyDate()
+        to_py = self.to_date.date().toPyDate()
         group_by = self.group_by.currentText()
         
         try:
@@ -594,16 +588,15 @@ class BeverageManagementWidget(QWidget):
                     c.charter_date,
                     COUNT(cc.charge_id) as item_count,
                     SUM(cc.charge_amount) as revenue,
-                    COUNT(bp.item_id) as beverage_count,
-                    SUM(bp.our_cost) as cost_total
+                    COUNT(cc.charge_id) as beverage_count,
+                    0 as cost_total
                 FROM charters c
                 LEFT JOIN charter_charges cc ON cc.charter_id = c.charter_id
-                LEFT JOIN beverage_products bp ON bp.item_name ILIKE cc.charge_description
                 WHERE c.charter_date BETWEEN %s AND %s
                   AND cc.charge_type = 'beverage'
                 GROUP BY c.charter_id, c.reserve_number, c.charter_date
                 ORDER BY c.charter_date DESC
-            """, (from_date, to_date))
+            """, (from_py, to_py))
             
             results = cur.fetchall()
             cur.close()

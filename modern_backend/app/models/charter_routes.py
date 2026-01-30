@@ -8,10 +8,10 @@ from pydantic import BaseModel, Field
 class CharterRouteBase(BaseModel):
     """Base model for charter route."""
     route_sequence: int = Field(..., ge=1, description="Route order (1, 2, 3, ...)")
-    pickup_location: Optional[str] = None
-    pickup_time: Optional[time] = None
-    dropoff_location: Optional[str] = None
-    dropoff_time: Optional[time] = None
+    event_type_code: Optional[str] = Field(None, description="Event type: pickup, dropoff, leave_red_deer, etc.")
+    address: Optional[str] = Field(None, description="Unified address for any event type")
+    stop_time: Optional[time] = Field(None, description="Time of this routing event")
+    reserve_number: Optional[str] = Field(None, description="Business key linking to charter")
     estimated_duration_minutes: Optional[int] = Field(None, ge=0)
     actual_duration_minutes: Optional[int] = Field(None, ge=0)
     estimated_distance_km: Optional[float] = Field(None, ge=0)

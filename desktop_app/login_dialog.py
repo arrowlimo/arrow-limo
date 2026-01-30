@@ -6,6 +6,7 @@ Handles: username/password entry, remember-me, error handling, styling
 from typing import Optional, Dict, Callable
 import json
 import os
+import webbrowser
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QPushButton, QCheckBox, QMessageBox, QFrame, QRadioButton, QButtonGroup
@@ -24,12 +25,12 @@ class LoginDialog(QDialog):
     # Signal emitted when login succeeds
     login_successful = pyqtSignal(dict)  # Passes auth_user dict
     
-    def __init__(self, parent=None, active_db_target: str = "neon", set_db_callback: Optional[Callable[[str], None]] = None):
+    def __init__(self, parent=None, active_db_target: str = "local", set_db_callback: Optional[Callable[[str], None]] = None):
         super().__init__(parent)
         self.login_manager = LoginManager()
         self.auth_user = None
         self.prefs_file = Path.home() / ".limo_login_prefs.json"
-        self.active_db_target = (active_db_target or "neon").lower().strip()
+        self.active_db_target = (active_db_target or "local").lower().strip()
         self.set_db_callback = set_db_callback
         self.init_ui()
         # Sync DB selection to env + login manager on startup
@@ -40,7 +41,7 @@ class LoginDialog(QDialog):
     def init_ui(self):
         """Build login form UI"""
         self.setWindowTitle('Arrow Limousine Management System - Login')
-        self.setFixedSize(560, 640)
+        self.setFixedSize(560, 700)
         self.setModal(True)
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         self.setFocus()
@@ -149,7 +150,7 @@ class LoginDialog(QDialog):
         # Card frame
         card = QFrame()
         card.setObjectName('CardFrame')
-        card.setFixedSize(400, 520)
+        card.setFixedSize(400, 580)
         card_layout = QVBoxLayout()
         card_layout.setSpacing(8)
         card_layout.setContentsMargins(32, 28, 32, 28)
@@ -202,22 +203,22 @@ class LoginDialog(QDialog):
         card_layout.addSpacing(2)
         
         # Username field
-        username_label = QLabel('Username')
-        username_label.setFont(QFont('Segoe UI', 12, QFont.Weight.Medium))
-        username_label.setStyleSheet("color: #374151;")
+        self.username_label = QLabel('Username')
+        self.username_label.setFont(QFont('Segoe UI', 12, QFont.Weight.Medium))
+        self.username_label.setStyleSheet("color: #374151;")
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText('Enter your username')
         self.username_input.setMaximumWidth(280)
         self.username_input.returnPressed.connect(self.handle_login)
         
-        card_layout.addWidget(username_label)
+        card_layout.addWidget(self.username_label)
         card_layout.addWidget(self.username_input)
         card_layout.addSpacing(4)
         
         # Password field
-        password_label = QLabel('Password')
-        password_label.setFont(QFont('Segoe UI', 12, QFont.Weight.Medium))
-        password_label.setStyleSheet("color: #374151;")
+        self.password_label = QLabel('Password')
+        self.password_label.setFont(QFont('Segoe UI', 12, QFont.Weight.Medium))
+        self.password_label.setStyleSheet("color: #374151;")
         
         password_row = QHBoxLayout()
         password_row.setSpacing(6)
@@ -250,44 +251,39 @@ class LoginDialog(QDialog):
         password_row.addWidget(self.password_input)
         password_row.addWidget(self.view_password_btn)
         
-        card_layout.addWidget(password_label)
+        card_layout.addWidget(self.password_label)
         card_layout.addLayout(password_row)
-        card_layout.addSpacing(4)
+        card_layout.addSpacing(12)
         
-        # Remember me + database target selection
+        # Store password row for visibility control
+        self.password_row_layout = password_row
+        
+        # Remember me checkbox row
+        remember_row = QHBoxLayout()
+        remember_row.setSpacing(12)
+        remember_row.setContentsMargins(0, 0, 0, 0)
+        remember_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        
+        self.remember_checkbox = QCheckBox('Remember me')
+        self.remember_checkbox.setStyleSheet("color: #374151; font-size: 11px; spacing: 6px;")
+        remember_row.addWidget(self.remember_checkbox)
+        card_layout.addLayout(remember_row)
+        card_layout.addSpacing(8)
+        
+        # Database target selection row (LOCAL ONLY FOR NOW)
         options_row = QHBoxLayout()
         options_row.setSpacing(12)
         options_row.setContentsMargins(0, 0, 0, 0)
         options_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
         
-        self.remember_checkbox = QCheckBox('Remember me')
-        self.remember_checkbox.setStyleSheet("color: #374151; font-size: 11px; spacing: 6px;")
-        
-        options_row.addWidget(self.remember_checkbox)
-        
-        db_label = QLabel('Database:')
+        db_label = QLabel('Database: ')
         db_label.setStyleSheet("color: #374151; font-size: 11px;")
         options_row.addWidget(db_label)
-
-        self.neon_radio = QRadioButton('Neon')
-        self.neon_radio.setStyleSheet("color: #374151; font-size: 11px;")
-        self.local_radio = QRadioButton('Local')
-        self.local_radio.setStyleSheet("color: #374151; font-size: 11px;")
-        self.db_target_group = QButtonGroup(self)
-        self.db_target_group.addButton(self.neon_radio)
-        self.db_target_group.addButton(self.local_radio)
-
-        # Default selection based on active target
-        if self.active_db_target == "local":
-            self.local_radio.setChecked(True)
-        else:
-            self.neon_radio.setChecked(True)
-
-        self.neon_radio.toggled.connect(lambda checked: self._on_db_target_changed("neon") if checked else None)
-        self.local_radio.toggled.connect(lambda checked: self._on_db_target_changed("local") if checked else None)
-
-        options_row.addWidget(self.neon_radio)
-        options_row.addWidget(self.local_radio)
+        
+        local_label = QLabel('Local (PostgreSQL)')
+        local_label.setStyleSheet("color: #374151; font-size: 11px; font-weight: bold;")
+        options_row.addWidget(local_label)
+        options_row.addStretch()
         
         card_layout.addLayout(options_row)
         card_layout.addSpacing(4)
@@ -337,12 +333,16 @@ class LoginDialog(QDialog):
 
         user_id = self.login_manager.load_remember_token()
         if user_id:
-            auth_user = self.login_manager.get_user_by_id(user_id)
-            if auth_user:
-                # Auto-login if token is valid
-                self.auth_user = auth_user
-                self.login_successful.emit(auth_user)
-                self.accept()
+            try:
+                auth_user = self.login_manager.get_user_by_id(user_id)
+                if auth_user:
+                    # Auto-login if token is valid
+                    self.auth_user = auth_user
+                    self.login_successful.emit(auth_user)
+                    self.accept()
+            except Exception:
+                # Database connection failed, allow user to select DB target and try again
+                pass
 
     def _load_saved_login(self):
         """Prefill username/checkbox from last session (no passwords stored)"""
@@ -384,16 +384,25 @@ class LoginDialog(QDialog):
         self.login_manager.db_password = os.getenv('DB_PASSWORD', self.login_manager.db_password)
 
     def _on_db_target_changed(self, target: str) -> None:
-        """Handle DB target toggle and propagate to env + login manager."""
-        target = (target or "neon").lower().strip()
-        if target not in ("neon", "local"):
-            target = "neon"
+        """Handle DB target - LOCAL ONLY FOR NOW"""
+        # Always use local database
+        target = "local"
         self.active_db_target = target
+
+        # Show credential fields for Local login
+        self._show_credential_fields()
+
+        # Local database configuration (localhost)
+        os.environ["DB_TARGET"] = "local"
+        os.environ["DB_HOST"] = "localhost"
+        os.environ["DB_PORT"] = "5432"
+        os.environ["DB_NAME"] = "almsdata"
+        os.environ["DB_USER"] = "postgres"
+        os.environ["DB_PASSWORD"] = "***REMOVED***"
+        os.environ["DB_SSLMODE"] = ""
 
         if self.set_db_callback:
             self.set_db_callback(target)
-        else:
-            os.environ["DB_TARGET"] = target
 
         self._refresh_login_manager_from_env()
     
@@ -468,6 +477,50 @@ class LoginDialog(QDialog):
     def clear_error(self):
         """Hide error message"""
         pass
+    
+    def _on_remote_web_selected(self):
+        """Handle Remote Web selection - opens browser for web-based restore interface"""
+        # Hide credential fields for Remote Web login
+        self.username_label.hide()
+        self.username_input.hide()
+        self.password_label.hide()
+        self.password_input.hide()
+        self.view_password_btn.hide()
+        self.login_button.setText('Open Web Interface')
+        self.login_button.clicked.disconnect()
+        self.login_button.clicked.connect(self._open_remote_web_interface)
+        
+    def _show_credential_fields(self):
+        """Show credential fields for Local/Neon login"""
+        self.username_label.show()
+        self.username_input.show()
+        self.password_label.show()
+        self.password_input.show()
+        self.view_password_btn.show()
+        self.login_button.setText('Sign In')
+        self.login_button.clicked.disconnect()
+        self.login_button.clicked.connect(self.handle_login)
+        
+    def _open_remote_web_interface(self):
+        """Open remote web interface via Render deployment"""
+        # Configure Neon database for remote web login
+        self._on_db_target_changed("remote")
+        
+        # Render deployment URL
+        render_url = "https://arrow-limo-api.onrender.com"
+        message = (
+            "Opening Render-deployed web interface...\n\n"
+            f"URL: {render_url}\n\n"
+            "Your default browser will open with the application.\n"
+            "You can access the full application and database there."
+        )
+        QMessageBox.information(self, "Remote Web Login", message)
+        
+        # Open the web interface in default browser
+        try:
+            webbrowser.open(render_url)
+        except Exception as e:
+            QMessageBox.warning(self, "Browser Error", f"Could not open browser: {e}\n\nVisit manually: {render_url}")
     
     def keyPressEvent(self, event):
         """Handle key events"""

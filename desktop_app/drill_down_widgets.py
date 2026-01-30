@@ -241,7 +241,7 @@ class CharterDetailDialog(QDialog):
                 ORDER BY
                     CASE WHEN status = 'active' THEN 0 ELSE 1 END,
                     CASE
-                        WHEN vehicle_number ~ '^[Ll]-?\d+$' THEN CAST(regexp_replace(vehicle_number, '[^0-9]', '', 'g') AS INT)
+                        WHEN vehicle_number ~ '^[Ll]-?\\d+$' THEN CAST(regexp_replace(vehicle_number, '[^0-9]', '', 'g') AS INT)
                         ELSE 9999
                     END,
                     vehicle_number
@@ -347,11 +347,22 @@ class CharterDetailDialog(QDialog):
         row1b = QHBoxLayout()
         client_label = QLabel("Client Name:")
         client_label.setMinimumWidth(100)
+        
+        # Client selection with button
+        client_select_layout = QHBoxLayout()
         self.client = QLineEdit()
         self.client.setReadOnly(True)
         self.client.setMaximumWidth(250)
+        self.client.setPlaceholderText("Click 'Select Client' to choose...")
+        client_select_layout.addWidget(self.client)
+        
+        select_client_btn = QPushButton("🔍 Select Client")
+        select_client_btn.setMaximumWidth(130)
+        select_client_btn.clicked.connect(self.select_client_dialog)
+        client_select_layout.addWidget(select_client_btn)
+        
         row1b.addWidget(client_label)
-        row1b.addWidget(self.client)
+        row1b.addLayout(client_select_layout)
         row1b.addSpacing(30)
         
         status_label = QLabel("Status:")
@@ -1602,11 +1613,11 @@ class CharterDetailDialog(QDialog):
             
             # Load main charter data
             cur.execute("""
-                SELECT c.reserve_number, c.charter_date, cl.company_name,
+                SELECT c.reserve_number, c.charter_date, COALESCE(cl.company_name, cl.client_name),
                        c.pickup_address, c.dropoff_address, c.pickup_time,
                        c.passenger_count, e.full_name, v.vehicle_number,
                        c.booking_status, c.total_amount_due, c.notes,
-                       c.vehicle_type_requested
+                       c.vehicle_type_requested, c.client_id, c.employee_id
                 FROM charters c
                 LEFT JOIN clients cl ON c.client_id = cl.client_id
                 LEFT JOIN employees e ON c.employee_id = e.employee_id
@@ -1616,7 +1627,11 @@ class CharterDetailDialog(QDialog):
             
             charter = cur.fetchone()
             if charter:
-                res_num, c_date, client, pickup, dest, p_time, pax, driver, vehicle, status, total, notes, veh_type_req = charter
+                res_num, c_date, client, pickup, dest, p_time, pax, driver, vehicle, status, total, notes, veh_type_req, client_id, employee_id = charter
+                
+                # Store IDs for saving later
+                self.selected_client_id = client_id
+                self.selected_employee_id = employee_id
                 
                 self.res_num.setText(str(res_num or ""))
                 
@@ -1829,30 +1844,38 @@ class CharterDetailDialog(QDialog):
     def save_charter(self):
         """Save changes to charter"""
         try:
-            # Get the vehicle IDs from the dropdowns
+            # Get the IDs from the dropdowns
             vehicle_id = self.vehicle.currentData()
             vehicle_requested_id = self.vehicle_requested.currentData()
+            employee_id = self.driver.currentData()  # Get employee_id from driver dropdown
+            
+            # Get selected_client_id if available (set when client is loaded)
+            client_id = getattr(self, 'selected_client_id', None)
             
             cur = self.db.get_cursor()
             cur.execute("""
                 UPDATE charters SET
+                    client_id = %s,
                     charter_date = %s,
                     pickup_address = %s,
                     dropoff_address = %s,
                     pickup_time = %s,
                     passenger_count = %s,
                     booking_status = %s,
+                    employee_id = %s,
                     vehicle_id = %s,
                     vehicle_type_requested = %s,
                     notes = %s
                 WHERE reserve_number = %s
             """, (
-                self.charter_date.date().toString("MM/dd/yyyy"),
+                client_id,
+                self.charter_date.date().toPyDate(),  # Use Python date object for PostgreSQL
                 self.pickup.text(),
                 self.destination.text(),
-                self.pickup_time.text(),
+                self.pickup_time.time().toString("HH:mm"),
                 self.passenger_count.value(),
                 self.status.currentText(),
+                employee_id,
                 vehicle_id,
                 self._vehicle_categories.get(vehicle_requested_id, "") if vehicle_requested_id else None,
                 self.notes.toPlainText(),
@@ -1868,18 +1891,32 @@ class CharterDetailDialog(QDialog):
             QMessageBox.critical(self, "Error", f"Failed to save charter: {e}")
             self.db.rollback()
     
+    def select_client_dialog(self):
+        """Open improved client selection dialog"""
+        from improved_client_selection_dialog import ClientSelectionDialog
+        
+        dialog = ClientSelectionDialog(self.db, self)
+        if dialog.exec():
+            self.selected_client_id = dialog.get_selected_client_id()
+            client_name = dialog.get_selected_client_name()
+            if self.selected_client_id and client_name:
+                self.client.setText(client_name)
+    
     def add_new_charter(self):
-        """Create a new charter - open dialog with no reserve_number"""
-        reply = QMessageBox.question(
-            self,
-            "Add New Charter",
-            "Create a new charter record?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply == QMessageBox.StandardButton.Yes:
-            new_dialog = CharterDetailDialog(self.db, reserve_number=None, parent=self.parent())
-            new_dialog.saved.connect(self.on_charter_saved)
-            new_dialog.exec()
+        """Create a new charter - search for client first or create new client"""
+        from client_search_dialog import ClientSearchDialog
+        
+        search_dialog = ClientSearchDialog(self.db, self)
+        result = search_dialog.exec()
+        
+        if result:
+            # User selected or created a client
+            selected_client_id = search_dialog.get_selected_client_id()
+            if selected_client_id:
+                # Open charter form with pre-selected client
+                new_dialog = CharterDetailDialog(self.db, reserve_number=None, parent=self.parent(), client_id=selected_client_id)
+                new_dialog.saved.connect(self.on_charter_saved)
+                new_dialog.exec()
     
     def duplicate_charter(self):
         """Duplicate current charter with modified reserve number"""

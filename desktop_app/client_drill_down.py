@@ -51,7 +51,7 @@ class ClientDetailDialog(QDialog):
             # ===== TOP ACTION BUTTONS (STANDARD LAYOUT) =====
             button_layout = QHBoxLayout()
             
-            # Left side: Action-specific buttons (Suspend, Activate)
+            # Left side: Action-specific buttons (Suspend, Activate, Link Child)
             self.suspend_btn = QPushButton("🚫 Suspend Client")
             self.suspend_btn.clicked.connect(self.suspend_client)
             button_layout.addWidget(self.suspend_btn)
@@ -59,6 +59,10 @@ class ClientDetailDialog(QDialog):
             self.activate_btn = QPushButton("✅ Activate Client")
             self.activate_btn.clicked.connect(self.activate_client)
             button_layout.addWidget(self.activate_btn)
+            
+            self.link_child_btn = QPushButton("🔗 Link Child Account")
+            self.link_child_btn.clicked.connect(self.link_child_account)
+            button_layout.addWidget(self.link_child_btn)
             
             button_layout.addStretch()
             
@@ -133,6 +137,10 @@ class ClientDetailDialog(QDialog):
         # Corporate hierarchy
         corporate_group = QGroupBox("Corporate Information")
         corporate_form = QFormLayout()
+        
+        self.is_company = QCheckBox("This is a company (not an individual)")
+        self.is_company.stateChanged.connect(self.on_is_company_toggled)
+        corporate_form.addRow("Company:", self.is_company)
         
         self.is_corporate = QCheckBox("This is a corporate client")
         corporate_form.addRow("Corporate Client:", self.is_corporate)
@@ -581,28 +589,57 @@ class ClientDetailDialog(QDialog):
             # Main client data
             cur.execute("""
                 SELECT client_id, company_name, client_name, primary_phone, email, address_line1,
-                       first_name, last_name, corporate_parent_id, corporate_role
+                       first_name, last_name, parent_client_id, corporate_role, is_company
                 FROM clients
                 WHERE client_id = %s
             """, (self.client_id,))
             
             client = cur.fetchone()
             if client:
-                cid, company, name, phone, email, addr, first_name, last_name, parent_id, role = client
+                cid, company, name, phone, email, addr, first_name, last_name, parent_id, role, is_company_val = client
+                
+                is_company = bool(is_company_val) if is_company_val is not None else False
+                is_child = int(parent_id or 0) > 0
                 
                 self.company_name.setText(str(company or ""))
                 self.client_name.setText(str(name or ""))
                 self.phone.setText(str(phone or ""))
                 self.email.setText(str(email or ""))
                 self.address.setPlainText(str(addr or ""))
-                self.first_name.setText(str(first_name or ""))
-                self.last_name.setText(str(last_name or ""))
+                
+                # Parse client_name to extract first/last name if not a company
+                if not is_company:
+                    # If client_name is in "Last, First" format, parse it
+                    client_name_str = str(name or "").strip()
+                    if "," in client_name_str:
+                        parts = client_name_str.split(",", 1)
+                        parsed_last = parts[0].strip()
+                        parsed_first = parts[1].strip() if len(parts) > 1 else ""
+                        self.last_name.setText(parsed_last)
+                        self.first_name.setText(parsed_first)
+                    else:
+                        # Otherwise use stored first/last or assume last name only
+                        self.first_name.setText(str(first_name or ""))
+                        self.last_name.setText(str(last_name or client_name_str))
+                    
+                    # Show first/last name fields for individuals/children
+                    self.first_name.setVisible(True)
+                    self.last_name.setVisible(True)
+                else:
+                    # Hide first/last name fields for companies
+                    self.first_name.setVisible(False)
+                    self.last_name.setVisible(False)
+                    # For companies, clear these fields
+                    self.first_name.setText("")
+                    self.last_name.setText("")
+                
                 self.corporate_parent_id.setValue(int(parent_id or 0))
+                self.is_company.setChecked(is_company)
                 if role:
                     idx = self.corporate_role.findText(str(role))
                     if idx >= 0:
                         self.corporate_role.setCurrentIndex(idx)
-                self.is_corporate.setChecked(int(parent_id or 0) > 0)
+                self.is_corporate.setChecked(is_child)
             
             # Charter history
             cur.execute("""
@@ -691,6 +728,25 @@ class ClientDetailDialog(QDialog):
             if corporate_role == "None":
                 corporate_role = None
             
+            # Auto-generate client_name: company_name if set, else "last_name, first_name"
+            company = self.company_name.text().strip()
+            first = self.first_name.text().strip()
+            last = self.last_name.text().strip()
+            
+            if company:
+                # Company name takes precedence
+                auto_client_name = company
+            elif first or last:
+                # Generate from first/last: "Last, First"
+                if first and last:
+                    auto_client_name = f"{last}, {first}"
+                elif last:
+                    auto_client_name = last
+                else:
+                    auto_client_name = first
+            else:
+                auto_client_name = self.client_name.text().strip()
+            
             cur.execute("""
                 UPDATE clients SET
                     company_name = %s,
@@ -700,19 +756,21 @@ class ClientDetailDialog(QDialog):
                     address_line1 = %s,
                     first_name = %s,
                     last_name = %s,
-                    corporate_parent_id = %s,
-                    corporate_role = %s
+                    parent_client_id = %s,
+                    corporate_role = %s,
+                    is_company = %s
                 WHERE client_id = %s
             """, (
-                self.company_name.text(),
-                self.client_name.text(),
+                company,
+                auto_client_name,
                 self.phone.text(),
                 self.email.text(),
                 self.address.toPlainText(),
-                self.first_name.text(),
-                self.last_name.text(),
+                first,
+                last,
                 self.corporate_parent_id.value(),
                 corporate_role,
+                self.is_company.isChecked(),
                 self.client_id
             ))
             self.db.commit()
@@ -786,14 +844,16 @@ class ClientDetailDialog(QDialog):
                 
                 cur = self.db.get_cursor()
                 cur.execute("""
-                    INSERT INTO clients (company_name, client_name, phone, email, address, created_at)
-                    VALUES (%s, %s, %s, %s, %s, NOW())
+                    INSERT INTO clients (company_name, client_name, primary_phone, email, address_line1, first_name, last_name, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                 """, (
                     new_name,
                     new_name,
                     self.phone.text(),
                     self.email.text(),
-                    self.address.toPlainText()
+                    self.address.toPlainText(),
+                    self.first_name.text(),
+                    self.last_name.text()
                 ))
                 self.db.commit()
                 QMessageBox.information(self, "Success", f"Client duplicated as '{new_name}'.")
@@ -852,6 +912,118 @@ class ClientDetailDialog(QDialog):
     
     def activate_client(self):
         QMessageBox.information(self, "Info", "Activate client process (to be implemented)")
+    
+    def link_child_account(self):
+        """Link another client as a child account (subsidiary) of this company"""
+        if not self.client_id:
+            QMessageBox.warning(self, "Warning", "Load a client first before linking child accounts")
+            return
+        
+        # Dialog to select child client
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Link Child Account")
+        dialog.setGeometry(100, 100, 500, 300)
+        
+        layout = QVBoxLayout()
+        
+        # Instructions
+        layout.addWidget(QLabel("Select a client to link as a child account:\n(This client becomes a subsidiary of the current company)"))
+        
+        # Search/select field
+        search_input = QLineEdit()
+        search_input.setPlaceholderText("Search by client name, ID, or company...")
+        layout.addWidget(search_input)
+        
+        # Client list
+        client_list = QListWidget()
+        layout.addWidget(client_list)
+        
+        def load_available_clients(search_text=""):
+            """Load clients that can be linked as children (not already children)"""
+            try:
+                cur = self.db.get_cursor()
+                where = "WHERE parent_client_id = 0 OR parent_client_id IS NULL"  # Only independent clients
+                params = []
+                
+                if search_text:
+                    where += " AND (client_name ILIKE %s OR company_name ILIKE %s OR client_id = %s)"
+                    params = [f"%{search_text}%", f"%{search_text}%", search_text.split()[-1] if search_text else ""]
+                
+                cur.execute(f"""
+                    SELECT client_id, client_name, company_name
+                    FROM clients
+                    {where}
+                    ORDER BY COALESCE(company_name, client_name)
+                    LIMIT 100
+                """, params if search_text else [])
+                
+                client_list.clear()
+                for cid, cname, ccompany in cur.fetchall():
+                    display = f"[{cid}] {ccompany or cname}"
+                    item = QListWidget.item_type() if hasattr(QListWidget, 'item_type') else None
+                    client_list.addItem(display)
+                    client_list.item(client_list.count()-1).setData(Qt.ItemDataRole.UserRole, cid)
+                
+                cur.close()
+            except Exception as e:
+                QMessageBox.warning(dialog, "Error", f"Failed to load clients: {e}")
+        
+        # Load initial list
+        load_available_clients()
+        
+        # Search connection
+        search_input.textChanged.connect(lambda: load_available_clients(search_input.text()))
+        
+        # Buttons
+        btn_layout = QHBoxLayout()
+        
+        link_btn = QPushButton("Link as Child")
+        def do_link():
+            item = client_list.currentItem()
+            if not item:
+                QMessageBox.warning(dialog, "Warning", "Select a client to link")
+                return
+            
+            child_id = item.data(Qt.ItemDataRole.UserRole)
+            try:
+                cur = self.db.get_cursor()
+                cur.execute("""
+                    UPDATE clients 
+                    SET parent_client_id = %s
+                    WHERE client_id = %s
+                """, (self.client_id, child_id))
+                self.db.commit()
+                QMessageBox.information(dialog, "Success", f"Client {child_id} linked as child account")
+                dialog.accept()
+            except Exception as e:
+                QMessageBox.critical(dialog, "Error", f"Failed to link: {e}")
+                self.db.rollback()
+        
+        link_btn.clicked.connect(do_link)
+        btn_layout.addWidget(link_btn)
+        
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        btn_layout.addWidget(cancel_btn)
+        
+        layout.addLayout(btn_layout)
+        dialog.setLayout(layout)
+        dialog.exec()
+    
+    def on_is_company_toggled(self):
+        """Show/hide first/last name fields based on is_company checkbox"""
+        is_company = self.is_company.isChecked()
+        
+        if is_company:
+            # Company: hide first/last name, clear them
+            self.first_name.setVisible(False)
+            self.last_name.setVisible(False)
+            self.first_name.setText("")
+            self.last_name.setText("")
+        else:
+            # Individual/Child: show first/last name
+            self.first_name.setVisible(True)
+            self.last_name.setVisible(True)
     
     def open_charter_detail(self, index):
         QMessageBox.information(self, "Info", "Open charter detail (to be implemented)")

@@ -191,19 +191,18 @@ class AdvancedCharterSearchDialog(QDialog):
             
             # Load vehicles with active-first, numeric L ordering
             cur.execute("""
-                SELECT DISTINCT v.vehicle_number
-                FROM charters c
-                LEFT JOIN vehicles v ON c.vehicle_id = v.vehicle_id
+                SELECT v.vehicle_number
+                FROM vehicles v
                 WHERE v.vehicle_number IS NOT NULL AND v.vehicle_number != ''
                 ORDER BY
                     CASE WHEN v.status = 'active' THEN 0 ELSE 1 END,
                     CASE
-                        WHEN v.vehicle_number ~ '^[Ll]-?\d+$' THEN CAST(regexp_replace(v.vehicle_number, '[^0-9]', '', 'g') AS INT)
+                        WHEN v.vehicle_number ~ '^[Ll]-?\\d+$' THEN CAST(regexp_replace(v.vehicle_number, '[^0-9]', '', 'g') AS INT)
                         ELSE 9999
                     END,
                     v.vehicle_number
             """)
-            vehicles = [row[0] for row in cur.fetchall()]
+            vehicles = [row[0] for row in cur.fetchall()]  # Still get only vehicle_number from results
             self.vehicle_combo.addItems(["All"] + vehicles)
             
             cur.close()

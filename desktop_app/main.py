@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem, QComboBox, QSpinBox, QDoubleSpinBox,
     QCheckBox, QGroupBox, QFormLayout, QSplitter, QTreeWidget, QTreeWidgetItem,
     QMessageBox, QFileDialog, QScrollArea, QHeaderView, QInputDialog, QDialog,
-    QAbstractSpinBox, QMenu, QAbstractItemView, QCompleter, QDateTimeEdit,
+    QAbstractSpinBox, QMenu, QAbstractItemView, QCompleter, QDateTimeEdit, QDateEdit, QTimeEdit,
     QProgressBar, QStatusBar, QFrame, QSizePolicy, QListWidget, QListWidgetItem
 )
 from PyQt6.QtCore import Qt, QDate, QDateTime, pyqtSignal, QTimer, QSettings, QTime
@@ -54,6 +54,12 @@ from asset_management_widget import AssetManagementWidget
 from beverage_management_widget import BeverageManagementWidget
 from beverage_management_widget import BeverageManagementWidget
 from beverage_ordering import BeverageSelectionDialog
+
+# AI Copilot
+from copilot_widget import CopilotWidget
+from rag_engine import KnowledgeRetriever
+from llm_engine import LLMEngine
+from function_executor import FunctionExecutor
 
 # Enhanced Drill-Down Widgets
 from enhanced_charter_widget import EnhancedCharterListWidget
@@ -669,14 +675,18 @@ class DatabaseConnection:
     def __init__(self):
         try:
             cfg = ACTIVE_DB_CONFIG
-            self.conn = psycopg2.connect(
-                host=cfg["host"],
-                port=cfg["port"],
-                database=cfg["database"],
-                user=cfg["user"],
-                password=cfg["password"],
-                sslmode=cfg.get("sslmode", None)
-            )
+            # Build connection kwargs, excluding empty sslmode
+            conn_kwargs = {
+                "host": cfg["host"],
+                "port": cfg["port"],
+                "database": cfg["database"],
+                "user": cfg["user"],
+                "password": cfg["password"],
+            }
+            sslmode = cfg.get("sslmode")
+            if sslmode:  # Only add sslmode if it's not empty/None
+                conn_kwargs["sslmode"] = sslmode
+            self.conn = psycopg2.connect(**conn_kwargs)
             # If offline/local, enforce read-only to prevent drift
             if OFFLINE_READONLY:
                 try:
@@ -697,6 +707,10 @@ class DatabaseConnection:
         except Exception:
             pass
         return self.conn.cursor()
+    
+    def cursor(self):
+        """Alias for get_cursor() - provides backward compatibility with code using .cursor()"""
+        return self.get_cursor()
     
     def commit(self):
         """Commit transaction - ALWAYS call this after modifications"""
@@ -837,16 +851,19 @@ class CharterFormWidget(QWidget):
     
     saved = pyqtSignal(int)  # Signal emitted when charter is saved (charter_id)
     
-    def __init__(self, db: DatabaseConnection, charter_id: Optional[int] = None):
+    def __init__(self, db: DatabaseConnection, charter_id: Optional[int] = None, client_id: Optional[int] = None):
         super().__init__()
         self.db = db
         self.charter_id = charter_id
+        self.client_id = client_id  # Pre-fill client if provided
         self.charges_data = []  # Track charges for proper calculation
         self.beverage_cart_data = {}  # Store beverage cart data
         self.beverage_cart_total = 0.0  # Store beverage total for invoice
         self.init_ui()
         if charter_id:
             self.load_charter(charter_id)
+        elif client_id:
+            self.load_client(client_id)  # Pre-fill client info if creating new charter with selected client
     
     def init_ui(self):
         """Initialize UI layout"""
@@ -952,36 +969,30 @@ class CharterFormWidget(QWidget):
         form_container.setLayout(form_layout)
         scroll.setWidget(form_container)
         
-        # ===== CREATE BOOKING SUB-TABS: FORM + DRIVER & VEHICLE OPS =====
+        # ===== CREATE BOOKING SUB-TABS: CHARTER LOOKUP + RUN CHARTER + DRIVER & VEHICLE OPS =====
         booking_tab_widget = QTabWidget()
-        booking_tab_widget.addTab(scroll, "📋 Form")
+        self.booking_tab_widget = booking_tab_widget  # Store reference for navigation
         
-        # Add Driver & Vehicle Operations sub-tab (moved from right column)
+        # Tab 1: Charter Lookup (Browse all charters) - DEFAULT TAB
+        charter_lookup_tab = QWidget()
+        charter_lookup_layout = QVBoxLayout()
+        self.enhanced_charter_widget = EnhancedCharterListWidget(self.db)
+        charter_lookup_layout.addWidget(self.enhanced_charter_widget)
+        charter_lookup_tab.setLayout(charter_lookup_layout)
+        booking_tab_widget.addTab(charter_lookup_tab, "🔍 Charter Lookup")
+        
+        # Tab 2: Run Charter (Form)
+        booking_tab_widget.addTab(scroll, "📋 Run Charter")
+        
+        # Tab 3: Driver & Vehicle Operations
         driver_vehicle_tab = self.create_driver_vehicle_ops_tab()
         booking_tab_widget.addTab(driver_vehicle_tab, "👨‍✈️ Driver & Vehicle Ops")
         
-        # ===== CREATE MAIN TABS: BOOKING + BEVERAGE =====
-        tab_widget = QTabWidget()
-        tab_widget.addTab(booking_tab_widget, "📋 Booking/Charter")
+        # Set Charter Lookup as default tab
+        booking_tab_widget.setCurrentIndex(0)
         
-        # Add Beverage Management as a tab
-        beverage_tab = BeverageManagementWidget(self.db)
-        tab_widget.addTab(beverage_tab, "🍷 Beverage Management")
-        
-        # TODO: Add Billing Management tab (being developed)
-        # try:
-        #     from desktop_app.billing_management_widget import BillingManagementWidget
-        #     self.billing_tab = BillingManagementWidget(self.db, self)
-        #     tab_widget.addTab(self.billing_tab, "💳 Billing Management")
-        # except Exception as e:
-        #     print(f"⚠️ Billing Management tab not loaded: {e}")
-        
-        layout.addWidget(tab_widget)
-        
-        self.setLayout(layout)
-        
-        # Install event filter for Enter key = Tab navigation
-        self.installEventFilter(self)
+        # Return just the booking_tab_widget
+        return booking_tab_widget
     
     def eventFilter(self, obj, event):
         """Handle Enter key as Tab except in QTextEdit fields"""
@@ -1002,7 +1013,7 @@ class CharterFormWidget(QWidget):
         return super().eventFilter(obj, event)
     
     def create_itinerary_section(self) -> QGroupBox:
-        """Itinerary section with line-by-line pickup/dropoff"""
+        """Itinerary section with parent (Pickup/Dropoff) and stops (1a, 1b, 1c...)"""
         itinerary_group = QGroupBox("Itinerary")
         itinerary_layout = QVBoxLayout()
         
@@ -1017,9 +1028,18 @@ class CharterFormWidget(QWidget):
 
         routing_header.addSpacing(10)
 
-        add_route_btn = QPushButton("➕ Add Route Event")
+        add_route_btn = QPushButton("➕ Add Stop")
         add_route_btn.clicked.connect(lambda: self.add_route_line())
         routing_header.addWidget(add_route_btn)
+        
+        # Move Up/Down buttons for reordering stops (not parents)
+        move_up_btn = QPushButton("⬆️ Up")
+        move_up_btn.clicked.connect(self.move_route_line_up)
+        routing_header.addWidget(move_up_btn)
+        
+        move_down_btn = QPushButton("⬇️ Down")
+        move_down_btn.clicked.connect(self.move_route_line_down)
+        routing_header.addWidget(move_down_btn)
         
         # Delete Selected button
         delete_selected_btn = QPushButton("❌ Delete Selected")
@@ -1053,6 +1073,10 @@ class CharterFormWidget(QWidget):
         # Load event types from database
         self._route_event_types = []  # Cache for event types
         self.load_route_event_types()
+        
+        # Initialize routing with Parent 1 and Parent 2 (locked)
+        self._routing_parents_initialized = False
+        self._init_parent_routing()
 
         # Driver routing notes
         driver_notes_row = QHBoxLayout()
@@ -1065,6 +1089,65 @@ class CharterFormWidget(QWidget):
         
         itinerary_group.setLayout(itinerary_layout)
         return itinerary_group
+    
+    def _init_parent_routing(self):
+        """Initialize routing table with locked Parent 1 and Parent 2"""
+        self.route_table.setRowCount(2)
+        
+        # Parent 1: Pickup at (or Leave Red Deer if out of town)
+        parent1_label = QTableWidgetItem("Pickup at")
+        parent1_label.setFlags(parent1_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        parent1_label.setBackground(QColor(220, 220, 220))  # Gray background for locked rows
+        self.route_table.setItem(0, 0, parent1_label)
+        
+        for col in range(1, 5):
+            item = QTableWidgetItem("")
+            self.route_table.setItem(0, col, item)
+        
+        # Parent 2: Drop off at (or Return to Red Deer if out of town)
+        parent2_label = QTableWidgetItem("Drop off at")
+        parent2_label.setFlags(parent2_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        parent2_label.setBackground(QColor(220, 220, 220))  # Gray background for locked rows
+        self.route_table.setItem(1, 0, parent2_label)
+        
+        for col in range(1, 5):
+            item = QTableWidgetItem("")
+            self.route_table.setItem(1, col, item)
+        
+        self._routing_parents_initialized = True
+    
+    def move_route_line_up(self):
+        """Move selected stop up (but not parents)"""
+        current_row = self.route_table.currentRow()
+        if current_row <= 1:  # Can't move Parent 1 or anything before row 2
+            return
+        
+        # Swap with row above (unless it's Parent 1 at row 0)
+        if current_row > 1:
+            self._swap_route_rows(current_row, current_row - 1)
+            self.route_table.setCurrentCell(current_row - 1, 0)
+    
+    def move_route_line_down(self):
+        """Move selected stop down (but not parents)"""
+        current_row = self.route_table.currentRow()
+        last_row = self.route_table.rowCount() - 1
+        
+        if current_row < 1 or current_row >= last_row - 1:  # Can't move Parent 2 at last row
+            return
+        
+        self._swap_route_rows(current_row, current_row + 1)
+        self.route_table.setCurrentCell(current_row + 1, 0)
+    
+    def _swap_route_rows(self, row1: int, row2: int):
+        """Swap two rows in the route table"""
+        for col in range(self.route_table.columnCount()):
+            item1 = self.route_table.item(row1, col)
+            item2 = self.route_table.item(row2, col)
+            
+            if item1 and item2:
+                temp_text = item1.text()
+                item1.setText(item2.text())
+                item2.setText(temp_text)
     
     def create_charter_details_section(self, lock_btn=None, cancel_btn=None, close_btn=None) -> QGroupBox:
         """Charter Details: Rate Type + Client Request Info + Control Buttons"""
@@ -1104,6 +1187,7 @@ class CharterFormWidget(QWidget):
         self.charter_status_combo = QComboBox()
         self.charter_status_combo.addItems(["Quote", "Confirmed", "In Progress", "Completed", "Cancelled"])
         self.charter_status_combo.setMaximumWidth(140)
+        self.charter_status_combo.currentTextChanged.connect(self._on_charter_status_changed)
         status_controls_layout.addWidget(self.charter_status_combo)
         
         status_controls_layout.addSpacing(20)
@@ -1177,34 +1261,86 @@ class CharterFormWidget(QWidget):
         rate_pricing_layout.addStretch()
         status_layout.addLayout(rate_pricing_layout)
 
-        # Pickup / Drop-off (first row)
-        pickup_dropoff_layout = QHBoxLayout()
-        pickup_dropoff_layout.setContentsMargins(0, 0, 0, 0)
-
-        pickup_dropoff_layout.addWidget(QLabel("Pickup:"))
-        self.pickup_datetime = QDateTimeEdit()
-        self.pickup_datetime.setCalendarPopup(True)
-        self.pickup_datetime.setDisplayFormat("MM/dd/yyyy 'at' HH:mm")
-        self.pickup_datetime.setDateTime(QDateTime.currentDateTime())
-        self.pickup_datetime.setMaximumWidth(170)
-        pickup_dropoff_layout.addWidget(self.pickup_datetime)
-
-        pickup_dropoff_layout.addSpacing(8)
-
-        pickup_dropoff_layout.addWidget(QLabel("Drop-off:"))
-        self.dropoff_datetime = QDateTimeEdit()
-        self.dropoff_datetime.setCalendarPopup(True)
-        self.dropoff_datetime.setDisplayFormat("MM/dd/yyyy 'at' HH:mm")
-        self.dropoff_datetime.setDateTime(QDateTime.currentDateTime().addSecs(2 * 60 * 60))
-        self.dropoff_datetime.setMaximumWidth(170)
-        pickup_dropoff_layout.addWidget(self.dropoff_datetime)
-
-        pickup_dropoff_layout.addSpacing(20)
-
+        # Charter Date Range & Base Timing (allow multi-day charters)
+        date_time_layout = QVBoxLayout()
+        date_time_layout.setContentsMargins(0, 0, 0, 0)
+        date_time_layout.setSpacing(5)
+        
+        # Row 1: Charter Date From/To
+        date_row = QHBoxLayout()
+        date_row.addWidget(QLabel("Charter Date:"))
+        
+        date_row.addWidget(QLabel("From"))
+        self.charter_date_from = QDateEdit()
+        self.charter_date_from.setCalendarPopup(True)
+        self.charter_date_from.setDisplayFormat("MM/dd/yyyy")
+        self.charter_date_from.setDate(QDate.currentDate())
+        self.charter_date_from.setMaximumWidth(120)
+        date_row.addWidget(self.charter_date_from)
+        
+        date_row.addSpacing(10)
+        date_row.addWidget(QLabel("To"))
+        self.charter_date_to = QDateEdit()
+        self.charter_date_to.setCalendarPopup(True)
+        self.charter_date_to.setDisplayFormat("MM/dd/yyyy")
+        self.charter_date_to.setDate(QDate.currentDate())
+        self.charter_date_to.setMaximumWidth(120)
+        date_row.addWidget(self.charter_date_to)
+        
+        date_row.addStretch()
+        date_time_layout.addLayout(date_row)
+        
+        # Row 2: Base Timing From/To (allows past midnight)
+        time_row = QHBoxLayout()
+        time_row.addWidget(QLabel("Base Timing:"))
+        
+        time_row.addWidget(QLabel("From"))
+        self.base_time_from = QTimeEdit()
+        self.base_time_from.setDisplayFormat("HH:mm")
+        self.base_time_from.setTime(QTime.currentTime())
+        self.base_time_from.setMaximumWidth(80)
+        self.base_time_from.timeChanged.connect(self._calculate_charter_duration)
+        time_row.addWidget(self.base_time_from)
+        
+        time_row.addSpacing(10)
+        time_row.addWidget(QLabel("To"))
+        self.base_time_to = QTimeEdit()
+        self.base_time_to.setDisplayFormat("HH:mm")
+        self.base_time_to.setTime(QTime.currentTime().addSecs(2 * 60 * 60))
+        self.base_time_to.setMaximumWidth(80)
+        self.base_time_to.timeChanged.connect(self._calculate_charter_duration)
+        time_row.addWidget(self.base_time_to)
+        
+        # Duration display
+        time_row.addSpacing(15)
+        time_row.addWidget(QLabel("Duration:"))
+        self.duration_label = QLabel("2.0 hrs")
+        self.duration_label.setStyleSheet("font-weight: bold; color: #0066cc;")
+        self.duration_label.setMinimumWidth(60)
+        time_row.addWidget(self.duration_label)
+        
+        time_row.addStretch()
+        date_time_layout.addLayout(time_row)
+        
+        status_layout.addLayout(date_time_layout)
+        
+        # Keep legacy fields for backward compatibility
+        self.pickup_datetime = self.charter_date_from  # Alias for old code
+        self.charter_date = self.charter_date_from  # Alias for old code
+        try:
+            self.charter_date.getDate = self.charter_date_from.date
+        except Exception:
+            pass
+        self.pickup_time_input = self.base_time_from
+        self.pickup_time = self.base_time_from
+        self.dropoff_datetime = self.charter_date_to  # Alias for old code
+        
+        # Row 3: Gratuity controls
+        gratuity_row = QHBoxLayout()
         self.gratuity_checkbox = QCheckBox("Gratuity:")
         self.gratuity_checkbox.setChecked(True)  # Default enabled
         self.gratuity_checkbox.toggled.connect(self._on_gratuity_checkbox_toggled)
-        pickup_dropoff_layout.addWidget(self.gratuity_checkbox)
+        gratuity_row.addWidget(self.gratuity_checkbox)
 
         self.gratuity_percent_input = QDoubleSpinBox()
         self.gratuity_percent_input.setMaximum(100.0)
@@ -1213,10 +1349,10 @@ class CharterFormWidget(QWidget):
         self.gratuity_percent_input.setSuffix("%")
         self.gratuity_percent_input.setMaximumWidth(70)
         self.gratuity_percent_input.valueChanged.connect(self._on_gratuity_percent_changed)
-        pickup_dropoff_layout.addWidget(self.gratuity_percent_input)
-
-        pickup_dropoff_layout.addStretch()
-        status_layout.addLayout(pickup_dropoff_layout)
+        gratuity_row.addWidget(self.gratuity_percent_input)
+        
+        gratuity_row.addStretch()
+        status_layout.addLayout(gratuity_row)
 
         # === VEHICLE & DRIVER ASSIGNMENT (WITH REQUESTED VEHICLE & PAX) ===
         dispatch_group = QGroupBox("Vehicle and Driver")
@@ -1280,6 +1416,19 @@ class CharterFormWidget(QWidget):
         self.load_drivers()
         self.driver_combo.setMaximumWidth(220)
         bottom_dispatch_row.addWidget(self.driver_combo)
+        
+        # Driver name display (to the right of driver combo)
+        self.driver_name_display_label = QLabel("")
+        self.driver_name_display_label.setStyleSheet("color: #555; font-style: italic;")
+        self.driver_name_display_label.setMinimumWidth(150)
+        self.driver_name_display_label.setMaximumWidth(200)
+        bottom_dispatch_row.addWidget(self.driver_name_display_label)
+        
+        # Connect driver combo to update display label
+        try:
+            self.driver_combo.currentIndexChanged.connect(self._update_driver_name_display)
+        except Exception:
+            pass
         
         bottom_dispatch_row.addStretch()
         dispatch_layout.addLayout(bottom_dispatch_row)
@@ -1737,76 +1886,44 @@ class CharterFormWidget(QWidget):
         vehicle_inspection_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         vehicle_inspection_layout = QVBoxLayout()
         
-        # Inspection form upload (driver fills manual form, dispatcher uploads)
-        form_header = QHBoxLayout()
-        form_header.addWidget(QLabel("<b>Inspection Form (eHOS Compliance):</b>"))
-        upload_form_btn = QPushButton("📄 Upload Inspection Form")
-        upload_form_btn.setMaximumWidth(150)
-        upload_form_btn.clicked.connect(self._upload_inspection_form)
-        form_header.addWidget(upload_form_btn)
-        self.inspection_form_label = QLabel("(No form uploaded)")
-        self.inspection_form_label.setStyleSheet("color: #888; font-size: 9pt;")
-        form_header.addWidget(self.inspection_form_label)
-        form_header.addStretch()
-        vehicle_inspection_layout.addLayout(form_header)
-        
-        view_form_btn = QPushButton("👁 View/Download Form")
-        view_form_btn.setMaximumWidth(150)
-        view_form_btn.clicked.connect(self._view_inspection_form)
-        vehicle_inspection_layout.addWidget(view_form_btn)
+        # Simplified inspection box (filled from driver report)
+        vehicle_inspection_layout.addWidget(QLabel("<b>Inspection Summary (Driver Report):</b>"))
 
-        generate_form_btn = QPushButton("🖨 Generate Inspection PDF")
-        generate_form_btn.setMaximumWidth(200)
-        generate_form_btn.clicked.connect(self._generate_inspection_pdf)
-        vehicle_inspection_layout.addWidget(generate_form_btn)
-        
-        # Inspection status
-        inspection_header = QHBoxLayout()
-        inspection_header.addWidget(QLabel("<b>Inspection Status:</b>"))
-        self.inspection_status_combo = QComboBox()
-        self.inspection_status_combo.addItems(["Not Started", "In Progress", "Completed", "Deferred"])
-        self.inspection_status_combo.setMaximumWidth(120)
-        inspection_header.addWidget(self.inspection_status_combo)
-        inspection_header.addStretch()
-        vehicle_inspection_layout.addLayout(inspection_header)
-        
-        # Vehicle condition checkboxes
-        condition_label = QLabel("<b>Inspection Results:</b>")
+        summary_row = QHBoxLayout()
+        summary_row.addWidget(QLabel("Date:"))
+        self.inspection_date_input = QLineEdit()
+        self.inspection_date_input.setPlaceholderText("YYYY-MM-DD")
+        self.inspection_date_input.setMaximumWidth(110)
+        summary_row.addWidget(self.inspection_date_input)
+        summary_row.addWidget(QLabel("Time:"))
+        self.inspection_time_input = QLineEdit()
+        self.inspection_time_input.setPlaceholderText("HH:MM")
+        self.inspection_time_input.setMaximumWidth(70)
+        summary_row.addWidget(self.inspection_time_input)
+        summary_row.addWidget(QLabel("Mileage:"))
+        self.inspection_mileage_input = QLineEdit()
+        self.inspection_mileage_input.setPlaceholderText("Odometer")
+        self.inspection_mileage_input.setMaximumWidth(90)
+        summary_row.addWidget(self.inspection_mileage_input)
+        summary_row.addStretch()
+        vehicle_inspection_layout.addLayout(summary_row)
 
-        vehicle_inspection_layout.addWidget(condition_label)
-        
+        # Vehicle condition checkboxes (simple)
         condition_row = QVBoxLayout()
-        self.inspection_no_defects = QCheckBox("✓ No Defects - Vehicle Safe to Operate")
-        self.inspection_no_defects.setChecked(True)  # Default
+        self.inspection_no_defects = QCheckBox("✓ No Defects Found")
+        self.inspection_no_defects.setChecked(True)
         condition_row.addWidget(self.inspection_no_defects)
-        
-        self.inspection_minor_defects = QCheckBox("⚠ Minor Defects Noted (See remarks)")
+
+        self.inspection_minor_defects = QCheckBox("⚠ Minor Defects Found (list below)")
         condition_row.addWidget(self.inspection_minor_defects)
-        
-        self.inspection_major_defects = QCheckBox("🚫 Major Defects - Vehicle Unsafe (New vehicle dispatched)")
-        condition_row.addWidget(self.inspection_major_defects)
-        
         vehicle_inspection_layout.addLayout(condition_row)
-        
-        # Defect remarks
-        vehicle_inspection_layout.addWidget(QLabel("<b>Defect Notes:</b>"))
+
+        # Minor defect list
+        vehicle_inspection_layout.addWidget(QLabel("<b>Minor Defects Listed:</b>"))
         self.defect_notes_input = QTextEdit()
-        self.defect_notes_input.setPlaceholderText("Minor: tire wear, wiper blade, light out\nMajor: brake issue, steering problem, engine trouble")
+        self.defect_notes_input.setPlaceholderText("List minor defects from driver report")
         self.defect_notes_input.setMaximumHeight(70)
         vehicle_inspection_layout.addWidget(self.defect_notes_input)
-        
-        # Driver signature / Inspection sign-off
-        sig_row = QHBoxLayout()
-        sig_row.addWidget(QLabel("<b>Driver Signature:</b>"))
-        self.inspection_signature_input = QLineEdit()
-        self.inspection_signature_input.setPlaceholderText("Driver name / signature")
-        sig_row.addWidget(self.inspection_signature_input)
-        sig_row.addWidget(QLabel("Date:"))
-        self.inspection_date_input = QLineEdit()
-        self.inspection_date_input.setPlaceholderText(datetime.now().strftime("%Y-%m-%d"))
-        self.inspection_date_input.setMaximumWidth(100)
-        sig_row.addWidget(self.inspection_date_input)
-        vehicle_inspection_layout.addLayout(sig_row)
         
         vehicle_inspection_group.setLayout(vehicle_inspection_layout)
         right_column.addWidget(vehicle_inspection_group, 1)
@@ -2296,30 +2413,23 @@ class CharterFormWidget(QWidget):
         return QGroupBox()
     
     def handle_out_of_town_routing(self, checked: bool):
-        """Toggle first and last row labels between Pickup/Drop-off Client and Depart/Return to Red Deer"""
-        # Ensure routing table is initialized
-        if self.route_table.rowCount() == 0:
-            self.add_default_routing_events()
-        
-        # Update FIRST ROW (row 0) label
-        first_label_item = self.route_table.item(0, 0)
-        if first_label_item:
+        """Toggle parent row labels between Pickup/Drop-off and Leave Red Deer/Return to Red Deer"""
+        # Update PARENT 1 (row 0) label
+        parent1_item = self.route_table.item(0, 0)
+        if parent1_item:
             if checked:
-                first_label_item.setText("Depart Red Deer for")
-                first_label_item.setData(Qt.ItemDataRole.UserRole, "depart_red_deer")
+                parent1_item.setText("Leave Red Deer")
             else:
-                first_label_item.setText("Pickup Client")
-                first_label_item.setData(Qt.ItemDataRole.UserRole, "pickup_client")
+                parent1_item.setText("Pickup at")
         
-        # Update LAST ROW label
+        # Update PARENT 2 (last row) label
         last_row = self.route_table.rowCount() - 1
-        last_label_item = self.route_table.item(last_row, 0)
-        if last_label_item:
+        parent2_item = self.route_table.item(last_row, 0)
+        if parent2_item:
             if checked:
-                last_label_item.setText("Return to Red Deer")
-                last_label_item.setData(Qt.ItemDataRole.UserRole, "return_red_deer")
+                parent2_item.setText("Return to Red Deer")
             else:
-                last_label_item.setText("Drop-off Client")
+                parent2_item.setText("Drop off at")
                 last_label_item.setData(Qt.ItemDataRole.UserRole, "dropoff_client")
         
         # Recalculate billing when toggle changes
@@ -2468,6 +2578,62 @@ class CharterFormWidget(QWidget):
         summary_layout.addRow("Grand Total:", self.gross_total_display)
         charges_layout.addLayout(summary_layout)
         
+        # === BEVERAGE CART (SEPARATE INVOICE) ===
+        beverage_separator = QFrame()
+        beverage_separator.setFrameShape(QFrame.Shape.HLine)
+        charges_layout.addWidget(beverage_separator)
+        
+        beverage_header = QHBoxLayout()
+        beverage_header.addWidget(QLabel("<b>🍷 Beverage Cart (Separate Invoice)</b>"))
+        
+        add_beverage_btn = QPushButton("➕ Add Beverage")
+        add_beverage_btn.setMaximumWidth(140)
+        add_beverage_btn.clicked.connect(self.add_beverage_item)
+        beverage_header.addWidget(add_beverage_btn)
+        
+        delete_beverage_btn = QPushButton("❌ Delete Selected")
+        delete_beverage_btn.setMaximumWidth(140)
+        delete_beverage_btn.clicked.connect(self.delete_selected_beverage)
+        beverage_header.addWidget(delete_beverage_btn)
+        
+        beverage_header.addStretch()
+        charges_layout.addLayout(beverage_header)
+        
+        # Beverage items table: Item | Qty | Unit Price | Total
+        self.beverage_table = QTableWidget()
+        self.beverage_table.setColumnCount(4)
+        self.beverage_table.setHorizontalHeaderLabels(["Item", "Qty", "Unit Price", "Total"])
+        self.beverage_table.setMinimumHeight(100)
+        self.beverage_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.beverage_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.beverage_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)  # Item
+        self.beverage_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)  # Qty
+        self.beverage_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)  # Unit Price
+        self.beverage_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Total
+        self.beverage_table.setColumnWidth(1, 50)
+        self.beverage_table.setColumnWidth(2, 90)
+        self.beverage_table.setColumnWidth(3, 90)
+        
+        # Connect changes to recalculate beverage totals
+        self.beverage_table.cellChanged.connect(self.recalculate_beverage_totals)
+        charges_layout.addWidget(self.beverage_table)
+        
+        # Beverage totals
+        beverage_summary = QFormLayout()
+        self.beverage_subtotal = QLabel("$0.00")
+        self.beverage_subtotal.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        beverage_summary.addRow("Beverage Subtotal:", self.beverage_subtotal)
+        
+        self.beverage_gst = QLabel("$0.00")
+        self.beverage_gst.setStyleSheet("color: #D32F2F;")
+        beverage_summary.addRow("Beverage GST (5%):", self.beverage_gst)
+        
+        self.beverage_total = QLabel("$0.00")
+        self.beverage_total.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        self.beverage_total.setStyleSheet("color: #2E7D32; background-color: #F1F8E9; padding: 4px;")
+        beverage_summary.addRow("Beverage Invoice Total:", self.beverage_total)
+        charges_layout.addLayout(beverage_summary)
+        
         # === PAYMENT TRACKING ===
         payment_header = QHBoxLayout()
         payment_header.addWidget(QLabel("<b>Payments Received</b>"))
@@ -2487,16 +2653,42 @@ class CharterFormWidget(QWidget):
         self.payments_table.setEnabled(False)  # Read-only by default
         charges_layout.addWidget(self.payments_table)
         
+        # === NRR (Non-Refundable Retainer) ===
+        nrr_layout = QHBoxLayout()
+        nrr_layout.addWidget(QLabel("NRR Received:"))
+        self.nrr_received = QDoubleSpinBox()
+        self.nrr_received.setMaximum(99999.99)
+        self.nrr_received.setDecimals(2)
+        self.nrr_received.setPrefix("$")
+        self.nrr_received.setMaximumWidth(120)
+        self.nrr_received.valueChanged.connect(self._on_nrr_received)
+        nrr_layout.addWidget(self.nrr_received)
+        nrr_layout.addWidget(QLabel("(Escrow hold if cancelled - separate from deposits)"))
+        nrr_layout.addStretch()
+        charges_layout.addLayout(nrr_layout)
+        
         # === CLIENT CC INFO (Non-printable) ===
         cc_layout = QFormLayout()
         self.client_cc_checkbox = QCheckBox("Client Provided CC on File")
+        self.client_cc_checkbox.stateChanged.connect(self._on_cc_checkbox_changed)
         cc_layout.addRow(self.client_cc_checkbox)
+        
+        # Full CC info (only visible before save)
+        self.client_cc_full = QLineEdit()
+        self.client_cc_full.setPlaceholderText("Full card number (VISA/MC/AMEX) - hidden after save")
+        self.client_cc_full.setMaximumWidth(250)
+        self.client_cc_full.setEnabled(False)
+        self.client_cc_full.setEchoMode(QLineEdit.EchoMode.Password)  # Masked input
+        cc_layout.addRow("Full CC#:", self.client_cc_full)
+        
+        # Last 4 only (visible always, editable before save)
         self.client_cc_last4 = QLineEdit()
-        self.client_cc_last4.setPlaceholderText("Last 4 digits (stored separately, not on print)")
-        self.client_cc_last4.setMaximumWidth(200)
+        self.client_cc_last4.setPlaceholderText("Last 4 digits (stored, visible after save)")
+        self.client_cc_last4.setMaximumWidth(100)
         self.client_cc_last4.setEnabled(False)
-        self.client_cc_checkbox.stateChanged.connect(lambda: self.client_cc_last4.setEnabled(self.client_cc_checkbox.isChecked()))
-        cc_layout.addRow(self.client_cc_last4)
+        self.client_cc_last4.setMaxLength(4)
+        cc_layout.addRow("CC Last 4:", self.client_cc_last4)
+        
         charges_layout.addLayout(cc_layout)
         
         charges_group.setLayout(charges_layout)
@@ -2531,63 +2723,56 @@ class CharterFormWidget(QWidget):
         self.charges_table.setRowCount(0)
 
     def add_charge_dialog(self):
-        """Dialog to add a charge line with auto-fill based on preset table."""
+        """Dialog to add a charge line - pulls from stored charge defaults."""
         dialog = QDialog(self)
         dialog.setWindowTitle("Add Charge")
-        dialog.setGeometry(100, 100, 500, 320)
+        dialog.setGeometry(100, 100, 500, 300)
 
         layout = QVBoxLayout()
 
-        # Preset charges table: Description | Calc Type | Default Value
-        preset_charges = {
-            "Charter Charge": ("Hourly", 150.0),
-            "Gratuity": ("Percent", 18.0),
-            "Fuel Surcharge": ("Percent", 10.0),
-            "Wait Time": ("Hourly", 45.0),
-            "Parking Fee": ("Fixed", 25.0),
-            "Tolls": ("Fixed", 0.0),
-            "Airport Fee": ("Fixed", 85.0),
-            "Extra Hour": ("Hourly", 150.0),
-            "Standby Time": ("Hourly", 25.0),
-            "Other": ("Fixed", 0.0)
-        }
+        # Initialize defaults if not present
+        if not hasattr(self, '_charge_defaults'):
+            self._charge_defaults = [
+                ("Charter Charge", "Fixed", "0.00"),
+                ("Gratuity", "18%", "0.00"),
+                ("Spill Charge", "Fixed", "250.00"),
+                ("Extra Stop", "Fixed", "0.00"),
+                ("Wait Time", "Hourly", "0.00"),
+                ("Airport Fee", "Fixed", "0.00"),
+                ("Parking Fee", "Fixed", "0.00"),
+                ("Tolls", "Fixed", "0.00"),
+            ]
 
-        # Description dropdown with presets
-        type_label = QLabel("Description:")
+        # Description dropdown (from defaults)
+        type_label = QLabel("Charge Name:")
         type_combo = QComboBox()
-        type_combo.addItems(list(preset_charges.keys()))
+        charge_names = [name for name, _, _ in self._charge_defaults]
+        type_combo.addItems(charge_names)
         layout.addWidget(type_label)
         layout.addWidget(type_combo)
 
-        # Calculation type (auto-filled based on description)
-        calc_label = QLabel("Calc Type:")
-        calc_combo = QComboBox()
-        calc_combo.addItems(["Fixed", "Percent", "Hourly"])
+        # Type label (read-only, auto-filled from defaults)
+        calc_label = QLabel("Type:")
+        calc_display = QLineEdit()
+        calc_display.setReadOnly(True)
         layout.addWidget(calc_label)
-        layout.addWidget(calc_combo)
+        layout.addWidget(calc_display)
 
-        # Value input (auto-filled from preset)
-        amount_label = QLabel("Value (Fixed $ / Percent % / Hourly Rate):")
+        # Amount input (auto-filled from defaults, user can edit)
+        amount_label = QLabel("Amount:")
         amount_input = QDoubleSpinBox()
         amount_input.setMaximum(99999.99)
         amount_input.setDecimals(2)
         layout.addWidget(amount_label)
         layout.addWidget(amount_input)
 
-        # Extra Time checkbox (for charges that can have extra time)
-        extra_time_layout = QHBoxLayout()
-        extra_time_checkbox = QCheckBox("Apply Extra Time")
-        extra_time_checkbox.setToolTip("Show separate 'Extra Time Cost/Hr' field in form")
-        extra_time_layout.addWidget(extra_time_checkbox)
-        extra_time_layout.addStretch()
-        layout.addLayout(extra_time_layout)
-
-        # Connect description change to auto-fill calc type and value
+        # Connect description change to auto-fill type and amount
         def on_description_changed(text):
-            if text in preset_charges:
-                calc_type, default_val = preset_charges[text]
-                calc_combo.setCurrentText(calc_type)
-                amount_input.setValue(default_val)
+            for name, type_val, default_amount in self._charge_defaults:
+                if name == text:
+                    calc_display.setText(type_val)
+                    amount_input.setValue(float(default_amount))
+                    break
         
         type_combo.currentTextChanged.connect(on_description_changed)
         
@@ -2605,16 +2790,12 @@ class CharterFormWidget(QWidget):
         dialog.setLayout(layout)
 
         def add_charge():
+            # Hard-code the values when added (snapshot, not linked to defaults)
             self.add_charge_line(
                 description=type_combo.currentText(),
-                calc_type=calc_combo.currentText(),
+                calc_type=calc_display.text(),
                 value=amount_input.value(),
             )
-            # Handle extra time if checkbox is set
-            if extra_time_checkbox.isChecked():
-                self.extended_hourly_checkbox.setChecked(True)
-                if amount_input.value() > 0:
-                    self.extended_hourly_price.setText(f"${amount_input.value():.2f}")
             dialog.accept()
 
         ok_btn.clicked.connect(add_charge)
@@ -2630,59 +2811,75 @@ class CharterFormWidget(QWidget):
             self.recalculate_totals()
     
     def open_charge_defaults_dialog(self):
-        """Open dialog to manage charge defaults and templates"""
+        """Open dialog to manage charge defaults (Name | Type % | Default Amount)"""
         dialog = QDialog(self)
         dialog.setWindowTitle("Manage Charge Defaults")
-        dialog.setGeometry(100, 100, 600, 400)
+        dialog.setGeometry(100, 100, 700, 450)
         
         layout = QVBoxLayout()
         
-        label = QLabel("<b>Default Charge Templates</b>")
+        label = QLabel("<b>Default Charge Templates (Name | Type | Default Amount)</b>")
         layout.addWidget(label)
         
-        # Table of default charges (Description | Default Qty | Default Unit Price | Notes)
+        # Table: Name | Type (%) | Default Amount
         defaults_table = QTableWidget()
-        defaults_table.setColumnCount(4)
-        defaults_table.setHorizontalHeaderLabels(["Description", "Default Qty", "Default Unit Price", "Notes"])
-        defaults_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        defaults_table.setColumnCount(3)
+        defaults_table.setHorizontalHeaderLabels(["Charge Name", "Type (%)", "Default Amount"])
+        defaults_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        defaults_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        defaults_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        defaults_table.setColumnWidth(1, 80)
+        defaults_table.setColumnWidth(2, 120)
         
-        # Populate with common defaults using the normalized schema
-        defaults = [
-            ("Charter Charge", "1", "0.00", "Base service charge"),
-            ("Gratuity", "1", "0.00", "Enter gratuity as a fixed line"),
-            ("Fuel Surcharge", "1", "0.00", "Applied when fuel exceeds threshold"),
-            ("Wait Time", "1", "0.00", "Hourly rate for waiting time"),
-            ("Airport Fee", "1", "0.00", "Airport/terminal fees"),
-            ("Parking Fee", "1", "0.00", "Parking charges"),
-            ("Tolls", "1", "0.00", "Highway tolls"),
-        ]
+        # Store defaults in instance for reference
+        if not hasattr(self, '_charge_defaults'):
+            self._charge_defaults = [
+                ("Charter Charge", "Fixed", "0.00"),
+                ("Gratuity", "18%", "0.00"),
+                ("Spill Charge", "Fixed", "250.00"),
+                ("Extra Stop", "Fixed", "0.00"),
+                ("Wait Time", "Hourly", "0.00"),
+                ("Airport Fee", "Fixed", "0.00"),
+                ("Parking Fee", "Fixed", "0.00"),
+                ("Tolls", "Fixed", "0.00"),
+            ]
         
-        for desc, qty, unit_price, notes in defaults:
+        # Populate table with stored defaults
+        for name, type_val, amount in self._charge_defaults:
             row = defaults_table.rowCount()
             defaults_table.insertRow(row)
-            defaults_table.setItem(row, 0, QTableWidgetItem(desc))
-            qty_item = QTableWidgetItem(qty)
-            qty_item.setFlags(qty_item.flags() | Qt.ItemFlag.ItemIsEditable)
-            defaults_table.setItem(row, 1, qty_item)
-            price_item = QTableWidgetItem(unit_price)
-            price_item.setFlags(price_item.flags() | Qt.ItemFlag.ItemIsEditable)
-            defaults_table.setItem(row, 2, price_item)
-            notes_item = QTableWidgetItem(notes)
-            notes_item.setFlags(notes_item.flags() | Qt.ItemFlag.ItemIsEditable)
-            defaults_table.setItem(row, 3, notes_item)
+            defaults_table.setItem(row, 0, QTableWidgetItem(name))
+            type_item = QTableWidgetItem(type_val)
+            type_item.setFlags(type_item.flags() | Qt.ItemFlag.ItemIsEditable)
+            defaults_table.setItem(row, 1, type_item)
+            amount_item = QTableWidgetItem(amount)
+            amount_item.setFlags(amount_item.flags() | Qt.ItemFlag.ItemIsEditable)
+            defaults_table.setItem(row, 2, amount_item)
         
         layout.addWidget(defaults_table)
         
-        info_label = QLabel("💡 Edit amounts and notes above, then click Save. These defaults will appear when adding charges.")
+        # Add/Delete buttons
+        button_row = QHBoxLayout()
+        add_default_btn = QPushButton("➕ Add Default")
+        add_default_btn.clicked.connect(lambda: self._add_default_charge_row(defaults_table))
+        button_row.addWidget(add_default_btn)
+        
+        delete_default_btn = QPushButton("❌ Delete Selected")
+        delete_default_btn.clicked.connect(lambda: self._delete_default_charge_row(defaults_table))
+        button_row.addWidget(delete_default_btn)
+        button_row.addStretch()
+        layout.addLayout(button_row)
+        
+        info_label = QLabel("💡 Edit charge names, types, and default amounts. These will appear in 'Add Charge' dropdown.")
         info_label.setStyleSheet("color: #555; font-size: 10px;")
         layout.addWidget(info_label)
         
-        button_layout = QHBoxLayout()
+        dialog_buttons = QHBoxLayout()
         save_btn = QPushButton("💾 Save Defaults")
         close_btn = QPushButton("Close")
-        button_layout.addWidget(save_btn)
-        button_layout.addWidget(close_btn)
-        layout.addLayout(button_layout)
+        dialog_buttons.addWidget(save_btn)
+        dialog_buttons.addWidget(close_btn)
+        layout.addLayout(dialog_buttons)
         
         dialog.setLayout(layout)
         
@@ -2691,12 +2888,34 @@ class CharterFormWidget(QWidget):
         
         dialog.exec()
     
+    def _add_default_charge_row(self, table: QTableWidget):
+        """Add a new charge default row"""
+        row = table.rowCount()
+        table.insertRow(row)
+        table.setItem(row, 0, QTableWidgetItem("New Charge"))
+        table.setItem(row, 1, QTableWidgetItem("Fixed"))
+        table.setItem(row, 2, QTableWidgetItem("0.00"))
+    
+    def _delete_default_charge_row(self, table: QTableWidget):
+        """Delete selected default charge row"""
+        current_row = table.currentRow()
+        if current_row >= 0:
+            table.removeRow(current_row)
+    
     def _save_charge_defaults(self, defaults_table, dialog):
-        """Save charge defaults (would persist to database in production)"""
-        # In production, save these to database
-        # For now, just store in memory and update combo in add_charge_line
-        QMessageBox.information(self, "Success", "Charge defaults saved.")
-        dialog.accept()
+        """Save charge defaults to instance variable"""
+        try:
+            self._charge_defaults = []
+            for row in range(defaults_table.rowCount()):
+                name = defaults_table.item(row, 0).text()
+                type_val = defaults_table.item(row, 1).text()
+                amount = defaults_table.item(row, 2).text()
+                self._charge_defaults.append((name, type_val, amount))
+            
+            QMessageBox.information(self, "Success", "Charge defaults saved.")
+            dialog.accept()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to save defaults: {e}")
     
     def create_driver_vehicle_ops_tab(self) -> QWidget:
         """Create Driver & Vehicle Operations tab with all right-column sections"""
@@ -3158,6 +3377,7 @@ class CharterFormWidget(QWidget):
             QMessageBox.warning(self, "Error", f"Failed to load vehicles: {e}")
 
     def _update_vehicle_type_display(self):
+        """Update vehicle type label when dispatched vehicle is selected (NO pricing impact)"""
         try:
             vid = self.vehicle_combo.currentData()
             vtype = ""
@@ -3169,6 +3389,64 @@ class CharterFormWidget(QWidget):
                 self.vehicle_type_label.setText("")
             except Exception:
                 pass
+    
+    def _update_driver_name_display(self):
+        """Update driver name display label when driver is selected"""
+        try:
+            driver_text = self.driver_combo.currentText()
+            if driver_text and driver_text != "":
+                # Display just the name (already formatted from combo)
+                self.driver_name_display_label.setText(f"({driver_text})")
+                self.driver_name_display_label.setStyleSheet("color: #000; font-weight: bold;")
+            else:
+                self.driver_name_display_label.setText("")
+                self.driver_name_display_label.setStyleSheet("color: #555; font-style: italic;")
+        except Exception as e:
+            print(f"Error updating driver name display: {e}")
+    
+    def _calculate_charter_duration(self):
+        """Auto-calculate charter duration when base timing changed (handles midnight span)"""
+        try:
+            from_time = self.base_time_from.time()
+            to_time = self.base_time_to.time()
+            
+            # Convert to minutes for calculation
+            from_minutes = from_time.hour() * 60 + from_time.minute()
+            to_minutes = to_time.hour() * 60 + to_time.minute()
+            
+            # Handle overnight (past midnight)
+            if to_minutes < from_minutes:
+                # Next day - add 24 hours
+                to_minutes += 24 * 60
+            
+            duration_minutes = to_minutes - from_minutes
+            duration_hours = duration_minutes / 60.0
+            
+            # Update duration label
+            self.duration_label.setText(f"{duration_hours:.1f} hrs")
+            
+            return duration_hours
+        except Exception as e:
+            print(f"Error calculating duration: {e}")
+            return 0.0
+    
+    def _auto_populate_pricing_from_vehicle_type(self, vehicle_type: str):
+        """Auto-populate quoted hourly rate from vehicle pricing defaults"""
+        try:
+            if not vehicle_type or vehicle_type == "(Not assigned)":
+                return
+            
+            pricing = self._load_pricing_defaults(vehicle_type)
+            hourly_rate = pricing.get("hourly_rate", 0.0)
+            
+            if hourly_rate > 0:
+                # Only auto-populate if field is empty (don't override custom pricing)
+                current_price = self.quoted_hourly_price.text().strip()
+                if not current_price or current_price == "$0.00":
+                    self.quoted_hourly_price.setText(f"${hourly_rate:.2f}")
+                    print(f"✅ Auto-populated pricing: {vehicle_type} → ${hourly_rate:.2f}/hr")
+        except Exception as e:
+            print(f"Error auto-populating pricing: {e}")
 
     def _on_requested_vehicle_type_changed(self):
         """When Requested Vehicle Type is selected, auto-fill quoted hourly rate from pricing defaults"""
@@ -3202,9 +3480,42 @@ class CharterFormWidget(QWidget):
                 gratuity_percent = self.gratuity_percent_input.value() if hasattr(self, 'gratuity_percent_input') else 18.0
                 self.add_charge_line(description=f"Gratuity ({gratuity_percent}%)", calc_type="Percent", value=gratuity_percent)
             
+            # Mark form as modified
+            self.setWindowTitle(self.windowTitle() if "✏️" in self.windowTitle() else f"✏️ {self.windowTitle()}")
+            
             self.recalculate_totals()
         except Exception as e:
             print(f"Error toggling Gratuity: {e}")
+    
+    def _on_nrr_received(self, amount: float):
+        """When NRR is received, auto-change status to Booked and recalculate balance"""
+        try:
+            if amount > 0:
+                # Change status to "Booked" when NRR is received
+                if hasattr(self, 'charter_status_combo'):
+                    self.charter_status_combo.setCurrentText("Confirmed")  # NRR received = booking confirmed
+                
+                # Mark as modified
+                self.setWindowTitle(self.windowTitle() if "✏️" in self.windowTitle() else f"✏️ {self.windowTitle()}")
+            
+            # Recalculate balance including NRR
+            self.recalculate_totals()
+        except Exception as e:
+            print(f"Error handling NRR: {e}")
+    
+    def _on_cc_checkbox_changed(self, state):
+        """When CC checkbox is toggled, enable/disable CC fields"""
+        try:
+            is_checked = self.client_cc_checkbox.isChecked()
+            self.client_cc_full.setEnabled(is_checked)
+            self.client_cc_last4.setEnabled(is_checked)
+            
+            # If unchecked, clear sensitive data
+            if not is_checked:
+                self.client_cc_full.clear()
+                self.client_cc_last4.clear()
+        except Exception as e:
+            print(f"Error handling CC checkbox: {e}")
     
     def _on_gratuity_percent_changed(self, value: float):
         """When Gratuity percentage changes, update the Gratuity line if it exists"""
@@ -3225,8 +3536,12 @@ class CharterFormWidget(QWidget):
                     total_item = self.charges_table.item(row, 2)
                     if total_item:
                         total_item.setText(f"{line_total:.2f}")
+                    
+                    # Mark form as modified
+                    self.setWindowTitle(self.windowTitle() if "✏️" in self.windowTitle() else f"✏️ {self.windowTitle()}")
                     break
             
+            # Recalculate all totals
             self.recalculate_totals()
         except Exception as e:
             print(f"Error updating Gratuity percent: {e}")
@@ -3495,11 +3810,37 @@ class CharterFormWidget(QWidget):
             for i in off_violations_idx:
                 violations.append(f"Day {i+1}: off-duty {off[i]}h < 10h")
 
-            # Cycle reset if 3 consecutive days fully off (>=24h off-duty)
-            reset_index = -1
+            # Cycle reset
+            # Cycle 1: 2 consecutive days fully off (>=24h each = 48h total)
+            # Cycle 2: 3 consecutive days fully off (>=24h each = 72h total)
+            reset_index_c1 = -1
+            reset_index_c2 = -1
+
+            # Check for Cycle 1 reset (2 days off)
+            for i in range(0, 13):
+                if off[i] >= 24 and off[i+1] >= 24:
+                    reset_index_c1 = i + 2  # Start counting after 2-day off block
+                    break
+
+            # Check for Cycle 2 reset (3 days off)
             for i in range(0, 12):
                 if off[i] >= 24 and off[i+1] >= 24 and off[i+2] >= 24:
-                    reset_index = i + 3  # Start counting after last 3-day off block
+                    reset_index_c2 = i + 3  # Start counting after 3-day off block
+                    break
+
+            # Apply reset based on cycle type
+            reset_index = -1
+            if cycle == 'Cycle 1':
+                reset_index = reset_index_c1
+            elif cycle == 'Cycle 2':
+                reset_index = reset_index_c2
+            elif cycle == 'Cycle 1 & 2':
+                # Use the later reset (more conservative)
+                if reset_index_c2 != -1:
+                    reset_index = reset_index_c2
+                elif reset_index_c1 != -1:
+                    reset_index = reset_index_c1
+
             on_since_reset = on[reset_index:] if reset_index != -1 else on
 
             # Cycle limits computed from the period since last reset
@@ -4788,6 +5129,48 @@ class CharterFormWidget(QWidget):
 
             if hasattr(self, 'gross_total_display'):
                 self.gross_total_display.setText(f"${gross_total:,.2f}")
+            
+            # === BALANCE CALCULATION ===
+            # Total charges = gross_total (includes all charges + beverages + gratuity + GST)
+            nrr_amount = self.nrr_received.value() if hasattr(self, 'nrr_received') else 0.0
+            
+            # Get total payments from payments table (deposits + other payments, NOT including NRR)
+            total_payments = 0.0
+            if hasattr(self, 'payments_table'):
+                for row in range(self.payments_table.rowCount()):
+                    amount_item = self.payments_table.item(row, 1)
+                    if amount_item:
+                        try:
+                            total_payments += float(amount_item.text().replace('$', '').replace(',', ''))
+                        except:
+                            pass
+            
+            # Balance = Total Charges - (NRR + Payments)
+            total_received = nrr_amount + total_payments
+            balance = gross_total - total_received
+            
+            # Penny rounding (round to nearest cent)
+            balance = round(balance, 2)
+            
+            # Display balance with flags
+            if hasattr(self, 'gross_total_display'):
+                flag_text = ""
+                if balance < 0:
+                    flag_text = f" 🔴 REFUND ${abs(balance):.2f}"
+                elif abs(balance) < 0.01:
+                    flag_text = " ✅ PAID IN FULL"
+                else:
+                    flag_text = f" ⏳ DUE ${balance:.2f}"
+                
+                self.gross_total_display.setText(f"${gross_total:,.2f}{flag_text}")
+            
+            # Display NRR separately (escrow note if charter is cancelled)
+            if hasattr(self, 'nrr_received'):
+                if self.charter_status_combo.currentText() == "Cancelled" and nrr_amount > 0:
+                    nrr_note = f" 🔒 Escrow Hold"
+                    # Would store this in database for refund tracking
+                else:
+                    nrr_note = ""
 
         except Exception as e:
             print(f"Error in recalculate_totals: {e}")
@@ -4800,6 +5183,81 @@ class CharterFormWidget(QWidget):
             return getattr(self, 'beverage_cart_total', 0.0)
         except:
             return 0.0
+    
+    def add_beverage_item(self):
+        """Add a new beverage item to the cart"""
+        try:
+            row = self.beverage_table.rowCount()
+            self.beverage_table.insertRow(row)
+            
+            # Item name (editable)
+            item_name = QTableWidgetItem("Beverage")
+            self.beverage_table.setItem(row, 0, item_name)
+            
+            # Quantity (editable)
+            qty = QTableWidgetItem("1")
+            qty.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.beverage_table.setItem(row, 1, qty)
+            
+            # Unit Price (editable)
+            price = QTableWidgetItem("0.00")
+            price.setTextAlignment(Qt.AlignmentFlag.AlignRight)
+            self.beverage_table.setItem(row, 2, price)
+            
+            # Total (auto-calculated, read-only)
+            total = QTableWidgetItem("$0.00")
+            total.setFlags(total.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            total.setTextAlignment(Qt.AlignmentFlag.AlignRight)
+            self.beverage_table.setItem(row, 3, total)
+            
+            self.recalculate_beverage_totals()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to add beverage: {e}")
+    
+    def delete_selected_beverage(self):
+        """Delete selected beverage item from cart"""
+        current_row = self.beverage_table.currentRow()
+        if current_row < 0:
+            QMessageBox.information(self, "No Selection", "Please select a beverage item to delete.")
+            return
+        
+        self.beverage_table.removeRow(current_row)
+        self.recalculate_beverage_totals()
+    
+    def recalculate_beverage_totals(self):
+        """Recalculate beverage cart totals (Item × Qty × Price + 5% GST)"""
+        try:
+            beverage_subtotal = 0.0
+            
+            for row in range(self.beverage_table.rowCount()):
+                qty_item = self.beverage_table.item(row, 1)
+                price_item = self.beverage_table.item(row, 2)
+                total_item = self.beverage_table.item(row, 3)
+                
+                if not qty_item or not price_item or not total_item:
+                    continue
+                
+                try:
+                    qty = float(qty_item.text())
+                    price = float(price_item.text().replace('$', '').replace(',', ''))
+                    line_total = qty * price
+                    total_item.setText(f"${line_total:.2f}")
+                    beverage_subtotal += line_total
+                except ValueError:
+                    total_item.setText("$0.00")
+            
+            # Update beverage totals
+            gst_amount = beverage_subtotal * 0.05 / 1.05  # GST is included
+            total_with_gst = beverage_subtotal
+            
+            self.beverage_subtotal.setText(f"${beverage_subtotal:.2f}")
+            self.beverage_gst.setText(f"${gst_amount:.2f}")
+            self.beverage_total.setText(f"${total_with_gst:,.2f}")
+            
+            # Store total for charter totals calculation
+            self.beverage_cart_total = beverage_subtotal
+        except Exception as e:
+            print(f"Error calculating beverage totals: {e}")
     
     def toggle_payment_edit(self):
         """Toggle payment table between read-only and editable"""
@@ -4881,6 +5339,9 @@ class CharterFormWidget(QWidget):
         - Customer name and phone are required
         - Must commit after insert/update
         - Use business key reserve_number for any linking
+        - NRR (Non-Refundable Retainer) is recorded as LIABILITY until used in charter
+          GL Code: 2400 (Unearned Revenue / Client Deposits Liability)
+          NOT GL Code: 4000 (Service Revenue) - only applied when charter completes
         """
         # Get customer data from widget
         customer_data = self.customer_widget.get_customer_data()
@@ -4906,6 +5367,20 @@ class CharterFormWidget(QWidget):
 
         planned_end_iso = end_dt.isoformat()
         charter_data_payload = {"planned_end_time": planned_end_iso}
+        
+        # Add NRR and CC info to charter_data
+        nrr_amount = self.nrr_received.value() if hasattr(self, 'nrr_received') else 0.0
+        if nrr_amount > 0:
+            charter_data_payload["nrr_received"] = float(nrr_amount)
+        
+        # Store CC last 4 only (full CC masked at save time)
+        if self.client_cc_checkbox.isChecked():
+            cc_last4 = self.client_cc_last4.text().strip()
+            if cc_last4:
+                charter_data_payload["cc_on_file_last4"] = cc_last4
+                # After save, mask the full CC field
+                self.client_cc_full.clear()
+                self.client_cc_full.setEnabled(False)
 
         try:
             # Rollback any failed transactions first
@@ -4942,7 +5417,7 @@ class CharterFormWidget(QWidget):
                         pickup_time_val,
                         self.num_passengers.value(),
                         "",
-                        self.status_combo.currentText(),
+                        self.charter_status_combo.currentText(),
                         customer_data['client_id'],
                         out_of_town,
                         json.dumps(charter_data_payload),
@@ -4952,6 +5427,7 @@ class CharterFormWidget(QWidget):
                 # ✨ SAVE ROUTES & CHARGES ✨
                 self.save_charter_routes(cur)
                 self.save_charter_charges(cur)
+                
                 self.db.commit()
 
                 reserve_num = self._fetch_reserve_number(self.charter_id)
@@ -4978,7 +5454,7 @@ class CharterFormWidget(QWidget):
                         pickup_time_val,
                         self.num_passengers.value(),
                         "",
-                        self.status_combo.currentText(),
+                        self.charter_status_combo.currentText(),
                         customer_data['client_id'],
                         out_of_town,
                         json.dumps(charter_data_payload),
@@ -4992,6 +5468,12 @@ class CharterFormWidget(QWidget):
                 # ✨ SAVE ROUTES & CHARGES ✨
                 self.save_charter_routes(cur)
                 self.save_charter_charges(cur)
+                
+                # 🔓 GL CODE ESCROW NRR IF APPLIED
+                if hasattr(self, '_escrow_nrr_applied') and self._escrow_nrr_applied:
+                    self._gl_code_escrow_nrr_as_payment(self.charter_id, reserve_num, 
+                                                       self._escrow_nrr_applied, cur)
+                    self._escrow_nrr_applied = None  # Clear after use
                 
                 # Save inspection form reference if uploaded
                 if hasattr(self, 'current_inspection_form_path') and self.current_inspection_form_path:
@@ -5035,6 +5517,112 @@ class CharterFormWidget(QWidget):
         except Exception as e:
             self.db.rollback()
             QMessageBox.critical(self, "Error", f"Failed to save charter:\n\n{str(e)}")
+
+    def _on_charter_status_changed(self, new_status: str):
+        """
+        Handle charter status changes.
+        When status changes to 'Completed', offer to open driver entry form.
+        """
+        if new_status == "Completed" and self.charter_id:
+            # Only auto-trigger if charter has been saved
+            reply = QMessageBox.question(
+                self,
+                "Driver Entry",
+                "Charter marked as complete. Do you want to open the driver entry form now?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                self._open_driver_entry_form()
+
+    def _open_driver_entry_form(self):
+        """Open the driver entry form dialog for the current charter"""
+        if not self.charter_id:
+            QMessageBox.warning(self, "Driver Entry", "Please save charter first")
+            return
+        
+        try:
+            # Get reserve_number for current charter
+            reserve_num = self._fetch_reserve_number(self.charter_id)
+            if not reserve_num:
+                QMessageBox.warning(self, "Driver Entry", "Could not find reserve number")
+                return
+            
+            # Import and show driver entry dialog
+            from driver_calendar_widget import DriverEntryDialog
+            import os
+            
+            # Ensure submission directory exists
+            base_dir = os.path.join(os.path.dirname(__file__), 'reports', 'driver_logs_submissions')
+            os.makedirs(base_dir, exist_ok=True)
+            
+            dlg = DriverEntryDialog(reserve_num, base_dir, self.db, self)
+            dlg.exec()
+            
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to open driver form:\n\n{str(e)}")
+
+    def _gl_code_escrow_nrr_as_payment(self, charter_id: int, reserve_number: str, 
+                                       escrow_info: dict, cur):
+        """
+        GL code the escrow NRR when applied to new charter.
+        Treats NRR as a payment received (removes from escrow).
+        
+        GL Entry: Debit Bank (1010), Credit Revenue (4000)
+        Description: "NRR applied from cancelled reserve #{from_reserve}"
+        """
+        try:
+            nrr_amount = escrow_info.get('amount', 0.0)
+            from_charter_id = escrow_info.get('from_charter_id')
+            from_reserve = escrow_info.get('from_reserve', '')
+            
+            if nrr_amount <= 0:
+                return
+            
+            # Clear NRR from original cancelled charter
+            cur.execute("""
+                UPDATE charters 
+                SET charter_data = charter_data - 'nrr_received'
+                WHERE charter_id = %s
+            """, (from_charter_id,))
+            
+            # GL Code: Bank debit, Revenue credit (payment received)
+            cur.execute("""
+                INSERT INTO general_ledger
+                (charter_id, reserve_number, gl_code, account_name, amount, entry_type, 
+                 description, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            """, (
+                charter_id,
+                reserve_number,
+                '4000',  # Service Revenue
+                'Service Revenue',
+                nrr_amount,
+                'CREDIT',  # Revenue
+                f'NRR applied from escrow (cancelled reserve #{from_reserve})'
+            ))
+            
+            # Also debit Bank to balance
+            cur.execute("""
+                INSERT INTO general_ledger
+                (charter_id, reserve_number, gl_code, account_name, amount, entry_type, 
+                 description, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            """, (
+                charter_id,
+                reserve_number,
+                '1010',  # Bank Account
+                'Bank - Deposit Account',
+                nrr_amount,
+                'DEBIT',  # Asset
+                f'NRR payment from escrow applied'
+            ))
+            
+            print(f"✅ GL coded escrow NRR: ${nrr_amount:.2f} from cancelled reserve #{from_reserve}")
+            
+        except Exception as e:
+            print(f"⚠️ Could not GL code escrow NRR: {e}")
 
     def _fetch_reserve_number(self, charter_id: int) -> Optional[str]:
         try:
@@ -5106,15 +5694,15 @@ class CharterFormWidget(QWidget):
             # Load charter with client info
             cur.execute("""
                 SELECT c.reserve_number, c.charter_date, c.pickup_time, 
-                       c.passenger_count, c.notes, c.status, c.client_id,
-                       c.is_out_of_town, c.charter_data
+                       c.passenger_count, c.notes, c.status, c.client_id, c.charter_data
                 FROM charters c
                 WHERE c.charter_id = %s
             """, (charter_id,))
             
             row = cur.fetchone()
             if row:
-                reserve_number, charter_date, pickup_time, passenger_count, notes, status, client_id, is_out_of_town, charter_data_json = row
+                reserve_number, charter_date, pickup_time, passenger_count, notes, status, client_id, charter_data_json = row
+                is_out_of_town = False  # Column not in Neon schema
                 
                 # Load customer widget with data
                 self.customer_widget.set_charter_data(charter_id, reserve_number, client_id)
@@ -5156,9 +5744,30 @@ class CharterFormWidget(QWidget):
 
                 self.num_passengers.setValue(int(passenger_count or 1))
                 if status:
-                    self.status_combo.setCurrentText(status)
+                    self.charter_status_combo.setCurrentText(status)
                 if hasattr(self, 'out_of_town_checkbox'):
                     self.out_of_town_checkbox.setChecked(is_out_of_town or False)
+                
+                # Load NRR and CC info from charter_data
+                if charter_data_json:
+                    try:
+                        payload = charter_data_json if isinstance(charter_data_json, dict) else json.loads(charter_data_json)
+                        
+                        # Load NRR
+                        nrr_amount = payload.get("nrr_received", 0.0)
+                        if hasattr(self, 'nrr_received'):
+                            self.nrr_received.setValue(float(nrr_amount))
+                        
+                        # Load CC info (only last 4 visible after save)
+                        cc_last4 = payload.get("cc_on_file_last4", "")
+                        if cc_last4:
+                            self.client_cc_checkbox.setChecked(True)
+                            self.client_cc_last4.setText(cc_last4)
+                            # Full CC field remains masked/empty after save
+                            self.client_cc_full.clear()
+                            self.client_cc_full.setEnabled(False)
+                    except Exception as e:
+                        print(f"Error loading NRR/CC data: {e}")
                 
                 # ✨ LOAD ROUTES & CHARGES & BEVERAGES ✨
                 self.load_charter_routes(charter_id, cur)
@@ -5171,6 +5780,123 @@ class CharterFormWidget(QWidget):
             except Exception:
                 pass
             QMessageBox.warning(self, "Error", f"Failed to load charter: {e}")
+    
+    def load_client(self, client_id: int):
+        """Pre-fill charter form with selected client (for new charters)"""
+        try:
+            try:
+                self.db.rollback()
+            except:
+                pass
+            
+            cur = self.db.get_cursor()
+            cur.execute("""
+                SELECT client_id, client_name, primary_phone, email, address_line1, city
+                FROM clients
+                WHERE client_id = %s
+            """, (client_id,))
+            
+            row = cur.fetchone()
+            if row:
+                client_id, client_name, phone, email, address, city = row
+                
+                # Pre-fill the customer widget with selected client
+                self.customer_widget.client_combo.setCurrentIndex(-1)  # Clear selection
+                
+                # Find client in combo and select it, or just fill fields
+                for i in range(self.customer_widget.client_combo.count()):
+                    if str(client_id) in self.customer_widget.client_combo.itemData(i, Qt.ItemDataRole.UserRole) or \
+                       client_name in self.customer_widget.client_combo.itemText(i):
+                        self.customer_widget.client_combo.setCurrentIndex(i)
+                        break
+                else:
+                    # If not found in combo, just fill the text fields
+                    self.customer_widget.client_combo.setCurrentIndex(0)
+                
+                # Fill in contact info
+                self.customer_widget.phone_input.setText(phone or "")
+                self.customer_widget.email_input.setText(email or "")
+                self.customer_widget.address_input.setText(address or "")
+                
+                # Store client ID
+                self.client_id = client_id
+                
+                # Check for NRR in escrow for this client and offer to apply it
+                self.check_and_offer_escrow_nrr(client_id, client_name)
+                
+        except Exception as e:
+            try:
+                self.db.rollback()
+            except:
+                pass
+            print(f"Error pre-filling client: {e}")
+    
+    def check_and_offer_escrow_nrr(self, client_id: int, client_name: str):
+        """Check if client has NRR in escrow and offer to apply to new charter"""
+        try:
+            cur = self.db.get_cursor()
+            
+            # Find cancelled charters with NRR for this client
+            cur.execute("""
+                SELECT charter_id, reserve_number, 
+                       charter_data->>'nrr_received' as nrr_amount,
+                       status
+                FROM charters
+                WHERE client_id = %s 
+                  AND status = 'Cancelled'
+                  AND charter_data->>'nrr_received' IS NOT NULL
+                  AND (charter_data->>'nrr_received')::numeric > 0
+                ORDER BY charter_id DESC
+                LIMIT 1
+            """, (client_id,))
+            
+            escrow_charter = cur.fetchone()
+            
+            if escrow_charter:
+                charter_id, reserve_num, nrr_str, status = escrow_charter
+                nrr_amount = float(nrr_str) if nrr_str else 0.0
+                
+                # Show escrow indicator and ask to apply
+                response = QMessageBox.question(
+                    self,
+                    "🔒 NRR in Escrow",
+                    f"Customer {client_name} has ${nrr_amount:.2f} NRR in escrow\n"
+                    f"(from cancelled reserve #{reserve_num})\n\n"
+                    f"Apply this NRR to the new charter?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                
+                if response == QMessageBox.StandardButton.Yes:
+                    # Apply NRR to new charter
+                    self.apply_escrow_nrr(client_id, charter_id, nrr_amount, reserve_num)
+            
+        except Exception as e:
+            print(f"Error checking escrow NRR: {e}")
+    
+    def apply_escrow_nrr(self, client_id: int, from_charter_id: int, nrr_amount: float, from_reserve: str):
+        """Apply NRR from escrow to new charter"""
+        try:
+            # Pre-fill the NRR field
+            if hasattr(self, 'nrr_received'):
+                self.nrr_received.setValue(nrr_amount)
+            
+            # Store escrow source for GL coding on save
+            self._escrow_nrr_applied = {
+                'from_charter_id': from_charter_id,
+                'from_reserve': from_reserve,
+                'amount': nrr_amount
+            }
+            
+            # Show confirmation
+            QMessageBox.information(
+                self,
+                "Escrow NRR Applied",
+                f"✅ Applied ${nrr_amount:.2f} from escrow (reserve #{from_reserve})\n"
+                f"This will be GL coded as a payment when you save the new charter."
+            )
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to apply escrow NRR: {e}")
     
     def new_charter(self):
         """Clear form for new charter entry"""
@@ -5856,7 +6582,27 @@ class CharterFormWidget(QWidget):
     
     def open_beverage_lookup(self):
         """Open beverage selection dialog for adding beverages to charter"""
-        dialog = BeverageSelectionDialog(self.db, self)
+        # If editing existing charter, fetch existing beverages
+        existing_beverages = None
+        if self.charter_id:
+            try:
+                cur = self.db.get_cursor()
+                cur.execute("""
+                    SELECT id, item_name, quantity, unit_price_charged, unit_our_cost, 
+                           deposit_per_unit, line_amount_charged, line_cost, notes
+                    FROM charter_beverages
+                    WHERE charter_id = %s
+                    ORDER BY created_at
+                """, (self.charter_id,))
+                existing_beverages = [dict(zip([
+                    'id', 'item_name', 'quantity', 'unit_price_charged', 'unit_our_cost',
+                    'deposit_per_unit', 'line_amount_charged', 'line_cost', 'notes'
+                ], row)) for row in cur.fetchall()]
+                cur.close()
+            except Exception as e:
+                print(f"Error loading existing beverages: {e}")
+        
+        dialog = BeverageSelectionDialog(self.db, self, existing_beverages)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             totals = dialog.get_cart_totals()
             if totals["items"]:
@@ -6408,10 +7154,10 @@ class CharterFormWidget(QWidget):
             QMessageBox.critical(self, "Error", f"Failed to generate driver sheet: {e}")
     
     def show_print_dialog(self, title, text):
-        """Display print preview in dialog with copy/print options"""
+        """Display print preview in dialog with copy/print/export options"""
         dialog = QDialog(self)
         dialog.setWindowTitle(f"🖨️ {title}")
-        dialog.setGeometry(50, 50, 800, 600)
+        dialog.setGeometry(50, 50, 900, 650)
         layout = QVBoxLayout()
         
         # Preview text
@@ -6431,6 +7177,19 @@ class CharterFormWidget(QWidget):
         print_btn = QPushButton("🖨️ Print")
         print_btn.clicked.connect(lambda: self.print_text(title, text))
         button_layout.addWidget(print_btn)
+        
+        # Export buttons
+        pdf_btn = QPushButton("📄 Save as PDF")
+        pdf_btn.clicked.connect(lambda: self.export_dialog_to_pdf(title, text))
+        button_layout.addWidget(pdf_btn)
+        
+        csv_btn = QPushButton("📊 Export CSV")
+        csv_btn.clicked.connect(lambda: self.export_dialog_to_csv(title, text))
+        button_layout.addWidget(csv_btn)
+        
+        word_btn = QPushButton("📝 Export Word")
+        word_btn.clicked.connect(lambda: self.export_dialog_to_word(title, text))
+        button_layout.addWidget(word_btn)
         
         close_btn = QPushButton("Close")
         close_btn.clicked.connect(dialog.accept)
@@ -6463,6 +7222,120 @@ class CharterFormWidget(QWidget):
                 QMessageBox.information(self, "Success", "✅ Sent to printer")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Print failed: {e}")
+    
+    def export_dialog_to_pdf(self, title, text):
+        """Export dialog text to PDF"""
+        try:
+            from PyQt6.QtPrintSupport import QPrinter
+            from datetime import datetime
+            
+            filename, _ = QFileDialog.getSaveFileName(
+                self,
+                f"Save {title} as PDF",
+                f"{title.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                "PDF Files (*.pdf);;All Files (*)"
+            )
+            
+            if not filename:
+                return
+            
+            printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+            printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+            printer.setOutputFileName(filename)
+            printer.setPageSize(QPrinter.PageSize.A4)
+            
+            from PyQt6.QtGui import QTextDocument
+            doc = QTextDocument()
+            doc.setPlainText(text)
+            doc.print(printer)
+            
+            QMessageBox.information(self, "Success", f"✅ Saved to PDF:\n{filename}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"PDF export failed: {e}")
+    
+    def export_dialog_to_csv(self, title, text):
+        """Export dialog text to CSV"""
+        try:
+            import csv
+            from datetime import datetime
+            
+            filename, _ = QFileDialog.getSaveFileName(
+                self,
+                f"Export {title} to CSV",
+                f"{title.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                "CSV Files (*.csv);;All Files (*)"
+            )
+            
+            if not filename:
+                return
+            
+            # Parse text into rows (split by newlines)
+            rows = [line.split('\t') if '\t' in line else [line] for line in text.split('\n') if line.strip()]
+            
+            with open(filename, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerows(rows)
+            
+            QMessageBox.information(self, "Success", f"✅ Exported to CSV:\n{filename}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"CSV export failed: {e}")
+    
+    def export_dialog_to_word(self, title, text):
+        """Export dialog text to Word (.docx)"""
+        try:
+            from docx import Document
+            from docx.shared import Pt
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+            from datetime import datetime
+            
+            filename, _ = QFileDialog.getSaveFileName(
+                self,
+                f"Export {title} to Word",
+                f"{title.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
+                "Word Files (*.docx);;All Files (*)"
+            )
+            
+            if not filename:
+                return
+            
+            # Create document
+            doc = Document()
+            
+            # Add title
+            title_para = doc.add_paragraph(title)
+            title_para.style = 'Heading 1'
+            title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Add timestamp
+            timestamp_para = doc.add_paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            timestamp_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            timestamp_para_format = timestamp_para.runs[0]
+            timestamp_para_format.italic = True
+            timestamp_para_format.font.size = Pt(10)
+            
+            # Add blank line
+            doc.add_paragraph()
+            
+            # Add text content with monospace font (for forms/letters)
+            text_para = doc.add_paragraph(text)
+            text_para.style = 'Normal'
+            for run in text_para.runs:
+                run.font.name = 'Courier New'
+                run.font.size = Pt(9)
+            
+            # Save document
+            doc.save(filename)
+            
+            QMessageBox.information(self, "Success", f"✅ Exported to Word:\n{filename}")
+        except ImportError:
+            QMessageBox.warning(
+                self,
+                "Missing Library",
+                "Word export requires python-docx.\n\nInstall with: pip install python-docx\n\nFalling back to PDF export."
+            )
+            self.export_dialog_to_pdf(title, text)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Word export failed: {e}")
 
     def save_charter_routes(self, cur):
         """
@@ -6650,21 +7523,52 @@ class CharterFormWidget(QWidget):
                 print(f"ℹ️  No beverages saved for charter {charter_id}")
                 return
             
-            # Clear any existing beverage items in UI (if applicable)
-            # Note: We don't clear charges_table since beverages are separate
+            # Store as beverage_cart_data for access in open_beverage_lookup()
+            items = []
+            total_charged = 0.0
+            total_cost = 0.0
+            total_deposit = 0.0
             
-            # Display beverages in a summary view (print to console for now)
+            for bev_id, item_name, qty, unit_price, unit_cost, deposit, line_total_charged, line_cost, notes in beverages:
+                items.append({
+                    'id': bev_id,
+                    'item_name': item_name,
+                    'quantity': qty,
+                    'unit_price_charged': unit_price,
+                    'unit_our_cost': unit_cost,
+                    'deposit_per_unit': deposit or 0.0,
+                    'line_amount_charged': line_total_charged,
+                    'line_cost': line_cost,
+                    'notes': notes
+                })
+                total_charged += line_total_charged or 0.0
+                total_cost += line_cost or 0.0
+                total_deposit += (deposit or 0.0) * qty
+            
+            self.beverage_cart_data = {
+                'items': items,
+                'total_charged': total_charged,
+                'total_cost': total_cost,
+                'total_deposit': total_deposit,
+                'gst_amount': GSTCalculator.calculate_gst(total_charged)[0] if total_charged else 0.0,
+                'net_amount': GSTCalculator.calculate_gst(total_charged)[1] if total_charged else 0.0
+            }
+            
+            # Display beverages in a summary view
             print(f"\n🍷 SAVED BEVERAGES FOR CHARTER {charter_id}:")
             print("─" * 80)
-            print(f"{'Item':<40} {'Qty':<5} {'Unit Price':<12} {'Total':<12} {'Notes':<15}")
+            print(f"{'Item':<40} {'Qty':<5} {'Unit Price':<12} {'Total':<12}")
             print("─" * 80)
             
-            for bev_id, item_name, qty, unit_price, unit_cost, deposit, total_charged, total_cost, notes in beverages:
-                print(f"{item_name:<40} {qty:<5} ${unit_price:<11.2f} ${total_charged:<11.2f} {notes or '':<15}")
+            for item in items:
+                print(f"{item['item_name']:<40} {item['quantity']:<5} ${item['unit_price_charged']:<11.2f} ${item['line_amount_charged']:<11.2f}")
             
             print("─" * 80)
+            print(f"Subtotal: ${self.beverage_cart_data['net_amount']:,.2f}")
+            print(f"GST (5%): ${self.beverage_cart_data['gst_amount']:,.2f}")
+            print(f"Total: ${self.beverage_cart_data['total_charged']:,.2f}")
             print(f"✅ Loaded {len(beverages)} beverage item(s)")
-            print("\n💡 Tip: Click 'Edit Beverages' button to modify quantities/prices per charter\n")
+            print("💡 Tip: Click 'Edit Beverages' button to modify quantities or items\n")
             
         except Exception as e:
             try:
@@ -6758,7 +7662,7 @@ class AccountingReceiptsWidget(QWidget):
         table.setHorizontalHeaderLabels(["Date", "Vendor", "Amount", "GST", "GL Code", "ID"])
         
         try:
-            cur = self.db.conn.cursor()
+            cur = self.db.get_cursor()
             cur.execute("""
                 SELECT receipt_date, vendor_name, gross_amount, gst_amount, pay_account, receipt_id 
                 FROM receipts 
@@ -8576,7 +9480,7 @@ class MainWindow(QMainWindow):
         try:
             self.custom_report = CustomReportBuilderWidget(self.db)
             self.tabs.addTab(self.custom_report, "📊 Custom Reports")
-            print("  16. Custom Report Builder OK", flush=True)
+            print("  15a. Custom Report Builder OK", flush=True)
         except Exception as e:
             try:
                 self.db.rollback()
@@ -8611,6 +9515,30 @@ class MainWindow(QMainWindow):
                 pass
             print(f"  ❌ Admin tab Error: {e}", flush=True)
             raise
+        
+        # Initialize AI Copilot Tab
+        print("  21. Initializing AI Copilot...", flush=True)
+        try:
+            self.rag_engine = KnowledgeRetriever()
+            self.llm_engine = LLMEngine()
+            self.function_executor = FunctionExecutor(user_role='analyst')
+            
+            self.copilot_widget = CopilotWidget(
+                rag_engine=self.rag_engine,
+                llm_engine=self.llm_engine,
+                executor=self.function_executor
+            )
+            self.tabs.addTab(self.copilot_widget, "🤖 AI Copilot")
+            print("  21a. AI Copilot OK", flush=True)
+        except Exception as e:
+            print(f"  ⚠️ AI Copilot initialization error: {e}", flush=True)
+            # Copilot is optional - don't crash if it fails
+            try:
+                error_label = QLabel(f"AI Copilot unavailable: {str(e)[:100]}")
+                error_label.setStyleSheet("color: red;")
+                self.tabs.addTab(error_label, "🤖 AI Copilot")
+            except:
+                pass
         
         # Connect browse reservations double-click to show booking form tab
         if hasattr(self, 'enhanced_charter_widget') and hasattr(self, 'operations_tabs'):
@@ -8720,17 +9648,20 @@ class MainWindow(QMainWindow):
             QApplication.quit()
     
     def _on_show_booking_tab_requested(self, charter_data: dict):
-        """Handle request to show booking form tab from browse reservations"""
-        # Show the booking tab
+        """Handle request to show booking form tab from charter lookup"""
+        # Switch to the Booking/Charter tab, then to the Run Charter sub-tab
         if hasattr(self, 'operations_tabs') and hasattr(self, 'booking_tab_index'):
-            self.operations_tabs.setTabVisible(self.booking_tab_index, True)
             self.operations_tabs.setCurrentIndex(self.booking_tab_index)
             
-            # Load charter data into form if provided
-            if hasattr(self, 'charter_form') and charter_data:
-                charter_id = charter_data.get('charter_id')
-                if charter_id:
-                    self.charter_form.load_charter(charter_id)
+            # Switch to "Run Charter" sub-tab (index 1) within Booking/Charter
+            if hasattr(self, 'booking_tab_widget'):
+                self.booking_tab_widget.setCurrentIndex(1)  # Switch to Run Charter tab
+                
+                # Load charter data into form if provided
+                if hasattr(self, 'charter_form') and charter_data:
+                    charter_id = charter_data.get('charter_id')
+                    if charter_id:
+                        self.charter_form.load_charter(charter_id)
     
     def mousePressEvent(self, event):
         """Track user activity"""
@@ -8857,17 +9788,11 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         
         tabs = QTabWidget()
-        # Reordered: Browse Reservations first, then Booking form
-        self.operations_tabs = tabs  # Store reference for tab management
-        tabs.addTab(self.create_enhanced_charter_tab(), "🔍 Browse Reservations")
+        # Store reference for tab management
+        self.operations_tabs = tabs
         
-        # Create booking form tab but mark it as initially hidden
-        self.booking_tab_index = tabs.addTab(self.create_charter_tab(), "📝 Booking/Charter")
-        self.booking_tab_hidden = True  # Initially hidden
-        self.operations_tabs.setTabVisible(self.booking_tab_index, False)
-        
-        tabs.addTab(self.create_quote_generator_tab(), "💬 Quote Generator")
-        tabs.addTab(self.create_dispatch_tab(), "📡 Dispatch")
+        # Dispatch is now PRIMARY (includes Dispatch Board, Booking, Quote, Calendars)
+        self.dispatch_tab_index = tabs.addTab(self.create_dispatch_tab(), "📡 Dispatch")
         tabs.addTab(self.create_customers_tab(), "👥 Customers")
         tabs.addTab(self.create_documents_tab(), "📄 Documents")
         
@@ -8899,6 +9824,76 @@ class MainWindow(QMainWindow):
         
         widget.setLayout(layout)
         return widget
+    
+    def on_unbooked_event_selected(self, event_data, dispatch_tabs):
+        """Handle when unbooked calendar event is selected for booking"""
+        try:
+            from PyQt6.QtCore import QDate, QTime
+            
+            # Switch to "Run Charter" tab
+            dispatch_tabs.setCurrentIndex(1)
+            
+            # Open new charter form with event data
+            dialog = QDialog(self)
+            dialog.setWindowTitle(f"New Charter - {event_data['client_name']}")
+            dialog.setGeometry(100, 100, 1400, 800)
+            
+            form_layout = QVBoxLayout()
+            charter_form = CharterFormWidget(self.db, charter_id=None, client_id=event_data['client_id'])
+            
+            # Pre-fill with calendar event data
+            if event_data.get('date'):
+                date_obj = event_data['date']
+                if hasattr(charter_form, 'charter_date'):
+                    charter_form.charter_date.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
+            
+            if event_data.get('time'):
+                time_obj = event_data['time']
+                if hasattr(charter_form, 'pickup_time'):
+                    charter_form.pickup_time.setTime(QTime(time_obj.hour, time_obj.minute))
+            
+            if event_data.get('driver'):
+                if hasattr(charter_form, 'driver_combo'):
+                    for i in range(charter_form.driver_combo.count()):
+                        if event_data['driver'] in charter_form.driver_combo.itemText(i):
+                            charter_form.driver_combo.setCurrentIndex(i)
+                            break
+            
+            if event_data.get('vehicle'):
+                if hasattr(charter_form, 'vehicle_combo'):
+                    for i in range(charter_form.vehicle_combo.count()):
+                        if event_data['vehicle'] in charter_form.vehicle_combo.itemText(i):
+                            charter_form.vehicle_combo.setCurrentIndex(i)
+                            break
+            
+            if event_data.get('notes'):
+                if hasattr(charter_form, 'dispatcher_notes_input'):
+                    charter_form.dispatcher_notes_input.setPlainText(event_data['notes'])
+            
+            # Parse and populate CC info from calendar event
+            if event_data.get('cc_last4'):
+                if hasattr(charter_form, 'client_cc_checkbox'):
+                    charter_form.client_cc_checkbox.setChecked(True)
+                    charter_form.client_cc_last4.setText(event_data['cc_last4'])
+                    
+                    # If CC type is available, store in notes for reference
+                    if event_data.get('cc_type'):
+                        charter_form.dispatcher_notes_input.insertPlainText(f"\n[CC on File: {event_data['cc_type']} ****{event_data['cc_last4']}]")
+            
+            charter_form.saved.connect(lambda: dialog.close())
+            form_layout.addWidget(charter_form)
+            dialog.setLayout(form_layout)
+            
+            dialog.exec()
+            # Refresh unbooked events list
+            self.unbooked_calendar_widget.load_unbooked_events()
+            
+        except Exception as e:
+            try:
+                self.db.rollback()
+            except:
+                pass
+            QMessageBox.critical(self, "Error", f"Failed to create charter: {e}")
     
     def create_customers_tab(self) -> QWidget:
         """Customer management tab - use enhanced client list widget"""
@@ -8932,28 +9927,49 @@ class MainWindow(QMainWindow):
         return widget
     
     def create_dispatch_tab(self) -> QWidget:
-        """Dispatch management and real-time booking"""
+        """Dispatch management and real-time booking - PRIMARY TAB with drill-down"""
         widget = QWidget()
         layout = QVBoxLayout()
         
         # Create sub-tabs for dispatch functions
         dispatch_tabs = QTabWidget()
+        self.dispatch_tabs_widget = dispatch_tabs  # Store reference for switching tabs
         
-        # Main dispatch management
+        # TAB 0: Main dispatch management (Dispatch Board) - DEFAULT
         self.dispatch_widget = DispatchManagementWidget(self.db)
         dispatch_tabs.addTab(self.dispatch_widget, "📋 Dispatch Board")
         
-        # Outlook-Style Calendar (NEW - Day/Week/Month views)
+        # TAB 1: Booking/Charter (for drill-down from Dispatch Board)
+        self.booking_widget = self.create_charter_tab()
+        dispatch_tabs.addTab(self.booking_widget, "📝 Run Charter")
+        
+        # TAB 2: Quote Generator
+        self.quote_generator_widget = QuoteGeneratorWidget(self.db.conn, self)
+        dispatch_tabs.addTab(self.quote_generator_widget, "💬 Quote Generator")
+        
+        # TAB 3: Outlook-Style Calendar (NEW - Day/Week/Month views)
         self.outlook_calendar_widget = OutlookStyleCalendarWidget(self.db)
         dispatch_tabs.addTab(self.outlook_calendar_widget, "📅 Calendar (Outlook Style)")
         
-        # Dispatcher Calendar (table view with sync indicators)
+        # TAB 4: Dispatcher Calendar (table view with sync indicators)
         self.dispatcher_calendar_widget = DispatcherCalendarWidget(self.db)
         dispatch_tabs.addTab(self.dispatcher_calendar_widget, "🗓️ Calendar (Table View)")
         
-        # Driver Calendar
+        # TAB 5: Driver Calendar
         self.driver_calendar_widget = DriverCalendarWidget(self.db)
         dispatch_tabs.addTab(self.driver_calendar_widget, "👤 Driver Calendar")
+        
+        # TAB 6: Unbooked Calendar Events (click to book)
+        from unbooked_calendar_report_widget import UnbookedCalendarReportWidget
+        self.unbooked_calendar_widget = UnbookedCalendarReportWidget(self.db)
+        # Connect booking signal to open new charter form
+        self.unbooked_calendar_widget.booking_created.connect(
+            lambda event: self.on_unbooked_event_selected(event, dispatch_tabs)
+        )
+        dispatch_tabs.addTab(self.unbooked_calendar_widget, "📅 Unbooked Events")
+        
+        # Set Dispatch Board as default
+        dispatch_tabs.setCurrentIndex(0)
         
         layout.addWidget(dispatch_tabs)
         widget.setLayout(layout)
@@ -9899,7 +10915,7 @@ def set_active_db(target):
 
 
 # Global DB target configuration (defaults)
-ACTIVE_DB_TARGET = "neon"
+ACTIVE_DB_TARGET = "local"
 OFFLINE_READONLY = False
 ACTIVE_DB_CONFIG = {
     "host": os.environ.get('DB_HOST', 'localhost'),
@@ -9916,6 +10932,33 @@ def main():
     try:
         # Minimize terminal first
         minimize_terminal()
+        
+        # Auto-start PostgreSQL if not running (Windows only)
+        import platform
+        if platform.system() == "Windows":
+            try:
+                import subprocess
+                # Check if PostgreSQL 17 is running
+                result = subprocess.run(
+                    ["powershell", "-Command", "Get-Service postgresql-x64-17 | Select-Object -ExpandProperty Status"],
+                    capture_output=True,
+                    encoding='utf-8',
+                    errors='ignore',
+                    timeout=5
+                )
+                if "Stopped" in result.stdout:
+                    print("[INFO] PostgreSQL is stopped, attempting to start...", flush=True)
+                    # Try to start PostgreSQL
+                    subprocess.Popen(
+                        ["powershell", "-Command", "Start-Service -Name postgresql-x64-17 -ErrorAction SilentlyContinue"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
+                    import time
+                    time.sleep(3)  # Wait for PostgreSQL to start
+                    print("[INFO] PostgreSQL startup initiated", flush=True)
+            except Exception as e:
+                print(f"[WARNING] Could not auto-start PostgreSQL: {e}", flush=True)
         
         app = QApplication(sys.argv)
         app.setStyle("Fusion")  # Modern look

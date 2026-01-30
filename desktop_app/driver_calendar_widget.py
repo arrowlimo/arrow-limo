@@ -151,7 +151,8 @@ class DriverCalendarWidget(QWidget):
                 pass
             
             cur = self.db.get_cursor()
-            date_str = qdate.toString("MM/dd/yyyy")
+            # Convert QDate to Python date object for proper parameter binding
+            date_py = qdate.toPyDate()
             # Build safe select
             ccols = self._get_columns('charters')
             ecols = self._get_columns('employees')
@@ -169,7 +170,7 @@ class DriverCalendarWidget(QWidget):
                 WHERE charter_date = %s AND (status IS NULL OR status NOT IN ('cancelled','no-show'))
                 ORDER BY pickup_time NULLS LAST
                 """,
-                (date_str,)
+                (date_py,)
             )
             rows = cur.fetchall()
             self.day_table.setRowCount(len(rows))
@@ -291,6 +292,59 @@ class DriverCalendarWidget(QWidget):
                 self.detail_dispatch_notes.setPlainText(str(vals.get('dispatch_notes') or ''))
         except Exception:
             pass
+        
+        # Load driver logs if available
+        self._load_and_display_driver_logs(reserve)
+
+    def _load_and_display_driver_logs(self, reserve_number: str):
+        """Load and display driver logs for the selected charter"""
+        try:
+            cur = self.db.get_cursor()
+            cur.execute("""
+                SELECT depart_time, pickup_time, start_odometer, end_odometer, 
+                       fuel_liters, fuel_amount, float_amount, hos_notes, driver_notes, submitted_at
+                FROM charter_driver_logs
+                WHERE reserve_number = %s
+                ORDER BY submitted_at DESC
+                LIMIT 1
+            """, (reserve_number,))
+            
+            row = cur.fetchone()
+            if row:
+                # Extract values
+                depart_time, pickup_time, start_odo, end_odo, fuel_liters, fuel_amt, float_amt, hos_notes, driver_notes, submitted_at = row
+                
+                # Create a formatted summary
+                driver_log_text = f"✅ Driver Log Found (Submitted: {submitted_at})\n"
+                driver_log_text += f"\nTimes:\n"
+                driver_log_text += f"  Depart Yard: {depart_time or 'N/A'}\n"
+                driver_log_text += f"  Pickup Time: {pickup_time or 'N/A'}\n"
+                driver_log_text += f"\nOdometer:\n"
+                driver_log_text += f"  Start: {start_odo or 'N/A'} km\n"
+                driver_log_text += f"  End: {end_odo or 'N/A'} km\n"
+                if start_odo and end_odo:
+                    distance = end_odo - start_odo
+                    driver_log_text += f"  Distance: {distance} km\n"
+                driver_log_text += f"\nFuel & Float:\n"
+                driver_log_text += f"  Fuel: {fuel_liters or 'N/A'} L @ ${fuel_amt or 0:.2f}\n"
+                driver_log_text += f"  Float Used: ${float_amt or 0:.2f}\n"
+                if hos_notes:
+                    driver_log_text += f"\nHOS Notes:\n{hos_notes}\n"
+                if driver_notes:
+                    driver_log_text += f"\nDriver Notes:\n{driver_notes}\n"
+                
+                # Update dispatch notes to show driver log info
+                self.detail_dispatch_notes.setPlainText(driver_log_text)
+            else:
+                # No driver logs yet
+                self.detail_dispatch_notes.setPlainText("⏳ No driver log submitted yet")
+        
+        except Exception as e:
+            # Silently fail if driver logs table doesn't exist
+            try:
+                self.detail_dispatch_notes.setPlainText(f"⚠️ Could not load driver logs: {str(e)}")
+            except:
+                pass
 
     def _print_charter(self):
         reserve = self.detail_reserve.text().strip()
@@ -325,15 +379,16 @@ class DriverCalendarWidget(QWidget):
         if not reserve:
             QMessageBox.information(self, "Driver Form", "Select a charter first")
             return
-        dlg = DriverEntryDialog(reserve, self.submission_dir, self)
+        dlg = DriverEntryDialog(reserve, self.submission_dir, self.db, self)
         dlg.exec()
 
 
 class DriverEntryDialog(QDialog):
-    def __init__(self, reserve_number: str, submission_dir: str, parent=None):
+    def __init__(self, reserve_number: str, submission_dir: str, db=None, parent=None):
         super().__init__(parent)
         self.reserve_number = reserve_number
         self.submission_dir = submission_dir
+        self.db = db
         self.setWindowTitle(f"Driver Entry - {reserve_number}")
         self._init_ui()
 
@@ -348,8 +403,15 @@ class DriverEntryDialog(QDialog):
         self.float_amount = QSpinBox(); self.float_amount.setMaximum(100000)
         self.hos_notes = QTextEdit()
         self.driver_notes = QTextEdit()
+        
+        # Add HOS warning label
+        from PyQt6.QtWidgets import QLabel
+        self.hos_warning = QLabel("⏰ HOS Regulations: Max 14 hrs driving, 11 hrs on duty per day")
+        self.hos_warning.setStyleSheet("color: #FF8C00; font-weight: bold;")
+        
         layout.addRow("Depart Yard", self.depart_time)
         layout.addRow("Pickup Time", self.pickup_time)
+        layout.addRow("", self.hos_warning)
         layout.addRow("Start Odometer", self.start_odometer)
         layout.addRow("End Odometer", self.end_odometer)
         layout.addRow("Fuel Liters", self.fuel_liters)
@@ -363,6 +425,23 @@ class DriverEntryDialog(QDialog):
         layout.addRow(btns)
 
     def _save(self):
+        # Calculate HOS (Hours of Service) and warn if violations
+        depart_time = self.depart_time.time()
+        pickup_time = self.pickup_time.time()
+        
+        hos_warnings = self._validate_hos(depart_time, pickup_time)
+        
+        if hos_warnings:
+            reply = QMessageBox.warning(
+                self,
+                "HOS Violation Warning",
+                f"Hours of Service violations detected:\n\n{hos_warnings}\n\nContinue saving?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+        
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
         payload = {
             'reserve_number': self.reserve_number,
@@ -376,12 +455,99 @@ class DriverEntryDialog(QDialog):
             'hos_notes': self.hos_notes.toPlainText(),
             'driver_notes': self.driver_notes.toPlainText(),
             'submitted_at': datetime.now().isoformat(),
+            'hos_warnings': hos_warnings,  # Include warnings in payload
         }
+        
+        # Save to database if connection available
+        db_saved = False
+        if self.db:
+            try:
+                cur = self.db.get_cursor()
+                cur.execute(
+                    """
+                    INSERT INTO charter_driver_logs (
+                        reserve_number, depart_time, pickup_time, 
+                        start_odometer, end_odometer, fuel_liters, fuel_amount, 
+                        float_amount, hos_notes, driver_notes, json_backup
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (reserve_number, submitted_at) DO UPDATE SET
+                        depart_time = EXCLUDED.depart_time,
+                        pickup_time = EXCLUDED.pickup_time,
+                        start_odometer = EXCLUDED.start_odometer,
+                        end_odometer = EXCLUDED.end_odometer,
+                        fuel_liters = EXCLUDED.fuel_liters,
+                        fuel_amount = EXCLUDED.fuel_amount,
+                        float_amount = EXCLUDED.float_amount,
+                        hos_notes = EXCLUDED.hos_notes,
+                        driver_notes = EXCLUDED.driver_notes,
+                        json_backup = EXCLUDED.json_backup,
+                        updated_at = NOW()
+                    """,
+                    (
+                        self.reserve_number,
+                        self.depart_time.time().isoformat() if self.depart_time.time().hour() > 0 or self.depart_time.time().minute() > 0 else None,
+                        self.pickup_time.time().isoformat() if self.pickup_time.time().hour() > 0 or self.pickup_time.time().minute() > 0 else None,
+                        self.start_odometer.value() if self.start_odometer.value() > 0 else None,
+                        self.end_odometer.value() if self.end_odometer.value() > 0 else None,
+                        self.fuel_liters.value() if self.fuel_liters.value() > 0 else None,
+                        float(self.fuel_amount.value()) if self.fuel_amount.value() > 0 else None,
+                        float(self.float_amount.value()) if self.float_amount.value() > 0 else None,
+                        self.hos_notes.toPlainText() or None,
+                        self.driver_notes.toPlainText() or None,
+                        json.dumps(payload),
+                    ),
+                )
+                self.db.commit()
+                db_saved = True
+            except Exception as e:
+                try:
+                    self.db.rollback()
+                except:
+                    pass
+                QMessageBox.warning(self, "Database Error", f"Failed to save to database:\n\n{str(e)}\n\nWill save to JSON only.")
+        
+        # Always save to JSON as backup
         path = os.path.join(self.submission_dir, f"driver_log_{self.reserve_number}_{ts}.json")
         try:
             with open(path, 'w', encoding='utf-8') as f:
                 json.dump(payload, f, indent=2)
-            QMessageBox.information(self, "Saved", f"Driver entry saved to {path}")
+            
+            if db_saved:
+                QMessageBox.information(self, "Saved", f"✅ Driver entry saved to database and JSON backup")
+            else:
+                QMessageBox.information(self, "Saved", f"Driver entry saved to {path}")
             self.accept()
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to save: {e}")
+            QMessageBox.warning(self, "Error", f"Failed to save JSON backup: {e}")
+    def _validate_hos(self, depart_time, pickup_time):
+        """
+        Validate Hours of Service (HOS) regulations.
+        Returns warning string if violations detected, empty string if OK.
+        
+        HOS Regulations (Canadian/Alberta):
+        - Max 14 hours on duty per day (includes driving + other work)
+        - Max 11 hours continuous driving per day
+        - Minimum 8 hours off-duty between shifts
+        """
+        warnings = []
+        
+        # Calculate hours between depart and pickup
+        if depart_time.hour() > 0 or depart_time.minute() > 0:
+            if pickup_time.hour() > 0 or pickup_time.minute() > 0:
+                # Calculate time difference
+                depart_minutes = depart_time.hour() * 60 + depart_time.minute()
+                pickup_minutes = pickup_time.hour() * 60 + pickup_time.minute()
+                
+                # Handle day boundary (e.g., 22:00 to 06:00 next day)
+                if pickup_minutes < depart_minutes:
+                    pickup_minutes += 24 * 60
+                
+                hours_worked = (pickup_minutes - depart_minutes) / 60.0
+                
+                if hours_worked > 14:
+                    warnings.append(f"⚠️ On-duty time: {hours_worked:.1f} hours (max 14 allowed)")
+                
+                if hours_worked > 11:
+                    warnings.append(f"⚠️ Driving time: {hours_worked:.1f} hours (max 11 continuous allowed)")
+        
+        return "\n".join(warnings) if warnings else ""

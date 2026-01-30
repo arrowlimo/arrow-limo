@@ -58,9 +58,17 @@ class ROEFormWidget(QWidget):
         preview_btn.clicked.connect(self.preview_roe)
         actions.addWidget(preview_btn)
 
-        print_btn = QPushButton("🖨️ Print ROE (PDF)")
+        print_btn = QPushButton("🖨️ PDF")
         print_btn.clicked.connect(self.print_roe)
         actions.addWidget(print_btn)
+        
+        csv_btn = QPushButton("📊 CSV")
+        csv_btn.clicked.connect(self.export_roe_csv)
+        actions.addWidget(csv_btn)
+        
+        word_btn = QPushButton("📝 Word")
+        word_btn.clicked.connect(self.export_roe_word)
+        actions.addWidget(word_btn)
 
         actions.addStretch()
         layout.addLayout(actions)
@@ -289,6 +297,130 @@ class ROEFormWidget(QWidget):
             QMessageBox.information(self, "Printed", f"ROE saved to:\n{filename}")
         except Exception as exc:
             QMessageBox.critical(self, "Print Error", f"Failed to generate ROE PDF:\n{exc}")
+    
+    def export_roe_csv(self):
+        """Export ROE data to CSV"""
+        try:
+            import csv
+            from datetime import datetime
+            
+            filename, _ = QFileDialog.getSaveFileName(
+                self,
+                "Export ROE to CSV",
+                f"ROE_{self.employee_name_edit.text()}_{date.today():%Y%m%d}.csv",
+                "CSV Files (*.csv);;All Files (*)"
+            )
+            
+            if not filename:
+                return
+            
+            rows = [
+                ['Record of Employment (ROE)'],
+                [''],
+                ['Employee Information'],
+                ['Name', self.employee_name_edit.text()],
+                ['Employee Number', self.employee_number_edit.text()],
+                ['SIN', self.sin_edit.text()],
+                [''],
+                ['Employment Period'],
+                ['Start Date', str(self.start_date_edit.date())],
+                ['Last Day Worked', str(self.last_day_edit.date())],
+                ['Final Pay Date', str(self.final_pay_date_edit.date())],
+                [''],
+                ['Income Information'],
+                ['Total Insurable Earnings', str(self.total_earnings_edit.text())],
+                [''],
+                ['Deductions'],
+                ['CPP Deducted', str(self.cpp_deducted_edit.text())],
+                ['EI Deducted', str(self.ei_deducted_edit.text())],
+                ['Income Tax Deducted', str(self.income_tax_edit.text())],
+                [''],
+                ['Reason for Termination'],
+                ['Reason', self.termination_reason_combo.currentText()],
+                [''],
+                ['Generated', datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
+            ]
+            
+            with open(filename, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerows(rows)
+            
+            QMessageBox.information(self, "Success", f"✅ ROE exported to CSV:\n{filename}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"CSV export failed: {e}")
+    
+    def export_roe_word(self):
+        """Export ROE to Word (.docx)"""
+        try:
+            from docx import Document
+            from docx.shared import Pt
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+            from datetime import datetime
+            
+            filename, _ = QFileDialog.getSaveFileName(
+                self,
+                "Export ROE to Word",
+                f"ROE_{self.employee_name_edit.text()}_{date.today():%Y%m%d}.docx",
+                "Word Files (*.docx);;All Files (*)"
+            )
+            
+            if not filename:
+                return
+            
+            doc = Document()
+            
+            # Add title
+            title_para = doc.add_paragraph("RECORD OF EMPLOYMENT (ROE)")
+            title_para.style = 'Heading 1'
+            title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Add sections
+            doc.add_paragraph("Employee Information", style='Heading 2')
+            table = doc.add_table(rows=5, cols=2)
+            table.cell(0, 0).text = "Name"
+            table.cell(0, 1).text = self.employee_name_edit.text()
+            table.cell(1, 0).text = "Employee Number"
+            table.cell(1, 1).text = self.employee_number_edit.text()
+            table.cell(2, 0).text = "SIN"
+            table.cell(2, 1).text = self.sin_edit.text()
+            table.cell(3, 0).text = "Start Date"
+            table.cell(3, 1).text = str(self.start_date_edit.date())
+            table.cell(4, 0).text = "Last Day Worked"
+            table.cell(4, 1).text = str(self.last_day_edit.date())
+            
+            doc.add_paragraph()
+            doc.add_paragraph("Income & Deductions", style='Heading 2')
+            table2 = doc.add_table(rows=4, cols=2)
+            table2.cell(0, 0).text = "Total Insurable Earnings"
+            table2.cell(0, 1).text = str(self.total_earnings_edit.text())
+            table2.cell(1, 0).text = "CPP Deducted"
+            table2.cell(1, 1).text = str(self.cpp_deducted_edit.text())
+            table2.cell(2, 0).text = "EI Deducted"
+            table2.cell(2, 1).text = str(self.ei_deducted_edit.text())
+            table2.cell(3, 0).text = "Income Tax Deducted"
+            table2.cell(3, 1).text = str(self.income_tax_edit.text())
+            
+            doc.add_paragraph()
+            doc.add_paragraph("Termination Reason: " + self.termination_reason_combo.currentText())
+            
+            # Add timestamp
+            doc.add_paragraph()
+            timestamp_para = doc.add_paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            timestamp_para_format = timestamp_para.runs[0]
+            timestamp_para_format.italic = True
+            
+            doc.save(filename)
+            self._write_audit_log()
+            QMessageBox.information(self, "Success", f"✅ ROE exported to Word:\n{filename}")
+        except ImportError:
+            QMessageBox.warning(
+                self,
+                "Missing Library",
+                "Word export requires python-docx.\n\nInstall with: pip install python-docx\n\nFalling back to PDF."
+            )
+            self.print_roe()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Word export failed: {e}")
 
     # Helpers ----------------------------------------------------------------
     def _build_document(self) -> QTextDocument:

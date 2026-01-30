@@ -1,6 +1,6 @@
 import pyodbc
 
-LMS_PATH = r'L:\limo\backups\lms.mdb'
+LMS_PATH = r'L:\limo\database_backups\lms2026.mdb'
 conn = pyodbc.connect(f'DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={LMS_PATH};')
 cur = conn.cursor()
 

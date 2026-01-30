@@ -1,22 +1,17 @@
 """
 Dispatch Management Widget
-Real-time booking and vehicle dispatch management
-Ported from frontend/src/views/Dispatch.vue
+Simple booking list view - drill-down to full charter form
 """
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
+    QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem,
-    QHeaderView, QMessageBox, QComboBox, QDialog,
-    QDialogButtonBox, QSpinBox, QTextEdit, QSplitter
+    QHeaderView, QMessageBox, QComboBox, QMenu, QDialog
 )
 from PyQt6.QtCore import Qt, QDate
 
 from desktop_app.common_widgets import StandardDateEdit
-from PyQt6.QtGui import QColor, QFont
-import psycopg2
-from datetime import datetime
-from desktop_app.drill_down_widgets import CharterDetailDialog
+from PyQt6.QtGui import QColor
 
 
 class DispatchManagementWidget(QWidget):
@@ -27,22 +22,10 @@ class DispatchManagementWidget(QWidget):
         self.load_bookings()
 
     def init_ui(self):
-        """Initialize the dispatch UI"""
+        """Initialize the dispatch UI - Simple list view"""
         layout = QVBoxLayout()
 
-        # Statistics - REMOVED per user request (balloon cards not needed)
-        # stats_layout = QHBoxLayout()
-        # self.stat_active = self._create_stat_card("Active Bookings", "0", "#4caf50")
-        # self.stat_available = self._create_stat_card("Available Vehicles", "0", "#2196f3")
-        # self.stat_pending = self._create_stat_card("Pending Assignments", "0", "#ff9800")
-        # self.stat_routes = self._create_stat_card("Active Routes", "0", "#9c27b0")
-        # stats_layout.addWidget(self.stat_active)
-        # stats_layout.addWidget(self.stat_available)
-        # stats_layout.addWidget(self.stat_pending)
-        # stats_layout.addWidget(self.stat_routes)
-        # layout.addLayout(stats_layout)
-
-        # Filters
+        # Filters (top)
         filter_layout = QHBoxLayout()
         filter_layout.addWidget(QLabel("Search:"))
         self.search_input = QLineEdit()
@@ -63,127 +46,53 @@ class DispatchManagementWidget(QWidget):
         self.date_filter.dateChanged.connect(self.filter_bookings)
         filter_layout.addWidget(self.date_filter)
 
-        new_btn = QPushButton("➕ New Booking")
+        new_btn = QPushButton("➕ New Charter")
         new_btn.clicked.connect(self.new_booking)
         filter_layout.addWidget(new_btn)
+        
         filter_layout.addStretch()
         layout.addLayout(filter_layout)
 
-        # Bookings table
+        # Bookings table (main list)
         self.bookings_table = QTableWidget()
         self.bookings_table.setColumnCount(10)
         self.bookings_table.setHorizontalHeaderLabels([
             "Reserve #", "Date", "Client", "Vehicle Type", "Driver",
             "Status", "Passengers", "Capacity", "Pickup", "Notes"
         ])
-        # Enable sorting by clicking column headers
         self.bookings_table.setSortingEnabled(True)
-        # Enable horizontal scroll bar
         self.bookings_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.bookings_table.setHorizontalScrollMode(QTableWidget.ScrollMode.ScrollPerPixel)
-        # Set resize mode to interactive for manual column sizing
         self.bookings_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        # Enable context menu for column operations
         self.bookings_table.horizontalHeader().setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.bookings_table.horizontalHeader().customContextMenuRequested.connect(self.show_column_menu)
-        self.bookings_table.itemSelectionChanged.connect(self.show_booking_details)
         self.bookings_table.itemDoubleClicked.connect(self.handle_double_click)
         layout.addWidget(self.bookings_table)
         
         # View controls
         view_controls = QHBoxLayout()
-        reset_view_btn = QPushButton("🔄 Reset View")
-        reset_view_btn.setToolTip("Reset columns to default widths and visibility")
+        reset_view_btn = QPushButton("🔄 Reset")
+        reset_view_btn.setToolTip("Reset columns to default widths")
         reset_view_btn.clicked.connect(self.reset_view)
         view_controls.addWidget(reset_view_btn)
         
-        autofit_btn = QPushButton("↔️ Auto-fit Columns")
-        autofit_btn.setToolTip("Automatically resize all columns to fit content")
+        autofit_btn = QPushButton("↔️ Auto-fit")
+        autofit_btn.setToolTip("Auto-resize columns to fit content")
         autofit_btn.clicked.connect(self.autofit_columns)
         view_controls.addWidget(autofit_btn)
         
         view_controls.addStretch()
         layout.addLayout(view_controls)
-
-        # Details panel
-        details_group = QGroupBox("Booking Details")
-        details_layout = QFormLayout()
         
-        self.detail_reserve = QLineEdit()
-        self.detail_reserve.setReadOnly(True)
-        self.detail_date = QLineEdit()
-        self.detail_date.setReadOnly(True)
-        self.detail_client = QLineEdit()
-        self.detail_client.setReadOnly(True)
-        self.detail_vehicle = QLineEdit()
-        self.detail_vehicle.setReadOnly(True)
-        self.detail_driver = QLineEdit()
-        self.detail_driver.setReadOnly(True)
-        self.detail_status = QComboBox()
-        self.detail_status.addItems(["Pending", "Assigned", "Active", "Completed"])
-        self.detail_passengers = QSpinBox()
-        self.detail_passengers.setMaximum(99)
-        self.detail_pickup = QTextEdit()
-        self.detail_pickup.setFixedHeight(40)
-        self.detail_notes = QTextEdit()
-        self.detail_notes.setFixedHeight(60)
-
-        button_layout = QHBoxLayout()
-        update_btn = QPushButton("💾 Update Status")
-        update_btn.clicked.connect(self.update_booking_status)
-        delete_btn = QPushButton("🗑️ Delete")
-        delete_btn.clicked.connect(self.delete_booking)
-        open_charter_btn = QPushButton("🔎 Open Charter (Orders tab)")
-        open_charter_btn.clicked.connect(self.open_selected_charter_orders_tab)
-        button_layout.addWidget(update_btn)
-        button_layout.addWidget(delete_btn)
-        button_layout.addWidget(open_charter_btn)
-        button_layout.addStretch()
-
-        details_layout.addRow("Reserve Number", self.detail_reserve)
-        details_layout.addRow("Charter Date", self.detail_date)
-        details_layout.addRow("Client", self.detail_client)
-        details_layout.addRow("Vehicle", self.detail_vehicle)
-        details_layout.addRow("Driver", self.detail_driver)
-        details_layout.addRow("Status", self.detail_status)
-        details_layout.addRow("Passengers", self.detail_passengers)
-        details_layout.addRow("Pickup Address", self.detail_pickup)
-        details_layout.addRow("Notes", self.detail_notes)
-        details_layout.addRow(button_layout)
-
-        details_group.setLayout(details_layout)
-        layout.addWidget(details_group)
-
         self.setLayout(layout)
-        self.current_charter_id = None
-
-    def _create_stat_card(self, label, value, color):
-        """Create a statistics card"""
-        group = QGroupBox()
-        group.setStyleSheet(f"QGroupBox {{ border: 2px solid {color}; border-radius: 8px; }}")
-        layout = QVBoxLayout()
-        value_label = QLabel(value)
-        value_label.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {color};")
-        value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        text_label = QLabel(label)
-        text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(value_label)
-        layout.addWidget(text_label)
-        group.setLayout(layout)
-        group.value_label = value_label
-        return group
+        self.bookings_data = []
 
     def load_bookings(self):
         """Load all bookings from database"""
         try:
-            # Rollback any failed transactions first
             try:
                 self.db.rollback()
             except:
-                try:
-                    self.db.rollback()
-                except:
-                    pass
                 pass
             
             cur = self.db.get_cursor()
@@ -207,7 +116,6 @@ class DispatchManagementWidget(QWidget):
             bookings = cur.fetchall()
             self.bookings_data = bookings
             self.display_bookings(bookings)
-            self.update_statistics()
 
         except Exception as e:
             try:
@@ -249,7 +157,6 @@ class DispatchManagementWidget(QWidget):
         """Filter bookings based on search criteria"""
         search_text = self.search_input.text().lower()
         status_filter = self.status_filter.currentText()
-        date_filter = self.date_filter.date().toString("MM/dd/yyyy")
 
         filtered = []
         for booking in self.bookings_data:
@@ -269,144 +176,153 @@ class DispatchManagementWidget(QWidget):
                 if (booking[6] or "Pending").lower() != status_filter.lower():
                     continue
 
-            # Apply date filter (optional - include all if no specific date selected)
             filtered.append(booking)
 
         self.display_bookings(filtered)
-
-    def show_booking_details(self):
-        """Show selected booking details"""
-        selected = self.bookings_table.selectedItems()
-        if not selected:
-            return
-
-        row = self.bookings_table.row(selected[0])
-        booking = self.bookings_data[row] if row < len(self.bookings_data) else None
-
-        if booking:
-            self.current_charter_id = booking[0]
-            self.detail_reserve.setText(str(booking[1] or ""))
-            self.detail_date.setText(str(booking[2] or ""))
-            self.detail_client.setText(str(booking[3] or ""))
-            self.detail_vehicle.setText(str(booking[4] or ""))
-            self.detail_driver.setText(str(booking[5] or ""))
     
     def handle_double_click(self, item):
-        """Handle double-click on table - open charter booking dialog"""
+        """Handle double-click on table - open charter booking form (auto-filled)"""
         row = item.row()
-        booking = self.bookings_data[row] if row < len(self.bookings_data) else None
-        
-        if booking:
-            reserve_number = booking[1]  # reserve_number is second column in query
-            
-            # Open charter detail dialog
-            try:
-                dialog = CharterDetailDialog(self.db, reserve_number=str(reserve_number), parent=self)
-                dialog.exec()
-                # Refresh the table after closing dialog
-                self.load_bookings()
-            except Exception as e:
-                try:
-                    self.db.rollback()
-                except:
-                    pass
-                QMessageBox.warning(self, "Error", f"Failed to open charter details: {e}")
-
-    def update_booking_status(self):
-        """Update booking status"""
-        if not self.current_charter_id:
-            QMessageBox.warning(self, "No Selection", "Please select a booking first.")
+        if row < 0 or row >= len(self.bookings_data):
             return
-
-        try:
-            # Rollback any failed transactions first
-            try:
-                self.db.rollback()
-            except:
-                try:
-                    self.db.rollback()
-                except:
-                    pass
-                pass
             
-            cur = self.db.get_cursor()
-            cur.execute(
-                "UPDATE charters SET payment_status = %s, vehicle_notes = %s WHERE charter_id = %s",
-                (self.detail_status.currentText().lower(), self.detail_notes.toPlainText(), self.current_charter_id)
-            )
-            self.db.commit()
-            QMessageBox.information(self, "Success", "Booking updated!")
+        booking = self.bookings_data[row]
+        charter_id = booking[0]  # charter_id
+        
+        # Open charter form with existing data
+        try:
+            from main import CharterFormWidget
+            
+            dialog = QDialog(self)
+            dialog.setWindowTitle(f"Charter Booking - {booking[1]}")
+            dialog.setGeometry(100, 100, 1400, 800)
+            
+            layout = QVBoxLayout()
+            charter_form = CharterFormWidget(self.db, charter_id=charter_id)
+            charter_form.saved.connect(lambda: self.on_charter_saved(dialog))
+            layout.addWidget(charter_form)
+            dialog.setLayout(layout)
+            
+            dialog.exec()
+            # Refresh the table after closing dialog
             self.load_bookings()
         except Exception as e:
-            self.db.rollback()
-            QMessageBox.critical(self, "Error", f"Failed to update: {e}")
-
-    def delete_booking(self):
-        """Delete selected booking"""
-        if not self.current_charter_id:
-            QMessageBox.warning(self, "No Selection", "Please select a booking first.")
-            return
-
-        reply = QMessageBox.question(
-            self, "Confirm Delete",
-            "Delete this booking?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-
-        if reply == QMessageBox.StandardButton.Yes:
             try:
-                # Rollback any failed transactions first
-                try:
-                    self.db.rollback()
-                except:
-                    pass
-                
-                cur = self.db.get_cursor()
-                cur.execute("DELETE FROM charters WHERE charter_id = %s", (self.current_charter_id,))
-                self.db.commit()
-                QMessageBox.information(self, "Success", "Booking deleted!")
-                self.load_bookings()
-            except Exception as e:
                 self.db.rollback()
-                QMessageBox.critical(self, "Error", f"Failed to delete: {e}")
+            except:
+                pass
+            QMessageBox.warning(self, "Error", f"Failed to open charter: {e}")
 
     def new_booking(self):
-        """Create new booking (placeholder)"""
-        QMessageBox.information(self, "New Booking", "Booking creation will be implemented via modal form.")
-
-    def open_selected_charter_orders_tab(self):
-        """Open the Charter detail dialog focused on the Orders & Beverages tab for the selected booking."""
-        selected = self.bookings_table.selectedItems()
-        if not selected:
-            QMessageBox.warning(self, "No Selection", "Please select a booking first.")
-            return
-
-        row = self.bookings_table.row(selected[0])
-        booking = self.bookings_data[row] if row < len(self.bookings_data) else None
-        if not booking:
-            QMessageBox.warning(self, "No Selection", "Please select a booking first.")
-            return
-
-        reserve_number = booking[1]
-        if not reserve_number:
-            QMessageBox.warning(self, "Missing Reserve #", "Selected booking has no reserve number.")
-            return
-
+        """Create new booking - check calendar first, then client finder, then open charter form"""
         try:
-            dlg = CharterDetailDialog(self.db, reserve_number=str(reserve_number), parent=self, initial_tab='orders')
-            dlg.exec()
+            from calendar_event_finder_dialog import CalendarEventFinderDialog
+            from client_finder_dialog import ClientFinderDialog
+            from main import CharterFormWidget
+            from datetime import datetime, date
+            
+            # Step 1: Check for calendar events
+            calendar_dialog = CalendarEventFinderDialog(self.db, parent=self)
+            if calendar_dialog.exec() != QDialog.DialogCode.Accepted:
+                return  # User cancelled
+            
+            event_data = calendar_dialog.selected_event
+            client_id = calendar_dialog.selected_client_id
+            client_name = calendar_dialog.selected_client_name
+            
+            # Step 2: If "Now" button was clicked, need to select client
+            if event_data and event_data.get('is_now'):
+                client_dialog = ClientFinderDialog(self.db, parent=self)
+                if client_dialog.exec() != QDialog.DialogCode.Accepted:
+                    return
+                client_id = client_dialog.selected_client_id
+                client_name = client_dialog.selected_client_name
+                event_data = {
+                    'date': date.today(),
+                    'time': datetime.now().time(),
+                    'driver': None,
+                    'vehicle': None,
+                    'notes': None
+                }
+            # Step 3: If no calendar event, open client finder
+            elif not event_data:
+                client_dialog = ClientFinderDialog(self.db, parent=self)
+                if client_dialog.exec() != QDialog.DialogCode.Accepted:
+                    return
+                client_id = client_dialog.selected_client_id
+                client_name = client_dialog.selected_client_name
+                event_data = None
+            
+            if not client_id:
+                QMessageBox.warning(self, "No Client", "Please select or create a client.")
+                return
+            
+            # Step 4: Open charter form with pre-filled data
+            dialog = QDialog(self)
+            dialog.setWindowTitle(f"New Charter - {client_name}")
+            dialog.setGeometry(100, 100, 1400, 800)
+            
+            layout = QVBoxLayout()
+            charter_form = CharterFormWidget(self.db, charter_id=None, client_id=client_id)
+            
+            # Pre-fill with calendar event data if available
+            if event_data:
+                self.prefill_charter_from_event(charter_form, event_data)
+            
+            charter_form.saved.connect(lambda: self.on_charter_saved(dialog))
+            layout.addWidget(charter_form)
+            dialog.setLayout(layout)
+            
+            dialog.exec()
+            # Refresh the table after closing dialog
+            self.load_bookings()
         except Exception as e:
             try:
                 self.db.rollback()
             except:
                 pass
-            QMessageBox.critical(self, "Open Charter Failed", f"Could not open charter: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to create charter: {e}")
+    
+    def prefill_charter_from_event(self, charter_form, event_data):
+        """Pre-fill charter form fields from calendar event data"""
+        try:
+            from datetime import datetime, date
+            from PyQt6.QtCore import QDate, QTime
+            
+            if event_data.get('date'):
+                date_obj = event_data['date']
+                if hasattr(charter_form, 'charter_date'):
+                    charter_form.charter_date.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
+            
+            if event_data.get('time'):
+                time_obj = event_data['time']
+                if hasattr(charter_form, 'pickup_time'):
+                    charter_form.pickup_time.setTime(QTime(time_obj.hour, time_obj.minute))
+            
+            if event_data.get('driver'):
+                if hasattr(charter_form, 'driver_combo'):
+                    for i in range(charter_form.driver_combo.count()):
+                        if event_data['driver'] in charter_form.driver_combo.itemText(i):
+                            charter_form.driver_combo.setCurrentIndex(i)
+                            break
+            
+            if event_data.get('vehicle'):
+                if hasattr(charter_form, 'vehicle_combo'):
+                    for i in range(charter_form.vehicle_combo.count()):
+                        if event_data['vehicle'] in charter_form.vehicle_combo.itemText(i):
+                            charter_form.vehicle_combo.setCurrentIndex(i)
+                            break
+            
+            if event_data.get('notes'):
+                if hasattr(charter_form, 'dispatcher_notes'):
+                    charter_form.dispatcher_notes.setPlainText(event_data['notes'])
+        
+        except Exception as e:
+            print(f"Error prefilling from event: {e}")
 
-    def update_statistics(self):
-        """Update statistics cards - DISABLED (stat cards removed per user request)"""
-        # Statistics cards have been removed from the UI
-        # This method is now a no-op to prevent errors
-        pass
+    def on_charter_saved(self, dialog):
+        """Callback when charter is saved"""
+        dialog.accept()
 
     def show_column_menu(self, pos):
         """Show context menu for column visibility toggling"""

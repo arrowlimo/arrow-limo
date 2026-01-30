@@ -128,14 +128,14 @@ class CharterBrowseDialog(QDialog):
             # Build dynamic SQL query
             query = """
                 SELECT c.reserve_number, 
-                       COALESCE(a.company_name, a.last_name || ', ' || a.first_name, 'Unknown') as client,
+                       COALESCE(a.company_name, COALESCE(a.last_name || ', ' || a.first_name, a.client_name), 'Unknown') as client,
                        c.charter_date,
                        c.passenger_count,
                        c.vehicle_type_requested,
                        COALESCE(c.total_amount_due, 0) as total_due,
                        c.status
                 FROM charters c
-                LEFT JOIN accounts a ON c.client_id = a.account_id
+                LEFT JOIN clients a ON c.client_id = a.client_id
                 WHERE 1=1
             """
             
@@ -148,8 +148,10 @@ class CharterBrowseDialog(QDialog):
             if client:
                 query += """ AND (
                     COALESCE(a.company_name, '') ILIKE %s
+                    OR COALESCE(a.client_name, '') ILIKE %s
                     OR COALESCE(a.last_name || ', ' || a.first_name, '') ILIKE %s
                 )"""
+                params.append(f"%{client}%")
                 params.append(f"%{client}%")
                 params.append(f"%{client}%")
             

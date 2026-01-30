@@ -277,8 +277,11 @@ class CalendarViewWidget(QWidget):
                 ORDER BY c.charter_date, c.pickup_time NULLS LAST
             """
             
-            # Convert dates to YYYY-MM-DD format for database
-            cur.execute(query, (start_date.toString("yyyy-MM-dd"), end_date.toString("yyyy-MM-dd")))
+            # Convert dates to Python date objects for proper parameter binding
+            from datetime import date as py_date
+            start_py = start_date.toPyDate() if hasattr(start_date, 'toPyDate') else py_date.fromisoformat(start_date.toString("yyyy-MM-dd"))
+            end_py = end_date.toPyDate() if hasattr(end_date, 'toPyDate') else py_date.fromisoformat(end_date.toString("yyyy-MM-dd"))
+            cur.execute(query, (start_py, end_py))
             
             columns = [desc[0] for desc in cur.description]
             self.charters = [dict(zip(columns, row)) for row in cur.fetchall()]

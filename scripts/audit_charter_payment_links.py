@@ -22,8 +22,8 @@ QUERIES = {
     "payments_linked_to_charters": {
         "sql": (
             "SELECT p.payment_id, p.payment_key, p.payment_date, p.amount, p.payment_method, "
-            "p.square_payment_id, p.charter_id, c.reserve_number, c.charter_date, c.total_amount_due, p.notes "
-            "FROM payments p LEFT JOIN charters c ON p.charter_id = c.charter_id "
+            "p.reserve_number, c.charter_id, c.charter_date, c.total_amount_due, p.notes "
+            "FROM payments p LEFT JOIN charters c ON p.reserve_number = c.reserve_number "
             "WHERE p.reserve_number IS NOT NULL ORDER BY p.payment_date DESC NULLS LAST"
         ),
         "filename": "payments_linked_to_charters.csv",
@@ -31,7 +31,7 @@ QUERIES = {
     "charters_with_multiple_payments": {
         "sql": (
             "SELECT c.charter_id, c.reserve_number, c.charter_date, c.total_amount_due, COUNT(p.payment_id) AS num_payments, "
-            "SUM(p.amount) AS sum_payments_amount FROM charters c LEFT JOIN payments p ON p.charter_id = c.charter_id "
+            "SUM(p.amount) AS sum_payments_amount FROM charters c LEFT JOIN payments p ON p.reserve_number = c.reserve_number "
             "GROUP BY c.charter_id, c.reserve_number, c.charter_date, c.total_amount_due HAVING COUNT(p.payment_id) > 1 "
             "ORDER BY num_payments DESC, sum_payments_amount DESC NULLS LAST"
         ),
@@ -78,12 +78,13 @@ def main():
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+    # Use explicit localhost connection (don't use .env which points to Neon remote)
     conn = psycopg2.connect(
-        host=os.getenv('DB_HOST', 'localhost'),
-        port=int(os.getenv('DB_PORT', '5432')),
-        dbname=os.getenv('DB_NAME', 'almsdata'),
-        user=os.getenv('DB_USER', 'postgres'),
-        password=os.getenv('DB_PASSWORD', '')
+        host='localhost',
+        port=5432,
+        dbname='almsdata',
+        user='postgres',
+        password='***REMOVED***'
     )
     # Avoid transaction aborts from a single failing SELECT; all queries are read-only
     conn.autocommit = True

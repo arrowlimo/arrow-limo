@@ -42,15 +42,12 @@ class BeverageOrderingSystem:
                 pass
             
             cur = self.db.get_cursor()
-            # Prefer a single query with LEFT JOIN to beverage_products for image_path when available
+            # Query beverages directly (beverage_products table may not exist)
             cur.execute(
                 """
                 SELECT b.beverage_id, b.name, b.category, b.our_cost, b.charged_price,
-                       b.gst_included, b.deposit_amount,
-                       bp.image_path
+                       b.gst_included, b.deposit_amount
                 FROM beverages b
-                LEFT JOIN beverage_products bp
-                  ON bp.item_name = b.name
                 WHERE b.active = true
                 ORDER BY b.category, b.name
                 """
@@ -65,7 +62,7 @@ class BeverageOrderingSystem:
                     "charged_price": float(row[4] or 0),
                     "gst_included": bool(row[5]),
                     "deposit_amount": float(row[6] or 0),
-                    "image_path": row[7] if len(row) > 7 else None,
+                    "image_path": None,
                 })
             cur.close()
             return beverages
@@ -630,13 +627,38 @@ class BeverageSelectionDialog(QDialog):
     Keeps internal costs hidden from guest-facing sections.
     """
     
-    def __init__(self, db, parent=None):
+    def __init__(self, db, parent=None, existing_beverages=None):
         super().__init__(parent)
         self.db = db
         self.system = BeverageOrderingSystem(db)
         self.setWindowTitle("🍷 Add Beverages to Charter")
         self.setGeometry(100, 100, 1200, 700)
         self.init_ui()
+        
+        # If editing existing order, pre-load beverages into system
+        if existing_beverages:
+            self.load_existing_beverages(existing_beverages)
+    
+    def load_existing_beverages(self, existing_beverages):
+        """Pre-populate cart with existing beverage data for editing"""
+        try:
+            # existing_beverages is a list of dicts from charter_beverages table:
+            # {id, item_name, quantity, unit_price_charged, unit_our_cost, deposit_per_unit, ...}
+            for bev in existing_beverages:
+                # Find beverage in system.beverages by name
+                item_name = bev.get('item_name', '')
+                qty = bev.get('quantity', 1)
+                
+                beverage = next((b for b in self.system.beverages if b["name"] == item_name), None)
+                if beverage:
+                    # Add with existing quantity
+                    for _ in range(qty):
+                        self.system.add_to_cart(beverage["id"], 1)
+            
+            # Update display to show loaded items
+            self.update_cart_display()
+        except Exception as e:
+            print(f"Error loading existing beverages: {e}")
     
     def init_ui(self):
         """Initialize UI for beverage selection"""

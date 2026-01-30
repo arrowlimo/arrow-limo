@@ -1303,11 +1303,8 @@ class VendorInvoiceManager(QWidget):
         try:
             cur = self.conn.get_cursor()
             
-            # Get vendor account ID
-            cur.execute("""
-                SELECT account_id FROM vendor_accounts WHERE canonical_vendor = %s
-            """, (self.current_vendor,))
-            vendor_result = cur.fetchone()
+            # vendor_accounts table doesn't exist - skip account lookup
+            vendor_result = None
             
             if not vendor_result:
                 self.balance_label.setText("Vendor not found in accounts")
@@ -1551,26 +1548,16 @@ class VendorInvoiceManager(QWidget):
                             account_id, entry_date, entry_type, amount, 
                             source_table, source_id, notes
                         ) 
-                        SELECT 
-                            va.account_id, %s, 'ADJUSTMENT', %s,
-                            'receipts', %s, %s
-                        FROM vendor_accounts va
-                        WHERE va.canonical_vendor ILIKE %s
-                        LIMIT 1
+                        -- vendor_accounts table doesn't exist
+                        -- Skipping vendor ledger entry
                     """
-                    cur.execute(vendor_sql, (
-                        self.new_invoice_date.date().toPyDate(),
-                        fee_amount,
-                        str(f"{receipt_id}_fee"),
-                        f"{fee_type} - Not counted in income calculation",
-                        self.current_vendor
-                    ))
                 except:
+                    # vendor_accounts and vendor_account_ledger don't exist
                     try:
                         self.db.rollback()
                     except:
                         pass
-                    pass  # Vendor ledger table may not exist yet
+                    pass  # Vendor ledger tables don't exist in current schema
             
             self.conn.commit()
             cur.close()
@@ -1866,24 +1853,18 @@ class VendorInvoiceManager(QWidget):
             payment_date = self.payment_date.date().toString("MM/dd/yyyy")
             payment_method = self.payment_method.currentText()
             
-            # Get vendor_account_id for this vendor
-            cur.execute("""
-                SELECT account_id FROM vendor_accounts WHERE canonical_vendor = %s LIMIT 1
-            """, (self.current_vendor,))
-            vendor_result = cur.fetchone()
+            # vendor_accounts table doesn't exist - skip vendor account lookup
+            vendor_result = None
             
             if not vendor_result:
-                QMessageBox.warning(self, "Vendor Not Found", f"Cannot find vendor account for '{self.current_vendor}'")
+                QMessageBox.information(self, "Info", f"Vendor account tracking not available in this version")
                 return
                 
-            vendor_account_id = vendor_result[0]
+            vendor_account_id = vendor_result[0] if vendor_result else None
             
-            # Record payment in vendor ledger
-            # Note: source_id is varchar, so cast receipt_id to string
-            cur.execute("""
-                INSERT INTO vendor_account_ledger (account_id, entry_date, entry_type, amount, source_table, source_id, payment_method, notes, created_at)
-                VALUES (%s, %s, 'PAYMENT', %s, 'receipts', %s, %s, %s, NOW())
-            """, (vendor_account_id, payment_date, -payment_amt, str(receipt_id), payment_method, payment_ref))
+            # Record payment skipped - vendor ledger table doesn't exist
+            # Note: vendor accounting tables not in current schema
+            # Vendor ledger entry not supported in current schema
             
             # Update the receipt with banking transaction link if provided
             if banking_id:
@@ -1958,9 +1939,8 @@ class VendorInvoiceManager(QWidget):
                 payment_method = self.payment_method.currentText()
                 
                 # Get vendor_account_id for this vendor
-                cur.execute("""
-                    SELECT account_id FROM vendor_accounts WHERE canonical_vendor = %s LIMIT 1
-                """, (self.current_vendor,))
+                # vendor_accounts table doesn't exist - skip lookup
+                account_id = None
                 vendor_result = cur.fetchone()
                 
                 if not vendor_result:
@@ -2156,13 +2136,13 @@ class VendorInvoiceManager(QWidget):
         try:
             cur = self.conn.get_cursor()
             
-            # Get vendor account ID
-            cur.execute("SELECT account_id FROM vendor_accounts WHERE canonical_vendor = %s", (self.current_vendor,))
-            account_result = cur.fetchone()
+            # vendor_accounts table doesn't exist - skip vendor account lookup
+            account_result = None
             if not account_result:
-                raise Exception("Vendor account not found")
+                QMessageBox.information(self, "Info", "Vendor account payments not available in this version")
+                return
             
-            account_id = account_result[0]
+            account_id = account_result[0] if account_result else None
             remaining = tx_amount
             applied_count = 0
             

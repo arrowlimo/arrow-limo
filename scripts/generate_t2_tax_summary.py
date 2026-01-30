@@ -8,14 +8,16 @@ Provides:
 - Receipts summary
 - Tax-deductible expenses analysis
 """
+import os
 import psycopg2
 from datetime import datetime
 from decimal import Decimal
 
+# Use localhost explicitly (not .env which may point to Neon remote)
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = os.environ.get("DB_PASSWORD")
+DB_PASSWORD = "***REMOVED***"
 
 def main():
     conn = psycopg2.connect(host=DB_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD)
@@ -58,6 +60,25 @@ def main():
         f.write(f"Less: Direct tips to drivers: ${revenue[2] or 0:,.2f}\n")
         f.write(f"NET TAXABLE REVENUE: ${revenue[3] or 0:,.2f}\n\n")
         
+        # Charter status breakdown
+        cur.execute("""
+            SELECT 
+                status,
+                COUNT(*) as count,
+                SUM(total_amount_due) as total
+            FROM charters
+            WHERE EXTRACT(YEAR FROM charter_date) = %s
+            AND total_amount_due IS NOT NULL
+            GROUP BY status
+            ORDER BY total DESC
+        """, (year,))
+        
+        f.write("Charter Status Breakdown:\n")
+        for status_row in cur.fetchall():
+            status = status_row[0] or 'Unknown'
+            f.write(f"  {status}: {status_row[1]:,} charters, ${status_row[2]:,.2f}\n")
+        f.write("\n")
+        
         # EXPENSES
         f.write("=" * 80 + "\n")
         f.write("BUSINESS EXPENSES (Tax Deductible)\n")
@@ -65,12 +86,13 @@ def main():
         
         cur.execute("""
             SELECT 
-                vendor_name,
+                COALESCE(vendor_name, 'Unknown') as vendor_name,
                 COUNT(*) as receipt_count,
-                SUM(amount) as total_amount
+                SUM(gross_amount) as total_amount
             FROM receipts
             WHERE EXTRACT(YEAR FROM receipt_date) = %s
-            AND amount IS NOT NULL
+            AND gross_amount IS NOT NULL
+            AND gross_amount > 0
             GROUP BY vendor_name
             ORDER BY total_amount DESC
             LIMIT 30
@@ -99,6 +121,34 @@ def main():
         f.write(f"Less: Total Expenses: ${total_expenses:,.2f}\n")
         f.write(f"NET INCOME (LOSS): ${net_income:,.2f}\n\n")
         
+        # PAYMENT RECONCILIATION
+        f.write("=" * 80 + "\n")
+        f.write("PAYMENT RECONCILIATION\n")
+        f.write("=" * 80 + "\n\n")
+        
+        cur.execute("""
+            SELECT 
+                COUNT(*) as payment_count,
+                SUM(amount) as total_received
+            FROM payments
+            WHERE EXTRACT(YEAR FROM payment_date) = %s
+            AND amount IS NOT NULL
+        """, (year,))
+        
+        payment_data = cur.fetchone()
+        payments_received = payment_data[1] or Decimal(0)
+        
+        f.write(f"Total payments received: ${payments_received:,.2f}\n")
+        f.write(f"Charter revenue recorded: ${revenue[1] or 0:,.2f}\n")
+        variance = payments_received - (revenue[1] or 0)
+        f.write(f"Variance: ${variance:,.2f}\n\n")
+        
+        if abs(variance) > 100:
+            f.write("⚠️  Note: Variance may include:\n")
+            f.write("   - Deposits for future charters\n")
+            f.write("   - Refunds issued\n")
+            f.write("   - Payments spanning multiple years\n\n")
+        
         # MISSING RECEIPTS IMPACT
         f.write("=" * 80 + "\n")
         f.write("MISSING RECEIPTS IMPACT ANALYSIS\n")
@@ -107,7 +157,7 @@ def main():
         cur.execute("""
             SELECT COUNT(*) FROM receipts 
             WHERE EXTRACT(YEAR FROM receipt_date) = %s 
-            AND (amount IS NULL OR amount = 0)
+            AND (gross_amount IS NULL OR gross_amount = 0)
         """, (year,))
         missing_count = cur.fetchone()[0]
         

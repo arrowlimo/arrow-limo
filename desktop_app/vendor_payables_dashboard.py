@@ -80,24 +80,18 @@ class VendorPayablesDashboard(QWidget):
             days_60 = today - timedelta(days=60)
             days_90 = today - timedelta(days=90)
             
+            # vendor_accounts table doesn't exist - using simplified query with receipts
             cur.execute("""
-                WITH latest_balance AS (
-                    SELECT 
-                        va.account_id,
-                        va.canonical_vendor,
-                        COALESCE(SUM(val.amount), 0) as balance
-                    FROM vendor_accounts va
-                    LEFT JOIN vendor_account_ledger val ON val.account_id = va.account_id
-                    GROUP BY va.account_id, va.canonical_vendor
-                    HAVING COALESCE(SUM(val.amount), 0) > 0.01
-                ),
-                aging_buckets AS (
-                    SELECT 
-                        lb.account_id,
-                        lb.canonical_vendor,
-                        lb.balance,
-                        COALESCE(SUM(CASE 
-                            WHEN val.entry_type = 'INVOICE' AND val.entry_date > %s THEN val.amount 
+                SELECT 
+                    canonical_vendor,
+                    COUNT(*) as invoice_count,
+                    COALESCE(SUM(gross_amount), 0) as balance,
+                    MAX(receipt_date) as last_invoice_date
+                FROM receipts
+                WHERE canonical_vendor IS NOT NULL
+                GROUP BY canonical_vendor
+                ORDER BY balance DESC
+            """) 
                             ELSE 0 
                         END), 0) as current_0_30,
                         COALESCE(SUM(CASE 

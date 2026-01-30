@@ -133,7 +133,7 @@ async def create_charter(request: ChartRequest, db: Session = Depends(get_db)):
             route_record = CharterRoute(
                 reserve_number=reserve_number,
                 route_sequence=idx,
-                route_type=route.type,
+                event_type_code=route.type,  # Maps to route_event_types (pickup, dropoff, etc.)
                 address=route.address,
                 stop_time=route.time24
             )

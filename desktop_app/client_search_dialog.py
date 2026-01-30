@@ -87,7 +87,7 @@ class ClientSearchDialog(QDialog):
         
         try:
             search_term = f"%{text}%"
-            cur = self.db.cursor()
+            cur = self.db.get_cursor()
             
             # Fuzzy search across name, phone, email
             cur.execute("""

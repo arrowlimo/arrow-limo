@@ -415,6 +415,14 @@ class QuoteGeneratorWidget(QWidget):
         pdf_btn.clicked.connect(lambda: self.export_from_preview(html, charter_data['reserve_number']))
         button_layout.addWidget(pdf_btn)
         
+        csv_btn = QPushButton("Export CSV")
+        csv_btn.clicked.connect(lambda: self.export_quote_csv(charter_data))
+        button_layout.addWidget(csv_btn)
+        
+        word_btn = QPushButton("Export Word")
+        word_btn.clicked.connect(lambda: self.export_quote_word(html, charter_data['reserve_number']))
+        button_layout.addWidget(word_btn)
+        
         close_btn = QPushButton("Close")
         close_btn.clicked.connect(preview_dialog.close)
         button_layout.addWidget(close_btn)
@@ -473,6 +481,132 @@ class QuoteGeneratorWidget(QWidget):
         
         html = self.build_quote_html(charter_data)
         self.export_from_preview(html, charter_data['reserve_number'])
+    
+    def export_quote_csv(self, charter_data):
+        """Export quote data to CSV"""
+        try:
+            import csv
+            from datetime import datetime
+            
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Export Quote to CSV",
+                f"Quote_{charter_data.get('reserve_number', 'export')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                "CSV Files (*.csv);;All Files (*)"
+            )
+            
+            if not file_path:
+                return
+            
+            # Prepare quote data
+            rows = [
+                ['Charter Information'],
+                ['Reserve Number', str(charter_data.get('reserve_number', ''))],
+                ['Client Name', str(charter_data.get('client_name', ''))],
+                ['Pickup Location', str(charter_data.get('pickup_location', ''))],
+                ['Dropoff Location', str(charter_data.get('dropoff_location', ''))],
+                ['Charter Date', str(charter_data.get('charter_date', ''))],
+                ['Passenger Count', str(charter_data.get('passenger_count', ''))],
+                ['Vehicle Type', str(charter_data.get('vehicle_type', ''))],
+                [''],
+                ['Pricing Options'],
+                ['Option', 'Rate/Hour', 'Hours/Distance', 'Amount'],
+                ['Hourly Rate', str(charter_data.get('hourly_rate', '')), str(charter_data.get('hours', '')), str(charter_data.get('hourly_amount', ''))],
+                ['Package Rate', str(charter_data.get('package_rate', '')), str(charter_data.get('distance', '')), str(charter_data.get('package_amount', ''))],
+                ['Split Run', str(charter_data.get('split_rate', '')), str(charter_data.get('split_distance', '')), str(charter_data.get('split_amount', ''))],
+                [''],
+                ['Payment Terms'],
+                ['Subtotal', '', '', str(charter_data.get('subtotal', ''))],
+                ['GST (5%)', '', '', str(charter_data.get('gst', ''))],
+                ['Total', '', '', str(charter_data.get('total', ''))],
+                ['Deposit', '', '', str(charter_data.get('deposit', ''))],
+                ['Balance Due', '', '', str(charter_data.get('balance', ''))],
+                [''],
+                ['Generated', datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
+            ]
+            
+            with open(file_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerows(rows)
+            
+            QMessageBox.information(self, "Success", f"✅ Quote exported to CSV:\n{file_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"CSV export failed: {e}")
+    
+    def export_quote_word(self, html, reserve_num):
+        """Export quote to Word (.docx)"""
+        try:
+            from docx import Document
+            from docx.shared import Pt, RGBColor
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+            from datetime import datetime
+            
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Export Quote to Word",
+                f"Quote_{reserve_num}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
+                "Word Files (*.docx);;All Files (*)"
+            )
+            
+            if not file_path:
+                return
+            
+            doc = Document()
+            
+            # Add title
+            title_para = doc.add_paragraph(f"QUOTE - {reserve_num}")
+            title_para.style = 'Heading 1'
+            title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Add timestamp
+            timestamp_para = doc.add_paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            timestamp_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            timestamp_para_format = timestamp_para.runs[0]
+            timestamp_para_format.italic = True
+            timestamp_para_format.font.size = Pt(10)
+            
+            # Add blank line
+            doc.add_paragraph()
+            
+            # Add HTML content as text (since .docx doesn't support direct HTML)
+            # Extract text from HTML for display
+            from html.parser import HTMLParser
+            class MLStripper(HTMLParser):
+                def __init__(self):
+                    super().__init__()
+                    self.reset()
+                    self.strict = False
+                    self.convert_charrefs = True
+                    self.text = []
+                def handle_data(self, d):
+                    self.text.append(d)
+                def get_data(self):
+                    return ''.join(self.text)
+            
+            stripper = MLStripper()
+            stripper.feed(html)
+            quote_text = stripper.get_data()
+            
+            # Add quote content
+            for line in quote_text.split('\n'):
+                if line.strip():
+                    para = doc.add_paragraph(line)
+                    para.style = 'Normal'
+                    for run in para.runs:
+                        run.font.name = 'Courier New'
+                        run.font.size = Pt(10)
+            
+            doc.save(file_path)
+            QMessageBox.information(self, "Success", f"✅ Quote exported to Word:\n{file_path}")
+        except ImportError:
+            QMessageBox.warning(
+                self,
+                "Missing Library",
+                "Word export requires python-docx.\n\nInstall with: pip install python-docx\n\nFalling back to PDF."
+            )
+            self.export_from_preview(html, reserve_num)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Word export failed: {e}")
     
     def email_quote(self):
         """Email quote to client"""

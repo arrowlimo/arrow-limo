@@ -5,7 +5,8 @@ Demonstrates the new drill-down capability across all charter-related dashboards
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
-    QLabel, QPushButton, QLineEdit, QDoubleSpinBox, QComboBox, QMessageBox, QDialog
+    QLabel, QPushButton, QLineEdit, QDoubleSpinBox, QComboBox, QMessageBox, QDialog,
+    QHeaderView
 )
 from PyQt6.QtCore import Qt, QDate, pyqtSignal
 from PyQt6.QtGui import QFont
@@ -20,11 +21,12 @@ from desktop_app.ui_standards import enable_fuzzy_search
 class DateInput(QLineEdit):
     """Flexible date input field that accepts multiple formats like Excel"""
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, blank_default=False):
         super().__init__(parent)
         today = QDate.currentDate()
         self._current_date = today
-        self.setText(today.toString("MM/dd/yyyy"))
+        if not blank_default:
+            self.setText(today.toString("MM/dd/yyyy"))
         self.setPlaceholderText("MM/DD/YYYY or Jan 01 2012")
         self.setMaxLength(50)  # Allow long text formats
         
@@ -212,13 +214,13 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
         filter_layout.addWidget(year_btn)
         
         filter_layout.addWidget(QLabel("From:"))
-        self.date_from = DateInput()
+        self.date_from = DateInput(blank_default=True)  # Start blank to show all charters
         self.date_from.textChanged.connect(self._on_date_from_changed)
         filter_layout.addWidget(self.date_from)
         self.date_from.setMaximumWidth(120)
         
         filter_layout.addWidget(QLabel("To:"))
-        self.date_to = DateInput()
+        self.date_to = DateInput(blank_default=True)  # Start blank to show all charters
         self.date_to.textChanged.connect(self._on_date_to_changed)
         filter_layout.addWidget(self.date_to)
         self.date_to.setMaximumWidth(120)
@@ -261,6 +263,22 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.table.doubleClicked.connect(self.on_charter_double_clicked)
         self.table.setSortingEnabled(True)  # ✅ Enable sorting on all columns
+        
+        # Enable horizontal scrollbar and resize columns properly
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table.horizontalHeader().setStretchLastSection(False)
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        
+        # Set initial column widths
+        self.table.setColumnWidth(0, 100)  # Reserve #
+        self.table.setColumnWidth(1, 200)  # Client
+        self.table.setColumnWidth(2, 100)  # Date
+        self.table.setColumnWidth(3, 150)  # Driver
+        self.table.setColumnWidth(4, 100)  # Vehicle
+        self.table.setColumnWidth(5, 100)  # Status
+        self.table.setColumnWidth(6, 120)  # Total Due
+        self.table.setColumnWidth(7, 120)  # Balance Due
+        
         layout.addWidget(self.table)
         
         # Action buttons
@@ -404,21 +422,21 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
             where_clauses = []
             params = []
             
-            # Parse date filters from DateInput fields
+            # Parse date filters from DateInput fields (only if not blank)
             date_from_text = self.date_from.text().strip()
             date_to_text = self.date_to.text().strip()
             
-            if len(date_from_text) == 10:
+            if date_from_text and len(date_from_text) >= 8:  # Has date text
                 date_from_obj = QDate.fromString(date_from_text, "MM/dd/yyyy")
                 if date_from_obj.isValid():
                     where_clauses.append("c.charter_date >= %s")
-                    params.append(date_from_obj.toString("yyyy-MM-dd"))
+                    params.append(date_from_obj.toPyDate())
             
-            if len(date_to_text) == 10:
+            if date_to_text and len(date_to_text) >= 8:  # Has date text
                 date_to_obj = QDate.fromString(date_to_text, "MM/dd/yyyy")
                 if date_to_obj.isValid():
                     where_clauses.append("c.charter_date <= %s")
-                    params.append(date_to_obj.toString("yyyy-MM-dd"))
+                    params.append(date_to_obj.toPyDate())
             
             # Build WHERE clause
             where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"

@@ -1,10 +1,11 @@
 #!/usr/bin/env python
+import os
 import psycopg2
 from collections import defaultdict
 DB_HOST = "localhost"
 DB_NAME = "almsdata"
 DB_USER = "postgres"
-DB_PASSWORD = os.environ.get("DB_PASSWORD")
+DB_PASSWORD = "***REMOVED***"
 
 KEYS = [
     ("reserve_number",),

@@ -132,7 +132,7 @@ class DispatcherCalendarWidget(QWidget):
                 FROM charters 
                 WHERE charter_date >= %s AND charter_date <= %s
                     AND (status IS NULL OR status NOT IN ('cancelled','no-show'))
-            """, (start_date.toString("yyyy-MM-dd"), end_date.toString("yyyy-MM-dd")))
+            """, (start_date.toPyDate(), end_date.toPyDate()))
             
             # Highlight each date with charters
             date_format = self.calendar.dateTextFormat(QDate())
@@ -173,8 +173,8 @@ class DispatcherCalendarWidget(QWidget):
             return set()
 
     def _load_day(self, qdate: QDate):
-        # Convert to database-compatible date format (YYYY-MM-DD)
-        date_str = qdate.toString("yyyy-MM-dd")
+        # Convert to Python date object for database parameter binding
+        date_py = qdate.toPyDate()
         try:
             # Rollback any failed transactions first
             try:
@@ -206,12 +206,13 @@ class DispatcherCalendarWidget(QWidget):
                 FROM charters
                 WHERE charter_date = %s AND (status IS NULL OR status NOT IN ('cancelled','no-show'))
                 ORDER BY pickup_time NULLS LAST
-            """, (date_str,))
+            """, (date_py,))
             rows = cur.fetchall()
             self.day_table.setRowCount(len(rows))
             self.task_list.clear()
 
-            # load tasks for date
+            # load tasks for date (convert back to string for task file lookup)
+            date_str = date_py.isoformat()  # Convert to YYYY-MM-DD format string
             tasks = self._read_tasks_for_date(date_str)
             for t in tasks:
                 item = QListWidgetItem(f"[{t.get('status','open')}] {t.get('text','')} (reserve {t.get('reserve_number','')})")
@@ -774,7 +775,7 @@ class DispatcherCalendarWidget(QWidget):
                 WHERE charter_date BETWEEN %s AND %s
                   AND (status IS NULL OR status NOT IN ('cancelled','no-show'))
                 ORDER BY charter_date, pickup_time
-            """, (start_date.toString("yyyy-MM-dd"), end_date.toString("yyyy-MM-dd")))
+            """, (start_date.toPyDate(), end_date.toPyDate()))
             
             alms_charters = cur.fetchall()
             
@@ -1044,13 +1045,16 @@ class DispatcherCalendarWidget(QWidget):
                     LIMIT 1
                 """, (reserve_number,))
             else:
+                # Convert date_str back to Python date if it's a string (from calendar.selectedDate().toString())
+                from datetime import date as py_date
+                date_param = py_date.fromisoformat(date_str) if isinstance(date_str, str) else date_str
                 cur.execute("""
                     SELECT calendar_notes, calendar_color, calendar_sync_status,
                            customer_name, booking_type, quote_expires_at
                     FROM charters
                     WHERE charter_date = %s AND pickup_time = %s
                     LIMIT 1
-                """, (date_str, pickup_time if pickup_time else None))
+                """, (date_param, pickup_time if pickup_time else None))
             
             row = cur.fetchone()
             if row:

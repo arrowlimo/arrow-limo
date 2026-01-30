@@ -1,3 +1,0 @@
-LMS sync is disabled.
-Set DISABLE_LMS_SYNC=1 in environment or delete this file to re-enable.
-Created on 2025-12-26.

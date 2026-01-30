@@ -1,6 +1,6 @@
 """
 Print & Export Functionality for Management Widgets
-Provides: Print, Print Preview, Export to CSV/Excel
+Provides: Print, Print Preview, Export to CSV/Excel/PDF/Word
 """
 import csv
 import os
@@ -178,6 +178,91 @@ class PrintExportHelper:
                     ws.column_dimensions[column].width = adjusted_width
                 
                 wb.save(filename)
+                row_count = len(table_data['rows'])
+                QMessageBox.information(
+                    parent,
+                    "Export Success",
+                    f"Exported {row_count} rows to:\n{filename}"
+                )
+            except Exception as e:
+                QMessageBox.critical(parent, "Export Error", f"Failed to export:\n{e}")
+    
+    @staticmethod
+    def export_word(table: QTableWidget, title: str, selected_only: bool = False, parent=None):
+        """Export table data to Word (.docx) format."""
+        try:
+            from docx import Document
+            from docx.shared import Inches, Pt, RGBColor
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+        except ImportError:
+            QMessageBox.warning(
+                parent,
+                "Missing Library",
+                "Word export requires python-docx.\n\nInstall with: pip install python-docx\n\nUsing CSV export instead."
+            )
+            PrintExportHelper.export_csv(table, title, selected_only, parent)
+            return
+        
+        filename, _ = QFileDialog.getSaveFileName(
+            parent,
+            f"Export {title} to Word",
+            f"{title}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
+            "Word Files (*.docx);;All Files (*)"
+        )
+        
+        if filename:
+            try:
+                # Create document
+                doc = Document()
+                
+                # Add title
+                title_para = doc.add_paragraph(title)
+                title_para.style = 'Heading 1'
+                title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                
+                # Add timestamp
+                timestamp_para = doc.add_paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                timestamp_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                timestamp_para_format = timestamp_para.runs[0]
+                timestamp_para_format.italic = True
+                timestamp_para_format.font.size = Pt(10)
+                
+                # Add blank line
+                doc.add_paragraph()
+                
+                # Extract table data
+                table_data = PrintExportHelper._extract_table_data(table, selected_only=selected_only)
+                
+                # Create Word table
+                if table_data['rows']:
+                    word_table = doc.add_table(rows=1, cols=len(table_data['headers']))
+                    word_table.style = 'Light Grid Accent 1'
+                    
+                    # Write headers
+                    header_cells = word_table.rows[0].cells
+                    for col_idx, header in enumerate(table_data['headers']):
+                        header_cells[col_idx].text = str(header)
+                        # Bold header text
+                        for paragraph in header_cells[col_idx].paragraphs:
+                            for run in paragraph.runs:
+                                run.font.bold = True
+                                run.font.color.rgb = RGBColor(255, 255, 255)
+                    
+                    # Color header row
+                    from docx.oxml import OxmlElement
+                    from docx.oxml.ns import qn
+                    shading_elm = OxmlElement('w:shd')
+                    shading_elm.set(qn('w:fill'), '4472C4')
+                    word_table.rows[0]._element.get_or_add_tcPr().append(shading_elm)
+                    
+                    # Write data rows
+                    for row_data in table_data['rows']:
+                        row_cells = word_table.add_row().cells
+                        for col_idx, value in enumerate(row_data):
+                            row_cells[col_idx].text = str(value)
+                
+                # Save document
+                doc.save(filename)
                 row_count = len(table_data['rows'])
                 QMessageBox.information(
                     parent,

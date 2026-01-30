@@ -103,6 +103,10 @@ class QuickAddClientDialog(QDialog):
         except Exception as e:
             self.db.rollback()
             QMessageBox.critical(self, "Error", f"Failed to save client: {e}")
+    
+    def get_created_client_id(self):
+        """Return the newly created client ID"""
+        return self.new_client_id
 
 
 class EditClientDialog(QDialog):

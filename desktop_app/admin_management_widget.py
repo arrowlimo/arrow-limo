@@ -826,7 +826,7 @@ class AdminManagementWidget(QWidget):
         try:
             cur = self.db.get_cursor()
             cur.execute("""
-                SELECT run_type_id, run_type_name, is_active, display_order
+                SELECT id, run_type_name, is_active, display_order
                 FROM charter_run_types
                 ORDER BY display_order, run_type_name
             """)
@@ -911,7 +911,7 @@ class AdminManagementWidget(QWidget):
                     cur.execute("""
                         UPDATE charter_run_types
                         SET run_type_name = %s, is_active = %s, display_order = %s
-                        WHERE run_type_id = %s
+                        WHERE id = %s
                     """, (name, active, order, rid))
                 else:
                     # Insert new
