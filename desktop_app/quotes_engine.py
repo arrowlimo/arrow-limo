@@ -290,6 +290,50 @@ class QuoteGeneratorDialog(QDialog):
         self.pax_count.setValue(20)
         input_layout.addRow("Passengers:", self.pax_count)
         
+        # Vehicle Type Selection
+        self.vehicle_type_combo = QComboBox()
+        vehicle_types = [
+            "Luxury Sedan (4 pax)",
+            "Luxury SUV (3-4 pax)",
+            "Sedan (3-4 pax)",
+            "Sedan Stretch (6 Pax)",
+            "Party Bus (20 pax)",
+            "Party Bus (27 pax)",
+            "Shuttle Bus (18 pax)",
+            "SUV Stretch (13 pax)"
+        ]
+        self.vehicle_type_combo.addItem("-- Select Vehicle Type --", None)
+        for vt in vehicle_types:
+            self.vehicle_type_combo.addItem(vt, vt)
+        self.vehicle_type_combo.setCurrentIndex(0)
+        input_layout.addRow("Vehicle Type:", self.vehicle_type_combo)
+        
+        # Booking Type Choices
+        booking_group_widget = QWidget()
+        booking_group_layout = QVBoxLayout()
+        booking_group_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.booking_flat = QCheckBox("Flat Rate")
+        self.booking_hourly = QCheckBox("Hourly")
+        self.booking_split = QCheckBox("Split Run")
+        self.booking_split_standby = QCheckBox("Split + Standby")
+        self.booking_trade_services = QCheckBox("Trade of Services")
+        self.booking_base = QCheckBox("Base Rate")
+        
+        # Default selections
+        self.booking_hourly.setChecked(True)
+        self.booking_split.setChecked(True)
+        
+        booking_group_layout.addWidget(self.booking_flat)
+        booking_group_layout.addWidget(self.booking_hourly)
+        booking_group_layout.addWidget(self.booking_split)
+        booking_group_layout.addWidget(self.booking_split_standby)
+        booking_group_layout.addWidget(self.booking_trade_services)
+        booking_group_layout.addWidget(self.booking_base)
+        
+        booking_group_widget.setLayout(booking_group_layout)
+        input_layout.addRow("Booking Types:", booking_group_widget)
+        
         self.gst_checkbox = QCheckBox("Include GST (5%)")
         self.gst_checkbox.setChecked(True)
         input_layout.addRow("", self.gst_checkbox)
@@ -361,6 +405,23 @@ class QuoteGeneratorDialog(QDialog):
         
         layout.addLayout(button_layout)
         self.setLayout(layout)
+    
+    def get_selected_booking_types(self):
+        """Return list of selected booking types"""
+        selected = []
+        if self.booking_flat.isChecked():
+            selected.append("Flat Rate")
+        if self.booking_hourly.isChecked():
+            selected.append("Hourly")
+        if self.booking_split.isChecked():
+            selected.append("Split Run")
+        if self.booking_split_standby.isChecked():
+            selected.append("Split + Standby")
+        if self.booking_trade_services.isChecked():
+            selected.append("Trade of Services")
+        if self.booking_base.isChecked():
+            selected.append("Base Rate")
+        return selected if selected else ["(None Selected)"]
     
     def create_hourly_tab(self):
         """Tab 1: Simple hourly rate quote"""
@@ -513,6 +574,18 @@ class QuoteGeneratorDialog(QDialog):
     def calculate_all_quotes(self):
         """Calculate all three quote methods and display comparison"""
         try:
+            # Validate vehicle type selection
+            selected_vehicle = self.vehicle_type_combo.currentData()
+            if not selected_vehicle:
+                QMessageBox.warning(self, "Vehicle Type Required", "Please select a vehicle type.")
+                return
+            
+            # Check if at least one booking type is selected
+            selected_bookings = self.get_selected_booking_types()
+            if selected_bookings == ["(None Selected)"]:
+                QMessageBox.warning(self, "Booking Types Required", "Please select at least one booking type.")
+                return
+            
             gratuity_rate = self.gratuity_rate.value() / 100
             
             # Quote 1: Hourly
@@ -561,25 +634,32 @@ class QuoteGeneratorDialog(QDialog):
                     "split_run": quote3
                 }
             
-            # Display comparison table
-            self.results_table.setRowCount(3)
-            self.results_table.setItem(0, 0, QTableWidgetItem("Hourly Rate"))
-            self.results_table.setItem(0, 1, QTableWidgetItem(f"${quote1['subtotal']:.2f}"))
-            self.results_table.setItem(0, 2, QTableWidgetItem(f"${quote1['gst']:.2f}"))
-            self.results_table.setItem(0, 3, QTableWidgetItem(f"${quote1['gratuity']:.2f}"))
-            self.results_table.setItem(0, 4, QTableWidgetItem(f"${quote1['total']:.2f}"))
+            # Display comparison table with vehicle type and booking types
+            booking_types_str = ", ".join(selected_bookings)
+            header_text = f"Quote Results - {selected_vehicle} - Booking Types: {booking_types_str}"
             
-            self.results_table.setItem(1, 0, QTableWidgetItem("Package"))
-            self.results_table.setItem(1, 1, QTableWidgetItem(f"${quote2['subtotal']:.2f}"))
-            self.results_table.setItem(1, 2, QTableWidgetItem(f"${quote2['gst']:.2f}"))
-            self.results_table.setItem(1, 3, QTableWidgetItem(f"${quote2['gratuity']:.2f}"))
-            self.results_table.setItem(1, 4, QTableWidgetItem(f"${quote2['total']:.2f}"))
+            self.results_table.setRowCount(4)
+            self.results_table.setItem(0, 0, QTableWidgetItem(f"📊 {header_text}"))
+            self.results_table.item(0, 0).setFont(QFont("Arial", 9, QFont.Weight.Bold))
+            self.results_table.setSpan(0, 0, 1, 5)
             
-            self.results_table.setItem(2, 0, QTableWidgetItem("Split Run"))
-            self.results_table.setItem(2, 1, QTableWidgetItem(f"${quote3['subtotal']:.2f}"))
-            self.results_table.setItem(2, 2, QTableWidgetItem(f"${quote3['gst']:.2f}"))
-            self.results_table.setItem(2, 3, QTableWidgetItem(f"${quote3['gratuity']:.2f}"))
-            self.results_table.setItem(2, 4, QTableWidgetItem(f"${quote3['total']:.2f}"))
+            self.results_table.setItem(1, 0, QTableWidgetItem("Hourly Rate"))
+            self.results_table.setItem(1, 1, QTableWidgetItem(f"${quote1['subtotal']:.2f}"))
+            self.results_table.setItem(1, 2, QTableWidgetItem(f"${quote1['gst']:.2f}"))
+            self.results_table.setItem(1, 3, QTableWidgetItem(f"${quote1['gratuity']:.2f}"))
+            self.results_table.setItem(1, 4, QTableWidgetItem(f"${quote1['total']:.2f}"))
+            
+            self.results_table.setItem(2, 0, QTableWidgetItem("Package"))
+            self.results_table.setItem(2, 1, QTableWidgetItem(f"${quote2['subtotal']:.2f}"))
+            self.results_table.setItem(2, 2, QTableWidgetItem(f"${quote2['gst']:.2f}"))
+            self.results_table.setItem(2, 3, QTableWidgetItem(f"${quote2['gratuity']:.2f}"))
+            self.results_table.setItem(2, 4, QTableWidgetItem(f"${quote2['total']:.2f}"))
+            
+            self.results_table.setItem(3, 0, QTableWidgetItem("Split Run"))
+            self.results_table.setItem(3, 1, QTableWidgetItem(f"${quote3['subtotal']:.2f}"))
+            self.results_table.setItem(3, 2, QTableWidgetItem(f"${quote3['gst']:.2f}"))
+            self.results_table.setItem(3, 3, QTableWidgetItem(f"${quote3['gratuity']:.2f}"))
+            self.results_table.setItem(3, 4, QTableWidgetItem(f"${quote3['total']:.2f}"))
             
             # Highlight lowest total
             min_total = min(quote1['total'], quote2['total'], quote3['total'])

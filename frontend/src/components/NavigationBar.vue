@@ -11,6 +11,7 @@
       <!-- Admin/Manager sections -->
       <router-link v-if="canAccess('dispatch')" to="/dispatch">Dispatch</router-link>
       <router-link v-if="canAccess('charter')" to="/charter">Charter</router-link>
+      <router-link v-if="canAccess('quote-generator')" to="/quote-generator">Quote Generator</router-link>
       <router-link v-if="canAccess('vehicles')" to="/vehicles">Vehicles</router-link>
       <router-link v-if="canAccess('employees')" to="/employees">Employees</router-link>
       <router-link v-if="canAccess('customers')" to="/customers">Customers</router-link>
@@ -39,9 +40,9 @@ function canAccess(section) {
     return true
   }
   
-  // Accountant: limited access
+  // Accountant: limited access including quote generator
   if (userRole.value === 'accountant') {
-    return ['charter', 'accounting', 'reports', 'customers'].includes(section)
+    return ['charter', 'quote-generator', 'accounting', 'reports', 'customers'].includes(section)
   }
   
   // Check permissions object
