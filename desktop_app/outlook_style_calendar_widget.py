@@ -8,7 +8,7 @@ Outlook-Style Calendar Widget
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
-    QFrame, QToolTip, QMenu, QMessageBox, QButtonGroup
+    QFrame, QToolTip, QMenu, QMessageBox, QButtonGroup, QCheckBox
 )
 from PyQt6.QtCore import Qt, QDate, QTime, QDateTime, QRect, QPoint, QTimer
 from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QMouseEvent
@@ -93,6 +93,42 @@ class OutlookStyleCalendarWidget(QWidget):
         
         layout.addLayout(header)
         
+        # Filter toolbar
+        filter_toolbar = QHBoxLayout()
+        filter_toolbar.setSpacing(15)
+        
+        filter_label = QLabel("Show:")
+        filter_label.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        filter_toolbar.addWidget(filter_label)
+        
+        self.filter_bookings = QCheckBox("Bookings")
+        self.filter_bookings.setChecked(True)
+        self.filter_bookings.toggled.connect(self._refresh_view)
+        filter_toolbar.addWidget(self.filter_bookings)
+        
+        self.filter_quotes = QCheckBox("Quotes")
+        self.filter_quotes.setChecked(True)
+        self.filter_quotes.toggled.connect(self._refresh_view)
+        filter_toolbar.addWidget(self.filter_quotes)
+        
+        self.filter_cancelled = QCheckBox("Cancelled")
+        self.filter_cancelled.setChecked(False)
+        self.filter_cancelled.toggled.connect(self._refresh_view)
+        filter_toolbar.addWidget(self.filter_cancelled)
+        
+        self.filter_assigned = QCheckBox("Assigned Only")
+        self.filter_assigned.setChecked(False)
+        self.filter_assigned.toggled.connect(self._refresh_view)
+        filter_toolbar.addWidget(self.filter_assigned)
+        
+        self.filter_unassigned = QCheckBox("Unassigned")
+        self.filter_unassigned.setChecked(True)
+        self.filter_unassigned.toggled.connect(self._refresh_view)
+        filter_toolbar.addWidget(self.filter_unassigned)
+        
+        filter_toolbar.addStretch()
+        layout.addLayout(filter_toolbar)
+        
         # Calendar view area (scrollable)
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -130,8 +166,22 @@ class OutlookStyleCalendarWidget(QWidget):
         
     def _set_view(self, mode):
         self.view_mode = mode
-        self.calendar_view.set_view_mode(mode, self.current_date)
+        self.calendar_view.set_view_mode(mode, self.current_date, self._get_active_filters())
         self._update_date_label()
+    
+    def _refresh_view(self):
+        """Refresh the calendar view with current filter settings"""
+        self.calendar_view.set_view_mode(self.view_mode, self.current_date, self._get_active_filters())
+    
+    def _get_active_filters(self):
+        """Get current filter settings as a dict"""
+        return {
+            'bookings': self.filter_bookings.isChecked(),
+            'quotes': self.filter_quotes.isChecked(),
+            'cancelled': self.filter_cancelled.isChecked(),
+            'assigned_only': self.filter_assigned.isChecked(),
+            'unassigned': self.filter_unassigned.isChecked()
+        }
         
     def _go_previous(self):
         if self.view_mode == 'day':
@@ -141,7 +191,7 @@ class OutlookStyleCalendarWidget(QWidget):
         else:  # month
             self.current_date = self.current_date.addMonths(-1)
         
-        self.calendar_view.set_view_mode(self.view_mode, self.current_date)
+        self.calendar_view.set_view_mode(self.view_mode, self.current_date, self._get_active_filters())
         self._update_date_label()
         
     def _go_next(self):
@@ -152,12 +202,12 @@ class OutlookStyleCalendarWidget(QWidget):
         else:  # month
             self.current_date = self.current_date.addMonths(1)
         
-        self.calendar_view.set_view_mode(self.view_mode, self.current_date)
+        self.calendar_view.set_view_mode(self.view_mode, self.current_date, self._get_active_filters())
         self._update_date_label()
         
     def _go_today(self):
         self.current_date = QDate.currentDate()
-        self.calendar_view.set_view_mode(self.view_mode, self.current_date)
+        self.calendar_view.set_view_mode(self.view_mode, self.current_date, self._get_active_filters())
         self._update_date_label()
         
     def _update_date_label(self):
@@ -201,6 +251,13 @@ class CalendarViewWidget(QWidget):
         self.current_date = current_date
         self.charters = []
         self.appointment_rects = []  # Store rectangles for click detection
+        self.active_filters = {
+            'bookings': True,
+            'quotes': True,
+            'cancelled': False,
+            'assigned_only': False,
+            'unassigned': True
+        }
         
         # Time range for day/week views
         self.start_hour = 5  # 5 AM
@@ -211,9 +268,11 @@ class CalendarViewWidget(QWidget):
         self.setMouseTracking(True)
         self._load_charters()
         
-    def set_view_mode(self, mode, date):
+    def set_view_mode(self, mode, date, filters=None):
         self.view_mode = mode
         self.current_date = date
+        if filters:
+            self.active_filters = filters
         self._load_charters()
         self.update()
         
@@ -284,7 +343,40 @@ class CalendarViewWidget(QWidget):
             cur.execute(query, (start_py, end_py))
             
             columns = [desc[0] for desc in cur.description]
-            self.charters = [dict(zip(columns, row)) for row in cur.fetchall()]
+            all_charters = [dict(zip(columns, row)) for row in cur.fetchall()]
+            
+            # Apply filters
+            self.charters = []
+            for charter in all_charters:
+                # Filter by booking/quote type
+                booking_type = (charter.get('booking_status') or charter.get('booking_type') or '').lower()
+                is_quote = 'quote' in booking_type
+                is_booking = not is_quote
+                
+                if is_quote and not self.active_filters.get('quotes', True):
+                    continue
+                if is_booking and not self.active_filters.get('bookings', True):
+                    continue
+                
+                # Filter by cancelled status
+                status = (charter.get('status') or '').lower()
+                is_cancelled = 'cancel' in status
+                if is_cancelled and not self.active_filters.get('cancelled', False):
+                    continue
+                
+                # Filter by assigned/unassigned
+                has_driver = charter.get('driver_name') is not None
+                has_vehicle = charter.get('vehicle_number') is not None
+                is_assigned = has_driver or has_vehicle
+                
+                if self.active_filters.get('assigned_only', False) and not is_assigned:
+                    continue
+                if not self.active_filters.get('unassigned', True) and not is_assigned:
+                    continue
+                
+                # Estimate duration for proper event height
+                charter['estimated_duration_hours'] = self._estimate_duration(charter)
+                self.charters.append(charter)
             
         except Exception as e:
             try:
@@ -293,6 +385,27 @@ class CalendarViewWidget(QWidget):
                 pass
             print(f"Error loading charters: {e}")
             self.charters = []
+    
+    def _estimate_duration(self, charter):
+        """Estimate charter duration in hours for proper event sizing"""
+        # Try to calculate from pickup and dropoff times if available
+        pickup_time = charter.get('pickup_time')
+        # Note: dropoff_time might not be in database, so we estimate based on booking type
+        
+        booking_type = (charter.get('booking_status') or charter.get('booking_type') or '').lower()
+        
+        # Estimate based on common booking patterns
+        if 'airport' in booking_type:
+            return 2.0  # Airport runs typically 2 hours
+        elif 'wedding' in booking_type:
+            return 4.0  # Weddings typically 4 hours
+        elif 'hourly' in booking_type:
+            # Try to extract hours from notes or use default
+            return 3.0  # Default hourly booking
+        elif 'quote' in booking_type:
+            return 1.5  # Quotes typically shorter
+        else:
+            return 2.0  # Default duration
     
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -539,7 +652,19 @@ class CalendarViewWidget(QWidget):
                     hour = self.end_hour
                 
                 y = y_offset + int((hour - self.start_hour) * self.hour_height)
-                height = int(self.hour_height * 1.5)  # 1.5 hour default height
+                
+                # Use estimated duration for proper height
+                duration_hours = charter.get('estimated_duration_hours', 1.5)
+                height = int(self.hour_height * duration_hours)
+                
+                # Ensure event doesn't go past end of day
+                max_y = y_offset + (self.end_hour - self.start_hour) * self.hour_height
+                if y + height > max_y:
+                    height = max_y - y
+                
+                # Minimum height for visibility
+                if height < 40:
+                    height = 40
                 
             except Exception as e:
                 y = y_offset

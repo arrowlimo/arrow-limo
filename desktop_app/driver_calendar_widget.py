@@ -11,7 +11,7 @@ It does not alter database schema. Driver entry form currently saves to JSON und
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCalendarWidget, QTableWidget,
     QTableWidgetItem, QPushButton, QSplitter, QGroupBox, QFormLayout, QLineEdit,
-    QTextEdit, QTimeEdit, QSpinBox, QDialog, QDialogButtonBox, QMessageBox
+    QTextEdit, QTimeEdit, QSpinBox, QDialog, QDialogButtonBox, QMessageBox, QCheckBox
 )
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
@@ -38,9 +38,36 @@ class DriverCalendarWidget(QWidget):
 
     def _init_ui(self):
         layout = QVBoxLayout()
+        
+        # Header with title and filters
+        header_layout = QHBoxLayout()
         title = QLabel("🗓️ Driver Calendar")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        layout.addWidget(title)
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        
+        # Filter checkboxes
+        filter_label = QLabel("Show:")
+        filter_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        header_layout.addWidget(filter_label)
+        
+        from PyQt6.QtWidgets import QCheckBox
+        self.filter_my_charters = QCheckBox("My Charters Only")
+        self.filter_my_charters.setChecked(False)
+        self.filter_my_charters.toggled.connect(lambda: self.load_day_events(self.calendar.selectedDate()))
+        header_layout.addWidget(self.filter_my_charters)
+        
+        self.filter_unassigned = QCheckBox("Unassigned")
+        self.filter_unassigned.setChecked(True)
+        self.filter_unassigned.toggled.connect(lambda: self.load_day_events(self.calendar.selectedDate()))
+        header_layout.addWidget(self.filter_unassigned)
+        
+        self.filter_all = QCheckBox("All Drivers")
+        self.filter_all.setChecked(True)
+        self.filter_all.toggled.connect(lambda: self.load_day_events(self.calendar.selectedDate()))
+        header_layout.addWidget(self.filter_all)
+        
+        layout.addLayout(header_layout)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
@@ -163,14 +190,38 @@ class DriverCalendarWidget(QWidget):
             ]
             select_cols = [c for c in cols if c in ccols]
             select_clause = ", ".join(select_cols) if select_cols else "charter_id, reserve_number"
+            
+            # Build WHERE clause based on filters
+            where_conditions = ["charter_date = %s"]
+            where_params = [date_py]
+            
+            # Apply filters
+            if hasattr(self, 'filter_my_charters') and self.filter_my_charters.isChecked():
+                # Filter to current user's charters only (would need current_user_id)
+                # For now, show assigned charters
+                where_conditions.append("employee_id IS NOT NULL")
+            
+            if hasattr(self, 'filter_unassigned') and not self.filter_unassigned.isChecked():
+                # Hide unassigned
+                where_conditions.append("employee_id IS NOT NULL")
+            
+            if hasattr(self, 'filter_all') and not self.filter_all.isChecked():
+                # If "All Drivers" is unchecked, only show assigned ones
+                where_conditions.append("employee_id IS NOT NULL")
+            
+            # Always exclude cancelled/no-show
+            where_conditions.append("(status IS NULL OR status NOT IN ('cancelled','no-show'))")
+            
+            where_clause = " AND ".join(where_conditions)
+            
             cur.execute(
                 f"""
                 SELECT {select_clause}
                 FROM charters
-                WHERE charter_date = %s AND (status IS NULL OR status NOT IN ('cancelled','no-show'))
+                WHERE {where_clause}
                 ORDER BY pickup_time NULLS LAST
                 """,
-                (date_py,)
+                where_params
             )
             rows = cur.fetchall()
             self.day_table.setRowCount(len(rows))

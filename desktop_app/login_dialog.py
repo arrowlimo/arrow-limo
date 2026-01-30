@@ -416,8 +416,16 @@ class LoginDialog(QDialog):
         self.active_db_target = target.lower().strip()
 
         if target == "web":
-            # Web option opens browser to Render deployment
-            self._open_remote_web_interface()
+            # Web option opens browser to Render deployment immediately
+            # Hide the dialog and open browser without showing info message
+            try:
+                render_url = "https://arrow-limo.onrender.com"
+                webbrowser.open(render_url)
+                # Close the desktop login dialog since user is using web
+                self.reject()
+            except Exception as e:
+                QMessageBox.warning(self, "Browser Error", 
+                    f"Could not open browser: {e}\n\nVisit manually: https://arrow-limo.onrender.com")
             return
 
         # Show credential fields for Local/Neon login
