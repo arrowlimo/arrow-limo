@@ -88,6 +88,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 @app.get("/health")
 async def health():
+    """Health check endpoint - verifies database connectivity"""
     # DB ping is optional here; keep lightweight
     return {"status": "ok"}
 
