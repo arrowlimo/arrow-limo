@@ -113,10 +113,10 @@ async def db_ping():
             "error": str(e)
         }
 
-# (Optional) mount the existing Vue dist under /app to avoid masking /api routes
+# Mount Vue frontend at root (API routes use /api prefix so no conflict)
 DIST_DIR = str(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")))
 if os.path.isdir(DIST_DIR):
-    app.mount("/app", StaticFiles(directory=DIST_DIR, html=True), name="static")
+    app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="static")
 
 # Routers
 app.include_router(driver_auth_router.router)
