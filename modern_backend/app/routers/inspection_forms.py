@@ -15,21 +15,22 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import json
 
-from ..settings import get_settings
 from ..db import get_connection
 
 router = APIRouter(prefix="/api/inspection-forms", tags=["inspection-forms"])
 security = HTTPBearer()
-settings = get_settings()
 
-# Use settings SECRET_KEY - MUST be set in environment
-if not os.environ.get("SECRET_KEY"):
-    raise ValueError("SECRET_KEY environment variable is required for inspection form authentication")
+# Use SECRET_KEY from environment (required for auth)
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
 
 def verify_jwt_token(credentials: HTTPAuthorizationCredentials) -> dict:
     """Verify JWT token and return payload"""
+    if not SECRET_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="SECRET_KEY environment variable is required for inspection form authentication"
+        )
     try:
         payload = jwt.decode(
             credentials.credentials,
@@ -51,6 +52,11 @@ def verify_jwt_token(credentials: HTTPAuthorizationCredentials) -> dict:
 
 def verify_signature(reserve_number: str, expires: int, signature: str) -> None:
     """Verify HMAC signature (prevents URL tampering)"""
+    if not SECRET_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="SECRET_KEY environment variable is required for inspection form authentication"
+        )
     current_time = int(datetime.now().timestamp())
     
     # Check expiration (30 minutes default)

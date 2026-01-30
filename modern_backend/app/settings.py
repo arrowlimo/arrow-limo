@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     db_port: int = 5432
     db_name: str = "almsdata"
     db_user: str = "postgres"
-    db_password: str  # Required via environment variable
+    db_password: str | None = None
     sentry_dsn: str | None = None
     cors_origins: list[str] = ["*"]
 
