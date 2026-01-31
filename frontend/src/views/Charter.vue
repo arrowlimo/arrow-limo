@@ -6,6 +6,11 @@
       <template v-else-if="error">Error: {{ error }}</template>
       <template v-else-if="booking">
         <h2>Booking #{{ booking.reserve_number }}</h2>
+        <div class="charter-actions" style="margin: 0.5rem 0 1rem;">
+          <button class="secondary" @click="openCharterInvoicePrint" :disabled="!booking.charter_id">
+            Print Charter Invoice
+          </button>
+        </div>
         <ul>
           <li><b>Date:</b> {{ booking.charter_date }}</li>
           <li><b>Client:</b> {{ booking.client_name }}</li>
@@ -145,6 +150,12 @@ function openPrint() {
   if (booking.value?.charter_id) q.set('charter_id', booking.value.charter_id)
   // If run_id pattern is known later, can set run_id as well
   const url = `/beverage-order/print?${q.toString()}`
+  window.open(url, '_blank')
+}
+
+function openCharterInvoicePrint() {
+  if (!booking.value?.charter_id) return
+  const url = `/api/charters/${booking.value.charter_id}/invoice-pdf`
   window.open(url, '_blank')
 }
 </script>

@@ -64,30 +64,28 @@ export function formatDateRange(filterType) {
   const today = new Date()
   
   switch (filterType) {
+    case 'day':
+      return formatDate(today)
     case 'today':
       return formatDate(today)
     case 'tomorrow':
       const tomorrow = new Date(today)
       tomorrow.setDate(today.getDate() + 1)
       return formatDate(tomorrow)
-    case 'this_week':
-      const startOfWeek = new Date(today)
-      startOfWeek.setDate(today.getDate() - today.getDay())
-      const endOfWeek = new Date(startOfWeek)
-      endOfWeek.setDate(startOfWeek.getDate() + 6)
-      return `${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`
-    case 'last_week':
-      const startOfLastWeek = new Date(today)
-      startOfLastWeek.setDate(today.getDate() - today.getDay() - 7)
-      const endOfLastWeek = new Date(startOfLastWeek)
-      endOfLastWeek.setDate(startOfLastWeek.getDate() + 6)
-      return `${formatDate(startOfLastWeek)} - ${formatDate(endOfLastWeek)}`
+    case 'upcoming_week':
+      const endOfUpcomingWeek = new Date(today)
+      endOfUpcomingWeek.setDate(today.getDate() + 7)
+      return `${formatDate(today)} - ${formatDate(endOfUpcomingWeek)}`
     case 'this_month':
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
       const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
       return `${formatDate(startOfMonth)} - ${formatDate(endOfMonth)}`
-    case 'not_closed':
-      return 'Open/Active'
+    case 'this_year':
+      const startOfYear = new Date(today.getFullYear(), 0, 1)
+      const endOfYear = new Date(today.getFullYear(), 11, 31)
+      return `${formatDate(startOfYear)} - ${formatDate(endOfYear)}`
+    case 'future_all':
+      return `${formatDate(today)} - Future`
     default:
       return ''
   }

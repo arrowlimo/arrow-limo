@@ -32,6 +32,8 @@ from .routers import banking_allocations as banking_allocations_router
 from .routers import driver_auth as driver_auth_router
 from .routers import inspection_forms as inspection_forms_router
 from .api import receipt_verification as receipt_verification_router
+from .routers import pdf as pdf_router
+from .routers import file_storage as file_storage_router
 from .settings import get_settings
 from .db import get_connection
 
@@ -122,6 +124,7 @@ async def db_ping():
 # Routers (MUST be included BEFORE mounting static files)
 app.include_router(driver_auth_router.router)
 app.include_router(inspection_forms_router.router)  # Secure inspection forms
+app.include_router(pdf_router.router)  # PDF generation
 app.include_router(reports_router.router)
 app.include_router(charges_router.router)
 app.include_router(payments_router.router)
@@ -140,6 +143,7 @@ app.include_router(employees_router.router)
 app.include_router(customers_router.router)
 app.include_router(pricing_router.router)
 app.include_router(charter_sheet_router.router)
+app.include_router(file_storage_router.router)  # File storage with role-based access
 
 # Mount Vue frontend at root LAST (after all API routes are registered)
 DIST_DIR = str(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")))

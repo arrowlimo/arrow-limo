@@ -17,6 +17,9 @@ desktop_app/
 # Data processing scripts (not needed for web)
 scripts/
 
+# Development tools and temporary files (not needed for web)
+dev-tools/
+
 # Reports and analysis (not needed for web)
 reports/
 

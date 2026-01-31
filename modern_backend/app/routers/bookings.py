@@ -18,11 +18,15 @@ def list_bookings():
             c.client_id,
             c.reserve_number,
             c.passenger_load, 
-            c.vehicle_booked_id, 
-            c.vehicle_description, 
+            c.vehicle_booked_id,
+            c.vehicle,
+            c.vehicle_description,
             c.vehicle_type_requested,
+            c.driver,
             c.driver_name,
             c.retainer, 
+            c.retainer_received,
+            c.retainer_amount,
             c.odometer_start, 
             c.odometer_end, 
             c.fuel_added, 
@@ -31,11 +35,52 @@ def list_bookings():
             c.pickup_address,
             c.dropoff_address,
             c.status,
+            c.closed,
+            c.cancelled,
+            COALESCE(c.charter_type, 'standard') AS charter_type,
+            COALESCE(c.exchange_of_services_details, '{}'::jsonb) AS exchange_of_services_details,
+            COALESCE(c.gl_revenue_code, '4000') AS gl_revenue_code,
+            COALESCE(c.gl_expense_code, '6100') AS gl_expense_code,
             cl.client_name,
-            v.passenger_capacity AS vehicle_capacity
+            v.passenger_capacity AS vehicle_capacity,
+            c.total_amount_due,
+            c.paid_amount,
+            COALESCE(p.total_paid, 0) AS total_paid,
+            (COALESCE(c.total_amount_due, 0) - COALESCE(p.total_paid, 0)) AS balance,
+            CASE
+                WHEN c.closed = TRUE AND c.cancelled = FALSE THEN 'Reconciled'
+                WHEN c.cancelled = TRUE THEN 'Cancelled'
+                WHEN c.closed = FALSE AND c.cancelled = FALSE THEN 'Not Reconciled'
+                ELSE 'Unknown'
+            END AS reconciliation_status,
+            COALESCE(nrr.nrr_amount, 0) AS nrr_amount,
+            CASE WHEN nrr.nrr_amount > 0 THEN TRUE ELSE FALSE END AS nrr_received,
+            EXISTS (
+                SELECT 1
+                FROM beverage_orders bo
+                WHERE bo.reserve_number = c.reserve_number
+                  AND bo.order_date >= date_trunc('week', CURRENT_DATE)
+                  AND bo.order_date < date_trunc('week', CURRENT_DATE) + interval '7 days'
+            ) AS beverage_orders_this_week
         FROM charters c
         LEFT JOIN clients cl ON c.client_id = cl.client_id 
         LEFT JOIN vehicles v ON CAST(c.vehicle_booked_id AS TEXT) = CAST(v.vehicle_number AS TEXT)
+        LEFT JOIN (
+            SELECT reserve_number, COALESCE(SUM(amount), 0) AS total_paid
+            FROM payments
+            GROUP BY reserve_number
+        ) p ON p.reserve_number = c.reserve_number
+        LEFT JOIN (
+            SELECT reserve_number, COALESCE(SUM(amount), 0) AS nrr_amount
+            FROM payments
+            WHERE (
+                payment_label IN ('NRR', 'NRD', 'Non-Refundable Retainer', 'Retainer')
+                OR payment_key ILIKE '%NRR%'
+                OR payment_key ILIKE '%NRD%'
+            )
+            AND payment_label NOT IN ('Deposit', 'Security Deposit', 'Damage Deposit')
+            GROUP BY reserve_number
+        ) nrr ON nrr.reserve_number = c.reserve_number
         ORDER BY c.charter_date DESC, c.charter_id DESC 
         LIMIT 50
         """
@@ -52,13 +97,18 @@ def list_bookings():
                 "charter_id": rec.get("charter_id", ""),
                 "charter_date": str(rec.get("charter_date", "")),
                 "client_name": rec.get("client_name", "") or rec.get("client_id", "") or "",
+                "client_id": rec.get("client_id", ""),
+                "vehicle": rec.get("vehicle", ""),
+                "vehicle_description": rec.get("vehicle_description", ""),
                 "vehicle_type_requested": rec.get("vehicle_type_requested", ""),
                 "vehicle_booked_id": rec.get("vehicle_booked_id", ""),
+                "driver": rec.get("driver", ""),
                 "driver_name": rec.get("driver_name", ""),
-                "vehicle_description": rec.get("vehicle_description", ""),
                 "passenger_load": rec.get("passenger_load", 0),
                 "vehicle_capacity": rec.get("vehicle_capacity", 0),
                 "retainer": float(rec.get("retainer", 0) or 0.0),
+                "retainer_received": float(rec.get("retainer_received", 0) or 0.0),
+                "retainer_amount": float(rec.get("retainer_amount", 0) or 0.0),
                 "odometer_start": rec.get("odometer_start", ""),
                 "odometer_end": rec.get("odometer_end", ""),
                 "fuel_added": rec.get("fuel_added", ""),
@@ -68,6 +118,20 @@ def list_bookings():
                 "pickup_address": rec.get("pickup_address", ""),
                 "dropoff_address": rec.get("dropoff_address", ""),
                 "status": rec.get("status", ""),
+                "closed": bool(rec.get("closed", False)),
+                "cancelled": bool(rec.get("cancelled", False)),
+                "charter_type": rec.get("charter_type", "standard"),
+                "exchange_of_services_details": rec.get("exchange_of_services_details", {}),
+                "gl_revenue_code": rec.get("gl_revenue_code", "4000"),
+                "gl_expense_code": rec.get("gl_expense_code", "6100"),
+                "reconciliation_status": rec.get("reconciliation_status", "Unknown"),
+                "total_amount_due": float(rec.get("total_amount_due", 0) or 0.0),
+                "paid_amount": float(rec.get("paid_amount", 0) or 0.0),
+                "total_paid": float(rec.get("total_paid", 0) or 0.0),
+                "balance": float(rec.get("balance", 0) or 0.0),
+                "nrr_amount": float(rec.get("nrr_amount", 0) or 0.0),
+                "nrr_received": bool(rec.get("nrr_received", False)),
+                "beverage_orders_this_week": bool(rec.get("beverage_orders_this_week", False)),
             }
         )
     return {"bookings": items}

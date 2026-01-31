@@ -89,15 +89,43 @@
       <div class="date-selector-group">
         <select v-model="quickDateFilter" @change="onQuickDateChange" class="quick-date-selector">
           <option value="">All Dates</option>
+          <option value="day">Day</option>
           <option value="today">Today</option>
-          <option value="tomorrow">Tomorrow</option>
-          <option value="this_week">This Week</option>
-          <option value="last_week">Last Week</option>
+          <option value="upcoming_week">Upcoming Week</option>
           <option value="this_month">This Month</option>
-          <option value="not_closed">Not Closed</option>
+          <option value="this_year">This Year</option>
+          <option value="future_all">Future (All)</option>
         </select>
         <span v-if="quickDateFilter" class="date-display">{{ formatDateRange(quickDateFilter) }}</span>
       </div>
+      <select v-model="statusFilter" class="quick-date-selector">
+        <option value="">All Statuses</option>
+        <option value="Quote">Quote</option>
+        <option value="Pending">Pending</option>
+        <option value="Confirmed">Confirmed</option>
+        <option value="Assigned">Assigned</option>
+        <option value="Active">Active</option>
+        <option value="Completed">Completed</option>
+        <option value="Closed">Closed</option>
+        <option value="Cancelled">Cancelled</option>
+      </select>
+      <select v-model="balanceFilter" class="quick-date-selector">
+        <option value="">All Balances</option>
+        <option value="positive">Balance &gt; 0</option>
+        <option value="negative">Balance &lt; 0</option>
+      </select>
+      <select v-model="reconciledFilter" class="quick-date-selector">
+        <option value="">All Reconciliation</option>
+        <option value="Reconciled">Reconciled</option>
+        <option value="Not Reconciled">Not Reconciled</option>
+        <option value="Cancelled">Cancelled</option>
+      </select>
+      <label class="inline-filter">
+        <input type="checkbox" v-model="nrrOnly" /> NRR Only
+      </label>
+      <label class="inline-filter">
+        <input type="checkbox" v-model="beverageThisWeekOnly" /> Beverage Orders This Week
+      </label>
       <input v-model="searchText" placeholder="Search (fuzzy: client, vehicle, notes, etc.)" />
       <input v-model="searchDate" type="date" placeholder="Date" />
       <input v-model="searchClient" placeholder="Client name or ID" />
@@ -123,21 +151,9 @@
               {{ sortDirection === 'asc' ? '↑' : '↓' }}
             </span>
           </th>
-          <th class="sortable-header" @click="sortBy('vehicle_type_requested')">
-            Vehicle Requested
-            <span class="sort-indicator" v-if="sortField === 'vehicle_type_requested'">
-              {{ sortDirection === 'asc' ? '↑' : '↓' }}
-            </span>
-          </th>
-          <th class="sortable-header" @click="sortBy('vehicle_booked_id')">
-            Vehicle Assigned
-            <span class="sort-indicator" v-if="sortField === 'vehicle_booked_id'">
-              {{ sortDirection === 'asc' ? '↑' : '↓' }}
-            </span>
-          </th>
-          <th class="sortable-header" @click="sortBy('driver_name')">
-            Driver
-            <span class="sort-indicator" v-if="sortField === 'driver_name'">
+          <th class="sortable-header" @click="sortBy('vehicle')">
+            Vehicle
+            <span class="sort-indicator" v-if="sortField === 'vehicle'">
               {{ sortDirection === 'asc' ? '↑' : '↓' }}
             </span>
           </th>
@@ -147,49 +163,42 @@
               {{ sortDirection === 'asc' ? '↑' : '↓' }}
             </span>
           </th>
-          <th class="sortable-header" @click="sortBy('passenger_load')">
-            Passengers
-            <span class="sort-indicator" v-if="sortField === 'passenger_load'">
+          <th class="sortable-header" @click="sortBy('driver')">
+            Driver
+            <span class="sort-indicator" v-if="sortField === 'driver'">
               {{ sortDirection === 'asc' ? '↑' : '↓' }}
             </span>
           </th>
-          <th class="sortable-header" @click="sortBy('vehicle_capacity')">
-            Vehicle Capacity
-            <span class="sort-indicator" v-if="sortField === 'vehicle_capacity'">
+          <th class="sortable-header" @click="sortBy('pickup_address')">
+            Pickup
+            <span class="sort-indicator" v-if="sortField === 'pickup_address'">
               {{ sortDirection === 'asc' ? '↑' : '↓' }}
             </span>
           </th>
-          <th class="sortable-header" @click="sortBy('retainer')">
-            Retainer
-            <span class="sort-indicator" v-if="sortField === 'retainer'">
+          <th class="sortable-header" @click="sortBy('dropoff_address')">
+            Dropoff
+            <span class="sort-indicator" v-if="sortField === 'dropoff_address'">
               {{ sortDirection === 'asc' ? '↑' : '↓' }}
             </span>
           </th>
-          <th class="sortable-header" @click="sortBy('odometer_start')">
-            Odo Start
-            <span class="sort-indicator" v-if="sortField === 'odometer_start'">
+          <th class="sortable-header" @click="sortBy('nrr_amount')">
+            NRR
+            <span class="sort-indicator" v-if="sortField === 'nrr_amount'">
               {{ sortDirection === 'asc' ? '↑' : '↓' }}
             </span>
           </th>
-          <th class="sortable-header" @click="sortBy('odometer_end')">
-            Odo End
-            <span class="sort-indicator" v-if="sortField === 'odometer_end'">
+          <th class="sortable-header" @click="sortBy('reconciliation_status')">
+            Reconciled
+            <span class="sort-indicator" v-if="sortField === 'reconciliation_status'">
               {{ sortDirection === 'asc' ? '↑' : '↓' }}
             </span>
           </th>
-          <th class="sortable-header" @click="sortBy('fuel_added')">
-            Fuel
-            <span class="sort-indicator" v-if="sortField === 'fuel_added'">
+          <th class="sortable-header" @click="sortBy('status')">
+            Status
+            <span class="sort-indicator" v-if="sortField === 'status'">
               {{ sortDirection === 'asc' ? '↑' : '↓' }}
             </span>
           </th>
-          <th class="sortable-header" @click="sortBy('vehicle_notes')">
-            Notes
-            <span class="sort-indicator" v-if="sortField === 'vehicle_notes'">
-              {{ sortDirection === 'asc' ? '↑' : '↓' }}
-            </span>
-          </th>
-          <th>Itinerary Stops</th>
         </tr>
       </thead>
       <tbody>
@@ -211,7 +220,7 @@
               class="inline-edit"
             />
             <span v-else @click="startEdit(b, field)">
-              {{ field === 'itinerary' ? (b.itinerary ? b.itinerary.length : 0) : displayValue(b, field) }}
+              {{ field === 'itinerary_stops' ? (b.itinerary_stops || 0) : displayValue(b, field) }}
             </span>
           </td>
         </tr>
@@ -391,6 +400,11 @@ const searchText = ref("")
 const searchDate = ref("")
 const searchClient = ref("")
 const quickDateFilter = ref("")
+const statusFilter = ref("")
+const balanceFilter = ref("")
+const reconciledFilter = ref("")
+const nrrOnly = ref(false)
+const beverageThisWeekOnly = ref(false)
 
 // Booking detail modal state
 const showBookingDetail = ref(false)
@@ -405,36 +419,28 @@ const sortableColumns = {
   'reserve_number': { field: 'reserve_number', label: 'Reserve Number' },
   'charter_date': { field: 'charter_date', label: 'Date' },
   'client_name': { field: 'client_name', label: 'Client Name' },
-  'vehicle_type_requested': { field: 'vehicle_type_requested', label: 'Vehicle Requested' },
-  'vehicle_booked_id': { field: 'vehicle_booked_id', label: 'Vehicle Assigned' },
-  'driver_name': { field: 'driver_name', label: 'Driver' },
+  'vehicle': { field: 'vehicle', label: 'Vehicle' },
   'vehicle_description': { field: 'vehicle_description', label: 'Vehicle Desc' },
-  'passenger_load': { field: 'passenger_load', label: 'Passengers' },
-  'vehicle_capacity': { field: 'vehicle_capacity', label: 'Vehicle Capacity' },
-  'retainer': { field: 'retainer', label: 'Retainer' },
-  'odometer_start': { field: 'odometer_start', label: 'Odo Start' },
-  'odometer_end': { field: 'odometer_end', label: 'Odo End' },
-  'fuel_added': { field: 'fuel_added', label: 'Fuel' },
-  'vehicle_notes': { field: 'vehicle_notes', label: 'Notes' },
-  'itinerary': { field: 'itinerary', label: 'Itinerary Stops' }
+  'driver': { field: 'driver', label: 'Driver' },
+  'pickup_address': { field: 'pickup_address', label: 'Pickup' },
+  'dropoff_address': { field: 'dropoff_address', label: 'Dropoff' },
+  'nrr_amount': { field: 'nrr_amount', label: 'NRR' },
+  'reconciliation_status': { field: 'reconciliation_status', label: 'Reconciled' },
+  'status': { field: 'status', label: 'Status' }
 }
 
 // List of all editable booking fields (column order)
 const bookingFields = [
   'charter_date',
   'client_name',
-  'vehicle_type_requested',
-  'vehicle_booked_id',
-  'driver_name',
+  'vehicle',
   'vehicle_description',
-  'passenger_load',
-  'vehicle_capacity',
-  'retainer',
-  'odometer_start',
-  'odometer_end',
-  'fuel_added',
-  'vehicle_notes',
-  'itinerary'
+  'driver',
+  'pickup_address',
+  'dropoff_address',
+  'nrr_amount',
+  'reconciliation_status',
+  'status'
 ]
 
 // Inline editing state
@@ -484,8 +490,28 @@ const filteredBookings = computed(() => {
     const matchDate = !searchDate.value || (b.charter_date && b.charter_date.startsWith(searchDate.value))
     // Client filter
     const matchClient = !searchClient.value || client.includes(searchClient.value.toLowerCase()) || reserveNum.includes(searchClient.value.toLowerCase())
+
+    // Status filter
+    const statusValue = (b.status || "").toString().toLowerCase()
+    const matchStatus = !statusFilter.value || statusValue === statusFilter.value.toLowerCase()
+
+    // Balance filters
+    const balanceValue = parseFloat(b.balance || 0)
+    const matchBalance = !balanceFilter.value
+      || (balanceFilter.value === 'positive' && balanceValue > 0)
+      || (balanceFilter.value === 'negative' && balanceValue < 0)
+
+    // Reconciliation status filter
+    const reconciledValue = (b.reconciliation_status || "").toString()
+    const matchReconciled = !reconciledFilter.value || reconciledValue === reconciledFilter.value
+
+    // NRR filter (check nrr_amount from payments)
+    const matchNrr = !nrrOnly.value || parseFloat(b.nrr_amount || 0) > 0
+
+    // Beverage orders this week filter
+    const matchBeverage = !beverageThisWeekOnly.value || !!b.beverage_orders_this_week
     
-    return matchText && matchQuickDate && matchDate && matchClient
+    return matchText && matchQuickDate && matchDate && matchClient && matchStatus && matchBalance && matchReconciled && matchNrr && matchBeverage
   })
 
   // Apply sorting
@@ -497,7 +523,7 @@ const filteredBookings = computed(() => {
     if (sortField.value === 'charter_date') {
       valueA = new Date(valueA)
       valueB = new Date(valueB)
-    } else if (sortField.value === 'retainer' || sortField.value === 'passenger_load') {
+    } else if (sortField.value === 'retainer' || sortField.value === 'vehicle_capacity') {
       valueA = parseFloat(valueA) || 0
       valueB = parseFloat(valueB) || 0
     } else {
@@ -522,34 +548,29 @@ const checkQuickDateFilter = (charterDate) => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   
-  const tomorrow = new Date(today)
-  tomorrow.setDate(today.getDate() + 1)
-  
   const charterDateObj = new Date(charterDate)
   charterDateObj.setHours(0, 0, 0, 0)
   
   switch (quickDateFilter.value) {
+    case 'day':
+      if (searchDate.value) {
+        const targetDateObj = new Date(searchDate.value)
+        targetDateObj.setHours(0, 0, 0, 0)
+        return charterDateObj.getTime() === targetDateObj.getTime()
+      }
+      return charterDateObj.getTime() === today.getTime()
     case 'today':
       return charterDateObj.getTime() === today.getTime()
-    case 'tomorrow':
-      return charterDateObj.getTime() === tomorrow.getTime()
-    case 'this_week':
-      const startOfWeek = new Date(today)
-      startOfWeek.setDate(today.getDate() - today.getDay())
-      const endOfWeek = new Date(startOfWeek)
-      endOfWeek.setDate(startOfWeek.getDate() + 6)
-      return charterDateObj >= startOfWeek && charterDateObj <= endOfWeek
-    case 'last_week':
-      const startOfLastWeek = new Date(today)
-      startOfLastWeek.setDate(today.getDate() - today.getDay() - 7)
-      const endOfLastWeek = new Date(startOfLastWeek)
-      endOfLastWeek.setDate(startOfLastWeek.getDate() + 6)
-      return charterDateObj >= startOfLastWeek && charterDateObj <= endOfLastWeek
+    case 'upcoming_week':
+      const endOfUpcomingWeek = new Date(today)
+      endOfUpcomingWeek.setDate(today.getDate() + 7)
+      return charterDateObj >= today && charterDateObj <= endOfUpcomingWeek
     case 'this_month':
       return charterDateObj.getMonth() === today.getMonth() && charterDateObj.getFullYear() === today.getFullYear()
-    case 'not_closed':
-      // For not_closed, we'll rely on backend filtering - return true here
-      return true
+    case 'this_year':
+      return charterDateObj.getFullYear() === today.getFullYear()
+    case 'future_all':
+      return charterDateObj >= today
     default:
       return true
   }
@@ -557,7 +578,7 @@ const checkQuickDateFilter = (charterDate) => {
 
 // Handle quick date selector change
 const onQuickDateChange = () => {
-  if (quickDateFilter.value) {
+  if (quickDateFilter.value && quickDateFilter.value !== 'day') {
     searchDate.value = "" // Clear specific date when using quick filter
   }
   // Refresh dashboard metrics with new date filter
@@ -632,7 +653,13 @@ const displayValue = (row, field) => {
   if (field === 'charter_date') {
     return formatDate(val)
   }
-  return val
+  if (field === 'nrr_amount') {
+    return val ? `$${parseFloat(val).toFixed(2)}` : '$0.00'
+  }
+  if (field === 'pickup_address' || field === 'dropoff_address') {
+    return val || '(not set)'
+  }
+  return val || ''
 }
 
 // formatDateRange is imported from utils; remove local duplicate to avoid redeclaration
@@ -673,6 +700,14 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.inline-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: #444;
 }
 
 .quick-date-selector {

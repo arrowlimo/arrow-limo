@@ -136,10 +136,63 @@
             <td class="actions">
               <button @click="editEmployee(employee)" class="btn-edit">Edit</button>
               <button @click="openPayroll(employee)" class="btn-view">Payroll</button>
+              <button @click="openFiles(employee)" class="btn-view">Files</button>
             </td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Employee Files Modal -->
+    <div v-if="showFiles" class="files-modal" @click.self="closeFiles">
+      <div class="files-content">
+        <div class="files-header">
+          <h3>Employee Files — {{ selectedEmployee?.name || selectedEmployee?.employee_id }}</h3>
+          <button class="close" @click="closeFiles">×</button>
+        </div>
+        
+        <div class="files-sections">
+          <div class="file-section">
+            <FileUpload 
+              title="Licenses" 
+              hint="Driver's license, chauffeur permit, etc."
+              category="employees" 
+              :entity-id="String(selectedEmployee?.employee_id || selectedEmployee?.id)" 
+              subfolder="licenses"
+            />
+          </div>
+          
+          <div class="file-section">
+            <FileUpload 
+              title="Qualifications" 
+              hint="Certificates, training records, etc."
+              category="employees" 
+              :entity-id="String(selectedEmployee?.employee_id || selectedEmployee?.id)" 
+              subfolder="qualifications"
+            />
+          </div>
+          
+          <div class="file-section">
+            <FileUpload 
+              title="Permits" 
+              hint="Work permits, special authorizations, etc."
+              category="employees" 
+              :entity-id="String(selectedEmployee?.employee_id || selectedEmployee?.id)" 
+              subfolder="permits"
+            />
+          </div>
+          
+          <div class="file-section">
+            <FileUpload 
+              title="Documents" 
+              hint="Employment contracts, HR documents, etc."
+              category="employees" 
+              :entity-id="String(selectedEmployee?.employee_id || selectedEmployee?.id)" 
+              subfolder="documents"
+            />
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Payroll Summary Modal -->
@@ -174,8 +227,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { toast } from '@/toast/toastStore'
+import FileUpload from '@/components/FileUpload.vue'
 
 const showForm = ref(false)
+const showFiles = ref(false)
 const searchText = ref('')
 const departmentFilter = ref('')
 const statusFilter = ref('')
@@ -358,6 +413,16 @@ function cancelForm() {
     hourly_rate: 0,
     status: 'active'
   }
+}
+
+function openFiles(employee) {
+  selectedEmployee.value = employee
+  showFiles.value = true
+}
+
+function closeFiles() {
+  showFiles.value = false
+  selectedEmployee.value = null
 }
 
 onMounted(() => {
@@ -680,4 +745,31 @@ h2 {
 .payroll-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
 .pay-item { display:flex; justify-content: space-between; border:1px solid #eee; border-radius:6px; padding: 0.5rem 0.75rem; }
 .pay-item label { color:#555; }
+
+/* Files modal styling */
+.files-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.files-content {
+  background: #fff;
+  border-radius: 8px;
+  width: 95%;
+  max-width: 1200px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1rem 1.25rem 1.25rem 1.25rem;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+}
+.files-header { display:flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+.files-header .close { background:none; border:none; font-size: 1.5rem; cursor:pointer; }
+.files-sections { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+@media (max-width: 1024px) {
+  .files-sections { grid-template-columns: 1fr; }
+}
 </style>

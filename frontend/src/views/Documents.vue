@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1>📄 Document Management</h1>
+    <h1>📄 Business Documents & Records</h1>
     
     <!-- Document Categories -->
     <div class="document-tabs">
@@ -14,90 +14,433 @@
       </button>
     </div>
 
-    <!-- Upload Section -->
-    <div class="upload-section">
-      <div class="upload-card">
-        <h3>📤 Upload Documents</h3>
-        <div class="upload-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Document Category</label>
-              <select v-model="uploadForm.category" required>
-                <option value="">Select Category</option>
-                <option value="contracts">Contracts</option>
-                <option value="insurance">Insurance</option>
-                <option value="licenses">Licenses</option>
-                <option value="maintenance">Maintenance Records</option>
-                <option value="financial">Financial Documents</option>
-                <option value="legal">Legal Documents</option>
-                <option value="hr">HR Documents</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Document Title</label>
-              <input v-model="uploadForm.title" type="text" placeholder="Enter document title" required />
-            </div>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label>Description</label>
-              <input v-model="uploadForm.description" type="text" placeholder="Brief description" />
-            </div>
-            <div class="form-group">
-              <label>Tags</label>
-              <input v-model="uploadForm.tags" type="text" placeholder="Comma-separated tags" />
-            </div>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label>Expiry Date (if applicable)</label>
-              <input v-model="uploadForm.expiryDate" type="date" />
-            </div>
-            <div class="form-group">
-              <label>Access Level</label>
-              <select v-model="uploadForm.accessLevel">
-                <option value="public">Public</option>
-                <option value="internal">Internal Only</option>
-                <option value="restricted">Restricted</option>
-                <option value="confidential">Confidential</option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="file-upload">
-            <div class="drop-zone" 
-                 @dragover.prevent 
-                 @drop.prevent="handleFileDrop"
-                 @click="$refs.fileInput.click()">
-              <div v-if="!selectedFile" class="drop-placeholder">
-                <span class="upload-icon">📁</span>
-                <p>Drag & drop files here or click to browse</p>
-                <small>Supported: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (Max 10MB)</small>
-              </div>
-              <div v-else class="file-preview">
-                <span class="file-icon">📄</span>
-                <div class="file-info">
-                  <strong>{{ selectedFile.name }}</strong>
-                  <small>{{ formatFileSize(selectedFile.size) }}</small>
-                </div>
-                <button @click.stop="clearFile" class="btn-clear">✕</button>
-              </div>
-            </div>
-            <input ref="fileInput" type="file" @change="handleFileSelect" style="display: none" 
-                   accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" />
-          </div>
-          
-          <div class="upload-actions">
-            <button @click="uploadDocument" :disabled="!selectedFile || uploading" class="btn-upload">
-              {{ uploading ? 'Uploading...' : '📤 Upload Document' }}
-            </button>
-            <button @click="clearForm" class="btn-clear-form">Clear Form</button>
-          </div>
+    <!-- Business Documents Section -->
+    <div v-if="activeTab === 'business'" class="documents-section">
+      <h2>🏢 Business Documents</h2>
+      <div class="files-grid">
+        <div class="file-category-card">
+          <FileUpload 
+            title="📊 Accounting Records" 
+            hint="Financial statements, ledgers, reconciliations (PDF, Excel)"
+            category="business_documents" 
+            entity-id="accounting" 
+            subfolder="records"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="💰 Tax Documents" 
+            hint="GST returns, T4s, tax filings, CRA correspondence"
+            category="business_documents" 
+            entity-id="tax" 
+            subfolder="filings"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="⚖️ Legal Documents" 
+            hint="Contracts, agreements, permits, licenses"
+            category="business_documents" 
+            entity-id="legal" 
+            subfolder="contracts"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="🔧 Business Maintenance" 
+            hint="Office equipment, facility maintenance records"
+            category="business_documents" 
+            entity-id="maintenance" 
+            subfolder="records"
+          />
         </div>
       </div>
+    </div>
+
+    <!-- Banking Records Section -->
+    <div v-if="activeTab === 'banking'" class="documents-section">
+      <h2>🏦 Banking & Financial Records</h2>
+      <div class="files-grid">
+        <div class="file-category-card">
+          <FileUpload 
+            title="🏦 Bank Statements" 
+            hint="Monthly statements, transaction records"
+            category="banking_records" 
+            entity-id="statements" 
+            subfolder="monthly"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="💳 Credit Card Statements" 
+            hint="Business credit card statements"
+            category="banking_records" 
+            entity-id="credit_cards" 
+            subfolder="statements"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="📝 Loan Documents" 
+            hint="Loan agreements, payment schedules"
+            category="banking_records" 
+            entity-id="loans" 
+            subfolder="agreements"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="💵 Investment Records" 
+            hint="Investment statements, portfolio documents"
+            category="banking_records" 
+            entity-id="investments" 
+            subfolder="statements"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Owner Personal Section -->
+    <div v-if="activeTab === 'personal'" class="documents-section">
+      <h2>👤 Owner Personal Accounting</h2>
+      <div class="files-grid">
+        <div class="file-category-card">
+          <FileUpload 
+            title="💰 Personal Tax Documents" 
+            hint="Personal tax returns, T1 filings, RRSP contributions"
+            category="business_documents" 
+            entity-id="owner_personal" 
+            subfolder="tax"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="📊 Personal Financial Statements" 
+            hint="Personal balance sheets, net worth statements"
+            category="business_documents" 
+            entity-id="owner_personal" 
+            subfolder="financial_statements"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="💳 Personal Expenses" 
+            hint="Personal expense receipts, reimbursements"
+            category="business_documents" 
+            entity-id="owner_personal" 
+            subfolder="expenses"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="🏠 Property Documents" 
+            hint="Property tax, mortgage documents, rental agreements"
+            category="business_documents" 
+            entity-id="owner_personal" 
+            subfolder="property"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="📋 Insurance Policies" 
+            hint="Personal insurance policies, claims"
+            category="business_documents" 
+            entity-id="owner_personal" 
+            subfolder="insurance"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="🎓 Estate Planning" 
+            hint="Wills, trusts, estate documents"
+            category="business_documents" 
+            entity-id="owner_personal" 
+            subfolder="estate"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Accountant Files Section -->
+    <div v-if="activeTab === 'accountant'" class="documents-section">
+      <h2>📊 Accountant Working Files</h2>
+      <div class="files-grid">
+        <div class="file-category-card">
+          <FileUpload 
+            title="📋 Reconciliation Working Papers" 
+            hint="Monthly reconciliations, bank rec worksheets"
+            category="business_documents" 
+            entity-id="accountant" 
+            subfolder="reconciliations"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="💰 GST/HST Working Files" 
+            hint="GST calculations, filing worksheets, support documents"
+            category="business_documents" 
+            entity-id="accountant" 
+            subfolder="gst_hst"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="📊 Year-End Working Papers" 
+            hint="Year-end adjustments, trial balance, schedules"
+            category="business_documents" 
+            entity-id="accountant" 
+            subfolder="year_end"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="💼 Payroll Working Files" 
+            hint="Payroll calculations, T4 preparation, remittance records"
+            category="business_documents" 
+            entity-id="accountant" 
+            subfolder="payroll"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="📝 Tax Returns & Filings" 
+            hint="Corporate tax returns, schedules, CRA correspondence"
+            category="business_documents" 
+            entity-id="accountant" 
+            subfolder="tax_returns"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="🧾 Accounts Receivable/Payable" 
+            hint="AR/AP aging reports, collection notes, vendor files"
+            category="business_documents" 
+            entity-id="accountant" 
+            subfolder="ar_ap"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="📈 Financial Analysis" 
+            hint="Variance analysis, ratios, budgets vs actuals"
+            category="business_documents" 
+            entity-id="accountant" 
+            subfolder="analysis"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="📁 Client Communication" 
+            hint="Email correspondence, memos, meeting notes"
+            category="business_documents" 
+            entity-id="accountant" 
+            subfolder="communication"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="🔍 Audit Support Files" 
+            hint="Audit trails, support documentation, queries"
+            category="business_documents" 
+            entity-id="accountant" 
+            subfolder="audit_support"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="💻 QuickBooks/Accounting System Files" 
+            hint="QuickBooks backups, import files, exports"
+            category="business_documents" 
+            entity-id="accountant" 
+            subfolder="accounting_system"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Reports Archive Section -->
+    <div v-if="activeTab === 'reports'" class="documents-section">
+      <h2>📈 Reports Archive</h2>
+      <div class="files-grid">
+        <div class="file-category-card">
+          <FileUpload 
+            title="📊 Financial Reports" 
+            hint="Generated financial reports, revenue analysis"
+            category="reports" 
+            entity-id="financial" 
+            subfolder="archive"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="🚐 Operational Reports" 
+            hint="Charter analysis, fleet utilization reports"
+            category="reports" 
+            entity-id="operational" 
+            subfolder="archive"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="💼 Management Reports" 
+            hint="Executive summaries, board reports"
+            category="reports" 
+            entity-id="management" 
+            subfolder="archive"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="📋 Compliance Reports" 
+            hint="Safety reports, regulatory filings"
+            category="reports" 
+            entity-id="compliance" 
+            subfolder="archive"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Backups Section -->
+    <div v-if="activeTab === 'backups'" class="documents-section">
+      <h2>💾 Database & System Backups</h2>
+      <div class="files-grid">
+        <div class="file-category-card">
+          <FileUpload 
+            title="💾 Database Backups" 
+            hint="PostgreSQL database backups, SQL dumps"
+            category="backups" 
+            entity-id="database" 
+            subfolder="postgres"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="📁 File System Backups" 
+            hint="Full system backups, archived data"
+            category="backups" 
+            entity-id="system" 
+            subfolder="full"
+          />
+        </div>
+        
+        <div class="file-category-card">
+          <FileUpload 
+            title="⚙️ Configuration Backups" 
+            hint="Settings, config files, environment backups"
+            category="backups" 
+            entity-id="config" 
+            subfolder="settings"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import FileUpload from '@/components/FileUpload.vue'
+
+const activeTab = ref('business')
+
+const documentTabs = [
+  { id: 'business', name: 'Business Documents', icon: '🏢' },
+  { id: 'banking', name: 'Banking Records', icon: '🏦' },
+  { id: 'personal', name: 'Owner Personal', icon: '👤' },
+  { id: 'accountant', name: 'Accountant Files', icon: '📊' },
+  { id: 'reports', name: 'Reports Archive', icon: '📈' },
+  { id: 'backups', name: 'Backups', icon: '💾' }
+]
+</script>
+
+<style scoped>
+.document-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.tab-button {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #ddd;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.tab-button:hover {
+  border-color: #007bff;
+  background: #f0f8ff;
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+}
+
+.documents-section {
+  margin-top: 2rem;
+}
+
+.documents-section h2 {
+  margin-bottom: 1.5rem;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.files-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .files-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.file-category-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+h1 {
+  margin-bottom: 2rem;
+  color: #333;
+}
+</style>
     </div>
 
     <!-- Document Lists by Category -->

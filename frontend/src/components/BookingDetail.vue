@@ -3,12 +3,15 @@
     <div class="booking-detail-content">
       <div class="booking-detail-header">
         <h2>Reservation Details - {{ booking.reserve_number }}</h2>
+        <span v-if="booking.charter_type" class="charter-type-badge" :class="`type-${booking.charter_type}`">
+          {{ formatCharterType(booking.charter_type) }}
+        </span>
         <button @click="close" class="close-btn">&times;</button>
       </div>
       
       <div class="booking-detail-tabs">
         <button 
-          v-for="tab in tabs" 
+          v-for="tab in tabs.filter(t => !t.condition || t.condition())" 
           :key="tab.id"
           @click="activeTab = tab.id"
           :class="{ active: activeTab === tab.id }"
@@ -20,40 +23,134 @@
       
       <div class="booking-detail-body">
         <div v-if="activeTab === 'reservation'" class="tab-content">
-          <div class="detail-section">
-            <h3>Basic Information</h3>
+          <!-- CUSTOMER HEADER SECTION -->
+          <div class="detail-section customer-header">
+            <div class="section-title">Customer Information</div>
             <div class="detail-grid">
+              <div class="detail-item">
+                <label>Client Name:</label>
+                <span class="value-lg">{{ booking.client_name }}</span>
+              </div>
               <div class="detail-item">
                 <label>Reserve #:</label>
                 <span>{{ booking.reserve_number }}</span>
               </div>
+            </div>
+          </div>
+
+          <!-- RESERVATION SUMMARY SECTION -->
+          <div class="detail-section">
+            <div class="section-title">Reservation Summary</div>
+            <div class="detail-grid">
               <div class="detail-item">
                 <label>Charter Date:</label>
                 <span>{{ formatDate(booking.charter_date) }}</span>
-              </div>
-              <div class="detail-item">
-                <label>Client:</label>
-                <span>{{ booking.client_name }}</span>
               </div>
               <div class="detail-item">
                 <label>Status:</label>
                 <span>{{ booking.status || 'Active' }}</span>
               </div>
               <div class="detail-item">
-                <label>Client Passengers:</label>
-                <span>{{ booking.passenger_load || 'Not specified' }}</span>
+                <label>Reconciliation:</label>
+                <span>{{ booking.reconciliation_status || 'Not Reconciled' }}</span>
               </div>
               <div class="detail-item">
-                <label>Vehicle Capacity:</label>
-                <span>{{ booking.vehicle_capacity ? booking.vehicle_capacity + ' passengers' : 'Vehicle not assigned' }}</span>
+                <label>Charter Type:</label>
+                <span>{{ formatCharterType(booking.charter_type) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TRIP/SERVICE DETAILS SECTION -->
+          <div class="detail-section">
+            <div class="section-title">Trip Details</div>
+            <div class="detail-grid">
+              <div class="detail-item full-width">
+                <label>Pickup Address:</label>
+                <span>{{ booking.pickup_address || 'Not specified' }}</span>
+              </div>
+              <div class="detail-item full-width">
+                <label>Dropoff Address:</label>
+                <span>{{ booking.dropoff_address || 'Not specified' }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Passengers:</label>
+                <span>{{ booking.passenger_load || 'Not specified' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- DRIVER SUMMARY SECTION -->
+          <div class="detail-section">
+            <div class="section-title">Driver Information</div>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <label>Driver:</label>
+                <span>{{ booking.driver_name || booking.driver || 'Not assigned' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- VEHICLE INFO SECTION -->
+          <div class="detail-section">
+            <div class="section-title">Vehicle Information</div>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <label>Vehicle:</label>
+                <span>{{ booking.vehicle || 'Not assigned' }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Vehicle Type:</label>
+                <span>{{ booking.vehicle_type_requested || booking.vehicle_description || 'Not specified' }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Capacity:</label>
+                <span>{{ booking.vehicle_capacity ? booking.vehicle_capacity + ' passengers' : 'Not assigned' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="booking.charter_type === 'exchange_of_services' && activeTab === 'exchange'" class="tab-content">
+          <div class="detail-section">
+            <h3>Exchange of Services Details</h3>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <label>Service Provided:</label>
+                <span>{{ booking.exchange_of_services_details?.service_provided || 'Not specified' }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Service Provider:</label>
+                <span>{{ booking.exchange_of_services_details?.service_provider || 'Not specified' }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Exchange Value:</label>
+                <span>${{ parseFloat(booking.exchange_of_services_details?.exchange_value || 0).toFixed(2) }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Invoice Date:</label>
+                <span>{{ booking.exchange_of_services_details?.invoice_date ? formatDate(booking.exchange_of_services_details.invoice_date) : 'Not specified' }}</span>
+              </div>
+              <div class="detail-item full-width">
+                <label>Description:</label>
+                <p>{{ booking.exchange_of_services_details?.description || 'No description provided' }}</p>
+              </div>
+              <div class="detail-item">
+                <label>GL Revenue Code:</label>
+                <span>{{ booking.gl_revenue_code || 'Not assigned' }}</span>
+              </div>
+              <div class="detail-item">
+                <label>GL Expense Code:</label>
+                <span>{{ booking.gl_expense_code || 'Not assigned' }}</span>
               </div>
             </div>
           </div>
         </div>
         
         <div v-if="activeTab === 'charges'" class="tab-content">
+          <!-- CHARGES SECTION -->
           <div class="detail-section">
-            <h3>Financial Summary</h3>
+            <div class="section-title">Financial Summary</div>
             <div class="financial-summary">
               <div class="summary-item">
                 <label>Total Charges:</label>
@@ -63,12 +160,18 @@
                 <label>Total Payments:</label>
                 <span class="amount">${{ financials.payments_total?.toFixed(2) || '0.00' }}</span>
               </div>
+              <div class="summary-item">
+                <label>NRR Amount:</label>
+                <span class="amount">${{ parseFloat(booking.nrr_amount || 0).toFixed(2) }}</span>
+              </div>
               <div class="summary-item total">
                 <label>Balance Due:</label>
-                <span class="amount">${{ financials.balance_due?.toFixed(2) || '0.00' }}</span>
+                <span class="amount">${{ (parseFloat(booking.total_amount_due || 0) - parseFloat(booking.total_paid || 0)).toFixed(2) }}</span>
               </div>
             </div>
-            
+          </div>
+          
+          <div class="detail-section">
             <div class="section-header">
               <h3>Charges</h3>
               <button @click="showAddChargeForm = true" class="btn-small">Add Charge</button>
@@ -81,7 +184,8 @@
                   <select v-model="newCharge.charge_type">
                     <option value="service_fee">Service Fee</option>
                     <option value="gst">GST</option>
-                    <option value="gratuity">Gratuity</option>
+                    <option value="pst">PST/HST</option>
+                    <option value="misc">Miscellaneous</option>
                   </select>
                 </div>
                 <div class="form-field">
@@ -117,8 +221,8 @@
                       <select v-model="editingCharge.charge_type">
                         <option value="service_fee">Service Fee</option>
                         <option value="gst">GST</option>
-                        <option value="gratuity">Gratuity</option>
-                        <option value="other">Other</option>
+                        <option value="pst">PST/HST</option>
+                        <option value="misc">Miscellaneous</option>
                       </select>
                     </td>
                     <td v-if="editingChargeId !== c.charge_id">{{ c.description || '-' }}</td>
@@ -142,14 +246,51 @@
               <p v-else class="no-data">No charges recorded</p>
             </div>
           </div>
+
+          <!-- BILLING & GL CODES SECTION -->
+          <div class="detail-section">
+            <div class="section-title">Billing & GL Coding</div>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <label>GL Revenue Code:</label>
+                <span>{{ booking.gl_revenue_code || '4000' }}</span>
+              </div>
+              <div class="detail-item">
+                <label>GL Expense Code:</label>
+                <span>{{ booking.gl_expense_code || '6100' }}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div v-if="activeTab === 'payments'" class="tab-content">
+          <!-- PAYMENT SUMMARY SECTION -->
           <div class="detail-section">
-            <h3>Payments</h3>
+            <div class="section-title">Payment Summary</div>
+            <div class="financial-summary">
+              <div class="summary-item">
+                <label>Amount Due:</label>
+                <span class="amount">${{ parseFloat(booking.total_amount_due || 0).toFixed(2) }}</span>
+              </div>
+              <div class="summary-item">
+                <label>Amount Paid:</label>
+                <span class="amount">${{ parseFloat(booking.total_paid || 0).toFixed(2) }}</span>
+              </div>
+              <div class="summary-item">
+                <label>NRR/Retainer:</label>
+                <span class="amount">${{ parseFloat(booking.nrr_amount || 0).toFixed(2) }}</span>
+              </div>
+              <div class="summary-item total">
+                <label>Balance Due:</label>
+                <span class="amount">${{ (parseFloat(booking.total_amount_due || 0) - parseFloat(booking.total_paid || 0)).toFixed(2) }}</span>
+              </div>
+            </div>
+          </div>
 
+          <!-- ADD PAYMENT SECTION -->
+          <div class="detail-section">
             <div class="section-header">
-              <h3>Add Payment</h3>
+              <h3>Record Payment</h3>
             </div>
             <div class="add-form">
               <div class="form-grid">
@@ -165,22 +306,24 @@
                   <label>Method</label>
                   <select v-model="newPayment.payment_method">
                     <option value="credit_card">Credit Card</option>
-                    <option value="debit">Debit</option>
+                    <option value="debit_card">Debit Card</option>
                     <option value="cash">Cash</option>
                     <option value="e_transfer">e-Transfer</option>
-                    <option value="cheque">Cheque</option>
+                    <option value="check">Check</option>
+                    <option value="nrr">NRR/Retainer</option>
                   </select>
                 </div>
                 <div class="form-field full-width">
                   <label>Notes</label>
-                  <input v-model="newPayment.notes" type="text" />
+                  <input v-model="newPayment.notes" type="text" placeholder="Optional notes" />
                 </div>
               </div>
               <div class="form-actions">
-                <button @click="addPayment" class="btn-primary">Add Payment</button>
+                <button @click="addPayment" class="btn-primary">Record Payment</button>
               </div>
             </div>
 
+            <!-- PAYMENT HISTORY -->
             <div class="charges-table">
               <table v-if="payments.length">
                 <thead>
@@ -201,10 +344,11 @@
                     <td v-else>
                       <select v-model="editingPayment.payment_method">
                         <option value="credit_card">Credit Card</option>
-                        <option value="debit">Debit</option>
+                        <option value="debit_card">Debit Card</option>
                         <option value="cash">Cash</option>
                         <option value="e_transfer">e-Transfer</option>
-                        <option value="cheque">Cheque</option>
+                        <option value="check">Check</option>
+                        <option value="nrr">NRR/Retainer</option>
                       </select>
                     </td>
 
@@ -230,12 +374,19 @@
               <p v-else class="no-data">No payments recorded</p>
             </div>
           </div>
+          </div>
         </div>
       </div>
       
       <div class="booking-detail-footer">
-        <button @click="close" class="btn-secondary">Close</button>
-        <button @click="editBooking" class="btn-primary">Edit Booking</button>
+        <div class="footer-buttons-left">
+          <button @click="downloadPDF" class="btn-info">📄 Download PDF</button>
+          <button @click="previewPDF" class="btn-info">👁️ Preview PDF</button>
+        </div>
+        <div class="footer-buttons-right">
+          <button @click="close" class="btn-secondary">Close</button>
+          <button @click="editBooking" class="btn-primary">Edit Booking</button>
+        </div>
       </div>
     </div>
   </div>
@@ -292,7 +443,8 @@ export default {
     const tabs = [
       { id: 'reservation', label: 'Reservation' },
       { id: 'charges', label: 'Charges' },
-      { id: 'payments', label: 'Payments' }
+      { id: 'payments', label: 'Payments' },
+      { id: 'exchange', label: 'Exchange Details', condition: () => props.booking?.charter_type === 'exchange_of_services' }
     ]
     
     const loadFinancialData = async () => {
@@ -453,6 +605,55 @@ export default {
     const editBooking = () => {
       emit('edit', props.booking)
     }
+
+    const downloadPDF = async () => {
+      if (!props.booking?.charter_id) {
+        toast.error('No charter selected')
+        return
+      }
+      try {
+        const response = await fetch(`/api/charters/${props.booking.charter_id}/invoice-pdf`)
+        if (!response.ok) throw new Error('PDF download failed')
+        
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `Charter_${props.booking.reserve_number}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        toast.info('PDF downloaded successfully')
+      } catch (error) {
+        console.error('PDF download error:', error)
+        toast.error('Failed to download PDF')
+      }
+    }
+
+    const previewPDF = async () => {
+      if (!props.booking?.charter_id) {
+        toast.error('No charter selected')
+        return
+      }
+      try {
+        const pdfUrl = `/api/charters/${props.booking.charter_id}/invoice-pdf-preview`
+        window.open(pdfUrl, '_blank')
+      } catch (error) {
+        console.error('PDF preview error:', error)
+        toast.error('Failed to preview PDF')
+      }
+    }
+
+    const formatCharterType = (type) => {
+      const typeMap = {
+        'standard': 'Standard Charter',
+        'exchange_of_services': 'Exchange of Services',
+        'promotional': 'Promotional',
+        'internal': 'Internal'
+      }
+      return typeMap[type] || type
+    }
     
     watch(() => props.booking?.charter_id, loadFinancialData, { immediate: true })
     watch(() => props.visible, (visible) => {
@@ -469,8 +670,11 @@ export default {
       newCharge,
       newPayment,
       formatDate,
+      formatCharterType,
       close,
       editBooking,
+      downloadPDF,
+      previewPDF,
       loadFinancialData,
       addCharge,
       addPayment,
@@ -522,6 +726,36 @@ export default {
   cursor: pointer;
   color: #666;
 }
+
+.charter-type-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  margin: 0 0.5rem;
+}
+
+.charter-type-badge.type-standard {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.charter-type-badge.type-exchange_of_services {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.charter-type-badge.type-promotional {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.charter-type-badge.type-internal {
+  background: #f1f8e9;
+  color: #558b2f;
+}
+
 
 .booking-detail-tabs {
   display: flex;
@@ -575,6 +809,32 @@ export default {
   padding: 0.5rem;
   background: #f8f9fa;
   border-radius: 4px;
+}
+
+.detail-item span.value-lg {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.detail-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #007bff;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #007bff;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.customer-header {
+  background: #f0f7ff;
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
 }
 
 .financial-summary {
@@ -710,8 +970,39 @@ export default {
   border-radius: 4px;
   cursor: pointer;
 }
+
+.btn-info {
+  background: #17a2b8;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 0.5rem;
+}
+
 .btn-danger { background: #dc3545; color: #fff; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer; }
 .btn-small { padding: 0.25rem 0.5rem; font-size: 0.9rem; }
 .row-actions { white-space: nowrap; display: flex; gap: 0.5rem; align-items: center; }
 .amount-input { width: 120px; text-align: right; }
+
+.booking-detail-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  gap: 1rem;
+}
+
+.footer-buttons-left {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.footer-buttons-right {
+  display: flex;
+  gap: 0.5rem;
+}
 </style>
