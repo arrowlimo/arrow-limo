@@ -4,6 +4,11 @@
 .env.*
 !*.example
 
+# PostgreSQL setup scripts with hardcoded passwords (SECURITY RISK - LOCAL ONLY)
+setup_alms_user.py
+setup_alms_user.sql
+ALMS_USER_SETUP.md
+
 # Desktop application (not needed for web)
 desktop_app/
 

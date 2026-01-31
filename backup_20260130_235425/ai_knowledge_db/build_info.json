@@ -1,0 +1,16 @@
+{
+  "built_at": "2026-01-28T23:38:13.647460",
+  "total_documents": 628,
+  "total_chunks": 18743,
+  "embedding_model": "all-MiniLM-L6-v2",
+  "chunk_size": 500,
+  "chunk_overlap": 100,
+  "collections": {
+    "database_schema": 12,
+    "business_rules": 2,
+    "tax_rules": 28,
+    "session_history": 40,
+    "code_examples": 3,
+    "analysis_reports": 543
+  }
+}

@@ -2,6 +2,10 @@ import os
 import time
 import uuid
 
+# Load environment variables from .env file FIRST
+from dotenv import load_dotenv
+load_dotenv()
+
 # Force rebuild: 2026-01-30 14:35:00 UTC - Login endpoint deployment
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -115,12 +119,7 @@ async def db_ping():
             "error": str(e)
         }
 
-# Mount Vue frontend at root (API routes use /api prefix so no conflict)
-DIST_DIR = str(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")))
-if os.path.isdir(DIST_DIR):
-    app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="static")
-
-# Routers
+# Routers (MUST be included BEFORE mounting static files)
 app.include_router(driver_auth_router.router)
 app.include_router(inspection_forms_router.router)  # Secure inspection forms
 app.include_router(reports_router.router)
@@ -141,3 +140,8 @@ app.include_router(employees_router.router)
 app.include_router(customers_router.router)
 app.include_router(pricing_router.router)
 app.include_router(charter_sheet_router.router)
+
+# Mount Vue frontend at root LAST (after all API routes are registered)
+DIST_DIR = str(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")))
+if os.path.isdir(DIST_DIR):
+    app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="static")
