@@ -69,7 +69,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="b in filteredBookings" :key="b.charter_id" :class="getRowClass(b)">
+          <tr v-for="b in filteredBookings" :key="b.charter_id" :class="getRowClass(b)" @click="goToCharter(b.charter_id)" style="cursor: pointer;">
             <td>{{ b.reserve_number || '(unknown)' }}</td>
             <td>{{ formatDate(b.charter_date) || '(unknown)' }}</td>
             <td>{{ b.client_name || '(unknown)' }}</td>
@@ -180,6 +180,10 @@ export default {
     onBookingSaved() {
       this.showBookingForm = false;
       this.loadBookings(); // Refresh the bookings list
+    },
+
+    goToCharter(charterId) {
+      this.$router.push(`/charter/${charterId}`);
     },
 
     formatDate,
