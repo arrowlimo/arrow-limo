@@ -2,6 +2,8 @@
 # Ignore environment secrets
 .env
 .env.*
+passwords.txt
+.env.backup
 !*.example
 
 # PostgreSQL setup scripts with hardcoded passwords (SECURITY RISK - LOCAL ONLY)
@@ -28,6 +30,7 @@ project-docs/
 docs/
 *.md
 !README.md
+!SECURITY_INCIDENT.md
 !project-docs/**/*.md
 
 # Config files (local only)
