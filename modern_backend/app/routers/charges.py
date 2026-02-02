@@ -1,8 +1,7 @@
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-from typing import Optional
 
 from ..db import cursor, get_connection
 
@@ -31,7 +30,7 @@ def list_charges(charter_id: int) -> dict[str, Any]:
             WHERE charter_id = %s
             ORDER BY created_at ASC, charge_id ASC
             """,
-            (charter_id,)
+            (charter_id,),
         )
         rows = cur.fetchall()
         cols = [d[0] for d in (cur.description or [])]
@@ -48,7 +47,7 @@ def create_charge(charter_id: int, body: ChargeCreate) -> dict[str, Any]:
             VALUES (%s, %s, %s, %s)
             RETURNING charge_id, charter_id, charge_type, amount, description, created_at
             """,
-            (charter_id, body.charge_type, body.amount, body.description)
+            (charter_id, body.charge_type, body.amount, body.description),
         )
         row = cur.fetchone()
         if not row:
@@ -81,7 +80,7 @@ def update_charge(charge_id: int, body: ChargeUpdate) -> dict[str, Any]:
 @router.delete("/charges/{charge_id}")
 def delete_charge(charge_id: int) -> dict[str, Any]:
     with cursor() as cur:
-        cur.execute('DELETE FROM charter_charges WHERE charge_id = %s', (charge_id,))
+        cur.execute("DELETE FROM charter_charges WHERE charge_id = %s", (charge_id,))
         deleted = cur.rowcount
         if not deleted:
             raise HTTPException(status_code=404, detail="not_found")
@@ -90,10 +89,14 @@ def delete_charge(charge_id: int) -> dict[str, Any]:
 
 # ===== NEW CATALOG & RESERVE-NUMBER ENDPOINTS =====
 
+
 @router.get("/charges/catalog")
 def get_charge_catalog(
     active_only: bool = Query(True, description="Filter to active charges only"),
-    charge_type: Optional[str] = Query(None, description="Filter by type: base_rate, airport_fee, additional, gst")
+    charge_type: Optional[str] = Query(
+        None,
+        description="Filter by type: base_rate, airport_fee, additional, gst",
+    ),
 ):
     """Get catalog of available charge line items for selection in booking form."""
     conn = get_connection()
@@ -101,19 +104,19 @@ def get_charge_catalog(
     try:
         where_clauses = []
         params = []
-        
+
         if active_only:
             where_clauses.append("is_active = true")
-        
+
         if charge_type:
             where_clauses.append("charge_type = %s")
             params.append(charge_type)
-        
+
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
-        
+
         cur.execute(
             f"""
-            SELECT 
+            SELECT
                 catalog_id, charge_code, charge_name, charge_type,
                 default_amount, is_taxable, display_order
             FROM charge_catalog
@@ -123,7 +126,7 @@ def get_charge_catalog(
             params,
         )
         rows = cur.fetchall()
-        
+
         results = [
             {
                 "catalog_id": r[0],
@@ -136,10 +139,12 @@ def get_charge_catalog(
             }
             for r in rows
         ]
-        
+
         return {"results": results, "count": len(results)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load charge catalog: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to load charge catalog: {e}"
+        )
     finally:
         cur.close()
         conn.close()
@@ -156,7 +161,7 @@ def get_charges_by_reserve(reserve_number: str):
             SELECT charge_id, reserve_number, charge_type, amount, description, created_at
             FROM charges
             WHERE reserve_number = %s
-            ORDER BY 
+            ORDER BY
                 CASE charge_type
                     WHEN 'base_rate' THEN 1
                     WHEN 'airport_fee' THEN 2
@@ -169,7 +174,7 @@ def get_charges_by_reserve(reserve_number: str):
             (reserve_number,),
         )
         rows = cur.fetchall()
-        
+
         results = [
             {
                 "charge_id": r[0],
@@ -181,11 +186,10 @@ def get_charges_by_reserve(reserve_number: str):
             }
             for r in rows
         ]
-        
+
         return {"results": results, "count": len(results)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load charges: {e}")
     finally:
         cur.close()
         conn.close()
-

@@ -1,6 +1,8 @@
 from fastapi import status
 from httpx import AsyncClient
+
 from modern_backend.app.main import app
+
 
 async def test_health():
     async with AsyncClient(app=app, base_url="http://test") as ac:

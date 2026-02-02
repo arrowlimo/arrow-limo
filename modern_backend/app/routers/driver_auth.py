@@ -4,7 +4,6 @@ Serves login page and handles login for all user types
 Last updated: 2026-01-30 11:45 AM - Added JSON login endpoint
 """
 
-import os
 import secrets
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, Form, HTTPException, Response
@@ -29,56 +28,69 @@ def verify_user_credentials(username: str, password: str) -> dict:
     """Verify user login credentials against users table"""
     try:
         import bcrypt
+
         conn = get_connection()
         cur = conn.cursor()
-        
+
         # Check users table first (for authenticated access)
-        cur.execute("""
+        cur.execute(
+            """
             SELECT user_id, username, email, role, password_hash, permissions, status
             FROM users 
             WHERE username = %s
             LIMIT 1
-        """, (username,))
-        
+        """,
+            (username,),
+        )
+
         user = cur.fetchone()
-        
+
         if user:
             user_id, uname, email, role, pwd_hash, perms, status = user
-            
+
             # Check status
-            if status and status.lower() != 'active':
+            if status and status.lower() != "active":
                 cur.close()
                 conn.close()
                 return None
-            
+
             # Verify password with bcrypt
             if pwd_hash:
                 try:
                     # Ensure hash is bytes
-                    hash_bytes = pwd_hash.encode('utf-8') if isinstance(pwd_hash, str) else pwd_hash
-                    pwd_bytes = password.encode('utf-8')
+                    hash_bytes = (
+                        pwd_hash.encode("utf-8")
+                        if isinstance(pwd_hash, str)
+                        else pwd_hash
+                    )
+                    pwd_bytes = password.encode("utf-8")
                     if bcrypt.checkpw(pwd_bytes, hash_bytes):
                         # Parse permissions
                         import json
+
                         permissions = {}
                         if perms:
                             try:
-                                permissions = json.loads(perms) if isinstance(perms, str) else perms
+                                permissions = (
+                                    json.loads(perms)
+                                    if isinstance(perms, str)
+                                    else perms
+                                )
                             except:
                                 permissions = {}
-                        
+
                         cur.close()
                         conn.close()
                         return {
                             "employee_id": user_id,
                             "name": uname,
                             "role": role or "user",
-                            "permissions": permissions
+                            "permissions": permissions,
                         }
                 except Exception as pwd_err:
                     print(f"Password verification error: {pwd_err}")
                     pass
-        
+
         cur.close()
         conn.close()
         return None
@@ -94,7 +106,7 @@ def create_session(employee_id: int, employee_name: str) -> str:
         "employee_id": employee_id,
         "name": employee_name,
         "created_at": datetime.now(),
-        "expires_at": datetime.now() + timedelta(seconds=SESSION_TIMEOUT)
+        "expires_at": datetime.now() + timedelta(seconds=SESSION_TIMEOUT),
     }
     return token
 
@@ -103,12 +115,12 @@ def get_session(token: str) -> dict:
     """Retrieve session if valid"""
     if token not in SESSIONS:
         return None
-    
+
     session = SESSIONS[token]
     if datetime.now() > session["expires_at"]:
         del SESSIONS[token]
         return None
-    
+
     return session
 
 
@@ -117,8 +129,9 @@ def get_driver_trips(employee_id: int) -> list:
     try:
         conn = get_connection()
         cur = conn.cursor()
-        
-        cur.execute("""
+
+        cur.execute(
+            """
             SELECT 
                 charter_id,
                 reserve_number,
@@ -132,21 +145,25 @@ def get_driver_trips(employee_id: int) -> list:
             WHERE assigned_employee_id = %s 
               AND DATE(scheduled_date) = CURRENT_DATE
             ORDER BY scheduled_time ASC
-        """, (employee_id,))
-        
+        """,
+            (employee_id,),
+        )
+
         trips = []
         for row in cur.fetchall():
-            trips.append({
-                "charter_id": row[0],
-                "reserve_number": row[1],
-                "pickup": row[2],
-                "dropoff": row[3],
-                "date": str(row[4]),
-                "time": str(row[5]),
-                "passenger": row[6],
-                "status": row[7]
-            })
-        
+            trips.append(
+                {
+                    "charter_id": row[0],
+                    "reserve_number": row[1],
+                    "pickup": row[2],
+                    "dropoff": row[3],
+                    "date": str(row[4]),
+                    "time": str(row[5]),
+                    "passenger": row[6],
+                    "status": row[7],
+                }
+            )
+
         cur.close()
         conn.close()
         return trips
@@ -242,9 +259,7 @@ async def login_page(request: Request):
 
 @router.post("/login-submit")
 async def login_submit(
-    username: str = Form(...),
-    password: str = Form(...),
-    response: Response = None
+    username: str = Form(...), password: str = Form(...), response: Response = None
 ):
     """Handle login form submission (HTML form)"""
     user = verify_user_credentials(username, password)
@@ -257,7 +272,7 @@ async def login_submit(
         max_age=30 * 60,
         httponly=True,
         secure=True,
-        samesite="lax"
+        samesite="lax",
     )
     return {"status": "success", "redirect": "/auth/dashboard"}
 
@@ -270,11 +285,13 @@ async def login_json(login_request: LoginRequest):
     if not user:
         print(f"[LOGIN] Failed - invalid credentials for {login_request.username}")
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    print(f"[LOGIN] Success - authenticated {login_request.username} as {user.get('role')}")
+
+    print(
+        f"[LOGIN] Success - authenticated {login_request.username} as {user.get('role')}"
+    )
     # Create session token
     session_token = create_session(user["employee_id"], user["name"])
-    
+
     # Return JWT-style response for frontend
     return {
         "access_token": session_token,
@@ -284,8 +301,8 @@ async def login_json(login_request: LoginRequest):
             "username": login_request.username,
             "name": user["name"],
             "role": user.get("role", "user"),
-            "permissions": user.get("permissions", {})
-        }
+            "permissions": user.get("permissions", {}),
+        },
     }
 
 
@@ -296,10 +313,10 @@ async def dashboard(request: Request):
     session = get_session(session_token)
     if not session:
         return RedirectResponse(url="/auth/login", status_code=302)
-    
+
     employee_id = session["employee_id"]
     user_name = session["name"]
-    
+
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -310,7 +327,7 @@ async def dashboard(request: Request):
         conn.close()
     except:
         user_role = "user"
-    
+
     if user_role in ["driver", "operator"]:
         trips = get_driver_trips(employee_id)
         content = generate_driver_dashboard(user_name, trips, user_role)
@@ -320,7 +337,7 @@ async def dashboard(request: Request):
         content = generate_super_user_dashboard(user_name)
     else:
         content = generate_default_dashboard(user_name, user_role)
-    
+
     return content
 
 
@@ -335,11 +352,16 @@ def generate_driver_dashboard(driver_name: str, trips: list, role: str) -> str:
     """Generate dashboard for drivers/operators"""
     trips_html = ""
     for trip in trips:
-        status_color = {"scheduled": "#667eea", "in_progress": "#f59e0b", "completed": "#10b981", "cancelled": "#ef4444"}.get(trip.get("status", "scheduled"), "#667eea")
+        status_color = {
+            "scheduled": "#667eea",
+            "in_progress": "#f59e0b",
+            "completed": "#10b981",
+            "cancelled": "#ef4444",
+        }.get(trip.get("status", "scheduled"), "#667eea")
         trips_html += f'<div class="trip-card"><div class="trip-header"><div><h3>{trip.get("passenger", "Unknown")}</h3></div><span class="trip-status" style="background-color: {status_color}">{trip.get("status", "scheduled").replace("_", " ").title()}</span></div><div class="trip-details"><p><strong>Pickup:</strong> {trip.get("pickup", "TBA")}</p><p><strong>Dropoff:</strong> {trip.get("dropoff", "TBA")}</p></div></div>'
     if not trips:
         trips_html = '<p style="text-align: center; color: #999; padding: 20px;">No trips scheduled</p>'
-    
+
     return f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><title>Driver Dashboard</title><style>
 body{{font-family:sans-serif;background:#f5f7fa;margin:0}}

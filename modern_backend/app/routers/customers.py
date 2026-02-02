@@ -7,8 +7,10 @@ router = APIRouter(prefix="/api/customers", tags=["customers"])
 
 
 @router.get("/search")
-def search_customers(q: str = Query("", description="Search term (name or phone)"),
-                     limit: int = Query(10, ge=1, le=100)):
+def search_customers(
+    q: str = Query("", description="Search term (name or phone)"),
+    limit: int = Query(10, ge=1, le=100),
+):
     """Search customers by name or phone for autocomplete.
 
     Uses the existing `clients` table, returning fields needed by the LMS booking form.

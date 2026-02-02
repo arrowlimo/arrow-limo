@@ -34,7 +34,7 @@ def list_payments(charter_id: int) -> dict[str, Any]:
             WHERE charter_id = %s
             ORDER BY payment_date DESC, payment_id DESC
             """,
-            (charter_id,)
+            (charter_id,),
         )
         rows = cur.fetchall()
         cols = [d[0] for d in (cur.description or [])]
@@ -51,7 +51,14 @@ def create_payment(charter_id: int, body: PaymentCreate) -> dict[str, Any]:
             VALUES (%s, %s, COALESCE(%s, CURRENT_DATE), %s, %s, %s, NOW())
             RETURNING payment_id, charter_id, amount, payment_date, payment_method, payment_key, notes, created_at, last_updated
             """,
-            (charter_id, body.amount, body.payment_date, body.payment_method or 'credit_card', body.payment_key, body.notes)
+            (
+                charter_id,
+                body.amount,
+                body.payment_date,
+                body.payment_method or "credit_card",
+                body.payment_key,
+                body.notes,
+            ),
         )
         row = cur.fetchone()
         if not row:
@@ -84,7 +91,7 @@ def update_payment(payment_id: int, body: PaymentUpdate) -> dict[str, Any]:
 @router.delete("/payments/{payment_id}")
 def delete_payment(payment_id: int) -> dict[str, Any]:
     with cursor() as cur:
-        cur.execute('DELETE FROM payments WHERE payment_id = %s', (payment_id,))
+        cur.execute("DELETE FROM payments WHERE payment_id = %s", (payment_id,))
         deleted = cur.rowcount
         if not deleted:
             raise HTTPException(status_code=404, detail="not_found")

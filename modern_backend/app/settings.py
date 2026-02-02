@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["*"]
 
     # Pydantic v2 config
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", case_sensitive=False, extra="ignore"
+    )
 
 
 @lru_cache

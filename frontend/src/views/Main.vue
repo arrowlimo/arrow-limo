@@ -227,20 +227,13 @@
       </tbody>
     </table>
     
-    <!-- Booking Detail Modal -->
-    <BookingDetail 
-      :booking="selectedBooking" 
-      :visible="showBookingDetail" 
-      @close="closeBookingDetail"
-      @edit="editBooking"
-    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { authFetch } from '@/utils/authFetch'
 import { useRouter } from 'vue-router'
-import BookingDetail from '@/components/BookingDetail.vue'
 import { formatDate, formatDateRange } from '@/utils/dateFormatter'
 
 const router = useRouter()
@@ -610,8 +603,8 @@ const updateBooking = async (booking, field, value) => {
 // Fetch bookings from backend
 const fetchBookings = async () => {
   try {
-    const res = await fetch('/api/bookings')
-    if (res.ok) {
+    const res = await authFetch('/api/bookings')
+    if (res && res.ok) {
       const data = await res.json()
       bookings.value = data.bookings || []
     }
@@ -629,9 +622,9 @@ const fetchDashboardMetrics = async () => {
     }
     
     const url = `/api/dashboard${params.toString() ? '?' + params.toString() : ''}`
-    const metricsRes = await fetch(url)
+    const metricsRes = await authFetch(url)
     
-    if (metricsRes.ok) {
+    if (metricsRes && metricsRes.ok) {
       const metricsData = await metricsRes.json()
       dashboardMetrics.value = {
         open_quotes: metricsData.open_quotes || 0,

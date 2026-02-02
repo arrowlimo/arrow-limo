@@ -1,6 +1,7 @@
+from typing import List
+
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
-from typing import List
 
 from ..db import get_connection
 
@@ -77,16 +78,27 @@ def allocate_banking_to_receipts(transaction_id: int, req: AllocationRequest):
         debit_amount = float(bt[2] or 0.0)
         total_alloc = round(sum(a.amount for a in req.allocations), 2)
         if total_alloc <= 0:
-            return {"status": "error", "error": "total_allocation_must_be_positive"}
+            return {
+                "status": "error",
+                "error": "total_allocation_must_be_positive",
+            }
 
         # Allow small tolerance in matching; do not exceed debit by more than $0.50
         if total_alloc - debit_amount > 0.50:
-            return {"status": "error", "error": "allocations_exceed_debit", "debit_amount": debit_amount, "total_allocations": total_alloc}
+            return {
+                "status": "error",
+                "error": "allocations_exceed_debit",
+                "debit_amount": debit_amount,
+                "total_allocations": total_alloc,
+            }
 
         # Apply idempotently
         for a in req.allocations:
             # Link receipt to banking transaction
-            cur.execute("UPDATE receipts SET banking_transaction_id=%s WHERE receipt_id=%s", (transaction_id, a.receipt_id))
+            cur.execute(
+                "UPDATE receipts SET banking_transaction_id=%s WHERE receipt_id=%s",
+                (transaction_id, a.receipt_id),
+            )
 
             # Insert ledger row if not present
             cur.execute(
@@ -98,10 +110,8 @@ def allocate_banking_to_receipts(transaction_id: int, req: AllocationRequest):
                 cur.execute(
                     """
                     INSERT INTO banking_receipt_matching_ledger (
-                        banking_transaction_id, receipt_id, match_date, match_type, match_status, match_confidence, notes, created_by
-                    ) VALUES (
-                        %s, %s, NOW(), %s, %s, %s, %s, %s
-                    )
+                        banking_transaction_id, receipt_id, match_date, match_type, match_status, match_confidence, notes, created_by) VALUES (
+                        %s, %s, NOW(), %s, %s, %s, %s, %s)
                     """,
                     (
                         transaction_id,
@@ -121,7 +131,12 @@ def allocate_banking_to_receipts(transaction_id: int, req: AllocationRequest):
                 )
 
         conn.commit()
-        return {"status": "ok", "transaction_id": transaction_id, "total_allocations": total_alloc, "debit_amount": debit_amount}
+        return {
+            "status": "ok",
+            "transaction_id": transaction_id,
+            "total_allocations": total_alloc,
+            "debit_amount": debit_amount,
+        }
     except Exception as e:
         conn.rollback()
         return {"status": "error", "error": str(e)}

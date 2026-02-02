@@ -8,7 +8,6 @@ import Employees from './views/Employees.vue'
 import Customers from './views/Customers.vue'
 import Accounting from './views/Accounting.vue'
 import Reports from './views/Reports.vue'
-import Documents from './views/Documents.vue'
 import OweDavid from './views/OweDavid.vue'
 import Admin from './views/Admin.vue'
 import Drivers from './views/Drivers.vue'
@@ -16,6 +15,7 @@ import DriverHOSLog from './views/DriverHOSLog.vue'
 import ReceiptsView from './views/ReceiptsView.vue'
 import BookingPage from './views/BookingPage.vue'
 import QuoteGenerator from './views/QuoteGenerator.vue'
+import TableManagement from './views/TableManagement.vue'
 
 const routes = [
   {
@@ -39,9 +39,9 @@ const routes = [
   { path: '/accounting', component: Accounting, meta: { requiresAuth: true } },
   { path: '/receipts', component: ReceiptsView, meta: { requiresAuth: true } },
   { path: '/reports', component: Reports, meta: { requiresAuth: true } },
-  { path: '/documents', component: Documents, meta: { requiresAuth: true } },
   { path: '/owe-david', component: OweDavid, meta: { requiresAuth: true } },
   { path: '/admin', component: Admin, meta: { requiresAuth: true } },
+  { path: '/table-management', component: TableManagement, meta: { requiresAuth: true } },
   { path: '/drivers', component: Drivers, meta: { requiresAuth: true } },
   { path: '/driver-hos', component: DriverHOSLog, meta: { requiresAuth: true } },
   { path: '/booking', component: BookingPage, meta: { requiresAuth: true } }
@@ -57,11 +57,16 @@ router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('auth_token')
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   
+  // If trying to access protected route without token, redirect to login
   if (requiresAuth && !token) {
     next('/login')
-  } else if (to.path === '/login' && token) {
+  } 
+  // If already logged in and trying to access login page, go to home
+  else if (to.path === '/login' && token) {
     next('/')
-  } else {
+  } 
+  // Otherwise, proceed normally
+  else {
     next()
   }
 })

@@ -124,7 +124,19 @@ render.yaml
 
 # Logs
 *.log
+*.jsonl
+error_log.jsonl
 logs/
+
+# Temporary test/check files
+check_*.py
+tmp_*.py
+test_*.py
+
+# Migration and output directories
+migration_output/
+output.txt
+output/
 
 # Archives
 *.zip

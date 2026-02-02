@@ -1,6 +1,7 @@
+from typing import Optional
+
 from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import Optional
 
 from ..db import get_connection
 
@@ -58,12 +59,17 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
 
         total, amt_col = _choose_amount_and_column(row)
         if total <= 0.0:
-            return {"status": "skip", "reason": "no_amount_to_split", "receipt_id": receipt_id}
+            return {
+                "status": "skip",
+                "reason": "no_amount_to_split",
+                "receipt_id": receipt_id,
+            }
 
         # Base amount: override if provided, else try parse from description numbers
         base = req.base_amount
         if base is None:
             import re
+
             nums = re.findall(r"([0-9]+\.[0-9]{2})", (row["description"] or "").lower())
             if nums:
                 # pick the largest number assumption for base
@@ -73,17 +79,27 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
                     base = None
 
         if base is None:
-            return {"status": "needs_input", "reason": "base_amount_required", "receipt_id": receipt_id}
+            return {
+                "status": "needs_input",
+                "reason": "base_amount_required",
+                "receipt_id": receipt_id,
+            }
 
         fee = round(total - base, 2)
         if fee <= 0.0:
-            return {"status": "skip", "reason": "no_positive_fee", "receipt_id": receipt_id, "base": base, "total": total}
+            return {
+                "status": "skip",
+                "reason": "no_positive_fee",
+                "receipt_id": receipt_id,
+                "base": base,
+                "total": total,
+            }
 
         # Idempotency: look for an existing child with signature
         signature = f"AUTO_SPLIT_FEE|parent={receipt_id}|fee={fee:.2f}"
         cur.execute(
             "SELECT receipt_id FROM receipts WHERE description LIKE %s AND (LOWER(vendor_name)=LOWER(%s) OR LOWER(canonical_vendor)=LOWER(%s))",
-            (signature + '%', row["vendor_name"], row["vendor_name"]),
+            (signature + "%", row["vendor_name"], row["vendor_name"]),
         )
         existing = cur.fetchone()
         fee_id = None
@@ -92,12 +108,14 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
                 """
                 INSERT INTO receipts (
                     vendor_name, canonical_vendor, vendor_account_id,
-                    receipt_date, expense, description, parent_receipt_id, gl_account_code
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING receipt_id
+                    receipt_date, expense, description, parent_receipt_id, gl_account_code) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING receipt_id
                 """,
                 (
-                    row["vendor_name"], row["canonical_vendor"], row["vendor_account_id"],
-                    row["receipt_date"], fee,
+                    row["vendor_name"],
+                    row["canonical_vendor"],
+                    row["vendor_account_id"],
+                    row["receipt_date"],
+                    fee,
                     signature + " | OD/Late fee",
                     receipt_id,
                     row["gl_account_code"],
@@ -108,10 +126,17 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
         # Update parent amount column to base AND mark as split (parent_receipt_id points to itself)
         cur.execute(
             f"UPDATE receipts SET {amt_col}=%s, parent_receipt_id=%s WHERE receipt_id=%s",
-            (base, receipt_id, receipt_id)
+            (base, receipt_id, receipt_id),
         )
         conn.commit()
-        return {"status": "ok", "receipt_id": receipt_id, "base": base, "fee": fee, "fee_receipt_id": fee_id, "amount_column": amt_col}
+        return {
+            "status": "ok",
+            "receipt_id": receipt_id,
+            "base": base,
+            "fee": fee,
+            "fee_receipt_id": fee_id,
+            "amount_column": amt_col,
+        }
     except Exception as e:
         conn.rollback()
         return {"status": "error", "error": str(e)}

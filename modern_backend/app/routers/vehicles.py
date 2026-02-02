@@ -2,6 +2,7 @@
 import os
 import shutil
 from pathlib import Path
+
 from fastapi import APIRouter, HTTPException
 
 from ..db import get_connection
@@ -17,7 +18,7 @@ def create_vehicle_folder(vehicle_number: str) -> Path:
     vehicle_folder = FILE_STORAGE_ROOT / "vehicles" / vehicle_number
     if vehicle_folder.exists():
         return vehicle_folder
-    
+
     template = FILE_STORAGE_ROOT / "vehicles" / "_TEMPLATE"
     if template.exists():
         shutil.copytree(template, vehicle_folder)
@@ -28,9 +29,8 @@ def create_vehicle_folder(vehicle_number: str) -> Path:
         (vehicle_folder / "inspections").mkdir(exist_ok=True)
         (vehicle_folder / "registration").mkdir(exist_ok=True)
         (vehicle_folder / "insurance").mkdir(exist_ok=True)
-    
-    return vehicle_folder
 
+    return vehicle_folder
 
 
 @router.get("/")
@@ -56,12 +56,16 @@ def list_vehicles():
         )
         vehicles = []
         for row in cur.fetchall():
-            vehicles.append({
-                "vehicle_id": row[0],
-                "vehicle_number": row[1],
-                "license_plate": row[2],
-                "display": f"{row[1]} ({row[2]})" if row[1] and row[2] else (row[1] or row[2] or "Unknown")
-            })
+            vehicles.append(
+                {
+                    "vehicle_id": row[0],
+                    "vehicle_number": row[1],
+                    "license_plate": row[2],
+                    "display": f"{row[1]} ({row[2]})"
+                    if row[1] and row[2]
+                    else (row[1] or row[2] or "Unknown"),
+                }
+            )
         return vehicles
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list vehicles: {e}")
@@ -86,12 +90,12 @@ def create_vehicle(vehicle_data: dict):
                 vehicle_data.get("vehicle_number"),
                 vehicle_data.get("license_plate"),
                 vehicle_data.get("vehicle_type"),
-                vehicle_data.get("is_active", True)
-            )
+                vehicle_data.get("is_active", True),
+            ),
         )
         vehicle_id = cur.fetchone()[0]
         conn.commit()
-        
+
         # Auto-create vehicle folder structure
         vehicle_number = vehicle_data.get("vehicle_number")
         if vehicle_number:
@@ -100,7 +104,7 @@ def create_vehicle(vehicle_data: dict):
             except Exception as folder_err:
                 # Log error but don't fail the vehicle creation
                 print(f"Warning: Failed to create vehicle folder: {folder_err}")
-        
+
         return {"vehicle_id": vehicle_id, "status": "created"}
     except Exception as e:
         conn.rollback()

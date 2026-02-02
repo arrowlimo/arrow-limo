@@ -2,8 +2,10 @@
 import os
 import shutil
 from pathlib import Path
-from fastapi import APIRouter, HTTPException
 from typing import List
+
+from fastapi import APIRouter, HTTPException
+
 from ..db import get_connection
 
 router = APIRouter(prefix="/api/employees", tags=["employees"])
@@ -17,7 +19,7 @@ def create_employee_folder(employee_id: int) -> Path:
     emp_folder = FILE_STORAGE_ROOT / "employees" / str(employee_id)
     if emp_folder.exists():
         return emp_folder
-    
+
     template = FILE_STORAGE_ROOT / "employees" / "_TEMPLATE"
     if template.exists():
         shutil.copytree(template, emp_folder)
@@ -28,15 +30,14 @@ def create_employee_folder(employee_id: int) -> Path:
         (emp_folder / "permits").mkdir(exist_ok=True)
         (emp_folder / "licenses").mkdir(exist_ok=True)
         (emp_folder / "documents").mkdir(exist_ok=True)
-    
-    return emp_folder
 
+    return emp_folder
 
 
 @router.get("/")
 def list_employees():
     """Return active employees (drivers and staff) with basic info.
-    
+
     Fields returned:
     - employee_id
     - first_name
@@ -49,7 +50,7 @@ def list_employees():
     try:
         cur.execute(
             """
-            SELECT 
+            SELECT
                 employee_id,
                 first_name,
                 last_name,
@@ -64,20 +65,23 @@ def list_employees():
             first_name = row[1] or ""
             last_name = row[2] or ""
             display_name = f"{first_name} {last_name}".strip() or "Unknown"
-            
-            employees.append({
-                "employee_id": row[0],
-                "first_name": first_name,
-                "last_name": last_name,
-                "display": display_name,
-                "employee_type": row[3] or "unknown"
-            })
+
+            employees.append(
+                {
+                    "employee_id": row[0],
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "display": display_name,
+                    "employee_type": row[3] or "unknown",
+                }
+            )
         return employees
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list employees: {e}")
     finally:
         cur.close()
         conn.close()
+
 
 @router.get("/drivers")
 def list_drivers():
@@ -90,7 +94,7 @@ def list_drivers():
     try:
         cur.execute(
             """
-            SELECT 
+            SELECT
                 employee_id,
                 first_name,
                 last_name,
@@ -106,12 +110,14 @@ def list_drivers():
             first_name = row[1] or ""
             last_name = row[2] or ""
             display_name = f"{first_name} {last_name}".strip() or "Unknown"
-            drivers.append({
-                "employee_id": row[0],
-                "first_name": first_name,
-                "last_name": last_name,
-                "display": display_name,
-            })
+            drivers.append(
+                {
+                    "employee_id": row[0],
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "display": display_name,
+                }
+            )
         return drivers
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list drivers: {e}")
@@ -128,7 +134,7 @@ def get_employee(employee_id: int):
     try:
         cur.execute(
             """
-            SELECT 
+            SELECT
                 employee_id,
                 first_name,
                 last_name,
@@ -139,12 +145,14 @@ def get_employee(employee_id: int):
             FROM employees
             WHERE employee_id = %s
             """,
-            (employee_id,)
+            (employee_id,),
         )
         row = cur.fetchone()
         if not row:
-            raise HTTPException(status_code=404, detail=f"Employee {employee_id} not found")
-        
+            raise HTTPException(
+                status_code=404, detail=f"Employee {employee_id} not found"
+            )
+
         return {
             "employee_id": row[0],
             "first_name": row[1],
@@ -152,7 +160,7 @@ def get_employee(employee_id: int):
             "employee_type": row[3],
             "hire_date": row[4].isoformat() if row[4] else None,
             "email": row[5],
-            "phone": row[6]
+            "phone": row[6],
         }
     except HTTPException:
         raise
@@ -181,19 +189,19 @@ def create_employee(employee_data: dict):
                 employee_data.get("employee_category"),
                 employee_data.get("hire_date"),
                 employee_data.get("email"),
-                employee_data.get("phone")
-            )
+                employee_data.get("phone"),
+            ),
         )
         employee_id = cur.fetchone()[0]
         conn.commit()
-        
+
         # Auto-create employee folder structure
         try:
             folder = create_employee_folder(employee_id)
         except Exception as folder_err:
             # Log error but don't fail the employee creation
             print(f"Warning: Failed to create employee folder: {folder_err}")
-        
+
         return {"employee_id": employee_id, "status": "created"}
     except Exception as e:
         conn.rollback()

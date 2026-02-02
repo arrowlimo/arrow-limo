@@ -33,12 +33,12 @@ def _db_cursor():
 
 @router.get("/charters")
 def list_charters(
-    q: str | None = Query(default=None, description="Search by charter_id or client name"),
+    q: str
+    | None = Query(default=None, description="Search by charter_id or client name"),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
 ):
-    sql = (
-        """
+    sql = """
         SELECT c.charter_id, c.charter_date, COALESCE(cl.client_name, c.client_id::text) AS client,
                c.vehicle_booked_id, c.driver_name, c.status
         FROM charters c
@@ -47,7 +47,6 @@ def list_charters(
         ORDER BY c.charter_date DESC, c.charter_id DESC
         LIMIT %s OFFSET %s
         """
-    )
     where = ""
     params: list[Any] = []
     if q:
@@ -110,6 +109,7 @@ def update_charter(
 
 # ==================== CHARTER ROUTES ENDPOINTS ====================
 
+
 @router.get("/charters/{charter_id}/routes", response_model=list[CharterRoute])
 def get_charter_routes(
     charter_id: int = Path(..., description="Charter ID"),
@@ -117,10 +117,12 @@ def get_charter_routes(
     """Get all routes for a charter, ordered by sequence."""
     with _db_cursor() as cur:
         # Verify charter exists
-        cur.execute("SELECT charter_id FROM charters WHERE charter_id = %s", (charter_id,))
+        cur.execute(
+            "SELECT charter_id FROM charters WHERE charter_id = %s", (charter_id,)
+        )
         if not cur.fetchone():
             raise HTTPException(status_code=404, detail="charter_not_found")
-        
+
         cur.execute(
             """
             SELECT * FROM charter_routes 
@@ -161,10 +163,10 @@ def get_charter_with_routes(
         charter_row = cur.fetchone()
         if not charter_row:
             raise HTTPException(status_code=404, detail="charter_not_found")
-        
+
         charter_cols = [d[0] for d in (cur.description or [])]
         charter_data = dict(zip(charter_cols, charter_row, strict=False))
-        
+
         # Get all routes
         cur.execute(
             """
@@ -177,12 +179,14 @@ def get_charter_with_routes(
         route_rows = cur.fetchall()
         route_cols = [d[0] for d in (cur.description or [])]
         routes = [dict(zip(route_cols, r, strict=False)) for r in route_rows]
-        
+
     charter_data["routes"] = routes
     return charter_data
 
 
-@router.post("/charters/{charter_id}/routes", response_model=CharterRoute, status_code=201)
+@router.post(
+    "/charters/{charter_id}/routes", response_model=CharterRoute, status_code=201
+)
 def create_charter_route(
     charter_id: int = Path(..., description="Charter ID"),
     route: CharterRouteCreate = Body(...),
@@ -190,13 +194,15 @@ def create_charter_route(
     """Create a new route for a charter."""
     if route.charter_id != charter_id:
         raise HTTPException(status_code=400, detail="charter_id_mismatch")
-    
+
     with _db_cursor() as cur:
         # Verify charter exists
-        cur.execute("SELECT charter_id FROM charters WHERE charter_id = %s", (charter_id,))
+        cur.execute(
+            "SELECT charter_id FROM charters WHERE charter_id = %s", (charter_id,)
+        )
         if not cur.fetchone():
             raise HTTPException(status_code=404, detail="charter_not_found")
-        
+
         # Insert route
         cur.execute(
             """
@@ -227,7 +233,7 @@ def create_charter_route(
         )
         new_row = cur.fetchone()
         cols = [d[0] for d in (cur.description or [])]
-    
+
     return dict(zip(cols, new_row, strict=False))
 
 
@@ -241,10 +247,10 @@ def update_charter_route(
     route_dict = route.model_dump(exclude_unset=True)
     if not route_dict:
         raise HTTPException(status_code=400, detail="no_fields_to_update")
-    
+
     sets = ", ".join([f"{k} = %s" for k in route_dict.keys()])
     params: list[Any] = [*list(route_dict.values()), route_id, charter_id]
-    
+
     with _db_cursor() as cur:
         cur.execute(
             f"""
@@ -259,7 +265,7 @@ def update_charter_route(
         if not updated_row:
             raise HTTPException(status_code=404, detail="route_not_found")
         cols = [d[0] for d in (cur.description or [])]
-    
+
     return dict(zip(cols, updated_row, strict=False))
 
 
@@ -282,20 +288,24 @@ def delete_charter_route(
 @router.post("/charters/{charter_id}/routes/reorder", response_model=list[CharterRoute])
 def reorder_charter_routes(
     charter_id: int = Path(..., description="Charter ID"),
-    sequence_map: dict[int, int] = Body(..., description="Map of route_id to new sequence number"),
+    sequence_map: dict[int, int] = Body(
+        ..., description="Map of route_id to new sequence number"
+    ),
 ):
     """
     Reorder routes by providing a map of route_id -> new_sequence.
     Automatically handles sequence conflicts by renumbering atomically.
-    
+
     Example: {"123": 1, "124": 2, "125": 3}
     """
     with _db_cursor() as cur:
         # Verify charter exists
-        cur.execute("SELECT charter_id FROM charters WHERE charter_id = %s", (charter_id,))
+        cur.execute(
+            "SELECT charter_id FROM charters WHERE charter_id = %s", (charter_id,)
+        )
         if not cur.fetchone():
             raise HTTPException(status_code=404, detail="charter_not_found")
-        
+
         # Verify all route_ids belong to this charter
         route_ids = list(sequence_map.keys())
         cur.execute(
@@ -305,7 +315,7 @@ def reorder_charter_routes(
         found_ids = {row[0] for row in cur.fetchall()}
         if found_ids != set(route_ids):
             raise HTTPException(status_code=400, detail="invalid_route_ids")
-        
+
         # Temporarily set sequences to high values to avoid conflicts
         # Using route_id + 100000 ensures no overlap with valid sequences
         for route_id in route_ids:
@@ -313,14 +323,14 @@ def reorder_charter_routes(
                 "UPDATE charter_routes SET route_sequence = %s WHERE route_id = %s",
                 (route_id + 100000, route_id),
             )
-        
+
         # Now apply the new sequences
         for route_id, new_seq in sequence_map.items():
             cur.execute(
                 "UPDATE charter_routes SET route_sequence = %s WHERE route_id = %s",
                 (new_seq, route_id),
             )
-        
+
         # Return updated routes in order
         cur.execute(
             "SELECT * FROM charter_routes WHERE charter_id = %s ORDER BY route_sequence",
@@ -328,6 +338,5 @@ def reorder_charter_routes(
         )
         rows = cur.fetchall()
         cols = [d[0] for d in (cur.description or [])]
-    
-    return [dict(zip(cols, r, strict=False)) for r in rows]
 
+    return [dict(zip(cols, r, strict=False)) for r in rows]
