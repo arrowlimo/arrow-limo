@@ -16,6 +16,8 @@ import ReceiptsView from './views/ReceiptsView.vue'
 import BookingPage from './views/BookingPage.vue'
 import QuoteGenerator from './views/QuoteGenerator.vue'
 import TableManagement from './views/TableManagement.vue'
+import ChequeBookManagement from './views/ChequeBookManagement.vue'
+import ReceivedPayments from './views/ReceivedPayments.vue'
 
 const routes = [
   {
@@ -42,6 +44,8 @@ const routes = [
   { path: '/owe-david', component: OweDavid, meta: { requiresAuth: true } },
   { path: '/admin', component: Admin, meta: { requiresAuth: true } },
   { path: '/table-management', component: TableManagement, meta: { requiresAuth: true } },
+  { path: '/cheque-books', component: ChequeBookManagement, meta: { requiresAuth: true } },
+  { path: '/received-payments', component: ReceivedPayments, meta: { requiresAuth: true } },
   { path: '/drivers', component: Drivers, meta: { requiresAuth: true } },
   { path: '/driver-hos', component: DriverHOSLog, meta: { requiresAuth: true } },
   { path: '/booking', component: BookingPage, meta: { requiresAuth: true } }

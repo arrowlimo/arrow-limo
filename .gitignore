@@ -86,6 +86,7 @@ reports/*.txt
 reports/*.md
 data/*.csv
 data/*.json
+temp/
 scripts/tmp_*.py
 SESSION_LOG_*.md
 SESSION_CONTEXT_URGENT.md

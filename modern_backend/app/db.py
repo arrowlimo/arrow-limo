@@ -4,8 +4,27 @@ from contextlib import contextmanager, suppress
 
 import psycopg2
 
+_LOGGED_DB_TARGET = False
+
+
+def _log_db_target_once():
+    global _LOGGED_DB_TARGET
+    if _LOGGED_DB_TARGET:
+        return
+    _LOGGED_DB_TARGET = True
+    target = os.environ.get("DB_TARGET", "neon")
+    host = os.environ.get("DB_HOST", "localhost")
+    name = os.environ.get("DB_NAME", "almsdata")
+    user = os.environ.get("DB_USER", "postgres")
+    sslmode = os.environ.get("DB_SSLMODE") or "none"
+    print(
+        f"[DB TARGET] target={target} host={host} db={name} user={user} sslmode={sslmode}",
+        flush=True,
+    )
+
 
 def get_connection():
+    _log_db_target_once()
     return psycopg2.connect(
         host=os.environ.get("DB_HOST", "localhost"),
         port=int(os.environ.get("DB_PORT", "5432")),

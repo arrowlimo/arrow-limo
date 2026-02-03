@@ -1,8 +1,9 @@
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Path, Query, status
 
 from ..db import cursor
+from ..utils.locked_charter import enforce_charter_not_locked
 
 router = APIRouter(prefix="/api", tags=["bookings"])
 
@@ -210,6 +211,11 @@ def search_bookings(
 @router.patch("/bookings/{charter_id}")
 def update_booking(charter_id: int = Path(...), payload: dict[str, Any] | None = None):
     payload = payload or {}
+    
+    # Check if charter is locked
+    with cursor() as cur:
+        enforce_charter_not_locked(charter_id, cur)
+    
     allowed_fields = [
         "vehicle_booked_id",
         "vehicle_number",

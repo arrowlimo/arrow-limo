@@ -167,6 +167,14 @@ app.include_router(pricing_router.router)
 app.include_router(charter_sheet_router.router)
 app.include_router(file_storage_router.router)  # File storage with role-based access
 
+# Import and include cheque books router
+from app.routes import cheque_books as cheque_books_router
+app.include_router(cheque_books_router.router)  # Cheque book management
+
+# Import and include received payments router
+from app.routes import received_payments as received_payments_router
+app.include_router(received_payments_router.router)  # Record received payments
+
 # Mount Vue frontend at root LAST (after all API routes are registered)
 DIST_DIR = str(
     os.path.abspath(

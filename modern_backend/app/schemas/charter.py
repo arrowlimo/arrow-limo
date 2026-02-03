@@ -35,6 +35,7 @@ class CharterBase(BaseModel):
     payment_totals: Optional[float] = None
     status: Optional[str] = None
     cancelled: Optional[bool] = False
+    locked: Optional[bool] = False
     notes: Optional[str] = None
 
     # Driver/Client notes
@@ -155,6 +156,7 @@ class CharterUpdate(BaseModel):
     reserve_number: Optional[str] = None
     status: Optional[str] = None
     cancelled: Optional[bool] = None
+    locked: Optional[bool] = None
     driver_paid: Optional[bool] = None
     # ... include any fields you want to allow updating
 

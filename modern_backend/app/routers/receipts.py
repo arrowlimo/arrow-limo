@@ -41,6 +41,8 @@ class ReceiptUpdate(BaseModel):
     category: Optional[str] = None  # Deprecated, use gl_account_code
     description: Optional[str] = None
     vehicle_id: Optional[int] = None
+    receipt_review_status: Optional[str] = None  # verified, missing, unreadable, data-error
+    receipt_review_notes: Optional[str] = None
 
 
 class ReceiptResponse(BaseModel):
@@ -306,15 +308,38 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
         if receipt.vehicle_id is not None:
             updates.append("vehicle_id = %s")
             params.append(receipt.vehicle_id)
+        if receipt.receipt_review_status is not None:
+            # Validate status
+            valid_statuses = ['verified', 'missing', 'unreadable', 'data-error']
+            if receipt.receipt_review_status not in valid_statuses:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid review status. Must be one of: {', '.join(valid_statuses)}"
+                )
+            updates.append("receipt_review_status = %s")
+            params.append(receipt.receipt_review_status)
+        if receipt.receipt_review_notes is not None:
+            updates.append("receipt_review_notes = %s")
+            params.append(receipt.receipt_review_notes)
 
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")
 
-        # AUTO-VERIFY: Mark receipt as verified when edited
+        # AUTO-VERIFY: Mark receipt as reviewed when saved (unless explicitly set to other status)
+        if receipt.receipt_review_status is None:
+            # Default to 'verified' if user is editing/saving without specifying status
+            updates.append("receipt_review_status = 'verified'")
+        
+        # Always update review timestamp and user when saving
+        updates.append("receipt_reviewed_at = NOW()")
+        updates.append("receipt_reviewed_by = %s")
+        params.append("web_user")  # Can be customized with actual user auth
+        
+        # Keep legacy verified_by_edit for backwards compatibility
         updates.append("verified_by_edit = TRUE")
         updates.append("verified_at = NOW()")
         updates.append("verified_by_user = %s")
-        params.append("api_user")  # Can be overridden if user auth is implemented
+        params.append("api_user")
 
         params.append(receipt_id)
         query = f"UPDATE receipts SET {', '.join(updates)} WHERE receipt_id = %s"
