@@ -158,6 +158,9 @@ move/
 # SECURITY RISK: Customer payment data with PII
 PAYMENT-CHARTER-MATCHING/
 **/matching-report-*.json
+audit_reports/
+manual_review/
+banking_data/
 
 # QuickBooks files
 *.qbw
