@@ -2,6 +2,30 @@
   <div>
     <h1>Accounting Dashboard</h1>
     
+    <!-- Year Filter -->
+    <div class="year-filter">
+      <label for="working-year">📅 Working Year:</label>
+      <select id="working-year" v-model="workingYear" @change="onYearChange" class="year-select">
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+        <option value="2022">2022</option>
+        <option value="2021">2021</option>
+        <option value="2020">2020</option>
+        <option value="2019">2019</option>
+        <option value="2018">2018</option>
+        <option value="2017">2017</option>
+        <option value="2016">2016</option>
+        <option value="2015">2015</option>
+        <option value="2014">2014</option>
+        <option value="2013">2013</option>
+        <option value="2012">2012</option>
+        <option value="all">All Years (Slow)</option>
+      </select>
+      <span v-if="dataLoaded" class="data-info">{{ receipts.length }} receipts loaded</span>
+    </div>
+    
     <!-- Financial Overview Stats -->
     <div class="accounting-stats">
       <div class="stat-card revenue">
@@ -28,22 +52,34 @@
 
     <!-- Quick Actions -->
     <div class="quick-actions">
-      <button @click="activeTab = 'invoices'" :class="{ active: activeTab === 'invoices' }" class="action-btn">
+      <button @click="activeTab = 'banking'; ensureDataLoaded()" :class="{ active: activeTab === 'banking' }" class="action-btn">
+        🏦 Banking Deposits
+      </button>
+      <button @click="activeTab = 'invoices'; ensureDataLoaded()" :class="{ active: activeTab === 'invoices' }" class="action-btn">
         📄 Invoices
       </button>
-      <button @click="activeTab = 'receipts'" :class="{ active: activeTab === 'receipts' }" class="action-btn">
+      <button @click="activeTab = 'receipts'; ensureDataLoaded()" :class="{ active: activeTab === 'receipts' }" class="action-btn">
         🧾 Receipts & Expenses
       </button>
-      <button @click="activeTab = 'gst'" :class="{ active: activeTab === 'gst' }" class="action-btn">
+      <button @click="activeTab = 'gst'; ensureDataLoaded()" :class="{ active: activeTab === 'gst' }" class="action-btn">
         💰 GST Management
       </button>
-      <button @click="activeTab = 'reports'" :class="{ active: activeTab === 'reports' }" class="action-btn">
+      <button @click="activeTab = 'reports'; ensureDataLoaded()" :class="{ active: activeTab === 'reports' }" class="action-btn">
         📊 Financial Reports
       </button>
     </div>
 
+    <!-- Banking Deposits Tab -->
+    <div v-if="activeTab === 'banking'">
+      <BankingDeposits />
+    </div>
+
     <!-- Invoices Tab -->
     <div v-if="activeTab === 'invoices'" class="accounting-section">
+      <div v-if="isLoading" class="loading-indicator">
+        <div class="spinner"></div>
+        <p>Loading accounting data...</p>
+      </div>
       <h2>Invoice Management</h2>
       <div class="invoice-filters">
         <input v-model="invoiceSearch" placeholder="Search invoices..." />
@@ -93,6 +129,10 @@
 
     <!-- Receipts & Expenses Tab -->
     <div v-if="activeTab === 'receipts'" class="accounting-section">
+      <div v-if="isLoading" class="loading-indicator">
+        <div class="spinner"></div>
+        <p>Loading receipts...</p>
+      </div>
       <h2>Receipts & Expense Management</h2>
       <div class="receipt-actions">
         <button @click="showReceiptForm = !showReceiptForm" class="btn-primary">
@@ -154,16 +194,9 @@
                   <label>GL Account</label>
                   <select v-model="component.gl_account_code" required>
                     <option value="">Select GL Account</option>
-                    <option value="5110">5110 - Vehicle Fuel</option>
-                    <option value="6925">6925 - Fuel Expense</option>
-                    <option value="5120">5120 - Vehicle Maintenance</option>
-                    <option value="6300">6300 - Insurance</option>
-                    <option value="6310">6310 - Office Supplies</option>
-                    <option value="6350">6350 - Meals & Entertainment</option>
-                    <option value="9999">9999 - Personal (Non-Deductible)</option>
-                    <option value="4200">4200 - Rebate/Discount</option>
-                    <option value="1010">1010 - Cash Account</option>
-                    <option value="6900">6900 - Other Expenses</option>
+                    <option v-for="account in glAccounts" :key="account.account_code" :value="account.account_code">
+                      {{ account.account_code }} - {{ account.account_name }}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -198,14 +231,9 @@
               <label>GL Account</label>
               <select v-model="newReceipt.gl_account_code" required>
                 <option value="">Select GL Account</option>
-                <option value="5110">5110 - Vehicle Fuel</option>
-                <option value="6925">6925 - Fuel Expense</option>
-                <option value="5120">5120 - Vehicle Maintenance</option>
-                <option value="6300">6300 - Insurance</option>
-                <option value="6310">6310 - Office Supplies</option>
-                <option value="6350">6350 - Meals & Entertainment</option>
-                <option value="6400">6400 - Professional Services</option>
-                <option value="6900">6900 - Other Expenses</option>
+                <option v-for="account in glAccounts" :key="account.account_code" :value="account.account_code">
+                  {{ account.account_code }} - {{ account.account_name }}
+                </option>
               </select>
             </div>
             <div class="form-group">
@@ -307,15 +335,18 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import ReceiptVerificationWidget from '../components/ReceiptVerificationWidget.vue'
+import BankingDeposits from '../components/BankingDeposits.vue'
 
-const activeTab = ref('invoices')
+const activeTab = ref('banking')
 const showReceiptForm = ref(false)
 const splitMode = ref(false)
 const splitComponents = ref([{ amount: 0, gl_account_code: '', description: '', is_personal: false }])
+const glAccounts = ref([])
 const invoiceSearch = ref('')
 const invoiceStatusFilter = ref('')
 const invoiceDateFilter = ref('')
 const selectedGstPeriod = ref('current')
+const workingYear = ref('2026') // Default to current year
 
 const stats = ref({
   monthlyRevenue: 0,
@@ -327,6 +358,8 @@ const stats = ref({
 
 const invoices = ref([])
 const receipts = ref([])
+const dataLoaded = ref(false)
+const isLoading = ref(false)
 
 const newReceipt = ref({
   date: '',
@@ -386,9 +419,27 @@ const filteredInvoices = computed(() => {
 })
 
 async function loadAccountingData() {
+  if (dataLoaded.value) return; // Don't reload if already loaded
+  isLoading.value = true;
   try {
-    // Fetch receipts from backend API
-    const receiptsResp = await fetch('http://127.0.0.1:8001/api/receipts-simple/?limit=500');
+    // Build query with year filter for much faster loading
+    let query = 'http://127.0.0.1:8001/api/receipts-simple/';
+    const params = [];
+    
+    if (workingYear.value !== 'all') {
+      params.push(`start_date=${workingYear.value}-01-01`);
+      params.push(`end_date=${workingYear.value}-12-31`);
+      params.push('limit=1000'); // Can load more when filtered by year
+    } else {
+      params.push('limit=100'); // Limit for all years
+    }
+    
+    if (params.length > 0) {
+      query += '?' + params.join('&');
+    }
+    
+    // Fetch receipts from backend API with year filter
+    const receiptsResp = await fetch(query);
     if (!receiptsResp.ok) throw new Error('Failed to fetch receipts');
     const receiptsData = await receiptsResp.json();
     // Map backend fields to frontend expected fields
@@ -439,8 +490,11 @@ async function loadAccountingData() {
       collected: 0,
       paid: 0
     };
+    dataLoaded.value = true;
   } catch (error) {
     console.error('Error loading accounting data:', error);
+  } finally {
+    isLoading.value = false;
   }
 }
 
@@ -551,7 +605,7 @@ function toggleSplitMode() {
 function addSplitComponent() {
   splitComponents.value.push({ 
     amount: 0, 
-    category: '', 
+    gl_account_code: '', 
     description: '', 
     is_personal: false 
   })
@@ -590,12 +644,96 @@ function generateReport(reportType) {
   // TODO: Generate and download report
 }
 
+async function loadGLAccounts() {
+  try {
+    const response = await fetch('http://127.0.0.1:8001/api/table-management/chart-of-accounts')
+    if (response.ok) {
+      const accounts = await response.json()
+      glAccounts.value = accounts.filter(acc => acc.is_active)
+    } else {
+      console.error('Failed to load GL accounts:', response.statusText)
+      // Fallback to basic accounts if API fails
+      glAccounts.value = [
+        { account_code: '5110', account_name: 'Vehicle Fuel' },
+        { account_code: '5120', account_name: 'Vehicle Maintenance' },
+        { account_code: '6300', account_name: 'Insurance' },
+        { account_code: '6900', account_name: 'Other Expenses' }
+      ]
+    }
+  } catch (error) {
+    console.error('Error loading GL accounts:', error)
+    // Fallback to basic accounts if API fails
+    glAccounts.value = [
+      { account_code: '5110', account_name: 'Vehicle Fuel' },
+      { account_code: '5120', account_name: 'Vehicle Maintenance' },
+      { account_code: '6300', account_name: 'Insurance' },
+      { account_code: '6900', account_name: 'Other Expenses' }
+    ]
+  }
+}
+
+// Lazy load data only when needed
+function ensureDataLoaded() {
+  if (!dataLoaded.value && !isLoading.value) {
+    loadAccountingData();
+  }
+}
+
+// Reload data when year changes
+function onYearChange() {
+  dataLoaded.value = false;
+  receipts.value = [];
+  invoices.value = [];
+  if (activeTab.value !== 'banking') {
+    loadAccountingData();
+  }
+}
+
 onMounted(() => {
-  loadAccountingData()
+  loadGLAccounts();
+  // Don't load receipts/invoices until tab is clicked
 })
 </script>
 
 <style scoped>
+.year-filter {
+  background: white;
+  border-radius: 8px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.year-filter label {
+  font-weight: 600;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.year-select {
+  padding: 8px 15px;
+  border: 2px solid #007bff;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  background: white;
+  cursor: pointer;
+  color: #333;
+}
+
+.year-select:hover {
+  background: #f8f9fa;
+}
+
+.data-info {
+  color: #666;
+  font-size: 0.9rem;
+  margin-left: auto;
+}
+
 .accounting-stats {
   display: flex;
   gap: 20px;
@@ -1024,5 +1162,34 @@ h2 {
   margin-top: 30px;
   padding-top: 30px;
   border-top: 1px solid #ddd;
+}
+
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-indicator p {
+  font-size: 1.1rem;
+  margin: 0;
 }
 </style>
