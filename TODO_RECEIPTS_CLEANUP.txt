@@ -1,0 +1,190 @@
+================================================================================
+TO-DO LIST - RECEIPTS CLEANUP PROJECT
+Last Updated: February 14, 2026 - 1:30 PM
+================================================================================
+
+IMMEDIATE - AFTER REBOOT (Before continuing work):
+═══════════════════════════════════════════════════════════════════════════════
+
+□ 1. INSTALL BROTHER PRINTER DRIVER
+     Status: CRITICAL - Required for printing
+     Steps:
+       a) Brother download page in browser (or go to support.brother.com)
+       b) Download "Full Driver & Software Package" for HL-L2465DW
+       c) Run installer as Administrator
+       d) Select USB connection type
+       e) Driver will auto-detect printer
+     Expected time: 5-10 minutes
+
+□ 2. TEST PRINTER
+     Status: Required before printing reports
+     Steps:
+       a) Windows Settings → Printers
+       b) Find "Brother HL-L2465DW"
+       c) Click "Print test page"
+       d) Verify page prints correctly
+     Expected time: 1 minute
+
+□ 3. PRINT 2012 RECEIPTS REPORT
+     Status: Completed work, ready to print
+     File: l:\limo\2012_Receipts_Report_Verified.pdf
+     Pages: 19 pages
+     Content: 734 verified receipts, $542,047.75
+     Steps:
+       a) Open PDF file
+       b) Ctrl+P to print
+       c) Select Brother HL-L2465DW Printer
+       d) Click Print
+
+COMPLETED TODAY ✅:
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Deleted 39 orphaned bank fee receipts (CHEQUE reconciliation artifacts)
+✅ Matched all 2012 receipts to banking transactions (100% verification)
+✅ Deleted 1,100 unverified QuickBooks import duplicates
+✅ Generated clean 2012 report (734 receipts, 19 pages)
+✅ Created PDF report ready for printing
+✅ Identified printer driver issue
+✅ All changes committed to database
+✅ Backup tables created
+
+NEXT WORK SESSION - RECEIPTS CLEANUP:
+═══════════════════════════════════════════════════════════════════════════════
+
+□ 4. VERIFY 2013-2025 RECEIPTS BANKING LINKS
+     Status: Not started
+     Priority: HIGH
+     Description:
+       - Apply same verification process as 2012
+       - Match receipts to banking_transactions by date + amount
+       - Identify unlinked receipts (QuickBooks artifacts)
+       - Delete unverified duplicates
+     Expected: ~10,000-15,000 receipts to review
+     Estimated time: 2-4 hours
+
+□ 5. REVIEW FLAGGED RECEIPTS (8,277 receipts)
+     Status: Not started
+     Priority: MEDIUM
+     Description:
+       - Review receipts with needs_review = TRUE
+       - Check alternate_gl_code assignments
+       - Determine correct GL code
+       - Update gl_account_code
+       - Clear needs_review flag
+     Key categories:
+       - Driver Expense: 2,831 receipts (GL 5500 vs 6400)
+       - Unknown: 3,138 receipts (GL 6900 - needs categorization)
+       - Banking Transaction: 752 receipts (GL 6900)
+       - Vehicle Rental/Maintenance: 253 receipts (GL 5200 vs 5300)
+     Estimated time: 4-6 hours
+
+□ 6. CATEGORIZE UNKNOWN RECEIPTS (3,138 receipts, $1.4M)
+     Status: Not started
+     Priority: MEDIUM
+     Description:
+       - Review vendor names
+       - Check banking transaction descriptions
+       - Assign proper categories
+       - Goal: Reduce Unknown to <5%
+     Estimated time: 2-3 hours
+
+□ 7. BANK FEE TRACKING - ALL YEARS
+     Status: Partially complete (2012 done)
+     Priority: MEDIUM
+     Description:
+       - Verify bank fees for 2013-2025
+       - Ensure all banking transactions have receipts
+       - Link all receipts to banking_transaction_id
+       - Goal: 100% coverage like 2012
+     Estimated time: 1-2 hours
+
+FUTURE WORK - LOWER PRIORITY:
+═══════════════════════════════════════════════════════════════════════════════
+
+□ 8. ANALYZE CREDIT CATEGORY RECEIPTS
+     Status: Not started
+     Priority: LOW
+     Description: Review remaining "credit" category receipts to ensure
+                  they're legitimate credits vs processor settlement artifacts
+
+□ 9. VENDOR NAME STANDARDIZATION
+     Status: Not started
+     Priority: LOW
+     Description: Consolidate similar vendor names
+                  (e.g., "RUN'N ON EMPTY" vs "Run'N On Empty")
+
+□ 10. SPLIT RECEIPT VERIFICATION
+      Status: Not started
+      Priority: LOW
+      Description: Verify split_group_id assignments are correct
+
+FILES CREATED THIS SESSION:
+═══════════════════════════════════════════════════════════════════════════════
+
+Reports:
+  ✅ l:\limo\2012_Receipts_Report_Verified.pdf (3.7 MB, 19 pages)
+  ✅ l:\limo\2012_receipts_by_vendor.html
+  ✅ l:\limo\2012_receipts_by_vendor_report.txt
+  ✅ l:\limo\print_test_page.html
+  ✅ l:\limo\print_test_page.txt
+
+Scripts:
+  ✅ l:\limo\verify_and_delete_orphaned_bank_fees.py
+  ✅ l:\limo\match_2012_receipts_to_banking.py
+  ✅ l:\limo\delete_unlinked_2012_receipts.py
+  ✅ l:\limo\check_2012_banking_links.py
+  ✅ l:\limo\check_2012_manual_entries.py
+  ✅ l:\limo\generate_2012_receipts_html.py
+  ✅ l:\limo\report_2012_receipts_by_vendor.py
+  ✅ l:\limo\check_deleted_receipts_keywords.py
+  ✅ l:\limo\get_backup_table_columns.py
+
+Status:
+  ✅ l:\limo\SESSION_STATUS_20260214.txt (this file's companion)
+
+DATABASE BACKUP TABLES:
+═══════════════════════════════════════════════════════════════════════════════
+
+  ✅ receipts_backup_orphaned_bankfees_20260214_121505 (39 receipts)
+  ✅ receipts_backup_2012_unlinked_20260214_125635 (1,100 receipts)
+
+CURRENT DATABASE STATE:
+═══════════════════════════════════════════════════════════════════════════════
+
+Total Receipts: 17,999
+2012 Receipts: 734 (100% verified ✅)
+Categorized: 15,795 (83.4%)
+Unknown: 3,138 (16.6%)
+GL Codes Assigned: 18,933 (100% before deletions)
+Flagged for Review: 8,277 (43.7%)
+Bank Fee Receipts: 1,489 (100% linked to banking)
+
+QUICK REFERENCE - KEY METRICS:
+═══════════════════════════════════════════════════════════════════════════════
+
+2012 Data (After Cleanup):
+  • Receipts: 734 (down from 1,834)
+  • Amount: $542,047.75 (down from $1,067,066.95)
+  • GST: $16,543.72
+  • Banking Link: 100% ✅
+  • Deleted: 1,100 unverified receipts ($525,019.20)
+
+All Data:
+  • Total Receipts: 17,999
+  • Categorization: 83.4%
+  • GL Code Coverage: 100%
+  • Review Needed: 8,277 receipts
+
+NOTES:
+═══════════════════════════════════════════════════════════════════════════════
+
+• All database changes COMMITTED ✅
+• Safe to reboot - no uncommitted work
+• Brother printer driver download page may still be open in browser
+• PDF report open in Acrobat (can close)
+• Print queue has been cleared
+
+================================================================================
+AFTER REBOOT: Start with items #1-3 above (Install driver, test, print)
+RESUME WORK: Continue with item #4 (Verify 2013-2025 receipts)
+================================================================================

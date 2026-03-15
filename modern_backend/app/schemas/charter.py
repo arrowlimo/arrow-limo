@@ -4,7 +4,7 @@ Charter model - Comprehensive schema matching database
 
 from datetime import date, datetime, time
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -20,128 +20,128 @@ class CharterBase(BaseModel):
     """Base charter fields"""
 
     reserve_number: str
-    account_number: Optional[str] = None
-    client_id: Optional[int] = None
-    charter_date: Optional[date] = None
-    pickup_time: Optional[time] = None
-    pickup_address: Optional[str] = None
-    dropoff_address: Optional[str] = None
-    passenger_count: Optional[int] = None
-    vehicle: Optional[str] = None
-    driver: Optional[str] = None
-    rate: Optional[float] = None
-    driver_paid: Optional[bool] = False
-    balance: Optional[float] = None
-    payment_totals: Optional[float] = None
-    status: Optional[str] = None
-    cancelled: Optional[bool] = False
-    locked: Optional[bool] = False
-    notes: Optional[str] = None
+    account_number: str | None = None
+    client_id: int | None = None
+    charter_date: date | None = None
+    pickup_time: time | None = None
+    pickup_address: str | None = None
+    dropoff_address: str | None = None
+    passenger_count: int | None = None
+    vehicle: str | None = None
+    driver: str | None = None
+    rate: float | None = None
+    driver_paid: bool | None = False
+    balance: float | None = None
+    payment_totals: float | None = None
+    status: str | None = None
+    cancelled: bool | None = False
+    locked: bool | None = False
+    notes: str | None = None
 
     # Driver/Client notes
-    assigned_driver_id: Optional[int] = None
-    driver_notes: Optional[str] = None
-    client_notes: Optional[str] = None
-    booking_notes: Optional[str] = None
+    assigned_driver_id: int | None = None
+    driver_notes: str | None = None
+    client_notes: str | None = None
+    booking_notes: str | None = None
 
     # NRR (Non-Revenue Run)
-    nrr_received: Optional[bool] = False
-    nrr_amount: Optional[float] = None
+    nrr_received: bool | None = False
+    nrr_amount: float | None = None
 
     # Amount tracking
-    total_amount_due: Optional[float] = None
-    dispatcher_approved: Optional[bool] = False
-    approved_at: Optional[datetime] = None
+    total_amount_due: float | None = None
+    dispatcher_approved: bool | None = False
+    approved_at: datetime | None = None
 
     # Driver pay calculation
-    calculated_hours: Optional[float] = None
-    driver_hourly_rate: Optional[float] = 15.00
-    driver_hours_worked: Optional[float] = None
-    driver_base_pay: Optional[float] = None
-    driver_gratuity: Optional[float] = 0.00
-    driver_total_expense: Optional[float] = None
-    expense_calculated_at: Optional[datetime] = None
-    paid_amount: Optional[float] = 0.00
-    payment_status: Optional[str] = "Pending"
+    calculated_hours: float | None = None
+    driver_hourly_rate: float | None = 15.00
+    driver_hours_worked: float | None = None
+    driver_base_pay: float | None = None
+    driver_gratuity: float | None = 0.00
+    driver_total_expense: float | None = None
+    expense_calculated_at: datetime | None = None
+    paid_amount: float | None = 0.00
+    payment_status: str | None = "Pending"
 
     # Timing
-    reservation_time: Optional[datetime] = None
+    reservation_time: datetime | None = None
 
     # Mileage/Fuel
-    odometer_start: Optional[float] = None
-    odometer_end: Optional[float] = None
-    total_kms: Optional[float] = None
-    fuel_added: Optional[float] = None
-    fuel_added_liters: Optional[float] = None
-    vehicle_notes: Optional[str] = None
+    odometer_start: float | None = None
+    odometer_end: float | None = None
+    total_kms: float | None = None
+    fuel_added: float | None = None
+    fuel_added_liters: float | None = None
+    vehicle_notes: str | None = None
 
     # Special flags
-    is_placeholder: Optional[bool] = False
+    is_placeholder: bool | None = False
 
     # Workshift
-    workshift_start: Optional[datetime] = None
-    workshift_end: Optional[datetime] = None
-    duty_log: Optional[Dict[str, Any]] = None
+    workshift_start: datetime | None = None
+    workshift_end: datetime | None = None
+    duty_log: dict[str, Any] | None = None
 
     # Pricing
-    default_hourly_price: Optional[float] = None
-    package_rate: Optional[float] = None
-    extra_time_rate: Optional[float] = None
-    daily_rate: Optional[float] = None
-    airport_pickup_price: Optional[float] = None
+    default_hourly_price: float | None = None
+    package_rate: float | None = None
+    extra_time_rate: float | None = None
+    daily_rate: float | None = None
+    airport_pickup_price: float | None = None
 
     # IDs
-    employee_id: Optional[int] = None
-    vehicle_id: Optional[int] = None
-    client_display_name: Optional[str] = None
+    employee_id: int | None = None
+    vehicle_id: int | None = None
+    client_display_name: str | None = None
 
     # Calendar sync
-    calendar_sync_status: Optional[str] = "not_synced"
-    calendar_color: Optional[str] = None
-    outlook_entry_id: Optional[str] = None
-    calendar_notes: Optional[str] = None
+    calendar_sync_status: str | None = "not_synced"
+    calendar_color: str | None = None
+    outlook_entry_id: str | None = None
+    calendar_notes: str | None = None
 
     # Record type
-    record_type: Optional[str] = "charter"
-    is_out_of_town: Optional[bool] = False
-    version: Optional[int] = 1
+    record_type: str | None = "charter"
+    is_out_of_town: bool | None = False
+    version: int | None = 1
 
     # Services
-    beverage_service_required: Optional[bool] = False
+    beverage_service_required: bool | None = False
 
     # NRD (Network Response Day)
-    nrd_received: Optional[bool] = False
-    nrd_received_at: Optional[datetime] = None
-    nrd_amount: Optional[float] = None
-    nrd_method: Optional[str] = None
+    nrd_received: bool | None = False
+    nrd_received_at: datetime | None = None
+    nrd_amount: float | None = None
+    nrd_method: str | None = None
 
     # Red Deer
-    red_deer_bylaw_exempt: Optional[bool] = False
+    red_deer_bylaw_exempt: bool | None = False
 
     # Float
-    float_received: Optional[float] = None
-    float_reimbursement_needed: Optional[float] = None
+    float_received: float | None = None
+    float_reimbursement_needed: float | None = None
 
     # Timestamps - progression
-    on_duty_started_at: Optional[datetime] = None
-    on_location_at: Optional[datetime] = None
-    passengers_loaded_at: Optional[datetime] = None
-    en_route_to_event_at: Optional[datetime] = None
-    arrived_at_event_at: Optional[datetime] = None
-    return_journey_started_at: Optional[datetime] = None
-    off_duty_at: Optional[datetime] = None
-    completion_timestamp: Optional[datetime] = None
+    on_duty_started_at: datetime | None = None
+    on_location_at: datetime | None = None
+    passengers_loaded_at: datetime | None = None
+    en_route_to_event_at: datetime | None = None
+    arrived_at_event_at: datetime | None = None
+    return_journey_started_at: datetime | None = None
+    off_duty_at: datetime | None = None
+    completion_timestamp: datetime | None = None
 
     # Printing
-    separate_customer_printout: Optional[bool] = False
+    separate_customer_printout: bool | None = False
 
     # Charter type
-    charter_type: Optional[str] = "hourly"
-    quoted_hours: Optional[float] = 0.00
-    standby_rate: Optional[float] = 25.00
-    split_run_before_hours: Optional[float] = 0.00
-    split_run_after_hours: Optional[float] = 0.00
-    actual_hours: Optional[float] = None
+    charter_type: str | None = "hourly"
+    quoted_hours: float | None = 0.00
+    standby_rate: float | None = 25.00
+    split_run_before_hours: float | None = 0.00
+    split_run_after_hours: float | None = 0.00
+    actual_hours: float | None = None
 
 
 class CharterCreate(CharterBase):
@@ -153,11 +153,11 @@ class CharterCreate(CharterBase):
 class CharterUpdate(BaseModel):
     """Update charter - all fields optional"""
 
-    reserve_number: Optional[str] = None
-    status: Optional[str] = None
-    cancelled: Optional[bool] = None
-    locked: Optional[bool] = None
-    driver_paid: Optional[bool] = None
+    reserve_number: str | None = None
+    status: str | None = None
+    cancelled: bool | None = None
+    locked: bool | None = None
+    driver_paid: bool | None = None
     # ... include any fields you want to allow updating
 
 
@@ -165,8 +165,8 @@ class Charter(CharterBase):
     """Charter from database"""
 
     charter_id: int
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     class Config:
         from_attributes = True

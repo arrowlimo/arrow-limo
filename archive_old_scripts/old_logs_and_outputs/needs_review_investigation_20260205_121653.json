@@ -1,0 +1,844 @@
+{
+  "timestamp": "2026-02-05T12:16:52.926164",
+  "tables": {
+    "employee_pay_master": {
+      "exists_in_local": true,
+      "exists_in_neon": false,
+      "recommendation": "SAFE TO SYNC - missing in Neon",
+      "local_row_count": 2653,
+      "schema": [
+        "employee_pay_id integer NOT NULL DEFAULT nextval('employee_pay_master_employee_pay_id_seq'::regclass)",
+        "employee_id integer NOT NULL",
+        "pay_period_id integer NOT NULL",
+        "fiscal_year integer NOT NULL",
+        "charter_hours_sum numeric",
+        "approved_hours numeric",
+        "overtime_hours numeric",
+        "manual_hours_adjustment numeric",
+        "total_hours_worked numeric",
+        "hourly_rate numeric",
+        "rate_source text",
+        "base_pay numeric",
+        "gratuity_percent numeric",
+        "gratuity_amount numeric",
+        "float_draw numeric",
+        "reimbursements numeric",
+        "other_income numeric",
+        "gross_pay numeric",
+        "federal_tax numeric",
+        "provincial_tax numeric",
+        "cpp_employee numeric",
+        "ei_employee numeric",
+        "union_dues numeric",
+        "radio_dues numeric",
+        "voucher_deductions numeric",
+        "misc_deductions numeric",
+        "total_deductions numeric",
+        "net_pay numeric",
+        "data_completeness numeric",
+        "data_source text",
+        "confidence_level numeric",
+        "notes text",
+        "created_at timestamp without time zone DEFAULT now()",
+        "updated_at timestamp without time zone DEFAULT now()",
+        "created_by text DEFAULT 'system'::text"
+      ],
+      "sample_count": 10,
+      "sample_data": {
+        "columns": [
+          "employee_pay_id",
+          "employee_id",
+          "pay_period_id",
+          "fiscal_year",
+          "charter_hours_sum",
+          "approved_hours",
+          "overtime_hours",
+          "manual_hours_adjustment",
+          "total_hours_worked",
+          "hourly_rate",
+          "rate_source",
+          "base_pay",
+          "gratuity_percent",
+          "gratuity_amount",
+          "float_draw",
+          "reimbursements",
+          "other_income",
+          "gross_pay",
+          "federal_tax",
+          "provincial_tax",
+          "cpp_employee",
+          "ei_employee",
+          "union_dues",
+          "radio_dues",
+          "voucher_deductions",
+          "misc_deductions",
+          "total_deductions",
+          "net_pay",
+          "data_completeness",
+          "data_source",
+          "confidence_level",
+          "notes",
+          "created_at",
+          "updated_at",
+          "created_by"
+        ],
+        "rows": [
+          [
+            "239",
+            "60",
+            "32",
+            "2012",
+            "33.90",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "0.00",
+            null,
+            "0.00",
+            null,
+            null,
+            null,
+            "0.00",
+            "0.00",
+            "0.00",
+            "0.00",
+            "0.00",
+            null,
+            null,
+            null,
+            null,
+            "0.00",
+            "0.00",
+            "95.00",
+            "charter_hours_allocation",
+            "75.00",
+            "Base population from charter data (Tier 4B)",
+            "2026-01-18 16:36:55.341563",
+            "2026-01-23 19:30:38.631555",
+            "system"
+          ],
+          [
+            "1636",
+            "107",
+            "205",
+            "2018",
+            "2.00",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "30.00",
+            null,
+            "0.00",
+            null,
+            null,
+            null,
+            "30.00",
+            "4.50",
+            "3.00",
+            "206.47",
+            "0.49",
+            null,
+            null,
+            null,
+            null,
+            "214.46",
+            "-184.46",
+            "95.00",
+            "charter_hours_allocation",
+            "75.00",
+            "Base population from charter data (Tier 4B)",
+            "2026-01-18 16:36:55.341563",
+            "2026-01-23 19:30:38.631555",
+            "system"
+          ],
+          [
+            "245",
+            "60",
+            "33",
+            "2012",
+            "16.76",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "0.00",
+            null,
+            "0.00",
+            null,
+            null,
+            null,
+            "0.00",
+            "0.00",
+            "0.00",
+            "0.00",
+            "0.00",
+            null,
+            null,
+            null,
+            null,
+            "0.00",
+            "0.00",
+            "95.00",
+            "charter_hours_allocation",
+            "75.00",
+            "Base population from charter data (Tier 4B)",
+            "2026-01-18 16:36:55.341563",
+            "2026-01-23 19:30:38.631555",
+            "system"
+          ],
+          [
+            "251",
+            "60",
+            "34",
+            "2012",
+            "6.00",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "0.00",
+            null,
+            "0.00",
+            null,
+            null,
+            null,
+            "0.00",
+            "0.00",
+            "0.00",
+            "0.00",
+            "0.00",
+            null,
+            null,
+            null,
+            null,
+            "0.00",
+            "0.00",
+            "95.00",
+            "charter_hours_allocation",
+            "75.00",
+            "Base population from charter data (Tier 4B)",
+            "2026-01-18 16:36:55.341563",
+            "2026-01-23 19:30:38.631555",
+            "system"
+          ],
+          [
+            "2185",
+            "18",
+            "322",
+            "2023",
+            "24.26",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "485.00",
+            null,
+            "405.00",
+            null,
+            null,
+            null,
+            "890.00",
+            "133.50",
+            "89.00",
+            "155.30",
+            "14.60",
+            null,
+            null,
+            null,
+            null,
+            "392.40",
+            "497.60",
+            "95.00",
+            "charter_hours_allocation",
+            "75.00",
+            "Base population from charter data (Tier 4B)",
+            "2026-01-18 16:36:55.341563",
+            "2026-01-23 19:30:38.631555",
+            "system"
+          ]
+        ]
+      }
+    },
+    "transaction_categories": {
+      "exists_in_local": true,
+      "exists_in_neon": false,
+      "recommendation": "SAFE TO SYNC - missing in Neon",
+      "local_row_count": 10,
+      "schema": [
+        "id integer NOT NULL DEFAULT nextval('transaction_categories_id_seq'::regclass)",
+        "category_name character varying(50) NOT NULL",
+        "description text",
+        "created_at timestamp without time zone DEFAULT now()"
+      ],
+      "sample_count": 10,
+      "sample_data": {
+        "columns": [
+          "id",
+          "category_name",
+          "description",
+          "created_at"
+        ],
+        "rows": [
+          [
+            "1",
+            "FUEL",
+            "Vehicle fuel purchases",
+            "2025-10-09 07:34:31.208428"
+          ],
+          [
+            "2",
+            "BANKING",
+            "Bank fees, transfers, and services",
+            "2025-10-09 07:34:31.208428"
+          ],
+          [
+            "3",
+            "VEHICLE",
+            "Vehicle maintenance, insurance, registration",
+            "2025-10-09 07:34:31.208428"
+          ],
+          [
+            "4",
+            "OFFICE",
+            "Office supplies, equipment, utilities",
+            "2025-10-09 07:34:31.208428"
+          ],
+          [
+            "5",
+            "REVENUE",
+            "Income from charters and services",
+            "2025-10-09 07:34:31.208428"
+          ]
+        ]
+      }
+    },
+    "transaction_subcategories": {
+      "exists_in_local": true,
+      "exists_in_neon": false,
+      "recommendation": "SAFE TO SYNC - missing in Neon",
+      "local_row_count": 13,
+      "schema": [
+        "id integer NOT NULL DEFAULT nextval('transaction_subcategories_id_seq'::regclass)",
+        "category_id integer",
+        "subcategory_name character varying(100) NOT NULL",
+        "pattern_keywords ARRAY",
+        "description text",
+        "created_at timestamp without time zone DEFAULT now()"
+      ],
+      "sample_count": 13,
+      "sample_data": {
+        "columns": [
+          "id",
+          "category_id",
+          "subcategory_name",
+          "pattern_keywords",
+          "description",
+          "created_at"
+        ],
+        "rows": [
+          [
+            "1",
+            "2",
+            "ATM Withdrawal",
+            "['ATM', 'WITHDRAWAL', 'CASH ADVANCE']",
+            null,
+            "2025-10-09 07:34:31.208428"
+          ],
+          [
+            "2",
+            "2",
+            "Banking Fee",
+            "['FEE', 'SERVICE CHARGE', 'MONTHLY FEE', 'ACCOUNT ",
+            null,
+            "2025-10-09 07:34:31.208428"
+          ],
+          [
+            "3",
+            "2",
+            "Returned Payment",
+            "['RETURNED', 'NSF', 'INSUFFICIENT']",
+            null,
+            "2025-10-09 07:34:31.208428"
+          ],
+          [
+            "4",
+            "2",
+            "Overdraft",
+            "['OVERDRAFT', 'OVERLIMIT']",
+            null,
+            "2025-10-09 07:34:31.208428"
+          ],
+          [
+            "5",
+            "2",
+            "E-Transfer",
+            "['INTERAC', 'E-TRANSFER', 'EMT']",
+            null,
+            "2025-10-09 07:34:31.208428"
+          ]
+        ]
+      }
+    },
+    "tax_periods": {
+      "exists_in_local": true,
+      "exists_in_neon": false,
+      "recommendation": "SAFE TO SYNC - missing in Neon",
+      "local_row_count": 1,
+      "schema": [
+        "id integer NOT NULL DEFAULT nextval('tax_periods_id_seq'::regclass)",
+        "label text NOT NULL",
+        "period_type text NOT NULL DEFAULT 'gst'::text",
+        "start_date date NOT NULL",
+        "end_date date NOT NULL",
+        "year integer NOT NULL",
+        "quarter integer",
+        "created_at timestamp without time zone DEFAULT now()"
+      ],
+      "sample_count": 1,
+      "sample_data": {
+        "columns": [
+          "id",
+          "label",
+          "period_type",
+          "start_date",
+          "end_date",
+          "year",
+          "quarter",
+          "created_at"
+        ],
+        "rows": [
+          [
+            "1",
+            "2012",
+            "gst",
+            "2012-01-01",
+            "2012-12-31",
+            "2012",
+            null,
+            "2026-01-18 00:46:33.714395"
+          ]
+        ]
+      }
+    },
+    "tax_returns": {
+      "exists_in_local": true,
+      "exists_in_neon": false,
+      "recommendation": "SAFE TO SYNC - missing in Neon",
+      "local_row_count": 2,
+      "schema": [
+        "id integer NOT NULL DEFAULT nextval('tax_returns_id_seq'::regclass)",
+        "period_id integer NOT NULL",
+        "form_type text NOT NULL",
+        "status text NOT NULL DEFAULT 'draft'::text",
+        "calculated_amount numeric DEFAULT 0",
+        "filed_amount numeric",
+        "filed_at timestamp without time zone",
+        "reference text",
+        "notes text",
+        "created_at timestamp without time zone DEFAULT now()",
+        "updated_at timestamp without time zone DEFAULT now()"
+      ],
+      "sample_count": 2,
+      "sample_data": {
+        "columns": [
+          "id",
+          "period_id",
+          "form_type",
+          "status",
+          "calculated_amount",
+          "filed_amount",
+          "filed_at",
+          "reference",
+          "notes",
+          "created_at",
+          "updated_at"
+        ],
+        "rows": [
+          [
+            "1",
+            "1",
+            "gst",
+            "calculated",
+            "-46648.58",
+            null,
+            null,
+            null,
+            "GST auto-computed",
+            "2026-01-18 00:46:33.714395",
+            "2026-01-18 00:46:33.714395"
+          ],
+          [
+            "2",
+            "1",
+            "payroll",
+            "calculated",
+            "29828.83",
+            null,
+            null,
+            null,
+            "Payroll auto-computed",
+            "2026-01-18 00:46:49.426384",
+            "2026-01-18 00:46:49.426384"
+          ]
+        ]
+      }
+    },
+    "tax_variances": {
+      "exists_in_local": true,
+      "exists_in_neon": false,
+      "recommendation": "SAFE TO SYNC - missing in Neon",
+      "local_row_count": 2,
+      "schema": [
+        "id integer NOT NULL DEFAULT nextval('tax_variances_id_seq'::regclass)",
+        "tax_return_id integer NOT NULL",
+        "field text NOT NULL",
+        "actual numeric",
+        "expected numeric",
+        "severity text DEFAULT 'info'::text",
+        "message text",
+        "recommendation text",
+        "created_at timestamp without time zone DEFAULT now()"
+      ],
+      "sample_count": 2,
+      "sample_data": {
+        "columns": [
+          "id",
+          "tax_return_id",
+          "field",
+          "actual",
+          "expected",
+          "severity",
+          "message",
+          "recommendation",
+          "created_at"
+        ],
+        "rows": [
+          [
+            "1",
+            "1",
+            "Line114_NetTaxToRemit",
+            "-46648.58",
+            null,
+            "info",
+            "Net GST is a refund.",
+            "Ensure instalments/remittances are reflected.",
+            "2026-01-18 00:46:33.714395"
+          ],
+          [
+            "2",
+            "2",
+            "payroll_deductions",
+            "22.00",
+            null,
+            "high",
+            "22 payroll rows missing CPP/EI/Tax despite gross p",
+            "Populate CPP/EI/tax for all paid rows before filin",
+            "2026-01-18 00:46:49.426384"
+          ]
+        ]
+      }
+    },
+    "category_mappings": {
+      "exists_in_local": true,
+      "exists_in_neon": false,
+      "recommendation": "SAFE TO SYNC - missing in Neon",
+      "local_row_count": 41,
+      "schema": [
+        "mapping_id integer NOT NULL DEFAULT nextval('category_mappings_mapping_id_seq'::regclass)",
+        "old_category character varying(200) NOT NULL",
+        "new_account_code character varying(10)",
+        "mapping_confidence character varying(20)",
+        "notes text",
+        "requires_review boolean DEFAULT false",
+        "created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP"
+      ],
+      "sample_count": 10,
+      "sample_data": {
+        "columns": [
+          "mapping_id",
+          "old_category",
+          "new_account_code",
+          "mapping_confidence",
+          "notes",
+          "requires_review",
+          "created_at"
+        ],
+        "rows": [
+          [
+            "1",
+            "BANKING - DEPOSIT",
+            "1010",
+            "high",
+            null,
+            "False",
+            "2025-10-20 12:32:50.696621"
+          ],
+          [
+            "2",
+            "BANKING - CHECKING",
+            "1010",
+            "high",
+            null,
+            "False",
+            "2025-10-20 12:32:50.696621"
+          ],
+          [
+            "3",
+            "BANKING - LOANS",
+            "2110",
+            "medium",
+            null,
+            "False",
+            "2025-10-20 12:32:50.696621"
+          ],
+          [
+            "4",
+            "BANKING - Checking",
+            "1010",
+            "high",
+            null,
+            "False",
+            "2025-10-20 12:32:50.696621"
+          ],
+          [
+            "5",
+            "BANKING",
+            "1010",
+            "high",
+            null,
+            "False",
+            "2025-10-20 12:32:50.696621"
+          ]
+        ]
+      }
+    },
+    "account_categories": {
+      "exists_in_local": true,
+      "exists_in_neon": false,
+      "recommendation": "SAFE TO SYNC - missing in Neon",
+      "local_row_count": 33,
+      "schema": [
+        "category_id integer NOT NULL DEFAULT nextval('account_categories_category_id_seq'::regclass)",
+        "category_code character varying(50) NOT NULL",
+        "category_name character varying(100) NOT NULL",
+        "account_type character varying(50) NOT NULL",
+        "parent_category character varying(50)",
+        "is_active boolean DEFAULT true",
+        "auto_categorize boolean DEFAULT true",
+        "description text",
+        "created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP",
+        "gl_account_code character varying(20)",
+        "gl_account_code_alt character varying(20)"
+      ],
+      "sample_count": 10,
+      "sample_data": {
+        "columns": [
+          "category_id",
+          "category_code",
+          "category_name",
+          "account_type",
+          "parent_category",
+          "is_active",
+          "auto_categorize",
+          "description",
+          "created_at",
+          "gl_account_code",
+          "gl_account_code_alt"
+        ],
+        "rows": [
+          [
+            "1",
+            "FUEL",
+            "Fuel",
+            "expense",
+            null,
+            "True",
+            "True",
+            "Vehicle fuel and gas expenses",
+            "2025-09-29 00:07:36.550626",
+            "5110",
+            null
+          ],
+          [
+            "2",
+            "VEHICLE_RM",
+            "Vehicle R&M",
+            "expense",
+            null,
+            "True",
+            "True",
+            "Vehicle repairs and maintenance",
+            "2025-09-29 00:07:36.550626",
+            "5120",
+            null
+          ],
+          [
+            "3",
+            "OFFICE_SUPPLIES",
+            "Office Supplies",
+            "expense",
+            null,
+            "True",
+            "True",
+            "Office supplies and equipment",
+            "2025-09-29 00:07:36.550626",
+            "5420",
+            null
+          ],
+          [
+            "4",
+            "INTERNET",
+            "Internet",
+            "expense",
+            null,
+            "True",
+            "True",
+            "Internet and broadband services",
+            "2025-09-29 00:07:36.550626",
+            "5430",
+            null
+          ],
+          [
+            "5",
+            "TELEPHONE",
+            "Telephone",
+            "expense",
+            null,
+            "True",
+            "True",
+            "Phone and communication expenses",
+            "2025-09-29 00:07:36.550626",
+            "5430",
+            null
+          ]
+        ]
+      }
+    },
+    "category_to_account_map": {
+      "exists_in_local": true,
+      "exists_in_neon": false,
+      "recommendation": "SAFE TO SYNC - missing in Neon",
+      "local_row_count": 21,
+      "schema": [
+        "mapping_id integer NOT NULL DEFAULT nextval('category_to_account_map_mapping_id_seq'::regclass)",
+        "category_code character varying(50) NOT NULL",
+        "gl_account_code character varying(20) NOT NULL",
+        "priority integer DEFAULT 1",
+        "notes text",
+        "created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP"
+      ],
+      "sample_count": 10,
+      "sample_data": {
+        "columns": [
+          "mapping_id",
+          "category_code",
+          "gl_account_code",
+          "priority",
+          "notes",
+          "created_at"
+        ],
+        "rows": [
+          [
+            "1",
+            "FUEL",
+            "5110",
+            "1",
+            "Vehicle fuel expenses",
+            "2025-11-26 21:59:40.605328"
+          ],
+          [
+            "2",
+            "VEHICLE_RM",
+            "5120",
+            "1",
+            "Vehicle maintenance and repairs",
+            "2025-11-26 21:59:40.605328"
+          ],
+          [
+            "3",
+            "OFFICE_SUPPLIES",
+            "5420",
+            "1",
+            "Office supplies and stationery",
+            "2025-11-26 21:59:40.605328"
+          ],
+          [
+            "4",
+            "INTERNET",
+            "5430",
+            "1",
+            "Internet service",
+            "2025-11-26 21:59:40.605328"
+          ],
+          [
+            "5",
+            "TELEPHONE",
+            "5430",
+            "1",
+            "Telephone and mobile service",
+            "2025-11-26 21:59:40.605328"
+          ]
+        ]
+      }
+    }
+  },
+  "recommendations": [
+    {
+      "table": "employee_pay_master",
+      "action": "SYNC",
+      "reason": "Missing in Neon, has 2,653 rows in local"
+    },
+    {
+      "table": "transaction_categories",
+      "action": "SYNC",
+      "reason": "Missing in Neon, has 10 rows in local"
+    },
+    {
+      "table": "transaction_subcategories",
+      "action": "SYNC",
+      "reason": "Missing in Neon, has 13 rows in local"
+    },
+    {
+      "table": "tax_periods",
+      "action": "SYNC",
+      "reason": "Missing in Neon, has 1 rows in local"
+    },
+    {
+      "table": "tax_returns",
+      "action": "SYNC",
+      "reason": "Missing in Neon, has 2 rows in local"
+    },
+    {
+      "table": "tax_variances",
+      "action": "SYNC",
+      "reason": "Missing in Neon, has 2 rows in local"
+    },
+    {
+      "table": "category_mappings",
+      "action": "SYNC",
+      "reason": "Missing in Neon, has 41 rows in local"
+    },
+    {
+      "table": "account_categories",
+      "action": "SYNC",
+      "reason": "Missing in Neon, has 33 rows in local"
+    },
+    {
+      "table": "category_to_account_map",
+      "action": "SYNC",
+      "reason": "Missing in Neon, has 21 rows in local"
+    }
+  ]
+}

@@ -1,0 +1,1680 @@
+{
+  "generated": "2026-02-16T17:19:33.969716",
+  "client": "Perron Ventures Limited",
+  "summary": {
+    "total_charters": 64,
+    "total_charter_amount": 59397.75,
+    "total_paid_amount": 0.0,
+    "total_balance": 59397.75,
+    "fully_paid_count": 1,
+    "outstanding_count": 63,
+    "overpaid_count": 0,
+    "payment_methods": {}
+  },
+  "charters": [
+    {
+      "charter": {
+        "charter_id": 18352,
+        "reserve_number": "019479",
+        "charter_date": "2025-07-13",
+        "client_display_name": "Perron Kip",
+        "client_id": 6387,
+        "total_amount_due": "369.00",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "54.00",
+        "created_at": "2025-07-24 15:50:31.461580",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": "\n\n--- Calendar Import (Outlook 'arrow new') ---\nClient (Calendar): L-20 Kip Perron 587-936-5091\nVehicle (Calendar): AC 20\nStart: 2025-07-13 16:00:00\nEnd: 2025-07-13 17:00:00\nLocation: 019479 sean\nDriver (Calendar): sean\nPhone: (587) 936-5091, (587) 936-5091\nDropoff: 1899-12-30 16:45:00\nDetails: L-20 Kip Perron 587-936-5091\r\nPU sandman 2936 50 ave call cell \r\nTo keg \r\n3hr split \r\n2 bottles of prosecco\r\n \r\n40th anniversary\r\nRed carpet please\r\n \r\nHe will be coming in to the office to pay cash July 4th\r\n \r\n \r\n \n\n--- Calendar Update (2025-11-18 19:36) ---\nClient (Calendar): L-20 Kip Perron 587-936-5091\nVehicle (Calendar): L20\nSubject: L-20 Kip Perron 587-936-5091\nStart: 2025-07-13 16:00:00\nEnd: 2025-07-13 17:00:00\nLocation: 019479 sean\nDriver (Calendar): sean\nPhone: (587) 936-5091, (587) 936-5091\nAll-day: False\nOrganizer: Info Arrow Limousine\nImportance: Normal\nReminder set: False\nDropoff: 1899-12-30 16:45:00\nDetails: L-20 Kip Perron 587-936-5091\r\nPU sandman 2936 50 ave call cell \r\nTo keg \r\n3hr split \r\n2 bottles of prosecco\r\n \r\n40th anniversary\r\nRed carpet please\r\n \r\nHe will be coming in to the office to pay cash July 4th\r\n \r\n \r\n "
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 369.0,
+        "paid_total": 0.0,
+        "balance": 369.0,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 18353,
+        "reserve_number": "019480",
+        "charter_date": "2025-07-13",
+        "client_display_name": "Perron Kip",
+        "client_id": 6387,
+        "total_amount_due": "258.00",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "27.00",
+        "created_at": "2025-07-24 15:50:31.461830",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": "\n\n--- Calendar Import (Outlook 'arrow new') ---\nClient (Calendar): L-20 Kip Perron 587-936-5091\nVehicle (Calendar): AC 20\nStart: 2025-07-13 21:00:00\nEnd: 2025-07-13 23:00:00\nLocation: 019480\nPhone: (587) 936-5091\nDropoff: 1899-12-30 19:45:00\nDetails:  \n\n--- Calendar Update (2025-11-18 19:36) ---\nClient (Calendar): L-20 Kip Perron 587-936-5091\nVehicle (Calendar): L20\nSubject: L-20 Kip Perron 587-936-5091\nStart: 2025-07-13 21:00:00\nEnd: 2025-07-13 23:00:00\nLocation: 019480\nPhone: (587) 936-5091\nAll-day: False\nOrganizer: Info Arrow Limousine\nImportance: Normal\nReminder set: False\nDropoff: 1899-12-30 19:45:00\nDetails:  "
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 258.0,
+        "paid_total": 0.0,
+        "balance": 258.0,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4918,
+        "reserve_number": "005969",
+        "charter_date": "2012-04-05",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "173.25",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.183498",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 173.25,
+        "paid_total": 0.0,
+        "balance": 173.25,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4919,
+        "reserve_number": "005970",
+        "charter_date": "2012-03-30",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "300.00",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.183711",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 300.0,
+        "paid_total": 0.0,
+        "balance": 300.0,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4920,
+        "reserve_number": "005971",
+        "charter_date": "2012-03-30",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "0.00",
+        "balance": "0.00",
+        "status": "closed_paid_verified",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.183966",
+        "updated_at": "2026-02-04 01:20:22.837000",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 0.0,
+        "paid_total": 0.0,
+        "balance": 0.0,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4975,
+        "reserve_number": "006026",
+        "charter_date": "2012-03-30",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "300.00",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.196840",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 300.0,
+        "paid_total": 0.0,
+        "balance": 300.0,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4874,
+        "reserve_number": "005925",
+        "charter_date": "2012-03-01",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.170781",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4875,
+        "reserve_number": "005926",
+        "charter_date": "2012-03-01",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.170976",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4865,
+        "reserve_number": "005916",
+        "charter_date": "2012-02-29",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.168836",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4871,
+        "reserve_number": "005922",
+        "charter_date": "2012-02-29",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.170173",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4864,
+        "reserve_number": "005915",
+        "charter_date": "2012-02-28",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.168640",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4870,
+        "reserve_number": "005921",
+        "charter_date": "2012-02-28",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.169923",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4863,
+        "reserve_number": "005914",
+        "charter_date": "2012-02-27",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.168433",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4869,
+        "reserve_number": "005920",
+        "charter_date": "2012-02-27",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.169718",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4862,
+        "reserve_number": "005913",
+        "charter_date": "2012-02-26",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.168225",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4868,
+        "reserve_number": "005919",
+        "charter_date": "2012-02-26",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.169504",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4861,
+        "reserve_number": "005912",
+        "charter_date": "2012-02-25",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.168031",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4867,
+        "reserve_number": "005918",
+        "charter_date": "2012-02-25",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.169243",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4860,
+        "reserve_number": "005911",
+        "charter_date": "2012-02-24",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.167835",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4866,
+        "reserve_number": "005917",
+        "charter_date": "2012-02-24",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "1045.00",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.169037",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 1045.0,
+        "paid_total": 0.0,
+        "balance": 1045.0,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4859,
+        "reserve_number": "005910",
+        "charter_date": "2012-02-23",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "1045.00",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.167626",
+        "updated_at": "2026-02-04 03:26:01.063207",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 1045.0,
+        "paid_total": 0.0,
+        "balance": 1045.0,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4838,
+        "reserve_number": "005889",
+        "charter_date": "2012-02-20",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "1045.00",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.163070",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 1045.0,
+        "paid_total": 0.0,
+        "balance": 1045.0,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4837,
+        "reserve_number": "005888",
+        "charter_date": "2012-02-18",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.162770",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4836,
+        "reserve_number": "005887",
+        "charter_date": "2012-02-17",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.162540",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4835,
+        "reserve_number": "005886",
+        "charter_date": "2012-02-16",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.162334",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4834,
+        "reserve_number": "005885",
+        "charter_date": "2012-02-15",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.162111",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4812,
+        "reserve_number": "005863",
+        "charter_date": "2012-02-14",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.156298",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4811,
+        "reserve_number": "005862",
+        "charter_date": "2012-02-13",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.156011",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4810,
+        "reserve_number": "005861",
+        "charter_date": "2012-02-12",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.155760",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4809,
+        "reserve_number": "005860",
+        "charter_date": "2012-02-11",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.155495",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4808,
+        "reserve_number": "005859",
+        "charter_date": "2012-02-10",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.155253",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4807,
+        "reserve_number": "005858",
+        "charter_date": "2012-02-09",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.155028",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4806,
+        "reserve_number": "005857",
+        "charter_date": "2012-02-08",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.154810",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4805,
+        "reserve_number": "005856",
+        "charter_date": "2012-02-07",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.154586",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4804,
+        "reserve_number": "005855",
+        "charter_date": "2012-02-06",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.154295",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4803,
+        "reserve_number": "005854",
+        "charter_date": "2012-02-05",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.154050",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4802,
+        "reserve_number": "005853",
+        "charter_date": "2012-02-04",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.153786",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4801,
+        "reserve_number": "005852",
+        "charter_date": "2012-02-03",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.153544",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4800,
+        "reserve_number": "005851",
+        "charter_date": "2012-02-02",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.153106",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4799,
+        "reserve_number": "005850",
+        "charter_date": "2012-02-01",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.152900",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4748,
+        "reserve_number": "005783",
+        "charter_date": "2012-01-31",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.140510",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4747,
+        "reserve_number": "005782",
+        "charter_date": "2012-01-30",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.140313",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4746,
+        "reserve_number": "005781",
+        "charter_date": "2012-01-29",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.140092",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4745,
+        "reserve_number": "005780",
+        "charter_date": "2012-01-28",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.139895",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4744,
+        "reserve_number": "005779",
+        "charter_date": "2012-01-27",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.139706",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4743,
+        "reserve_number": "005778",
+        "charter_date": "2012-01-26",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.139515",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4742,
+        "reserve_number": "005777",
+        "charter_date": "2012-01-25",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.139312",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4741,
+        "reserve_number": "005776",
+        "charter_date": "2012-01-24",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.139109",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4740,
+        "reserve_number": "005775",
+        "charter_date": "2012-01-23",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.138896",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4739,
+        "reserve_number": "005774",
+        "charter_date": "2012-01-22",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.138695",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4738,
+        "reserve_number": "005773",
+        "charter_date": "2012-01-21",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.138491",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4737,
+        "reserve_number": "005772",
+        "charter_date": "2012-01-20",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.138294",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4736,
+        "reserve_number": "005771",
+        "charter_date": "2012-01-19",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.138097",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4724,
+        "reserve_number": "005759",
+        "charter_date": "2012-01-18",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.135421",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4721,
+        "reserve_number": "005756",
+        "charter_date": "2012-01-17",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.134805",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4723,
+        "reserve_number": "005758",
+        "charter_date": "2012-01-16",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.135222",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4720,
+        "reserve_number": "005755",
+        "charter_date": "2012-01-15",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.134595",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4719,
+        "reserve_number": "005754",
+        "charter_date": "2012-01-14",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.134390",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4718,
+        "reserve_number": "005753",
+        "charter_date": "2012-01-13",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.134185",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4717,
+        "reserve_number": "005752",
+        "charter_date": "2012-01-12",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.133991",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4716,
+        "reserve_number": "005751",
+        "charter_date": "2012-01-11",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.133791",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4715,
+        "reserve_number": "005750",
+        "charter_date": "2012-01-10",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.133592",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4714,
+        "reserve_number": "005749",
+        "charter_date": "2012-01-09",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.133399",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    },
+    {
+      "charter": {
+        "charter_id": 4713,
+        "reserve_number": "005748",
+        "charter_date": "2012-01-08",
+        "client_display_name": "Perron Ventures Ltd.",
+        "client_id": 1179,
+        "total_amount_due": "997.50",
+        "balance": "0.00",
+        "status": "Closed",
+        "driver_gratuity": "0.00",
+        "created_at": "2025-07-24 15:50:28.133204",
+        "updated_at": "2026-02-04 04:44:36.870961",
+        "client_notes": null,
+        "booking_notes": null
+      },
+      "payments": [],
+      "banking_links": [],
+      "summary": {
+        "charter_total": 997.5,
+        "paid_total": 0.0,
+        "balance": 997.5,
+        "payment_count": 0,
+        "banking_link_count": 0
+      }
+    }
+  ]
+}

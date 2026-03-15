@@ -1,9 +1,8 @@
 """Accounting Dashboard and Financial Stats API Router"""
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel
 
 from ..db import get_connection
@@ -28,7 +27,7 @@ class GSTSummary(BaseModel):
 
 
 @router.get("/stats")
-def get_accounting_stats(month: Optional[int] = None, year: Optional[int] = None):
+def get_accounting_stats(month: int | None = None, year: int | None = None):
     """Get accounting dashboard statistics"""
     conn = get_connection()
     cur = conn.cursor()
@@ -107,8 +106,8 @@ def get_accounting_stats(month: Optional[int] = None, year: Optional[int] = None
 @router.get("/gst/summary")
 def get_gst_summary(
     period: str = "current",  # current, last, annual
-    start_date: Optional[date] = None,
-    end_date: Optional[date] = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
 ):
     """Get GST summary for specified period"""
     conn = get_connection()
@@ -215,7 +214,7 @@ def list_chart_of_accounts(only_active: bool = True):
 
 @router.get("/reports/profit-loss")
 def get_profit_loss_report(
-    start_date: Optional[date] = None, end_date: Optional[date] = None
+    start_date: date | None = None, end_date: date | None = None
 ):
     """Generate Profit & Loss report"""
     conn = get_connection()
@@ -302,7 +301,7 @@ def get_profit_loss_report(
 
 @router.get("/reports/cash-flow")
 def get_cash_flow_report(
-    start_date: Optional[date] = None, end_date: Optional[date] = None
+    start_date: date | None = None, end_date: date | None = None
 ):
     """Generate Cash Flow report"""
     conn = get_connection()

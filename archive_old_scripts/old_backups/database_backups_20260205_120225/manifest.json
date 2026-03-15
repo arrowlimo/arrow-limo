@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-02-05T12:02:25.931769",
+  "local_backup": {
+    "schema_file": "l:\\limo\\database_backups_20260205_120225\\local\\schema.sql",
+    "data_file": "l:\\limo\\database_backups_20260205_120225\\local\\data.backup",
+    "data_size_mb": 37.93065166473389,
+    "table_count": 277
+  },
+  "neon_backup": {
+    "schema_file": "l:\\limo\\database_backups_20260205_120225\\neon\\schema.sql",
+    "data_file": "l:\\limo\\database_backups_20260205_120225\\neon\\data.backup",
+    "data_size_mb": 40.61453056335449,
+    "table_count": 289
+  }
+}

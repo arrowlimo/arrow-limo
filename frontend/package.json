@@ -1,17 +1,25 @@
 {
   "name": "limo-management-frontend",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build"
+    "build": "vue-cli-service build",
+    "dev": "vue-cli-service serve --mode development",
+    "prod": "vue-cli-service build --mode production"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.0",
+    "@fullcalendar/daygrid": "^6.1.0",
+    "@fullcalendar/interaction": "^6.1.0",
+    "@fullcalendar/timegrid": "^6.1.0",
+    "@fullcalendar/vue3": "^6.1.0",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.2",
     "vue": "^3.0.0",
     "vue-router": "^4.0.0",
-    "xlsx": "^0.18.5",
-    "jspdf": "^2.5.1",
-    "jspdf-autotable": "^3.8.2"
+    "vuedraggable": "^4.1.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vue/cli-service": "^5.0.0"

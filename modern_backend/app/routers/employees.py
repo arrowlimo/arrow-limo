@@ -2,7 +2,6 @@
 import os
 import shutil
 from pathlib import Path
-from typing import List
 
 from fastapi import APIRouter, HTTPException
 

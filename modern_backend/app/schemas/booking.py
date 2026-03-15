@@ -6,7 +6,6 @@ Converts form data to validated database records with business rule enforcement.
 
 from datetime import date, datetime, time
 from decimal import Decimal
-from typing import List, Optional
 
 from pydantic import BaseModel, Field, validator
 
@@ -22,7 +21,7 @@ class RouteItem(BaseModel):
         ..., description="Route type: pickup, dropoff, stop, depart, return"
     )
     address: str = Field(..., min_length=5, description="Address of the stop")
-    time24: Optional[str] = Field(None, description="Time in HH:MM format")
+    time24: str | None = Field(None, description="Time in HH:MM format")
 
     @validator("type")
     def validate_type(cls, v):
@@ -51,7 +50,7 @@ class ChartRequest(BaseModel):
     All field validations enforce business rules:
     - Dates must be >= today
     - Passenger load 1-50
-    - Total amount > 0
+    - Total amount >= 0 (allows zero for credit memos, adjustments)
     - Status must be valid
     - Itinerary must have >= 2 stops
     """
@@ -69,23 +68,23 @@ class ChartRequest(BaseModel):
     charter_date: date = Field(..., description="Charter date (>= today)")
     pickup_time: str = Field(..., description="Pickup time in HH:MM format")
     passenger_load: int = Field(..., ge=1, le=50, description="Passenger count 1-50")
-    vehicle_type_requested: Optional[str] = Field(
+    vehicle_type_requested: str | None = Field(
         None, description="Vehicle type preference"
     )
-    vehicle_booked_id: Optional[int] = Field(None, description="Assigned vehicle ID")
-    assigned_driver_id: Optional[int] = Field(None, description="Assigned driver ID")
+    vehicle_booked_id: int | None = Field(None, description="Assigned vehicle ID")
+    assigned_driver_id: int | None = Field(None, description="Assigned driver ID")
 
     # Itinerary
-    itinerary: List[RouteItem] = Field(
+    itinerary: list[RouteItem] = Field(
         ..., min_items=2, description="Min 2 stops (pickup + dropoff)"
     )
 
     # Notes
-    customer_notes: Optional[str] = Field(None, description="Notes for customer")
-    dispatcher_notes: Optional[str] = Field(
+    customer_notes: str | None = Field(None, description="Notes for customer")
+    dispatcher_notes: str | None = Field(
         None, description="Internal notes for dispatcher"
     )
-    special_requests: Optional[str] = Field(
+    special_requests: str | None = Field(
         None, description="Special requests (alcohol, AV, etc)"
     )
 
@@ -111,10 +110,10 @@ class ChartRequest(BaseModel):
         default="Quote",
         description="Quote, Confirmed, Assigned, In Progress, Completed, Cancelled",
     )
-    cancellation_reason: Optional[str] = Field(
+    cancellation_reason: str | None = Field(
         None, description="Reason for cancellation"
     )
-    reference_number: Optional[str] = Field(
+    reference_number: str | None = Field(
         None, description="Customer reference (PO, etc)"
     )
 
@@ -158,9 +157,9 @@ class ChartRequest(BaseModel):
 
     @validator("total_amount_due")
     def validate_total_amount(cls, v):
-        """Total amount must be positive."""
-        if v <= 0:
-            raise ValueError("total_amount_due must be > 0")
+        """Total amount must be non-negative (allows zero for credit memos, adjustments, etc)."""
+        if v < 0:
+            raise ValueError("total_amount_due must be >= 0")
         return v
 
     @validator("passenger_load")
@@ -260,7 +259,7 @@ class ErrorResponse(BaseModel):
 
     status_code: int
     error: str
-    detail: Optional[str] = None
+    detail: str | None = None
 
 
 # ============================================================================

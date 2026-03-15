@@ -1,0 +1,27 @@
+SAFE TO SYNC - Tables that can be safely copied to Neon
+======================================================================
+
+These tables are either:
+- Missing in Neon entirely
+- Empty in Neon but have data in local
+- Have no risk of overwriting important Neon data
+
+TABLES:
+  beverage_products
+    Reason: Neon is empty, local has data
+
+  lms2026_payment_matches
+    Reason: Missing in Neon, has 22,026 rows in local
+
+  charter_gst_details_2010_2012
+    Reason: Missing in Neon, has 3,805 rows in local
+
+  employee_t4_records
+    Reason: Missing in Neon, has 59 rows in local
+
+  employee_t4_summary
+    Reason: Missing in Neon, has 51 rows in local
+
+  alcohol_business_tracking
+    Reason: Missing in Neon, has 105 rows in local
+

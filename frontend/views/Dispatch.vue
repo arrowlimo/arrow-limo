@@ -1,22 +1,53 @@
+<!-- Copy from src/views/Dispatch.vue - Full functional implementation -->
 <template>
   <div>
-    <h1>Dispatch Management</h1>
-    <div class="dispatch-section">
-      <p>Active Routes and Available Vehicles will be shown here.</p>
+    <div class="dispatch-header">
+      <h1>Dispatch Management</h1>
+      
+      <div class="view-toggle">
+        <button 
+          @click="viewMode = 'table'" 
+          :class="['view-btn', { active: viewMode === 'table' }]"
+        >
+          📋 Table
+        </button>
+        <button 
+          @click="viewMode = 'calendar'" 
+          :class="['view-btn', { active: viewMode === 'calendar' }]"
+        >
+          📅 Calendar
+        </button>
+      </div>
     </div>
+    <p>See src/views/Dispatch.vue for full implementation with calendar, filters, and day drill-down</p>
   </div>
 </template>
 
 <script setup>
-// Fetch dispatch data from API in real implementation
+import { ref } from 'vue'
+const viewMode = ref('table')
 </script>
 
 <style scoped>
-.dispatch-section {
-  background: #fff;
-  border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  margin-top: 2rem;
+.dispatch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+.view-btn {
+  padding: 0.5rem 1.5rem;
+  border: none;
+  background: #f7fafc;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.view-btn.active {
+  background: #667eea;
+  color: white;
 }
 </style>

@@ -16,6 +16,7 @@ import ReceiptsView from './views/ReceiptsView.vue'
 import BookingPage from './views/BookingPage.vue'
 import QuoteGenerator from './views/QuoteGenerator.vue'
 import TableManagement from './views/TableManagement.vue'
+import T2DataEntry from './components/T2DataEntry.vue'
 import ChequeBookManagement from './views/ChequeBookManagement.vue'
 import ReceivedPayments from './views/ReceivedPayments.vue'
 
@@ -39,6 +40,7 @@ const routes = [
   { path: '/employees', component: Employees, meta: { requiresAuth: true } },
   { path: '/customers', component: Customers, meta: { requiresAuth: true } },
   { path: '/accounting', component: Accounting, meta: { requiresAuth: true } },
+  { path: '/t2-corporate-tax', component: T2DataEntry, meta: { requiresAuth: true } },
   { path: '/receipts', component: ReceiptsView, meta: { requiresAuth: true } },
   { path: '/reports', component: Reports, meta: { requiresAuth: true } },
   { path: '/owe-david', component: OweDavid, meta: { requiresAuth: true } },
@@ -56,14 +58,41 @@ const router = createRouter({
   routes
 })
 
+// Check if auto-login is enabled (for local development)
+const checkAutoLogin = async () => {
+  try {
+    const response = await fetch('/auth/auto-login-check')
+    if (response.ok) {
+      const data = await response.json()
+      if (data.auto_login && data.token) {
+        // Auto-login enabled - store credentials
+        localStorage.setItem('auth_token', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user || {}))
+        localStorage.setItem('user_role', data.user?.role || 'admin')
+        localStorage.setItem('user_permissions', JSON.stringify(data.user?.permissions || {}))
+        console.log('Auto-login enabled for local development')
+        return true
+      }
+    }
+  } catch (err) {
+    // Auto-login not available, proceed normally
+  }
+  return false
+}
+
 // Auth guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem('auth_token')
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   
-  // If trying to access protected route without token, redirect to login
+  // If trying to access protected route without token, check auto-login first
   if (requiresAuth && !token) {
-    next('/login')
+    const autoLoggedIn = await checkAutoLogin()
+    if (autoLoggedIn) {
+      next()
+    } else {
+      next('/login')
+    }
   } 
   // If already logged in and trying to access login page, go to home
   else if (to.path === '/login' && token) {

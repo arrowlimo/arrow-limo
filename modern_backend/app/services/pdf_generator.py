@@ -1,15 +1,18 @@
 """
-Generate fillable PDF forms from charter data using reportlab
+Generate fillable and static PDF forms from charter data using reportlab
+Includes T4 tax forms, invoices, and fillable charter forms
 """
 
 from datetime import datetime
 from io import BytesIO
+from typing import Any
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import LETTER, letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas
 from reportlab.platypus import (
     Paragraph,
     SimpleDocTemplate,
@@ -429,9 +432,142 @@ class CharterPDFForm:
         return type_map.get(charter_type, charter_type or "Standard")
 
 
+class T4PDFForm:
+    """Generate CRA T4 Statement of Remuneration Paid"""
+
+    def __init__(self, employee_data: dict[str, Any], t4_data: dict[str, Any], tax_year: int = 2025):
+        """
+        Initialize with employee and T4 data
+
+        Args:
+            employee_data: Employee info (name, SIN, address, etc.)
+            t4_data: T4 box values (box 14, 16, 18, 22, etc.)
+            tax_year: Tax year for the T4
+        """
+        self.employee = employee_data
+        self.t4 = t4_data
+        self.tax_year = tax_year
+        self.buffer = BytesIO()
+
+    def generate(self):
+        """Generate the T4 PDF and return bytes"""
+        c = canvas.Canvas(self.buffer, pagesize=LETTER)
+        width, height = LETTER
+
+        # T4 Header
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(0.5 * inch, height - 0.5 * inch, "Statement of Remuneration Paid")
+        c.drawString(0.5 * inch, height - 0.75 * inch, f"T4 - {self.tax_year}")
+
+        # Employer information
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(0.5 * inch, height - 1.25 * inch, "EMPLOYER INFORMATION")
+
+        c.setFont("Helvetica", 10)
+        y_pos = height - 1.5 * inch
+        c.drawString(0.75 * inch, y_pos, "Arrow Limousine & Sedan Services LTD")
+        y_pos -= 0.2 * inch
+        c.drawString(0.75 * inch, y_pos, "Business Number: [BN from CRA]")
+        y_pos -= 0.2 * inch
+        c.drawString(0.75 * inch, y_pos, "[Address]")
+        y_pos -= 0.2 * inch
+        c.drawString(0.75 * inch, y_pos, "[City, Province, Postal Code]")
+
+        # Employee information
+        y_pos -= 0.4 * inch
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(0.5 * inch, y_pos, "EMPLOYEE INFORMATION")
+
+        c.setFont("Helvetica", 10)
+        y_pos -= 0.25 * inch
+        c.drawString(0.75 * inch, y_pos, f"Name: {self.employee.get('full_name', 'N/A')}")
+        y_pos -= 0.2 * inch
+        c.drawString(0.75 * inch, y_pos, f"SIN: {self.employee.get('sin', 'XXX XXX XXX')}")
+        y_pos -= 0.2 * inch
+        c.drawString(0.75 * inch, y_pos, f"Address: {self.employee.get('address', 'N/A')}")
+        y_pos -= 0.2 * inch
+        c.drawString(
+            0.75 * inch,
+            y_pos,
+            f"{self.employee.get('city', '')}, {self.employee.get('province', '')} {self.employee.get('postal_code', '')}",
+        )
+
+        # T4 Boxes
+        y_pos -= 0.5 * inch
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(0.5 * inch, y_pos, "T4 BOXES - AMOUNTS")
+
+        c.setFont("Helvetica", 10)
+        y_pos -= 0.3 * inch
+
+        # Create table for T4 boxes
+        boxes = [
+            ["Box 14", "Employment Income", f"${self.t4.get('box14', 0.00):.2f}"],
+            ["Box 16", "Employee's CPP Contributions", f"${self.t4.get('box16', 0.00):.2f}"],
+            ["Box 18", "Employee's EI Premiums", f"${self.t4.get('box18', 0.00):.2f}"],
+            ["Box 22", "Income Tax Deducted", f"${self.t4.get('box22', 0.00):.2f}"],
+            ["Box 24", "EI Insurable Earnings", f"${self.t4.get('box24', 0.00):.2f}"],
+            ["Box 26", "CPP/QPP Pensionable Earnings", f"${self.t4.get('box26', 0.00):.2f}"],
+        ]
+
+        # Draw boxes as table
+        col_widths = [0.75 * inch, 2.5 * inch, 1.5 * inch]
+        row_height = 0.25 * inch
+
+        for i, box_row in enumerate(boxes):
+            x_pos = 0.75 * inch
+            box_y = y_pos - (i * row_height)
+
+            # Draw box number
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(x_pos, box_y, box_row[0])
+
+            # Draw description
+            c.setFont("Helvetica", 10)
+            c.drawString(x_pos + col_widths[0], box_y, box_row[1])
+
+            # Draw amount
+            c.setFont("Helvetica-Bold", 10)
+            c.drawRightString(
+                x_pos + col_widths[0] + col_widths[1] + col_widths[2], box_y, box_row[2]
+            )
+
+            # Draw separator line
+            if i < len(boxes) - 1:
+                c.setStrokeColor(colors.lightgrey)
+                c.line(0.75 * inch, box_y - 0.05 * inch, 5.5 * inch, box_y - 0.05 * inch)
+
+        y_pos -= len(boxes) * row_height + 0.3 * inch
+
+        # Additional boxes if needed
+        if self.t4.get("box44", 0) > 0:
+            c.setFont("Helvetica", 10)
+            c.drawString(0.75 * inch, y_pos, f"Box 44 - Commissions: ${self.t4.get('box44', 0.00):.2f}")
+            y_pos -= 0.2 * inch
+
+        if self.t4.get("box52", 0) > 0:
+            c.drawString(0.75 * inch, y_pos, f"Box 52 - Union Dues: ${self.t4.get('box52', 0.00):.2f}")
+            y_pos -= 0.2 * inch
+
+        # Footer
+        y_pos -= 0.5 * inch
+        c.setFont("Helvetica", 8)
+        c.drawString(0.5 * inch, y_pos, f"Tax Year: {self.tax_year}")
+        c.drawString(0.5 * inch, y_pos - 0.15 * inch, "Keep this slip for your income tax records")
+        c.drawString(0.5 * inch, y_pos - 0.3 * inch, "Generated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+        # CRA copy marker
+        c.setFont("Helvetica-Bold", 10)
+        c.drawRightString(width - 0.5 * inch, height - 0.5 * inch, "EMPLOYEE COPY")
+
+        c.save()
+        self.buffer.seek(0)
+        return self.buffer.getvalue()
+
+
 def generate_charter_pdf(charter_data):
     """
-    Generate a charter PDF form
+    Generate a charter PDF form (invoice style)
 
     Args:
         charter_data: dict with charter details
@@ -440,4 +576,20 @@ def generate_charter_pdf(charter_data):
         bytes: PDF file content
     """
     form = CharterPDFForm(charter_data)
+    return form.generate()
+
+
+def generate_t4_pdf(employee_data: dict[str, Any], t4_data: dict[str, Any], tax_year: int = 2025):
+    """
+    Generate a T4 tax form PDF
+
+    Args:
+        employee_data: dict with employee details (name, SIN, address, etc.)
+        t4_data: dict with T4 box values (box14, box16, box18, box22, etc.)
+        tax_year: tax year for the T4
+
+    Returns:
+        bytes: PDF file content
+    """
+    form = T4PDFForm(employee_data, t4_data, tax_year)
     return form.generate()

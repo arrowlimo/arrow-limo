@@ -1,0 +1,283 @@
+═══════════════════════════════════════════════════════════════════════════
+RUNNING SETUP ON DISPATCH1 (FROM VS CODE)
+═══════════════════════════════════════════════════════════════════════════
+
+You're on DISPATCH1 with VS Code open. This guide helps you set up everything
+automatically using the SETUP_DISPATCH1_COMPLETE.ps1 script.
+
+═══════════════════════════════════════════════════════════════════════════
+QUICK START (3 STEPS)
+═══════════════════════════════════════════════════════════════════════════
+
+STEP 1: Copy this DEPLOYMENT_PACKAGE folder to DISPATCH1
+  • If you're reading this, you've already done this!
+
+STEP 2: Open PowerShell as Administrator in VS Code
+  • Press Ctrl+Shift+P
+  • Type "Terminal: Select Default Profile"
+  • Choose "PowerShell"
+  • Press Ctrl+Shift+` (backtick) to open terminal
+  • Right-click VS Code in taskbar → "Run as Administrator"
+  • Reopen VS Code as admin
+
+STEP 3: Run the setup script
+  • In VS Code terminal, navigate to this folder:
+    cd [path to DEPLOYMENT_PACKAGE]
+  
+  • Run the automated setup:
+    .\SETUP_DISPATCH1_COMPLETE.ps1
+  
+  • Follow the prompts (script asks for 2 things):
+    1. DISPATCHMAIN IP address (get it from DISPATCHMAIN)
+    2. PostgreSQL password (postgres user password)
+
+DONE! The script does everything else automatically.
+
+═══════════════════════════════════════════════════════════════════════════
+WHAT THE SCRIPT DOES AUTOMATICALLY
+═══════════════════════════════════════════════════════════════════════════
+
+✓ Creates Y: drive (10GB virtual disk for application)
+✓ Maps L: drive to \\DISPATCHMAIN\limo (code source)
+✓ Maps Z: drive to \\DISPATCHMAIN\limo_files (shared files)
+✓ Copies application from L: to Y:\ArrowLimo
+✓ Installs Python dependencies
+✓ Creates .env configuration with database connection
+✓ Creates auto-update script (syncs from L: on launch)
+✓ Creates launcher script
+✓ Creates desktop shortcut "Arrow Limo DISPATCH1"
+✓ Tests database connectivity to DISPATCHMAIN
+✓ Removes old installations (C:\ArrowLimo if exists)
+✓ Verifies everything works
+
+═══════════════════════════════════════════════════════════════════════════
+BEFORE RUNNING THE SCRIPT
+═══════════════════════════════════════════════════════════════════════════
+
+Make sure:
+□ DISPATCHMAIN is turned on and accessible on network
+□ You can ping DISPATCHMAIN from this PC
+□ Python 3.10+ is installed on this PC
+□ You're running PowerShell as Administrator
+□ You know the DISPATCHMAIN IP address
+□ You know the PostgreSQL password from DISPATCHMAIN
+
+To get DISPATCHMAIN IP address:
+  → On DISPATCHMAIN, run: .\GET_DISPATCHMAIN_IP.ps1
+  → Or run: ipconfig (look for IPv4 Address)
+
+═══════════════════════════════════════════════════════════════════════════
+ALTERNATIVE: STEP-BY-STEP MANUAL COMMANDS
+═══════════════════════════════════════════════════════════════════════════
+
+If you prefer to see each step or the automated script fails, run these
+commands one at a time in PowerShell (as Administrator):
+
+# Navigate to deployment package
+cd [path to DEPLOYMENT_PACKAGE]
+
+# Interactive mode (asks questions)
+.\SETUP_DISPATCH1_COMPLETE.ps1
+
+# OR silent mode (provide parameters)
+.\SETUP_DISPATCH1_COMPLETE.ps1 -DispatchMainIP "192.168.1.100" -PostgresPassword "your_password"
+
+# OR skip cleanup of old installations
+.\SETUP_DISPATCH1_COMPLETE.ps1 -SkipCleanup
+
+# OR force reinstall (overwrites existing)
+.\SETUP_DISPATCH1_COMPLETE.ps1 -ForceReinstall
+
+═══════════════════════════════════════════════════════════════════════════
+DETAILED VS CODE SETUP INSTRUCTIONS
+═══════════════════════════════════════════════════════════════════════════
+
+Option A: Run from VS Code Terminal
+────────────────────────────────────
+1. Close VS Code if open
+2. Right-click VS Code icon → "Run as Administrator"
+3. Open this DEPLOYMENT_PACKAGE folder in VS Code
+4. Press Ctrl+` to open terminal (or Ctrl+Shift+` for new terminal)
+5. Verify you're in PowerShell (bottom right of terminal shows "pwsh" or "PowerShell")
+6. Run: .\SETUP_DISPATCH1_COMPLETE.ps1
+7. Answer the prompts:
+   - Enter DISPATCHMAIN IP address
+   - Enter PostgreSQL password
+8. Wait 10-15 minutes while it completes
+9. Done! Desktop shortcut created
+
+Option B: Run from External PowerShell
+──────────────────────────────────────
+1. Press Windows key
+2. Type "PowerShell"
+3. Right-click "Windows PowerShell" → "Run as Administrator"
+4. Navigate to deployment package:
+   cd "L:\limo\DEPLOYMENT_PACKAGE"
+   (Or wherever you copied it)
+5. Run: .\SETUP_DISPATCH1_COMPLETE.ps1
+6. Follow prompts
+7. Done!
+
+Option C: Right-Click in File Explorer
+───────────────────────────────────────
+1. Open File Explorer
+2. Navigate to DEPLOYMENT_PACKAGE folder
+3. Hold Shift, right-click in empty space
+4. Select "Open PowerShell window here as administrator"
+   (If not available, use Option A or B)
+5. Run: .\SETUP_DISPATCH1_COMPLETE.ps1
+6. Follow prompts
+7. Done!
+
+═══════════════════════════════════════════════════════════════════════════
+TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════════
+
+"Script cannot be loaded" or "Execution Policy" error:
+→ Run this first: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+→ Then run the setup script again
+
+"Cannot reach DISPATCHMAIN":
+→ Verify DISPATCHMAIN is on
+→ Ping test: ping DISPATCHMAIN
+→ Check both PCs on same network
+→ Check firewall not blocking
+
+"Python not found":
+→ Install Python 3.10 or higher from python.org
+→ Make sure "Add to PATH" is checked during install
+→ Restart PowerShell after installing
+
+"Failed to create Y: drive":
+→ Close any programs that might be using Y:
+→ Try unmapping: net use Y: /delete
+→ Retry the script
+
+"Port 5432 blocked":
+→ DISPATCHMAIN PostgreSQL not configured for network
+→ On DISPATCHMAIN, run: .\SETUP_POSTGRESQL_NETWORK_ACCESS.ps1
+→ Then retry this setup
+
+"Database connection failed":
+→ Verify PostgreSQL password is correct
+→ Check DISPATCHMAIN IP address
+→ Run: .\TEST_DATABASE_CONNECTION.ps1
+→ Review error message for details
+
+"L: drive won't map":
+→ Verify \\DISPATCHMAIN\limo share exists
+→ On DISPATCHMAIN, check share permissions
+→ Try manual map: net use L: \\DISPATCHMAIN\limo
+
+═══════════════════════════════════════════════════════════════════════════
+AFTER SUCCESSFUL SETUP
+═══════════════════════════════════════════════════════════════════════════
+
+You should see:
+✓ Y: drive in File Explorer (ArrowLimo)
+✓ L: drive mapped to \\DISPATCHMAIN\limo
+✓ Z: drive mapped to \\DISPATCHMAIN\limo_files
+✓ Desktop shortcut: "Arrow Limo DISPATCH1"
+✓ Application folder: Y:\ArrowLimo\
+
+To launch:
+• Double-click desktop shortcut "Arrow Limo DISPATCH1"
+• App automatically checks for updates from L: drive on each launch
+• Both DISPATCHMAIN and DISPATCH1 share same database in real-time
+
+Daily operations:
+• Turn on DISPATCHMAIN first (database server)
+• Turn on DISPATCH1
+• Launch app on both machines
+• Both dispatchers see same data instantly
+• Auto-update keeps code in sync
+
+Making code changes:
+• Edit code on DISPATCHMAIN (L:\limo\desktop_app)
+• Save changes
+• On DISPATCH1: Close app and relaunch
+• Auto-update applies changes automatically
+
+═══════════════════════════════════════════════════════════════════════════
+VERIFICATION CHECKLIST
+═══════════════════════════════════════════════════════════════════════════
+
+After setup completes, verify:
+□ Y: drive exists and shows "ArrowLimo" label
+□ L: drive shows DISPATCHMAIN code files
+□ Z: drive shows shared documents
+□ Desktop has "Arrow Limo DISPATCH1" shortcut
+□ File Y:\ArrowLimo\.env exists
+□ File Y:\ArrowLimo\desktop_app\launcher.py exists
+□ Can launch app from desktop shortcut
+□ App connects to database successfully
+□ No old C:\ArrowLimo folder remains
+□ Both dispatchers can make changes that sync in real-time
+
+═══════════════════════════════════════════════════════════════════════════
+FILE LOCATIONS AFTER SETUP
+═══════════════════════════════════════════════════════════════════════════
+
+Application:
+  Y:\ArrowLimo\desktop_app\        (main application)
+  Y:\ArrowLimo\.env                (database configuration)
+  Y:\ArrowLimo\START_DISPATCH1.bat (launcher)
+  Y:\ArrowLimo\auto_update.ps1     (update script)
+
+Network Drives:
+  L:\limo\desktop_app\             (source code on DISPATCHMAIN)
+  Z:\limo_files\                   (shared documents)
+
+Desktop:
+  Arrow Limo DISPATCH1.lnk         (shortcut to launcher)
+
+Logs:
+  Y:\ArrowLimo\app_errors.log      (error log if app crashes)
+
+Virtual Disk:
+  C:\Users\[YourName]\ArrowLimoY.vhdx (Y: drive virtual disk file)
+
+═══════════════════════════════════════════════════════════════════════════
+UNINSTALLING (IF NEEDED)
+═══════════════════════════════════════════════════════════════════════════
+
+To completely remove DISPATCH1 setup:
+
+1. Unmap network drives:
+   net use L: /delete
+   net use Z: /delete
+
+2. Dismount Y: drive (in PowerShell as Admin):
+   Dismount-VHD -Path "$env:USERPROFILE\ArrowLimoY.vhdx"
+
+3. Delete virtual disk file:
+   Remove-Item "$env:USERPROFILE\ArrowLimoY.vhdx"
+
+4. Delete desktop shortcut:
+   Remove-Item "$env:USERPROFILE\Desktop\Arrow Limo DISPATCH1.lnk"
+
+5. (Optional) Uninstall Python from Control Panel
+
+═══════════════════════════════════════════════════════════════════════════
+SUPPORT
+═══════════════════════════════════════════════════════════════════════════
+
+If you encounter issues:
+• Check error messages in terminal
+• Review logs: Y:\ArrowLimo\app_errors.log
+• Verify prerequisites (Python, network access, admin rights)
+• Try manual steps in NETWORK_DATABASE_SETUP_GUIDE.md
+• Run TEST_DATABASE_CONNECTION.ps1 to diagnose connectivity
+
+Documentation:
+• QUICK_START.md - Complete setup walkthrough
+• NETWORK_DATABASE_SETUP_GUIDE.md - Technical details
+• README.txt - Overview and troubleshooting
+
+═══════════════════════════════════════════════════════════════════════════
+
+Ready to start? Run this in PowerShell (as Administrator):
+
+    .\SETUP_DISPATCH1_COMPLETE.ps1
+
+═══════════════════════════════════════════════════════════════════════════

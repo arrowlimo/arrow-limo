@@ -3,12 +3,13 @@ Cheque Book Management API
 Allows tracking and updating cheques by bank, number, status (NSF, void, cleared, etc.)
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
-from pydantic import BaseModel, Field
-from typing import Optional, List
-from datetime import date, datetime
-from app.database import get_connection
+from datetime import date
+
 import psycopg2.extras
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
+
+from ..db import get_connection
 
 router = APIRouter(prefix="/api/cheque-books", tags=["Cheque Books"])
 
@@ -18,37 +19,37 @@ router = APIRouter(prefix="/api/cheque-books", tags=["Cheque Books"])
 # ============================================================================
 
 class ChequeSearchRequest(BaseModel):
-    cheque_number: Optional[str] = None
-    amount: Optional[float] = None
-    payee: Optional[str] = None
-    bank_account: Optional[str] = None
-    status: Optional[str] = None
-    date_from: Optional[date] = None
-    date_to: Optional[date] = None
+    cheque_number: str | None = None
+    amount: float | None = None
+    payee: str | None = None
+    bank_account: str | None = None
+    status: str | None = None
+    date_from: date | None = None
+    date_to: date | None = None
 
 
 class ChequeUpdateRequest(BaseModel):
     cheque_number: str
-    payee: Optional[str] = None
-    amount: Optional[float] = None
-    status: Optional[str] = Field(None, description="cleared, void, nsf, pending")
-    notes: Optional[str] = None
-    gl_code: Optional[str] = None
+    payee: str | None = None
+    amount: float | None = None
+    status: str | None = Field(None, description="cleared, void, nsf, pending")
+    notes: str | None = None
+    gl_code: str | None = None
 
 
 class ChequeResponse(BaseModel):
     transaction_id: int
     cheque_number: str
-    transaction_date: Optional[date]
-    payee: Optional[str]
+    transaction_date: date | None
+    payee: str | None
     amount: float
     bank_account: str
     bank_name: str
-    status: Optional[str]
-    category: Optional[str]
-    gl_code: Optional[str]
-    balance_after: Optional[float]
-    notes: Optional[str]
+    status: str | None
+    category: str | None
+    gl_code: str | None
+    balance_after: float | None
+    notes: str | None
 
 
 class ChequeBookSummary(BaseModel):
@@ -66,7 +67,7 @@ class ChequeBookSummary(BaseModel):
 # ENDPOINTS
 # ============================================================================
 
-@router.get("/summary", response_model=List[ChequeBookSummary])
+@router.get("/summary", response_model=list[ChequeBookSummary])
 async def get_cheque_books_summary():
     """Get summary of all cheque books by bank account"""
     conn = get_connection()
@@ -115,13 +116,13 @@ async def get_cheque_books_summary():
         return summaries
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
 
 
-@router.post("/search", response_model=List[ChequeResponse])
+@router.post("/search", response_model=list[ChequeResponse])
 async def search_cheques(search: ChequeSearchRequest):
     """Search for cheques by number, amount, payee, bank, status, or date range"""
     conn = get_connection()
@@ -229,7 +230,7 @@ async def search_cheques(search: ChequeSearchRequest):
         return cheques
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -295,7 +296,7 @@ async def update_cheque(transaction_id: int, update: ChequeUpdateRequest):
         
         return {
             "success": True,
-            "message": f"Cheque updated successfully",
+            "message": "Cheque updated successfully",
             "transaction_id": result[0],
             "payee": result[1],
             "category": result[2],
@@ -306,14 +307,14 @@ async def update_cheque(transaction_id: int, update: ChequeUpdateRequest):
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
 
 
 @router.post("/bulk-update", response_model=dict)
-async def bulk_update_cheques(updates: List[ChequeUpdateRequest]):
+async def bulk_update_cheques(updates: list[ChequeUpdateRequest]):
     """Bulk update multiple cheques at once"""
     conn = get_connection()
     cur = conn.cursor()
@@ -380,7 +381,7 @@ async def bulk_update_cheques(updates: List[ChequeUpdateRequest]):
                     updated_count += cur.rowcount
                 
             except Exception as e:
-                errors.append(f"Cheque #{update.cheque_number}: {str(e)}")
+                errors.append(f"Cheque #{update.cheque_number}: {e!s}")
         
         conn.commit()
         
@@ -393,13 +394,13 @@ async def bulk_update_cheques(updates: List[ChequeUpdateRequest]):
         
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Bulk update failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Bulk update failed: {e!s}")
     finally:
         cur.close()
         conn.close()
 
 
-@router.get("/by-bank/{account_number}", response_model=List[ChequeResponse])
+@router.get("/by-bank/{account_number}", response_model=list[ChequeResponse])
 async def get_cheques_by_bank(
     account_number: str,
     limit: int = Query(100, le=1000),

@@ -1,10 +1,9 @@
 """Receipts and Expenses API Router"""
 from datetime import date, datetime
 from decimal import Decimal
-from typing import List, Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from ..db import get_connection
 
@@ -15,7 +14,7 @@ router = APIRouter(prefix="/api/receipts", tags=["receipts"])
 class SplitComponent(BaseModel):
     amount: Decimal
     category: str
-    description: Optional[str] = None
+    description: str | None = None
     is_personal: bool = False
 
 
@@ -23,26 +22,27 @@ class ReceiptCreate(BaseModel):
     date: date
     vendor: str
     amount: Decimal
-    gst: Optional[Decimal] = None
-    category: Optional[str] = None
-    gl_account_code: Optional[str] = None
-    description: Optional[str] = None
-    vehicle_id: Optional[int] = None
-    payment_method: Optional[str] = None
-    banking_transaction_id: Optional[int] = None
+    gst: Decimal | None = None
+    category: str | None = None
+    gl_account_code: str | None = None
+    description: str | None = None
+    vehicle_id: int | None = None
+    payment_method: str | None = None
+    banking_transaction_id: int | None = None
 
 
 class ReceiptUpdate(BaseModel):
-    date: Optional[date] = None
-    vendor: Optional[str] = None
-    amount: Optional[Decimal] = None
-    gst: Optional[Decimal] = None
-    gl_account_code: Optional[str] = None
-    category: Optional[str] = None  # Deprecated, use gl_account_code
-    description: Optional[str] = None
-    vehicle_id: Optional[int] = None
-    receipt_review_status: Optional[str] = None  # verified, missing, unreadable, data-error
-    receipt_review_notes: Optional[str] = None
+    date: date | None = None
+    vendor: str | None = None
+    amount: Decimal | None = None
+    gst: Decimal | None = None
+    gl_account_code: str | None = None
+    category: str | None = None  # Deprecated, use gl_account_code
+    description: str | None = None
+    vehicle_id: int | None = None
+    receipt_review_status: str | None = None  # verified, missing, unreadable, data-error
+    receipt_review_notes: str | None = None
+    is_paper_verified: bool | None = None  # Mark if physical receipt has been validated
 
 
 class ReceiptResponse(BaseModel):
@@ -50,14 +50,14 @@ class ReceiptResponse(BaseModel):
     date: date
     vendor: str
     amount: Decimal
-    gst: Optional[Decimal]
-    gl_account_code: Optional[str]
-    category: Optional[str] = None  # Deprecated, use gl_account_code
-    description: Optional[str]
-    vehicle_id: Optional[int]
-    payment_method: Optional[str]
-    banking_transaction_id: Optional[int]
-    created_at: Optional[datetime]
+    gst: Decimal | None
+    gl_account_code: str | None
+    category: str | None = None  # Deprecated, use gl_account_code
+    description: str | None
+    vehicle_id: int | None
+    payment_method: str | None
+    banking_transaction_id: int | None
+    created_at: datetime | None
 
 
 class ExpenseSummary(BaseModel):
@@ -116,10 +116,10 @@ def get_categories():
 
 @router.get("/")
 def get_receipts(
-    start_date: Optional[date] = None,
-    end_date: Optional[date] = None,
-    vendor: Optional[str] = None,
-    category: Optional[str] = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    vendor: str | None = None,
+    category: str | None = None,
     limit: int = 100,
     offset: int = 0,
 ):
@@ -272,7 +272,7 @@ def create_receipt(receipt: ReceiptCreate):
         cur.close()
         conn.close()
         raise HTTPException(
-            status_code=500, detail=f"Failed to create receipt: {str(e)}"
+            status_code=500, detail=f"Failed to create receipt: {e!s}"
         )
 
 
@@ -291,14 +291,17 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
             updates.append("receipt_date = %s")
             params.append(receipt.date)
         if receipt.vendor is not None:
-            updates.append("vendor = %s")
+            updates.append("vendor_name = %s")
             params.append(receipt.vendor)
         if receipt.amount is not None:
-            updates.append("amount = %s")
+            updates.append("gross_amount = %s")
             params.append(receipt.amount)
         if receipt.gst is not None:
             updates.append("gst_amount = %s")
             params.append(receipt.gst)
+        if receipt.gl_account_code is not None:
+            updates.append("gl_account_code = %s")
+            params.append(receipt.gl_account_code)
         if receipt.category is not None:
             updates.append("category = %s")
             params.append(receipt.category)
@@ -321,11 +324,20 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
         if receipt.receipt_review_notes is not None:
             updates.append("receipt_review_notes = %s")
             params.append(receipt.receipt_review_notes)
+        if receipt.is_paper_verified is not None:
+            updates.append("is_paper_verified = %s")
+            params.append(receipt.is_paper_verified)
+            # If marking as paper verified, also set the timestamp
+            if receipt.is_paper_verified:
+                updates.append("paper_verification_date = NOW()")
+                updates.append("verified_by_user = %s")
+                params.append("web_user")
 
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")
 
         # AUTO-VERIFY: Mark receipt as reviewed when saved (unless explicitly set to other status)
+        # Note: This is for DATA review, not paper verification
         if receipt.receipt_review_status is None:
             # Default to 'verified' if user is editing/saving without specifying status
             updates.append("receipt_review_status = 'verified'")
@@ -356,7 +368,8 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
         cur.close()
         conn.close()
 
-        return {"message": "Receipt updated successfully (auto-verified)"}
+        paper_status = "paper-verified" if receipt.is_paper_verified else "data-verified"
+        return {"message": f"Receipt updated successfully ({paper_status})"}
 
     except HTTPException:
         raise
@@ -365,7 +378,7 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
         cur.close()
         conn.close()
         raise HTTPException(
-            status_code=500, detail=f"Failed to update receipt: {str(e)}"
+            status_code=500, detail=f"Failed to update receipt: {e!s}"
         )
 
 
@@ -398,13 +411,13 @@ def delete_receipt(receipt_id: int):
         cur.close()
         conn.close()
         raise HTTPException(
-            status_code=500, detail=f"Failed to delete receipt: {str(e)}"
+            status_code=500, detail=f"Failed to delete receipt: {e!s}"
         )
 
 
 @router.get("/summary/by-category")
 def get_expense_summary(
-    start_date: Optional[date] = None, end_date: Optional[date] = None
+    start_date: date | None = None, end_date: date | None = None
 ):
     """Get expense summary grouped by category"""
     conn = get_connection()

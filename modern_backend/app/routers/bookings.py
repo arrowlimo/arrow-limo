@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Path, Query, status
+from fastapi import APIRouter, HTTPException, Path, Query
 
 from ..db import cursor
 from ..utils.locked_charter import enforce_charter_not_locked
@@ -16,40 +16,39 @@ def list_bookings():
             c.charter_date,
             c.client_id,
             c.reserve_number,
-            c.passenger_load,
-            c.vehicle_booked_id,
-            c.vehicle,
-            c.vehicle_description,
-            c.vehicle_type_requested,
-            c.driver,
-            c.driver_name,
-            c.retainer,
-            c.retainer_received,
-            c.retainer_amount,
+            c.passenger_count,
+            c.vehicle_id,
+            COALESCE(v.vehicle_number, '') AS vehicle,
+            COALESCE(v.make || ' ' || v.model, '') AS vehicle_description,
+            COALESCE(e.first_name || ' ' || e.last_name, '') AS driver_name,
+            c.nrd_amount AS retainer,
+            c.nrd_received AS retainer_received,
+            c.nrd_amount AS retainer_amount,
             c.odometer_start,
             c.odometer_end,
-            c.fuel_added,
+            0 AS fuel_added,
             c.vehicle_notes,
-            c.notes,
+            c.client_notes AS notes,
             c.pickup_address,
             c.dropoff_address,
+            c.pickup_time,
             c.status,
-            c.closed,
-            c.cancelled,
+            c.locked AS closed,
+            CASE WHEN c.status = 'cancelled' THEN true ELSE false END AS cancelled,
             COALESCE(c.charter_type, 'standard') AS charter_type,
-            COALESCE(c.exchange_of_services_details, '{}'::jsonb) AS exchange_of_services_details,
-            COALESCE(c.gl_revenue_code, '4000') AS gl_revenue_code,
-            COALESCE(c.gl_expense_code, '6100') AS gl_expense_code,
+            '{}' AS exchange_of_services_details,
+            '4000' AS gl_revenue_code,
+            '6100' AS gl_expense_code,
             cl.client_name,
             v.passenger_capacity AS vehicle_capacity,
             c.total_amount_due,
-            c.paid_amount,
+            c.balance AS paid_amount,
             COALESCE(p.total_paid, 0) AS total_paid,
             (COALESCE(c.total_amount_due, 0) - COALESCE(p.total_paid, 0)) AS balance,
             CASE
-                WHEN c.closed = TRUE AND c.cancelled = FALSE THEN 'Reconciled'
-                WHEN c.cancelled = TRUE THEN 'Cancelled'
-                WHEN c.closed = FALSE AND c.cancelled = FALSE THEN 'Not Reconciled'
+                WHEN c.locked = TRUE AND c.status != 'cancelled' THEN 'Reconciled'
+                WHEN c.status = 'cancelled' THEN 'Cancelled'
+                WHEN c.locked = FALSE AND c.status != 'cancelled' THEN 'Not Reconciled'
                 ELSE 'Unknown'
             END AS reconciliation_status,
             COALESCE(nrr.nrr_amount, 0) AS nrr_amount,
@@ -62,7 +61,8 @@ def list_bookings():
                   AND bo.order_date < date_trunc('week', CURRENT_DATE) + interval '7 days') AS beverage_orders_this_week
         FROM charters c
         LEFT JOIN clients cl ON c.client_id = cl.client_id
-        LEFT JOIN vehicles v ON CAST(c.vehicle_booked_id AS TEXT) = CAST(v.vehicle_number AS TEXT)
+        LEFT JOIN vehicles v ON c.vehicle_id = v.vehicle_id
+        LEFT JOIN employees e ON c.employee_id = e.employee_id
         LEFT JOIN (
             SELECT reserve_number, COALESCE(SUM(amount), 0) AS total_paid
             FROM payments
@@ -86,6 +86,7 @@ def list_bookings():
     items: list[dict[str, Any]] = []
     for r in rows:
         rec = dict(zip(cols, r, strict=False))
+        
         items.append(
             {
                 "charter_id": rec.get("charter_id", ""),
@@ -96,11 +97,10 @@ def list_bookings():
                 "client_id": rec.get("client_id", ""),
                 "vehicle": rec.get("vehicle", ""),
                 "vehicle_description": rec.get("vehicle_description", ""),
-                "vehicle_type_requested": rec.get("vehicle_type_requested", ""),
-                "vehicle_booked_id": rec.get("vehicle_booked_id", ""),
-                "driver": rec.get("driver", ""),
+                "vehicle_id": rec.get("vehicle_id", ""),
                 "driver_name": rec.get("driver_name", ""),
-                "passenger_load": rec.get("passenger_load", 0),
+                "passenger_count": rec.get("passenger_count", 0),
+                "passenger_load": rec.get("passenger_count", 0),  # Alias for frontend compatibility
                 "vehicle_capacity": rec.get("vehicle_capacity", 0),
                 "retainer": float(rec.get("retainer", 0) or 0.0),
                 "retainer_received": float(rec.get("retainer_received", 0) or 0.0),
@@ -109,9 +109,10 @@ def list_bookings():
                 "odometer_end": rec.get("odometer_end", ""),
                 "fuel_added": rec.get("fuel_added", ""),
                 "vehicle_notes": rec.get("vehicle_notes", "") or rec.get("notes", ""),
-                "itinerary_stops": 0,
+                "itinerary": [],
                 "reserve_number": rec.get("reserve_number", ""),
                 "pickup_address": rec.get("pickup_address", ""),
+                "pickup_time": str(rec.get("pickup_time", "")) if rec.get("pickup_time") else "",
                 "dropoff_address": rec.get("dropoff_address", ""),
                 "status": rec.get("status", ""),
                 "closed": bool(rec.get("closed", False)),
@@ -266,14 +267,23 @@ def create_booking(payload: dict[str, Any] | None = None):
     client_name = (payload.get("client_name") or "").strip()
     phone = (payload.get("phone") or "").strip()
     email = (payload.get("email") or "").strip()
+    billing_address = (payload.get("billing_address") or "").strip()
+    city = (payload.get("city") or "").strip()
+    province = (payload.get("province") or "").strip()
+    zip_code = (payload.get("postal_code") or "").strip()  # Fixed: DB column is zip_code
 
     charter_date = payload.get("charter_date")
     pickup_time = payload.get("pickup_time")
-    passenger_load = int(payload.get("passenger_load") or 0)
-    vehicle_type_requested = payload.get("vehicle_type_requested")
-    vehicle_booked_id = payload.get("vehicle_booked_id")
+    passenger_count = int(payload.get("passenger_load") or payload.get("passenger_count") or 1)  # Default to 1 passenger
+    vehicle_id = payload.get("vehicle_booked_id")  # Fixed: DB column is vehicle_id
+    assigned_driver_id = payload.get("assigned_driver_id")  # Use employee_id instead of driver_name
     status = payload.get("status") or "Quote"
     total_amount_due = payload.get("total_amount_due")
+    
+    # Notes fields
+    client_notes = payload.get("customer_notes")  # Fixed: DB column is client_notes
+    driver_notes = payload.get("dispatcher_notes")  # Fixed: DB column is driver_notes
+    vehicle_notes = payload.get("special_requests")  # Maps to vehicle_notes
 
     # Derive pickup/dropoff from itinerary if present
     itinerary = payload.get("itinerary") or []
@@ -310,11 +320,11 @@ def create_booking(payload: dict[str, Any] | None = None):
                 # Create a basic client record
                 cur.execute(
                     """
-                    INSERT INTO clients (account_number, client_name, phone, email)
-                    VALUES (%s, %s, %s, %s)
+                    INSERT INTO clients (account_number, client_name, phone, email, billing_address, city, province, zip_code)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING client_id
                     """,
-                    (new_account_number, client_name, phone, email),
+                    (new_account_number, client_name, phone, email, billing_address, city, province, zip_code),
                 )
                 client_id = cur.fetchone()[0]
 
@@ -332,20 +342,14 @@ def create_booking(payload: dict[str, Any] | None = None):
             max_val = cur.fetchone()[0] or 0
             reserve_number = f"{int(max_val) + 1:06d}"
 
-        # Optional: map assigned_driver_id to driver_name for existing schema
-        driver_name = None
-        assigned_driver_id = payload.get("assigned_driver_id")
+        # Validate employee_id if provided
         if assigned_driver_id:
             cur.execute(
-                """
-                SELECT first_name, last_name FROM employees WHERE employee_id = %s
-                """,
+                "SELECT employee_id FROM employees WHERE employee_id = %s",
                 (assigned_driver_id,),
             )
-            emp = cur.fetchone()
-            if emp:
-                first, last = emp[0] or "", emp[1] or ""
-                driver_name = (f"{first} {last}").strip() or None
+            if not cur.fetchone():
+                assigned_driver_id = None  # Invalid employee_id, set to NULL
 
         # Check if client is GST exempt
         cur.execute("SELECT gst_exempt FROM clients WHERE client_id = %s", (client_id,))
@@ -355,42 +359,122 @@ def create_booking(payload: dict[str, Any] | None = None):
         # Get separate_customer_printout flag from payload
         separate_customer_printout = payload.get("separate_customer_printout", False)
 
-        # Insert into charters table using known columns
+        # Insert into charters table using correct column names
         cur.execute(
             """
             INSERT INTO charters (
                 charter_date,
                 client_id,
                 reserve_number,
-                passenger_load,
-                vehicle_booked_id,
-                vehicle_type_requested,
-                driver_name,
+                passenger_count,
+                vehicle_id,
+                employee_id,
                 pickup_address,
                 dropoff_address,
+                pickup_time,
                 total_amount_due,
                 status,
-                separate_customer_printout)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                separate_customer_printout,
+                client_notes,
+                driver_notes,
+                vehicle_notes)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING charter_id, reserve_number, status
             """,
             (
                 charter_date,
                 client_id,
                 reserve_number,
-                passenger_load,
-                vehicle_booked_id,
-                vehicle_type_requested,
-                driver_name,
+                passenger_count,
+                vehicle_id,
+                assigned_driver_id,
                 pickup_address,
                 dropoff_address,
+                pickup_time,
                 total_amount_due,
                 status,
                 separate_customer_printout,
+                client_notes,
+                driver_notes,
+                vehicle_notes,
             ),
         )
         new_row = cur.fetchone()
         cols = [d[0] for d in (cur.description or [])]
+        charter_id = new_row[0]  # Extract charter_id for charter_routes
+
+        # Insert itinerary stops into charter_routes table
+        if isinstance(itinerary, list) and len(itinerary) > 0:
+            # Create route segments from consecutive stops
+            for seq, stop in enumerate(itinerary, start=1):
+                stop_type = stop.get("type", "stop")
+                address = stop.get("address", "")
+                time_str = stop.get("time24", "")
+                
+                # Parse time string to time object
+                stop_time = None
+                if time_str:
+                    try:
+                        # time_str is in HH:MM format
+                        stop_time = time_str
+                    except Exception:
+                        stop_time = None
+                
+                # Determine pickup/dropoff based on stop type
+                # For route segments, each stop creates a row with that location as pickup
+                # and next stop as dropoff (except last stop)
+                if seq < len(itinerary):
+                    # Not the last stop - create segment to next stop
+                    next_stop = itinerary[seq]
+                    next_address = next_stop.get("address", "")
+                    next_time = next_stop.get("time24", "")
+                    
+                    cur.execute(
+                        """
+                        INSERT INTO charter_routes (
+                            charter_id,
+                            route_sequence,
+                            pickup_location,
+                            pickup_time,
+                            dropoff_location,
+                            dropoff_time,
+                            event_type_code
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            charter_id,
+                            seq,
+                            address,
+                            stop_time,
+                            next_address,
+                            next_time,
+                            stop_type
+                        )
+                    )
+                else:
+                    # Last stop - create row with just this location as dropoff
+                    cur.execute(
+                        """
+                        INSERT INTO charter_routes (
+                            charter_id,
+                            route_sequence,
+                            pickup_location,
+                            pickup_time,
+                            dropoff_location,
+                            dropoff_time,
+                            event_type_code
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            charter_id,
+                            seq,
+                            "",  # No pickup for last segment
+                            None,
+                            address,  # Last stop is final dropoff
+                            stop_time,
+                            stop_type
+                        )
+                    )
 
         # Insert charges line items (business key: reserve_number)
         base_charge = payload.get("base_charge")

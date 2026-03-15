@@ -1,0 +1,308 @@
+==================================================
+  DUAL DISPATCHER SETUP GUIDE
+  Installing ALMS on DISPATCH1 with Auto-Update
+==================================================
+
+OVERVIEW
+--------
+This setup allows DISPATCH1 to:
+- Install Arrow Limo app to Y: drive
+- Auto-update from your development source (L:\limo)
+- Share files via Z:\limo_files
+- Both dispatchers work on same Neon cloud database
+
+==================================================
+STEP 1: PREPARE DISPATCHMAIN (Your Computer)
+==================================================
+
+1. Open PowerShell AS ADMINISTRATOR on DISPATCHMAIN
+
+2. Navigate to deployment package:
+   cd L:\limo\DEPLOYMENT_PACKAGE
+
+3. Run the network share setup:
+   .\SETUP_NETWORK_SHARE_FOR_AUTOUPDATE.ps1
+
+4. This creates:
+   - User: DISPATCHMAIN\ArrowDispatch
+   - Password: Dispatch2026!
+   - Share: \\DISPATCHMAIN\limo (for auto-updates)
+   - Share: \\DISPATCHMAIN\limo_files (for shared files)
+
+5. Verify:
+   - Open File Explorer
+   - Type: \\DISPATCHMAIN\limo
+   - You should see the limo folder contents
+
+==================================================
+STEP 2: PREPARE DISPATCH1 COMPUTER
+==================================================
+
+1. Create Y: volume (if not already exists):
+   - Open Disk Management (diskmgmt.msc)
+   - Shrink C: drive or add new disk
+   - Create new volume, assign letter Y:
+   - Format as NTFS
+   - Label as "ALMS"
+
+2. Verify Y: drive exists:
+   - Open File Explorer
+   - Y: should appear in drives list
+
+==================================================
+STEP 3: COPY DEPLOYMENT PACKAGE TO DISPATCH1
+==================================================
+
+Option A - USB Drive:
+--------------------
+1. Copy entire L:\limo\DEPLOYMENT_PACKAGE folder to USB
+2. Plug USB into DISPATCH1
+3. Copy DEPLOYMENT_PACKAGE to Desktop or Downloads
+
+Option B - Network Copy:
+-----------------------
+1. On DISPATCH1, open File Explorer
+2. Type in address bar: \\DISPATCHMAIN\limo
+3. Username: DISPATCHMAIN\ArrowDispatch
+4. Password: Dispatch2026!
+5. Copy DEPLOYMENT_PACKAGE folder to Desktop
+
+==================================================
+STEP 4: INSTALL ON DISPATCH1
+==================================================
+
+1. On DISPATCH1, navigate to DEPLOYMENT_PACKAGE folder
+
+2. Right-click: INSTALL_DISPATCH1_Y_DRIVE.bat
+
+3. Select "Run as administrator"
+
+4. Click Yes when UAC prompts
+
+5. The installer will:
+   ✓ Check Y: drive exists
+   ✓ Map Z: to \\DISPATCHMAIN\limo_files
+   ✓ Map L: to \\DISPATCHMAIN\limo (for updates)
+   ✓ Install app to Y:\ArrowLimo
+   ✓ Configure .env with Neon database
+   ✓ Create auto-update script
+   ✓ Create desktop shortcut
+
+6. Installation complete!
+
+==================================================
+STEP 5: VERIFY INSTALLATION
+==================================================
+
+1. Check desktop - you should see:
+   "Arrow Limo DISPATCH1" shortcut
+
+2. Check Y: drive:
+   - Y:\ArrowLimo should exist
+   - Should contain desktop_app folder
+   - Should have .env file
+   - Should have START_DISPATCH1.bat
+
+3. Check Z: drive:
+   - Z:\limo_files should be accessible
+   - Should see folders: employees, vehicles, etc.
+
+4. Check L: drive:
+   - L:\limo should be accessible
+   - Should see desktop_app, frontend, etc.
+
+==================================================
+STEP 6: LAUNCH AND TEST
+==================================================
+
+1. Double-click "Arrow Limo DISPATCH1" on desktop
+
+2. You should see:
+   - "Checking for updates..."
+   - "Starting application..."
+   - Login screen appears
+
+3. Login with your credentials
+
+4. Verify database access:
+   - Browse charters, clients, etc.
+   - Data should match DISPATCHMAIN
+
+==================================================
+AUTO-UPDATE MECHANISM
+==================================================
+
+How It Works:
+-------------
+1. Each time you launch from desktop shortcut
+2. Script runs AUTO_UPDATE.ps1
+3. Compares L:\limo\desktop_app vs Y:\ArrowLimo\desktop_app
+4. Copies any newer/modified .py files
+5. Then starts the application
+
+What Gets Updated:
+------------------
+✓ All Python (.py) files in desktop_app
+✓ Only files that changed since last update
+✓ Automatic - no manual sync needed
+
+Making Changes:
+---------------
+1. Edit code on DISPATCHMAIN (L:\limo\desktop_app\...)
+2. Save changes
+3. On DISPATCH1: Close and restart app
+4. Updates download automatically
+5. New code runs immediately
+
+==================================================
+WORKSTATION IDENTIFICATION
+==================================================
+
+Each workstation has unique .env setting:
+- DISPATCHMAIN: WORKSTATION_ID=DISPATCHMAIN
+- DISPATCH1: WORKSTATION_ID=DISPATCH1
+
+This allows:
+- Audit logs to track which user/station made changes
+- Future feature: workstation-specific settings
+- Troubleshooting: identify which computer has issues
+
+==================================================
+TROUBLESHOOTING
+==================================================
+
+Problem: "Cannot access L:\limo\desktop_app"
+Solution:
+- Verify DISPATCHMAIN is ON
+- Check L: drive mapped on DISPATCH1
+- Try: net use L: \\DISPATCHMAIN\limo /user:DISPATCHMAIN\ArrowDispatch Dispatch2026!
+
+Problem: "Y: drive does not exist"
+Solution:
+- Create Y: volume in Disk Management first
+- Restart installer
+
+Problem: "Cannot map Z: drive"
+Solution:
+- Check DISPATCHMAIN is on network
+- Verify network sharing enabled (Windows 11 password login required)
+- Manually map: net use Z: \\DISPATCHMAIN\limo_files /user:DISPATCHMAIN\ArrowDispatch Dispatch2026!
+
+Problem: Database connection fails
+Solution:
+- Check internet connection (Neon is cloud database)
+- Verify .env has correct credentials
+- Try from DISPATCHMAIN to confirm database accessible
+
+Problem: Auto-update not working
+Solution:
+- Check L: drive mapped
+- Run AUTO_UPDATE.ps1 manually to see error
+- Verify file permissions on L:\limo\desktop_app
+
+Problem: Files ask for password repeatedly
+Solution:
+- Map drives with /persistent:yes flag
+- Check "Remember my credentials" when mapping
+- Verify ArrowDispatch user not locked
+
+==================================================
+DAILY OPERATIONS
+==================================================
+
+Starting Work:
+--------------
+1. Turn on DISPATCHMAIN computer
+2. Turn on DISPATCH1 computer
+3. Launch app from desktop shortcut on each
+4. Auto-update runs automatically
+5. Login and start dispatching
+
+Ending Work:
+------------
+1. Close application on both computers
+2. No special shutdown needed
+3. Files auto-saved to database
+
+Making Code Changes:
+--------------------
+1. Edit on DISPATCHMAIN (L:\limo)
+2. Save changes
+3. On DISPATCH1: restart app
+4. Changes applied automatically
+
+==================================================
+NETWORK DRIVE REFERENCE
+==================================================
+
+L:\limo (on DISPATCH1)
+- Mapped to: \\DISPATCHMAIN\limo
+- Purpose: Auto-update source code
+- Access: Read-only
+- Contains: Development source files
+
+Z:\limo_files (on both computers)
+- Mapped to: \\DISPATCHMAIN\limo_files
+- Purpose: Shared file storage
+- Access: Read/Write
+- Contains: Employee docs, vehicle docs, reports, etc.
+
+Y:\ArrowLimo (on DISPATCH1 only)
+- Local drive on DISPATCH1
+- Purpose: Application installation
+- Access: Full control
+- Contains: Running application files
+
+==================================================
+CREDENTIALS REFERENCE
+==================================================
+
+Network Share Access:
+- Username: DISPATCHMAIN\ArrowDispatch
+- Password: Dispatch2026!
+- Used for: L: and Z: drive mapping
+
+Database (Neon Cloud):
+- Host: ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech
+- Database: neondb
+- User: neondb_owner
+- Password: (in .env file)
+- Shared by: All dispatch workstations
+
+Application Login:
+- Use your individual user credentials
+- Set up in Users table
+- Different for each dispatcher
+
+==================================================
+MAINTENANCE
+==================================================
+
+Weekly:
+- No maintenance needed
+- Auto-updates handle code sync
+
+Monthly:
+- Check disk space on Y: drive
+- Verify backup systems running
+
+As Needed:
+- Update .env if database credentials change
+- Recopy DEPLOYMENT_PACKAGE if major changes
+- Reinstall if Y: drive replaced
+
+==================================================
+SUPPORT CONTACTS
+==================================================
+
+For technical issues:
+- Check this guide first
+- Review logs in Y:\ArrowLimo\app_errors.log
+- Contact system administrator
+
+For database issues:
+- Verify internet connection
+- Check Neon dashboard
+- Review connection logs
+
+==================================================

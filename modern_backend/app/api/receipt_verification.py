@@ -3,7 +3,6 @@
 API endpoints for physical receipt verification.
 """
 import os
-from datetime import datetime
 
 import psycopg2
 from fastapi import APIRouter, HTTPException, Query
@@ -29,9 +28,10 @@ async def get_verification_summary():
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
+        # Use materialized view for better performance
         cur.execute(
             """
-            SELECT * FROM receipt_verification_summary;
+            SELECT * FROM mv_receipt_verification_summary;
         """
         )
         result = cur.fetchone()
@@ -53,18 +53,10 @@ async def get_verification_by_year():
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
+        # Use materialized view for better performance
         cur.execute(
             """
-            SELECT
-              EXTRACT(YEAR FROM receipt_date)::INT as year,
-              COUNT(*) as total,
-              SUM(CASE WHEN is_paper_verified THEN 1 ELSE 0 END) as verified,
-              ROUND(100.0 * SUM(CASE WHEN is_paper_verified THEN 1 ELSE 0 END) /
-                    NULLIF(COUNT(*), 0), 1) as percentage
-            FROM receipts
-            WHERE business_personal != 'personal'
-              AND is_personal_purchase = FALSE
-            GROUP BY EXTRACT(YEAR FROM receipt_date)
+            SELECT * FROM mv_receipt_verification_by_year
             ORDER BY year;
         """
         )

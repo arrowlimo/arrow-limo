@@ -35,20 +35,31 @@ def create_vehicle_folder(vehicle_number: str) -> Path:
 
 @router.get("/")
 def list_vehicles():
-    """Return active vehicles with basic display fields.
+    """Return active vehicles with all display fields for Vehicle Management view.
 
     Fields returned:
-    - vehicle_id
-    - vehicle_number
-    - license_plate
+    - vehicle_id, vehicle_number, license_plate, make, model, year, type
+    - operational_status, next_service_due, passenger_capacity
     - display (vehicle_number + plate)
+    - is_active
     """
     conn = get_connection()
     cur = conn.cursor()
     try:
         cur.execute(
             """
-            SELECT vehicle_id, vehicle_number, license_plate
+            SELECT 
+                vehicle_id, 
+                vehicle_number, 
+                license_plate,
+                make,
+                model,
+                year,
+                type,
+                operational_status,
+                next_service_due,
+                passenger_capacity,
+                is_active
             FROM vehicles
             WHERE is_active = true
             ORDER BY vehicle_number
@@ -61,6 +72,14 @@ def list_vehicles():
                     "vehicle_id": row[0],
                     "vehicle_number": row[1],
                     "license_plate": row[2],
+                    "make": row[3],
+                    "model": row[4],
+                    "year": row[5],
+                    "type": row[6],
+                    "operational_status": row[7],
+                    "next_service_due": str(row[8]) if row[8] else None,
+                    "passenger_capacity": row[9],
+                    "is_active": row[10],
                     "display": f"{row[1]} ({row[2]})"
                     if row[1] and row[2]
                     else (row[1] or row[2] or "Unknown"),

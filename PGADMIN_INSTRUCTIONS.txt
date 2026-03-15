@@ -1,0 +1,192 @@
+═══════════════════════════════════════════════════════════════════════════
+  HOW TO RUN THE FIX IN PGADMIN - STEP BY STEP
+═══════════════════════════════════════════════════════════════════════════
+
+STEP 1: Open pgAdmin
+───────────────────────────────────────────────────────────────────────────
+  • Look for the pgAdmin icon on your desktop or Start menu
+  • It looks like an elephant (PostgreSQL logo)
+  • Double-click to open it
+
+STEP 2: Connect to Your Database
+───────────────────────────────────────────────────────────────────────────
+  • On the LEFT side, you'll see a tree view
+  • Expand (click the ▶) these items in order:
+    
+    Servers
+      ▶ PostgreSQL 14 (or 15, 16 - whatever version you have)
+          ▶ Databases
+              ▶ almsdata  ← This is your database!
+
+STEP 3: Open Query Tool
+───────────────────────────────────────────────────────────────────────────
+  • RIGHT-CLICK on "almsdata"
+  • From the menu, click "Query Tool"
+  
+  OR
+  
+  • Click on "almsdata" to select it
+  • Then click the "Query Tool" button in the toolbar
+  • OR press F5 on your keyboard
+
+  A new window/tab will open with a blank text area
+
+STEP 4: Copy the SQL Script
+───────────────────────────────────────────────────────────────────────────
+  • Open this file in Notepad:
+    l:\limo\RUN_THIS_NOW_FIX_TIMEOUT.sql
+  
+  • Press Ctrl+A (select all)
+  • Press Ctrl+C (copy)
+
+  OR use the text below (copy everything from --- to ---):
+
+---
+SET idle_in_transaction_session_timeout = '2h';
+SET statement_timeout = '15min';
+
+SELECT '✅ You now have 2 HOURS to work on receipts without timeout!' as status;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_banking_transactions_receipt_id 
+ON banking_transactions(receipt_id) WHERE receipt_id IS NOT NULL;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_receipts_employee_id 
+ON receipts(employee_id) WHERE employee_id IS NOT NULL;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_receipts_charter_id 
+ON receipts(charter_id) WHERE charter_id IS NOT NULL;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_receipts_vehicle_number 
+ON receipts(vehicle_number) WHERE vehicle_number IS NOT NULL;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_receipts_banking_transaction_id 
+ON receipts(banking_transaction_id) WHERE banking_transaction_id IS NOT NULL;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_receipts_date_id 
+ON receipts(receipt_date DESC, receipt_id DESC);
+
+SELECT 
+    CASE 
+        WHEN COUNT(*) >= 6 THEN '✅ SUCCESS! All indexes created. Receipts will now load INSTANTLY!'
+        ELSE '⚠️ Only ' || COUNT(*) || ' of 6 indexes exist. Check for errors above.'
+    END as final_status
+FROM pg_indexes
+WHERE tablename IN ('receipts', 'banking_transactions')
+AND indexname IN (
+    'idx_banking_transactions_receipt_id',
+    'idx_receipts_employee_id',
+    'idx_receipts_charter_id',
+    'idx_receipts_vehicle_number',
+    'idx_receipts_banking_transaction_id',
+    'idx_receipts_date_id'
+);
+---
+
+STEP 5: Paste Into Query Tool
+───────────────────────────────────────────────────────────────────────────
+  • In the Query Tool window, click in the large text area
+  • Press Ctrl+V (paste)
+  • You should see all the SQL code appear
+
+STEP 6: Execute the Script
+───────────────────────────────────────────────────────────────────────────
+  • Look for the Execute button (▶ Play icon) in the toolbar
+  • Click it
+  
+  OR
+  
+  • Press F5 on your keyboard
+
+STEP 7: Wait for Completion
+───────────────────────────────────────────────────────────────────────────
+  • You'll see a spinning icon or progress indicator
+  • Wait about 30-60 seconds
+  • When done, the bottom panel will show results
+
+STEP 8: Check the Results
+───────────────────────────────────────────────────────────────────────────
+  Look at the BOTTOM of the pgAdmin window - you should see:
+
+  ✅ SUCCESS! All indexes created. Receipts will now load INSTANTLY!
+
+  If you see this, YOU'RE DONE! 🎉
+
+STEP 9: Restart Your Desktop Application
+───────────────────────────────────────────────────────────────────────────
+  • Close your Arrow Limo desktop application completely
+  • Open it again
+  • Try opening a receipt - should be INSTANT now!
+
+═══════════════════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING:
+───────────────────────────────────────────────────────────────────────────
+
+❓ Can't find pgAdmin?
+   → It might be called "pgAdmin 4" in your Start menu
+   → Try searching Windows for "pgadmin"
+
+❓ Can't find "almsdata" database?
+   → Make sure PostgreSQL server is running
+   → Check if you're connected to the right server
+   → The database might be on a different server
+
+❓ Getting an error when executing?
+   → Copy the ENTIRE error message
+   → The script is safe - it won't delete or change your data
+   → Try running just the first two lines:
+     SET idle_in_transaction_session_timeout = '2h';
+     SET statement_timeout = '15min';
+
+❓ Execution takes a long time?
+   → That's normal! Building indexes can take 1-2 minutes
+   → Don't close pgAdmin while it's running
+   → Wait for "Query returned successfully"
+
+❓ Still getting timeouts after running this?
+   → Make sure you RESTARTED the desktop application
+   → Check if the success message appeared
+   → Run the verification query again (the SELECT at the end)
+
+═══════════════════════════════════════════════════════════════════════════
+
+QUICK VISUAL GUIDE:
+───────────────────────────────────────────────────────────────────────────
+
+pgAdmin Window Layout:
+
+┌─────────────────────────────────────────────────────────────┐
+│ File Edit View Tools Help                      🔧⚙️📊        │ ← Toolbar
+├──────────────┬──────────────────────────────────────────────┤
+│              │                                              │
+│  Servers ▼   │  Query Tool Tab                              │
+│   PostgreSQL │  ┌────────────────────────────────────┐      │
+│    Databases │  │ [Your SQL script goes here]        │      │
+│     almsdata │  │                                    │      │
+│      Tables  │  │ Paste the script and press F5      │      │
+│      Views   │  │                                    │      │
+│              │  └────────────────────────────────────┘      │
+│              │                                              │
+│              │  ▶ Execute (F5)  💾 Save  ⬜ Stop             │
+│              │                                              │
+├──────────────┴──────────────────────────────────────────────┤
+│ Messages / Output Panel                                     │
+│                                                              │
+│ ✅ Query returned successfully in 1 min 23 sec              │
+│ ✅ SUCCESS! All indexes created...                          │
+└──────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════
+
+STILL STUCK? 
+───────────────────────────────────────────────────────────────────────────
+Call someone who knows PostgreSQL/pgAdmin to help you:
+  1. Open pgAdmin
+  2. Navigate to almsdata database
+  3. Open Query Tool (F5)
+  4. Paste the script
+  5. Click Execute
+
+It takes 30 seconds for someone who knows pgAdmin.
+
+═══════════════════════════════════════════════════════════════════════════

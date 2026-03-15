@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -93,7 +93,7 @@ def delete_charge(charge_id: int) -> dict[str, Any]:
 @router.get("/charges/catalog")
 def get_charge_catalog(
     active_only: bool = Query(True, description="Filter to active charges only"),
-    charge_type: Optional[str] = Query(
+    charge_type: str | None = Query(
         None,
         description="Filter by type: base_rate, airport_fee, additional, gst",
     ),

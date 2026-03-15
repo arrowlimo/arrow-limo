@@ -1,0 +1,122 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║   DISPATCH1 QUICK REFERENCE CARD                                 ║
+║   Arrow Limousine Management System                              ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────┐
+│ ⚠️  CRITICAL WARNING - AUTO-FORMATTERS CORRUPT CODE              │
+└──────────────────────────────────────────────────────────────────┘
+
+  ❌ DO NOT enable: Black, Prettier, flake8, autopep8, ruff
+  ❌ DO NOT turn on "Format on Save"
+  ❌ DO NOT run "Format Document" command
+  
+  These extensions BREAK Python code (f-strings) and create syntax
+  errors that prevent the application from running!
+  
+  See: WARNING_NO_AUTO_FORMATTERS.md for details
+
+┌──────────────────────────────────────────────────────────────────┐
+│ DAILY STARTUP                                                    │
+└──────────────────────────────────────────────────────────────────┘
+
+  1. Double-click desktop shortcut: "Arrow Limo Dispatch"
+     
+     OR
+     
+  2. Navigate to: Y:\ArrowLimo\app\
+     Double-click: START_DISPATCH.bat
+
+┌──────────────────────────────────────────────────────────────────┐
+│ IMPORTANT FILE LOCATIONS                                         │
+└──────────────────────────────────────────────────────────────────┘
+
+  ★ RUNNING APP:        Y:\ArrowLimo\app\START_DISPATCH.bat
+  ★ SOURCE CODE:        L:\limo\desktop_app\ (on DISPATCHMAIN)
+  ★ HELP FILES:         L:\limo\DEPLOYMENT_PACKAGE\*.md
+  ★ DATABASE SCRIPTS:   L:\limo\scripts\
+
+┌──────────────────────────────────────────────────────────────────┐
+│ NETWORK DRIVES                                                   │
+└──────────────────────────────────────────────────────────────────┘
+
+  L: = \\DISPATCHMAIN\limo           (Source code repository)
+  Y: = Local installation folder     (Your running copy)
+  Z: = \\DISPATCHMAIN\limo_files     (Shared file storage)
+
+┌──────────────────────────────────────────────────────────────────┐
+│ GOLDEN RULES                                                     │
+└──────────────────────────────────────────────────────────────────┘
+
+  ✓ ALWAYS use drive letters (L:, Y:) in batch files
+  ✗ NEVER use UNC paths (\\DISPATCHMAIN\...) in batch files
+  
+  ✓ EDIT code on L: drive (source on DISPATCHMAIN)
+  ✗ DON'T edit files on Y: drive (will be overwritten)
+  
+  ✓ RUN app from Y: drive (local installation)
+  ✓ OPEN VS Code with folder: L:\limo
+
+┌──────────────────────────────────────────────────────────────────┐
+│ QUICK TROUBLESHOOTING                                            │
+└──────────────────────────────────────────────────────────────────┘
+
+  Problem: "Network path not found"
+  Solution: 
+    1. Check L: drive: dir L:\
+    2. Remap if needed: net use L: \\DISPATCHMAIN\limo /persistent:yes
+    3. Verify DISPATCHMAIN is on: ping DISPATCHMAIN
+
+  Problem: "File not found - main.py"
+  Solution:
+    xcopy /E /I /Y "L:\limo\DEPLOYMENT_PACKAGE\app" "Y:\ArrowLimo\app"
+
+  Problem: Database won't connect
+  Solution:
+    1. Is DISPATCHMAIN on? ping DISPATCHMAIN
+    2. Test connection: L:\limo\DEPLOYMENT_PACKAGE\TEST_DATABASE_CONNECTION.ps1
+    3. Check .env file: Y:\ArrowLimo\app\.env
+
+  Problem: Application update needed
+  Solution:
+    xcopy /E /I /Y "L:\limo\DEPLOYMENT_PACKAGE\app\*" "Y:\ArrowLimo\app\"
+
+┌──────────────────────────────────────────────────────────────────┐
+│ VS CODE SETUP                                                    │
+└──────────────────────────────────────────────────────────────────┘
+
+  1. File → Open Folder
+  2. Select: L:\limo  ← CRITICAL: Use L: drive!
+  3. Terminal → Run Task → Select your task
+
+  DO NOT open: Y:\ArrowLimo (that's your running copy)
+  DO open: L:\limo (that's the source code)
+
+┌──────────────────────────────────────────────────────────────────┐
+│ EMERGENCY CONTACTS                                               │
+└──────────────────────────────────────────────────────────────────┘
+
+  IT Support: ___________________________
+  
+  Primary Developer: Located at DISPATCHMAIN computer
+  
+  Full Documentation: L:\limo\DEPLOYMENT_PACKAGE\DISPATCH1_READ_ME_FIRST.md
+
+┌──────────────────────────────────────────────────────────────────┐
+│ COMPLETE REINSTALL                                               │
+└──────────────────────────────────────────────────────────────────┘
+
+  If everything is broken and you need to start fresh:
+  
+    cd L:\limo\DEPLOYMENT_PACKAGE
+    .\INSTALL_DISPATCH1_Y_DRIVE.bat
+    
+  This will rebuild everything from scratch.
+
+╔══════════════════════════════════════════════════════════════════╗
+║ Last Updated: February 12, 2026                                  ║
+║ Computer: DISPATCH1                                              ║
+║ Version: 1.0                                                     ║
+╚══════════════════════════════════════════════════════════════════╝

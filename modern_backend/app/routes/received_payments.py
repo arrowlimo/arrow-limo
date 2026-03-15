@@ -4,12 +4,13 @@ Record customer payments received (cheques, cash, e-transfers, etc.)
 Links to charters/invoices or records as unallocated revenue
 """
 
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field
-from typing import Optional, List
 from datetime import date, datetime
-from app.database import get_connection
+
 import psycopg2.extras
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
+from ..db import get_connection
 
 router = APIRouter(prefix="/api/received-payments", tags=["Received Payments"])
 
@@ -25,28 +26,28 @@ class ReceivedPaymentCreate(BaseModel):
     payer_name: str = Field(..., description="Who paid (customer/company name)")
     
     # Cheque-specific fields
-    cheque_number: Optional[str] = Field(None, description="Cheque number if payment_method=cheque")
-    bank_name: Optional[str] = Field(None, description="Bank name on cheque")
+    cheque_number: str | None = Field(None, description="Cheque number if payment_method=cheque")
+    bank_name: str | None = Field(None, description="Bank name on cheque")
     
     # Optional allocation
-    charter_id: Optional[int] = Field(None, description="Link to specific charter/booking")
-    reserve_number: Optional[str] = Field(None, description="Reserve number if linking to charter")
+    charter_id: int | None = Field(None, description="Link to specific charter/booking")
+    reserve_number: str | None = Field(None, description="Reserve number if linking to charter")
     
     # Additional details
-    notes: Optional[str] = Field(None, description="Additional notes")
-    deposit_type: Optional[str] = Field("payment", description="payment, deposit, partial_payment")
+    notes: str | None = Field(None, description="Additional notes")
+    deposit_type: str | None = Field("payment", description="payment, deposit, partial_payment")
 
 
 class ReceivedPaymentUpdate(BaseModel):
-    amount: Optional[float] = None
-    payment_date: Optional[date] = None
-    payment_method: Optional[str] = None
-    payer_name: Optional[str] = None
-    cheque_number: Optional[str] = None
-    bank_name: Optional[str] = None
-    charter_id: Optional[int] = None
-    reserve_number: Optional[str] = None
-    notes: Optional[str] = None
+    amount: float | None = None
+    payment_date: date | None = None
+    payment_method: str | None = None
+    payer_name: str | None = None
+    cheque_number: str | None = None
+    bank_name: str | None = None
+    charter_id: int | None = None
+    reserve_number: str | None = None
+    notes: str | None = None
 
 
 class ReceivedPaymentResponse(BaseModel):
@@ -55,28 +56,28 @@ class ReceivedPaymentResponse(BaseModel):
     payment_date: date
     payment_method: str
     payer_name: str
-    cheque_number: Optional[str]
-    bank_name: Optional[str]
-    charter_id: Optional[int]
-    reserve_number: Optional[str]
-    notes: Optional[str]
+    cheque_number: str | None
+    bank_name: str | None
+    charter_id: int | None
+    reserve_number: str | None
+    notes: str | None
     deposit_type: str
     created_at: datetime
     
     # Related charter info (if linked)
-    customer_name: Optional[str] = None
-    charter_date: Optional[date] = None
-    charter_amount: Optional[float] = None
+    customer_name: str | None = None
+    charter_date: date | None = None
+    charter_amount: float | None = None
 
 
 class PaymentSearchRequest(BaseModel):
-    payer_name: Optional[str] = None
-    cheque_number: Optional[str] = None
-    amount_min: Optional[float] = None
-    amount_max: Optional[float] = None
-    date_from: Optional[date] = None
-    date_to: Optional[date] = None
-    payment_method: Optional[str] = None
+    payer_name: str | None = None
+    cheque_number: str | None = None
+    amount_min: float | None = None
+    amount_max: float | None = None
+    date_from: date | None = None
+    date_to: date | None = None
+    payment_method: str | None = None
     unallocated_only: bool = False
 
 
@@ -118,7 +119,7 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
             payment.payment_date,
             payment.payment_method,
             payment.cheque_number,  # Store cheque# in payment_key
-            self._build_notes(payment),
+            _build_notes(payment),
             payment.deposit_type
         ))
         
@@ -170,21 +171,21 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
 
 
-@router.get("/search", response_model=List[ReceivedPaymentResponse])
+@router.get("/search", response_model=list[ReceivedPaymentResponse])
 async def search_received_payments(
-    payer_name: Optional[str] = None,
-    cheque_number: Optional[str] = None,
-    amount_min: Optional[float] = None,
-    amount_max: Optional[float] = None,
-    date_from: Optional[date] = None,
-    date_to: Optional[date] = None,
-    payment_method: Optional[str] = None,
+    payer_name: str | None = None,
+    cheque_number: str | None = None,
+    amount_min: float | None = None,
+    amount_max: float | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    payment_method: str | None = None,
     unallocated_only: bool = False,
     limit: int = 100
 ):
@@ -289,13 +290,13 @@ async def search_received_payments(
         return payments
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
 
 
-@router.get("/unallocated", response_model=List[ReceivedPaymentResponse])
+@router.get("/unallocated", response_model=list[ReceivedPaymentResponse])
 async def get_unallocated_payments():
     """Get all payments not linked to a charter (need allocation)"""
     return await search_received_payments(unallocated_only=True)
@@ -371,7 +372,7 @@ async def update_received_payment(payment_id: int, update: ReceivedPaymentUpdate
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -405,7 +406,7 @@ async def delete_received_payment(payment_id: int):
         
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()

@@ -19,6 +19,9 @@ export default {
 .receipts-view {
   padding: 20px;
   background: #f5f5f5;
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 </style>

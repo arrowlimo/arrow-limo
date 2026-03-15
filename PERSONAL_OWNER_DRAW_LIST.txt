@@ -1,0 +1,414 @@
+﻿====================================================================================================
+PERSONAL EXPENSES & OWNER DRAWS - COMPLETE LIST
+Generated: 2026-02-14 21:37:54
+====================================================================================================
+
+Total Personal Items: 269
+
+Date         Vendor                              Category                       GL           Amount Description
+----------------------------------------------------------------------------------------------------
+
+=== YEAR 2012 ===
+2012-01-03   BED BATH & BEYOND                   Personal - Meals & Entertainme 6900   $      78.70 
+2012-02-28   CITY CENTER VACUUM                  Personal - Meals & Entertainme 6900   $      20.99 
+2012-03-12   COSTCO                              Personal - Meals & Entertainme 6900   $     107.45 
+2012-04-03   COSTCO                              Personal - Meals & Entertainme 6900   $     136.49 
+2012-04-24   COSTCO                              Personal - Meals & Entertainme 6900   $      73.49 
+2012-06-04   THE BAY                             Personal - Meals & Entertainme 6900   $     191.63 
+2012-08-27   TONY ROMAS                          Personal - Meals & Entertainme 6900   $      84.35 
+2012-09-04   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $      89.19 STAFF MEETING MIKE PAUL J
+2012-11-14   TONY ROMAS                          Personal - Meals & Entertainme 6900   $      59.06 
+2012-11-22   7-ELEVEN                            Personal - Meals & Entertainme 6900   $      60.00 
+2012-12-11   SUSHI SUSHI                         Personal - Meals & Entertainme 6900   $      16.64 
+2012-12-24   THE RANCH HOUSE                     Personal - Meals & Entertainme 6900   $      67.26 THE RANCH HOUSE
+----------------------------------------------------------------------------------------------------
+*** 2012 SUBTOTAL: 12 items = $         985.25 ***
+
+
+=== YEAR 2013 ===
+2013-01-11   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $      55.49 
+2013-01-21   ARBYS                               Personal - Meals & Entertainme 6900   $      18.43 
+2013-02-27   SUSHI SUSHI                         Personal - Meals & Entertainme 6900   $      27.28 
+2013-03-13   THE RANCH HOUSE                     Personal - Meals & Entertainme 6900   $      39.28 
+2013-03-13   7-ELEVEN                            Personal - Meals & Entertainme 6900   $      11.28 
+2013-03-15   SUSHI SUSHI                         Personal - Meals & Entertainme 6900   $      22.05 
+2013-03-20   MCDONALD'S                          Personal - Meals & Entertainme 6900   $       5.45 
+2013-03-21   SUSHI SUSHI                         Personal - Meals & Entertainme 6900   $      27.05 
+2013-03-27   CITY CENTER VACUUM                  Personal - Meals & Entertainme 6900   $     273.00 
+2013-03-28   SUSHI SUSHI                         Personal - Meals & Entertainme 6900   $      22.05 
+2013-04-10   THE RANCH HOUSE                     Personal - Meals & Entertainme 6900   $      39.49 
+2013-04-18   MCDONALD'S                          Personal - Meals & Entertainme 6900   $       8.32 
+2013-04-19   MCDONALD'S                          Personal - Meals & Entertainme 6900   $       7.01 
+2013-04-25   ARBYS                               Personal - Meals & Entertainme 6900   $      13.01 
+2013-04-26   MCDONALD'S                          Personal - Meals & Entertainme 6900   $       5.45 
+2013-05-02   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $      53.27 
+2013-05-07   ARBYS                               Personal - Meals & Entertainme 6900   $       8.79 
+2013-06-21   SUSHI SUSHI                         Personal - Meals & Entertainme 6900   $      11.50 
+2013-08-30   7-ELEVEN                            Personal - Meals & Entertainme 6900   $       8.16 
+2013-10-15   CITY CENTER VACUUM                  Personal - Meals & Entertainme 6900   $     223.65 
+2013-10-15   BED BATH & BEYOND                   Personal - Meals & Entertainme 6900   $      62.96 
+2013-10-23   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $      81.51 
+2013-11-26   7-ELEVEN                            Personal - Meals & Entertainme 6900   $     363.75 
+2013-12-19   SUSHI SUSHI                         Personal - Meals & Entertainme 6900   $      35.31 
+----------------------------------------------------------------------------------------------------
+*** 2013 SUBTOTAL: 24 items = $       1,423.54 ***
+
+
+=== YEAR 2014 ===
+2014-01-06   ARBYS                               Personal - Meals & Entertainme 6900   $       5.41 
+2014-01-08   CLEARVIEW DENTAL                    Personal - Meals & Entertainme 6900   $     453.00 
+2014-01-22   CLEARVIEW DENTAL                    Personal - Meals & Entertainme 6900   $     377.00 
+2014-01-23   CITY CENTER VACUUM                  Personal - Meals & Entertainme 6900   $     733.95 
+2014-02-03   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $      36.83 
+2014-02-14   SUSHI SUSHI                         Personal - Meals & Entertainme 6900   $      16.89 
+2014-03-27   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $      49.84 
+2014-03-31   CLEARVIEW DENTAL                    Personal - Meals & Entertainme 6900   $     262.00 
+2014-04-28   THE BAY                             Personal - Meals & Entertainme 6900   $     102.90 
+2014-05-01   SUSHI SUSHI                         Personal - Meals & Entertainme 6900   $      14.69 
+2014-05-12   THE BAY                             Personal - Meals & Entertainme 6900   $      73.49 
+2014-05-12   TOMMY GUNS                          Personal - Meals & Entertainme 6900   $      34.40 
+2014-06-02   CINEPLES                            Personal - Meals & Entertainme 6900   $      30.07 
+2014-06-23   COSTCO                              Personal - Meals & Entertainme 6900   $     556.49 COSTCO
+2014-06-30   TONY ROMAS                          Personal - Meals & Entertainme 6900   $      57.41 TONY ROMAS
+2014-09-04   TONY ROMAS                          Personal - Meals & Entertainme 6900   $      82.90 TONY ROMAS
+2014-09-15   BED BATH & BEYOND                   Personal - Meals & Entertainme 6900   $     157.40 
+2014-09-25   TONY ROMAS                          Personal - Meals & Entertainme 6900   $     365.72 TONY ROMAS
+2014-10-23   WOK BOX                             Personal - Meals & Entertainme 6900   $      25.68 WOK BOX
+2014-10-23   WOK BOX                             Personal - Meals & Entertainme 6900   $      10.49 WOK BOX
+2014-10-24   WOK BOX                             Personal - Meals & Entertainme 6900   $      25.68 
+2014-10-24   WOK BOX                             Personal - Meals & Entertainme 6900   $      10.49 
+2014-11-07   VILLAGE CHIROPRACTOR                Personal - Meals & Entertainme 6900   $      40.00 VILLAGE CHIROPRACTOR
+2014-11-10   VILLAGE CHIROPRACTOR                Personal - Meals & Entertainme 6900   $      40.00 VILLAGE CHIROPRACTOR
+2014-12-11   TOMMY GUNS                          Personal - Meals & Entertainme 6900   $      15.00 TOMMY GUNS
+----------------------------------------------------------------------------------------------------
+*** 2014 SUBTOTAL: 25 items = $       3,577.73 ***
+
+
+=== YEAR 2015 ===
+2015-02-11   MACDONALDS                          Personal - Meals & Entertainme 6900   $      13.35 MACDONALDS
+2015-02-19   TOMMY GUNS                          Personal - Meals & Entertainme 6900   $      35.40 TOMMY GUNS
+2015-03-04   VILLAGE CHIROPRACTOR                Personal - Meals & Entertainme 6900   $      40.00 VILLAGE CHIROPRACTOR
+2015-03-10   VILLAGE CHIROPRACTOR                Personal - Meals & Entertainme 6900   $      40.00 VILLAGE CHIROPRACTOR
+2015-05-05   CINEPLES                            Personal - Meals & Entertainme 6900   $      23.50 CINEPLES
+2015-05-11   TOMMY GUNS                          Personal - Meals & Entertainme 6900   $      35.40 TOMMY GUNS
+2015-07-14   THE RANCH HOUSE                     Personal - Meals & Entertainme 6900   $     126.00 THE RANCH HOUSE
+2015-08-17   TOMMY GUNS                          Personal - Meals & Entertainme 6900   $      34.40 TOMMY GUNS
+2015-09-08   MACDONALDS                          Personal - Meals & Entertainme 6900   $      13.20 MACDONALDS
+2015-09-11   THE RANCH HOUSE                     Personal - Meals & Entertainme 6900   $     276.03 THE RANCH HOUSE
+2015-09-17   CINEPLES                            Personal - Meals & Entertainme 6900   $      32.31 CINEPLES
+2015-09-21   TONY ROMAS                          Personal - Meals & Entertainme 6900   $      96.40 TONY ROMAS
+2015-09-23   CINEPLES                            Personal - Meals & Entertainme 6900   $      36.40 CINEPLES
+2015-09-25   MACDONALDS                          Personal - Meals & Entertainme 6900   $       8.95 MACDONALDS
+2015-10-01   MACDONALDS                          Personal - Meals & Entertainme 6900   $      10.48 MACDONALDS
+2015-10-19   THE BAY                             Personal - Meals & Entertainme 6900   $     144.21 THE BAY
+2015-11-27   MACDONALDS                          Personal - Meals & Entertainme 6900   $      12.78 MACDONALDS
+2015-12-16   MACDONALDS                          Personal - Meals & Entertainme 6900   $      20.34 MACDONALDS
+----------------------------------------------------------------------------------------------------
+*** 2015 SUBTOTAL: 18 items = $         999.15 ***
+
+
+=== YEAR 2016 ===
+2016-01-12   THE RANCH HOUSE                     Personal - Meals & Entertainme 6900   $      90.62 THE RANCH HOUSE
+2016-03-23   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $       7.17 MONGOLIE GRILL
+2016-05-19   THE RANCH HOUSE                     Personal - Meals & Entertainme 6900   $      77.95 THE RANCH HOUSE
+2016-07-04   TOMMY GUNS                          Personal - Meals & Entertainme 6900   $      29.40 TOMMY GUNS
+2016-07-20   MACDONALDS                          Personal - Meals & Entertainme 6900   $       6.69 MACDONALDS
+2016-09-09   TOMMY GUNS                          Personal - Meals & Entertainme 6900   $      34.40 TOMMY GUNS
+2016-09-23   VILLAGE CHIROPRACTOR                Personal - Meals & Entertainme 6900   $      40.00 VILLAGE CHIROPRACTOR
+2016-11-17   MACDONALDS                          Personal - Meals & Entertainme 6900   $      18.04 MACDONALDS
+2016-12-05   TONY ROMAS                          Personal - Meals & Entertainme 6900   $      91.54 TONY ROMAS
+2016-12-05   MACDONALDS                          Personal - Meals & Entertainme 6900   $       5.44 MACDONALDS
+----------------------------------------------------------------------------------------------------
+*** 2016 SUBTOTAL: 10 items = $         401.25 ***
+
+
+=== YEAR 2017 ===
+2017-01-27   MACDONALDS                          Personal - Meals & Entertainme 6900   $       7.12 MACDONALDS
+2017-02-07   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $      70.35 MONGOLIE GRILL
+2017-05-08   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $      41.64 MONGOLIE GRILL
+2017-05-09   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $      41.64 Point of Sale - INTERAC R
+2017-05-09   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $      41.64 
+2017-06-05   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $      55.39 
+2017-06-05   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $      55.39 Point of Sale - INTERAC R
+2017-06-05   MONGOLIE GRILL                      Personal - Meals & Entertainme 6900   $      55.39 MONGOLIE GRILL
+2017-10-11   VILLAGE CHIROPRACTOR                Personal - Meals & Entertainme 6900   $      40.00 VILLAGE CHIROPRACTOR
+2017-10-26   THE RANCH HOUSE                     Personal - Meals & Entertainme 6900   $      69.79 THE RANCH HOUSE
+----------------------------------------------------------------------------------------------------
+*** 2017 SUBTOTAL: 10 items = $         478.35 ***
+
+
+=== YEAR 2018 ===
+2018-01-18   MACDONALDS                          Personal - Meals & Entertainme 6900   $       9.43 MACDONALDS
+2018-01-26   VILLAGE CHIROPRACTOR                Personal - Meals & Entertainme 6900   $      45.00 VILLAGE CHIROPRACTOR
+2018-04-02   TOMMY GUNS                          Personal - Meals & Entertainme 6900   $      36.50 TOMMY GUNS
+2018-05-02   SUSHI SUSHI                         Personal - Meals & Entertainme 6900   $      10.45 SUSHI SUSHI
+2018-05-18   SUSHI SUSHI                         Personal - Meals & Entertainme 6900   $      16.15 SUSHI SUSHI
+2018-08-27   WOK BOX                             Personal - Meals & Entertainme 6900   $      63.89 WOK BOX
+2018-09-13   SUSHI SUSHI                         Personal - Meals & Entertainme 6900   $      11.49 AUTO-GEN FROM BANKING 022
+2018-09-24   7-ELEVEN                            Personal - Meals & Entertainme 6900   $      24.14 AUTO-GEN FROM BANKING 022
+2018-09-25   TIM HORTONS                         meals_entertainment            6100   $       6.49 AUTO-GEN FROM BANKING 022
+2018-09-27   TIM HORTONS                         meals_entertainment            6100   $      16.09 AUTO-GEN FROM BANKING 831
+2018-10-15   GEORGE'S PIZZA & STEAK              meals_entertainment            6100   $      53.83 AUTO-GEN FROM BANKING 831
+2018-10-15   TIM HORTONS                         meals_entertainment            6100   $      24.43 AUTO-GEN FROM BANKING 831
+2018-10-16   TIM HORTONS                         meals_entertainment            6100   $      20.91 AUTO-GEN FROM BANKING 022
+2018-10-17   TIM HORTONS                         meals_entertainment            6100   $       6.65 AUTO-GEN FROM BANKING 022
+2018-10-19   TIM HORTONS                         meals_entertainment            6100   $      25.52 AUTO-GEN FROM BANKING 022
+2018-10-22   TIM HORTONS                         meals_entertainment            6100   $       4.32 AUTO-GEN FROM BANKING 831
+2018-10-24   TIM HORTONS                         meals_entertainment            6100   $      22.49 AUTO-GEN FROM BANKING 022
+2018-10-30   GEORGE'S PIZZA & STEAK              meals_entertainment            6100   $      25.11 AUTO-GEN FROM BANKING 022
+2018-12-17   SAVE ON FOODS                       meals_entertainment            6100   $      15.65 AUTO-GEN FROM BANKING 831
+----------------------------------------------------------------------------------------------------
+*** 2018 SUBTOTAL: 19 items = $         438.54 ***
+
+
+=== YEAR 2019 ===
+2019-01-07   7-ELEVEN                            Personal - Meals & Entertainme 6900   $      15.46 AUTO-GEN FROM BANKING 022
+2019-01-07   TIM HORTONS                         meals_entertainment            6100   $       2.25 AUTO-GEN FROM BANKING 022
+2019-01-09   TIM HORTONS                         meals_entertainment            6100   $       4.82 AUTO-GEN FROM BANKING 022
+2019-01-14   TIM HORTONS                         meals_entertainment            6100   $      10.42 AUTO-GEN FROM BANKING 831
+2019-01-21   SOBEYS                              Groceries - Personal           6900   $      57.14 Point of Sale - Interac R
+2019-01-23   GEORGE'S PIZZA & STEAK              meals_entertainment            6100   $      45.59 AUTO-GEN FROM BANKING 022
+2019-01-23   TIM HORTONS                         meals_entertainment            6100   $      16.09 AUTO-GEN FROM BANKING 022
+2019-01-24   GEORGE'S PIZZA & STEAK              meals_entertainment            6100   $      52.83 AUTO-GEN FROM BANKING 022
+2019-01-24   SOBEYS                              Groceries - Personal           6900   $      30.48 Point of Sale - Interac R
+2019-01-31   PIZZA HUT                           meals_entertainment            6100   $      13.36 AUTO-GEN FROM BANKING 831
+2019-02-01   TIM HORTONS                         meals_entertainment            6100   $      12.66 AUTO-GEN FROM BANKING 022
+2019-02-15   SOBEYS                              Groceries - Personal           6900   $      17.42 Point of Sale - Interac R
+2019-02-24   BED BATH & BEYOND                   Personal - Meals & Entertainme 6900   $     205.88 personal household
+2019-02-25   BED BATH & BEYOND                   Personal - Meals & Entertainme 6900   $     205.88 AUTO-GEN FROM BANKING 831
+2019-02-25   SOBEYS                              Groceries - Personal           6900   $     133.92 Point of Sale - Interac R
+2019-03-12   REAL CANADIAN SUPERSTORE            Groceries - Personal           6900   $     319.78 Point of Sale - Interac R
+2019-03-12   7-ELEVEN                            Personal - Meals & Entertainme 6900   $      40.00 NaN
+2019-03-22   TIM HORTONS                         meals_entertainment            6100   $       8.86 AUTO-GEN FROM BANKING 022
+2019-03-25   TIM HORTONS                         meals_entertainment            6100   $       6.65 AUTO-GEN FROM BANKING 831
+2019-03-28   TIM HORTONS                         meals_entertainment            6100   $      11.26 AUTO-GEN FROM BANKING 022
+2019-04-01   SOBEYS                              Groceries - Personal           6900   $      19.19 Point of Sale - Interac R
+2019-04-05   REAL CANADIAN SUPERSTORE            Groceries - Personal           6900   $     217.74 Point of Sale - Interac R
+2019-04-08   SOBEYS                              Groceries - Personal           6900   $     214.83 Point of Sale - Interac R
+2019-04-23   SOBEYS                              Groceries - Personal           6900   $     466.23 Point of Sale - Interac R
+2019-04-24   TIM HORTONS                         meals_entertainment            6100   $      12.91 AUTO-GEN FROM BANKING 022
+2019-05-06   SAVE ON FOODS                       meals_entertainment            6100   $      17.10 AUTO-GEN FROM BANKING 831
+2019-05-08   TIM HORTONS                         meals_entertainment            6100   $       9.03 AUTO-GEN FROM BANKING 022
+2019-05-13   7-ELEVEN                            Personal - Meals & Entertainme 6900   $      15.00 NaN
+2019-05-21   7-ELEVEN                            Personal - Meals & Entertainme 6900   $       7.00 NaN
+2019-05-22   MCDONALD'S                          meals_entertainment            6100   $       3.64 AUTO-GEN FROM BANKING 364
+2019-05-23   REAL CANADIAN SUPERSTORE            Groceries - Personal           6900   $     576.47 Point of Sale - Interac R
+2019-05-23   REAL CANADIAN SUPERSTORE            Groceries - Personal           6900   $     279.82 Point of Sale - Interac R
+2019-06-11   TIM HORTONS                         meals_entertainment            6100   $      13.35 AUTO-GEN FROM BANKING 022
+2019-06-17   REAL CANADIAN SUPERSTORE            Groceries - Personal           6900   $     272.34 Point of Sale - Interac R
+2019-06-18   TIM HORTONS                         meals_entertainment            6100   $      11.68 AUTO-GEN FROM BANKING 831
+2019-07-02   DOMINO'S PIZZA                      meals_entertainment            6100   $      38.45 AUTO-GEN FROM BANKING 831
+2019-07-02   TIM HORTONS                         meals_entertainment            6100   $      10.31 AUTO-GEN FROM BANKING 831
+2019-07-08   REAL CANADIAN SUPERSTORE            Groceries - Personal           6900   $     119.02 Point of Sale - Interac R
+2019-07-11   REAL CANADIAN SUPERSTORE            Groceries - Personal           6900   $     278.70 Point of Sale - Interac R
+2019-07-12   SAVE ON FOODS                       meals_entertainment            6100   $      33.22 mix for bevereages
+2019-07-12   TIM HORTONS                         meals_entertainment            6100   $       9.03 AUTO-GEN FROM BANKING 022
+2019-07-16   MCDONALD'S                          meals_entertainment            6100   $       2.19 AUTO-GEN FROM BANKING 831
+2019-07-18   SAVE ON FOODS                       meals_entertainment            6100   $      25.70 AUTO-GEN FROM BANKING 022
+2019-07-18   SUSHI KOON                          Food - Personal                6100   $      15.03 
+2019-07-19   SOBEYS                              Groceries - Personal           6900   $     186.23 Point of Sale - Interac R
+2019-07-22   TIM HORTONS                         meals_entertainment            6100   $       6.80 AUTO-GEN FROM BANKING 022
+2019-07-26   SUSHI KOON                          Food - Personal                6100   $      12.02 
+2019-08-19   TIM HORTONS                         meals_entertainment            6100   $       1.35 AUTO-GEN FROM BANKING 831
+2019-08-21   7-ELEVEN                            Personal - Meals & Entertainme 6900   $      18.00 SPLIT/38.00
+2019-08-21   TIM HORTONS                         meals_entertainment            6100   $       8.18 AUTO-GEN FROM BANKING 022
+2019-09-13   REAL CANADIAN SUPERSTORE            Groceries - Personal           6900   $     464.52 Point of Sale - Interac R
+2019-09-20   BED BATH & BEYOND                   Personal - Meals & Entertainme 6900   $     194.24 AUTO-GEN FROM BANKING 022
+2019-09-23   REAL CANADIAN SUPERSTORE            Groceries - Personal           6900   $     151.05 Point of Sale - Interac R
+2019-09-23   TIM HORTONS                         meals_entertainment            6100   $       6.91 AUTO-GEN FROM BANKING 831
+2019-09-26   CANADIAN PIZZA                      meals_entertainment            6100   $       9.00 AUTO-GEN FROM BANKING 831
+2019-09-30   PIZZA HUT                           Food - Personal                6100   $      13.10 Driver meeting david paul
+2019-10-04   SOBEYS                              Groceries - Personal           6900   $     129.05 Point of Sale - Interac R
+2019-10-04   TIM HORTONS                         meals_entertainment            6100   $       4.61 AUTO-GEN FROM BANKING 831
+2019-10-24   TIM HORTONS                         meals_entertainment            6100   $      14.07 AUTO-GEN FROM BANKING 022
+2019-11-06   SOBEYS                              Groceries - Personal           6900   $     116.51 Point of Sale - Interac R
+2019-11-07   CITY CENTER VACUUM                  Personal - Meals & Entertainme 6900   $      78.49 AUTO-GEN FROM BANKING 022
+2019-11-12   SOBEYS                              Groceries - Personal           6900   $      59.07 Point of Sale - Interac R
+2019-11-13   REAL CANADIAN SUPERSTORE            Groceries - Personal           6900   $      22.43 Point of Sale - Interac R
+2019-11-25   SOBEYS                              Groceries - Personal           6900   $     311.40 Point of Sale - Interac R
+2019-12-12   BUSTERS PIZZA                       meals_entertainment            6100   $      40.68 AUTO-GEN FROM BANKING 022
+2019-12-13   TIM HORTONS                         meals_entertainment            6100   $      15.18 AUTO-GEN FROM BANKING 022
+2019-12-16   SOBEYS                              Groceries - Personal           6900   $      78.80 Point of Sale - Interac R
+2019-12-17   TIM HORTONS                         meals_entertainment            6100   $       4.32 AUTO-GEN FROM BANKING 022
+2019-12-19   TIM HORTONS                         meals_entertainment            6100   $      13.41 AUTO-GEN FROM BANKING 022
+2019-12-23   REAL CANADIAN SUPERSTORE            Groceries - Personal           6900   $     462.67 Point of Sale - Interac R
+----------------------------------------------------------------------------------------------------
+*** 2019 SUBTOTAL: 70 items = $       6,300.82 ***
+
+
+=== YEAR 2020 ===
+2020-01-13   TIM HORTONS                         meals_entertainment            6100   $      15.57 AUTO-GEN FROM BANKING 022
+2020-01-17   TIM HORTONS                         meals_entertainment            6100   $      17.17 AUTO-GEN FROM BANKING 022
+2020-01-20   TIM HORTONS                         meals_entertainment            6100   $      11.11 AUTO-GEN FROM BANKING 831
+2020-01-20   TIM HORTONS                         meals_entertainment            6100   $       2.30 AUTO-GEN FROM BANKING 022
+2020-01-21   SAVE ON FOODS                       meals_entertainment            6100   $      23.22 AUTO-GEN FROM BANKING 022
+2020-01-22   TIM HORTONS                         meals_entertainment            6100   $      14.42 AUTO-GEN FROM BANKING 022
+2020-02-03   TIM HORTONS                         meals_entertainment            6100   $      11.62 AUTO-GEN FROM BANKING 831
+2020-02-06   TIM HORTONS                         meals_entertainment            6100   $      10.36 AUTO-GEN FROM BANKING 022
+2020-02-07   TIM HORTONS                         meals_entertainment            6100   $      10.89 AUTO-GEN FROM BANKING 022
+2020-02-12   MCDONALD'S                          meals_entertainment            6100   $      12.06 AUTO-GEN FROM BANKING 022
+2020-02-12   TIM HORTONS                         meals_entertainment            6100   $       8.28 AUTO-GEN FROM BANKING 022
+2020-02-14   MCDONALD'S                          meals_entertainment            6100   $      12.17 AUTO-GEN FROM BANKING 022
+2020-02-14   TIM HORTONS                         meals_entertainment            6100   $       5.21 AUTO-GEN FROM BANKING 022
+2020-02-18   TIM HORTONS                         meals_entertainment            6100   $      13.41 AUTO-GEN FROM BANKING 831
+2020-02-18   MCDONALD'S                          meals_entertainment            6100   $      11.22 AUTO-GEN FROM BANKING 831
+2020-02-27   MCDONALD'S                          meals_entertainment            6100   $      10.17 AUTO-GEN FROM BANKING 022
+2020-03-09   BED BATH & BEYOND                   Personal - Meals & Entertainme 6900   $     153.24 AUTO-GEN FROM BANKING 831
+2020-03-09   7-ELEVEN                            Personal - Meals & Entertainme 6900   $      16.88 AUTO-GEN FROM BANKING 831
+2020-03-10   TIM HORTONS                         meals_entertainment            6100   $      13.41 AUTO-GEN FROM BANKING 022
+2020-03-10   TIM HORTONS                         meals_entertainment            6100   $      11.14 AUTO-GEN FROM BANKING 022
+2020-03-12   TIM HORTONS                         meals_entertainment            6100   $      19.16 AUTO-GEN FROM BANKING 022
+2020-03-13   TIM HORTONS                         meals_entertainment            6100   $       4.71 AUTO-GEN FROM BANKING 022
+2020-05-04   MCDONALD'S                          meals_entertainment            6100   $      11.84 AUTO-GEN FROM BANKING 022
+2020-06-26   COSTCO                              Personal - Meals & Entertainme 6900   $      73.86 AUTO-GEN FROM BANKING 364
+2020-08-13   SAVE ON FOODS                       meals_entertainment            6100   $     194.72 AUTO-GEN FROM BANKING 364
+2020-10-01   TIM HORTONS                         meals_entertainment            6100   $      24.62 AUTO-GEN FROM BANKING 022
+2020-10-02   A&W                                 meals_entertainment            6100   $      13.84 AUTO-GEN FROM BANKING 022
+2020-11-16   SAVE ON FOODS                       meals_entertainment            6100   $      35.98 AUTO-GEN FROM BANKING 364
+2020-12-11   TIM HORTONS                         meals_entertainment            6100   $      21.89 AUTO-GEN FROM BANKING 831
+----------------------------------------------------------------------------------------------------
+*** 2020 SUBTOTAL: 29 items = $         784.47 ***
+
+
+=== YEAR 2021 ===
+2021-02-10   TIM HORTONS                         meals_entertainment            6100   $      16.02 AUTO-GEN FROM BANKING 022
+2021-02-25   SAVE ON FOODS                       meals_entertainment            6100   $      32.35 AUTO-GEN FROM BANKING 364
+2021-03-18   TIM HORTONS                         meals_entertainment            6100   $      15.18 AUTO-GEN FROM BANKING 022
+2021-03-19   MCDONALD'S                          meals_entertainment            6100   $       6.59 AUTO-GEN FROM BANKING 022
+2021-04-29   TIM HORTONS                         meals_entertainment            6100   $       7.64 AUTO-GEN FROM BANKING 022
+2021-07-28   SAVE ON FOODS                       meals_entertainment            6100   $      31.98 AUTO-GEN FROM BANKING 364
+2021-10-22   7-ELEVEN                            Personal - Meals & Entertainme 6900   $      11.23 AUTO-GEN FROM BANKING 831
+2021-10-25   SAVE ON FOODS                       meals_entertainment            6100   $       7.98 AUTO-GEN FROM BANKING 831
+----------------------------------------------------------------------------------------------------
+*** 2021 SUBTOTAL: 8 items = $         128.97 ***
+
+
+=== YEAR 2022 ===
+2022-01-11   SAVE ON FOODS                       meals_entertainment            6100   $      11.98 AUTO-GEN FROM BANKING 831
+2022-01-20   TIM HORTONS                         meals_entertainment            6100   $      16.20 AUTO-GEN FROM BANKING 022
+2022-02-28   BURGER KING                         meals_entertainment            6100   $      28.62 AUTO-GEN FROM BANKING 364
+2022-04-04   COSTCO                              Personal - Meals & Entertainme 6900   $      87.75 AUTO-GEN FROM BANKING 364
+2022-04-05   7-ELEVEN                            Personal - Meals & Entertainme 6900   $       4.19 AUTO-GEN FROM BANKING 022
+2022-04-19   SAVE ON FOODS                       meals_entertainment            6100   $      57.16 AUTO-GEN FROM BANKING 364
+2022-06-01   TIM HORTONS                         meals_entertainment            6100   $      16.70 AUTO-GEN FROM BANKING 022
+2022-10-24   SAVE ON FOODS                       meals_entertainment            6100   $     344.48 AUTO-GEN FROM BANKING 364
+2022-11-16   PIZZA HUT                           meals_entertainment            6100   $      44.85 AUTO-GEN FROM BANKING 022
+2022-12-14   SAVE ON FOODS                       meals_entertainment            6100   $      27.29 AUTO-GEN FROM BANKING 364
+----------------------------------------------------------------------------------------------------
+*** 2022 SUBTOTAL: 10 items = $         639.22 ***
+
+
+=== YEAR 2023 ===
+2023-10-30   PICCOLOS PIZZA                      meals_entertainment            6100   $       9.24 AUTO-GEN FROM BANKING 022
+----------------------------------------------------------------------------------------------------
+*** 2023 SUBTOTAL: 1 items = $           9.24 ***
+
+
+=== YEAR 2024 ===
+2024-06-19   TIM HORTONS                         meals_entertainment            6100   $       8.55 AUTO-GEN FROM BANKING 022
+2024-06-21   TIM HORTONS                         meals_entertainment            6100   $      13.48 AUTO-GEN FROM BANKING 022
+2024-07-17   TIM HORTONS                         meals_entertainment            6100   $       8.55 AUTO-GEN FROM BANKING 022
+2024-08-12   WAYBACK BURGERS                     meals_entertainment            6100   $      42.45 AUTO-GEN FROM BANKING 022
+2024-08-14   TIM HORTONS                         meals_entertainment            6100   $       7.71 AUTO-GEN FROM BANKING 022
+2024-08-16   TIM HORTONS                         meals_entertainment            6100   $       2.47 AUTO-GEN FROM BANKING 022
+2024-08-26   TIM HORTONS                         meals_entertainment            6100   $      13.79 AUTO-GEN FROM BANKING 022
+2024-08-28   TIM HORTONS                         meals_entertainment            6100   $      12.95 AUTO-GEN FROM BANKING 022
+2024-08-30   TIM HORTONS                         meals_entertainment            6100   $      19.28 AUTO-GEN FROM BANKING 022
+2024-09-03   CANADIAN PIZZA                      meals_entertainment            6100   $       5.00 AUTO-GEN FROM BANKING 022
+2024-09-23   SAVE ON FOODS                       meals_entertainment            6100   $      90.46 AUTO-GEN FROM BANKING 022
+2024-10-01   SAVE ON FOODS                       meals_entertainment            6100   $      51.78 AUTO-GEN FROM BANKING 364
+2024-11-04   TIM HORTONS                         meals_entertainment            6100   $       7.55 AUTO-GEN FROM BANKING 022
+2024-11-07   TIM HORTONS                         meals_entertainment            6100   $      12.01 AUTO-GEN FROM BANKING 022
+2024-11-12   TIM HORTONS                         meals_entertainment            6100   $       7.22 AUTO-GEN FROM BANKING 022
+2024-12-16   TIM HORTONS                         meals_entertainment            6100   $      19.97 AUTO-GEN FROM BANKING 022
+2024-12-16   TIM HORTONS                         meals_entertainment            6100   $      13.13 AUTO-GEN FROM BANKING 022
+2024-12-16   TIM HORTONS                         meals_entertainment            6100   $      11.33 AUTO-GEN FROM BANKING 022
+2024-12-27   SAVE ON FOODS                       meals_entertainment            6100   $       6.98 AUTO-GEN FROM BANKING 022
+2024-12-31   TIM HORTONS                         meals_entertainment            6100   $       5.19 AUTO-GEN FROM BANKING 022
+----------------------------------------------------------------------------------------------------
+*** 2024 SUBTOTAL: 20 items = $         359.85 ***
+
+
+=== YEAR 2025 ===
+2025-02-10   7-ELEVEN                            Personal - Meals & Entertainme 6900   $      41.55 AUTO-GEN FROM BANKING 364
+2025-02-10   7-ELEVEN                            Personal - Meals & Entertainme 6900   $      19.39 AUTO-GEN FROM BANKING 364
+2025-02-11   TIM HORTONS                         meals_entertainment            6100   $       8.34 AUTO-GEN FROM BANKING 022
+2025-02-11   TIM HORTONS                         meals_entertainment            6100   $       4.98 AUTO-GEN FROM BANKING 022
+2025-03-17   BOSTON PIZZA                        meals_entertainment            6100   $      93.87 AUTO-GEN FROM BANKING 831
+2025-04-14   BOSTON PIZZA                        meals_entertainment            6100   $     141.64 AUTO-GEN FROM BANKING 022
+2025-04-15   TIM HORTONS                         meals_entertainment            6100   $       7.92 AUTO-GEN FROM BANKING 022
+2025-09-02   GEORGE'S PIZZA & STEAK              meals_entertainment            6100   $      21.07 AUTO-GEN FROM BANKING 831
+2025-09-09   TIM HORTONS                         meals_entertainment            6100   $       8.02 AUTO-GEN FROM BANKING 022
+2025-09-11   GEORGE'S PIZZA & STEAK              meals_entertainment            6100   $     189.94 AUTO-GEN FROM BANKING 022
+2025-09-24   TIM HORTONS                         meals_entertainment            6100   $       8.25 AUTO-GEN FROM BANKING 022
+2025-10-17   UTILITIES                           entertainment_beverages        6200   $     143.02 CANADIAN TIRE GAS BAR    
+2025-10-17   UTILITIES                           entertainment_beverages        6200   $      42.84 CITIES GASTRO PUB        
+----------------------------------------------------------------------------------------------------
+*** 2025 SUBTOTAL: 13 items = $         730.83 ***
+
+====================================================================================================
+GRAND TOTAL: 269 items = $      17,257.21
+====================================================================================================
+
+
+SUMMARY BY CATEGORY:
+----------------------------------------------------------------------------------------------------
+Category                                              Count           Total
+----------------------------------------------------------------------------------------------------
+Personal - Meals & Entertainment                        124 $      9,270.36
+Groceries - Personal                                     24 $      4,984.81
+meals_entertainment                                     116 $      2,776.03
+entertainment_beverages                                   2 $        185.86
+Food - Personal                                           3 $         40.15
+
+
+SUMMARY BY YEAR:
+----------------------------------------------------------------------------------------------------
+Year          Count           Total
+----------------------------------------------------------------------------------------------------
+2012             12 $        985.25
+2013             24 $      1,423.54
+2014             25 $      3,577.73
+2015             18 $        999.15
+2016             10 $        401.25
+2017             10 $        478.35
+2018             19 $        438.54
+2019             70 $      6,300.82
+2020             29 $        784.47
+2021              8 $        128.97
+2022             10 $        639.22
+2023              1 $          9.24
+2024             20 $        359.85
+2025             13 $        730.83
+
+
+OWNER DRAW SPECIFIC ITEMS:
+----------------------------------------------------------------------------------------------------
+No specific owner draw items found
+
+
+CASH WITHDRAWALS (Potential Personal/Owner Draw):
+----------------------------------------------------------------------------------------------------
+Date         Vendor                                   Category                        Amount Status
+----------------------------------------------------------------------------------------------------
+2021-04-27   BRANCH WITHDRAWAL                        Unknown                   $   2,000.00 NEEDS_REVIEW
+2018-04-24   BAN WITHDRAWAL                           Unknown                   $   1,400.00 NEEDS_REVIEW
+2018-04-02   NOMEY MART WITHDRAWAL                    Unknown                   $     575.00 NEEDS_REVIEW
+2017-10-12   CASH MONEY WITHDRAWAL                    Unknown                   $     500.00 NEEDS_REVIEW
+2016-03-15   WITHDRAWAL                               Unknown                   $     100.00 NEEDS_REVIEW
+2016-03-15   WITHDRAWAL                               Unknown                   $     407.50 NEEDS_REVIEW
+2014-12-17   INSTANT TELLER WITHDRAWAL                Unknown                   $     340.00 NEEDS_REVIEW
+2014-12-16   INSTANT TELLER WITHDRAWAL                Unknown                   $   1,000.00 NEEDS_REVIEW
+2014-12-08   INSTANT TELLER WITHDRAWAL                Unknown                   $   1,000.00 NEEDS_REVIEW
+2014-11-21   INSTANT TELLER WITHDRAWAL                Unknown                   $   1,000.00 NEEDS_REVIEW
+2014-11-19   INSTANT TELLER WITHDRAWAL                Unknown                   $     860.00 NEEDS_REVIEW
+2014-11-13   INSTANT TELLER WITHDRAWAL                Unknown                   $     100.00 NEEDS_REVIEW
+2014-11-12   INSTANT TELLER WITHDRAWAL                Unknown                   $     820.00 NEEDS_REVIEW
+2013-03-12   ABM WITHDRAWAL 1E0U GAETZ AVE + 67TH ST  Unknown                   $     380.00 NEEDS_REVIEW
+2013-02-05   ABM WITHDRAWAL 1E0U GAETZ AVE + 67TH ST  Unknown                   $     200.00 NEEDS_REVIEW
+2013-02-05   WITHDRAWAL                               Unknown                   $   1,000.00 NEEDS_REVIEW
+2012-03-19   NETWORK TRANS FEE INSTANT TELLER         Unknown                   $       1.50 NEEDS_REVIEW
+
+====================================================================================================
+END OF PERSONAL EXPENSES & OWNER DRAW REPORT
+====================================================================================================

@@ -1,0 +1,4312 @@
+{
+  "timestamp": "2026-02-05T18:49:18.509964",
+  "total_tables": 247,
+  "exact_matches": [
+    "account_categories",
+    "account_number_aliases",
+    "accounting_periods",
+    "accounting_records",
+    "agreement_terms",
+    "alberta_tax_brackets",
+    "alcohol_business_tracking",
+    "alert_policy",
+    "app_errors",
+    "asset_depreciation_schedule",
+    "asset_documentation",
+    "assets",
+    "bank_accounts",
+    "bank_reconciliation",
+    "banking_inter_account_transfers",
+    "batch_deposit_allocations",
+    "beverage_cart",
+    "beverage_menu",
+    "beverage_order_items",
+    "beverage_orders",
+    "beverage_products",
+    "beverages",
+    "billing_audit_issues",
+    "billing_audit_log",
+    "business_expenses",
+    "business_losses",
+    "cash_box_transactions",
+    "cash_flow_categories",
+    "cash_flow_tracking",
+    "categorization_rules",
+    "category_mappings",
+    "category_to_account_map",
+    "charge_catalog",
+    "charges",
+    "charity_trade_charters",
+    "charter_beverage_items",
+    "charter_beverage_orders",
+    "charter_beverages",
+    "charter_charges",
+    "charter_credit_ledger",
+    "charter_gst_details_2010_2012",
+    "charter_reconciliation_status",
+    "charter_refunds",
+    "charter_time_updates",
+    "charter_types",
+    "chauffeur_float_tracking",
+    "chauffeur_pay_entries",
+    "cheque_register",
+    "cibc_accounts",
+    "cibc_auto_categorization_rules",
+    "cibc_business_cards",
+    "cibc_card_transactions",
+    "comprehensive_payment_reconciliation",
+    "cra_vehicle_events",
+    "customer_name_mapping",
+    "cvip_compliance_alerts",
+    "cvip_defects",
+    "cvip_inspections",
+    "david_account_tracking",
+    "david_richard_vehicle_loans",
+    "deferred_wage_accounts",
+    "deferred_wage_transactions",
+    "deposit_records",
+    "direct_tips_history",
+    "document_categories",
+    "documents",
+    "donations_free_rides",
+    "driver_alias_map",
+    "driver_app_actions",
+    "driver_app_sessions",
+    "driver_disciplinary_actions",
+    "driver_documents",
+    "driver_employee_mapping",
+    "driver_floats",
+    "driver_location_history",
+    "driver_name_employee_map",
+    "driver_pay_entries",
+    "driver_payroll",
+    "duty_status_types",
+    "email_financial_events",
+    "email_processing_stats",
+    "employee_availability",
+    "employee_expenses",
+    "employee_pay_entries",
+    "employee_pay_master",
+    "employee_roe_records",
+    "employee_schedules",
+    "employee_t4_records",
+    "employee_t4_summary",
+    "employee_time_off_requests",
+    "employee_work_classifications",
+    "epson_classifications_map",
+    "epson_pay_accounts_map",
+    "epson_pay_methods_map",
+    "etransfer_banking_reconciliation",
+    "etransfer_transactions",
+    "etransfers_processed",
+    "excluded_charters",
+    "federal_tax_brackets",
+    "fee_tracking",
+    "financial_adjustments",
+    "financial_audit_trail",
+    "financial_documents",
+    "financial_statement_sections",
+    "financial_statement_types",
+    "financial_transactions",
+    "financing_sources",
+    "float_activity_log",
+    "fraud_cases",
+    "fuel_expenses",
+    "general_ledger_headers",
+    "general_ledger_lines",
+    "gl_transactions",
+    "gratuity_income_links",
+    "gst_audit_trail",
+    "gst_rates_lookup",
+    "incident_costs",
+    "incident_damage_tracking",
+    "incidents",
+    "interest_allocations",
+    "invoice_tracking",
+    "legacy_import_status",
+    "lender_statement_transactions",
+    "lms2026_payment_matches",
+    "loan_transactions",
+    "maintenance_activity_types",
+    "maintenance_alerts",
+    "maintenance_records",
+    "maintenance_schedules_auto",
+    "maintenance_service_types",
+    "major_events",
+    "manual_check_payees",
+    "master_relationships",
+    "migration_log",
+    "missing_receipt_tracking",
+    "monthly_work_assignments",
+    "owner_equity_accounts",
+    "owner_expense_transactions",
+    "paul_pay_tracking",
+    "pay_periods",
+    "payables",
+    "payday_loan_payments",
+    "payday_loans",
+    "payment_customer_links",
+    "payment_matches",
+    "payroll_adjustments",
+    "payroll_comparison",
+    "payroll_fix_audit",
+    "payroll_fix_rollback_audit",
+    "performance_metrics",
+    "permissions",
+    "personal_expenses",
+    "posting_queue",
+    "posting_reversals",
+    "pre_inspection_issues",
+    "quotations",
+    "raw_file_inventory",
+    "receipt_categories",
+    "receipt_deliveries",
+    "receipt_gst_adjustment_audit",
+    "receipt_line_items",
+    "receipts_ingest_log",
+    "recurring_invoices",
+    "refunds_cancellations",
+    "rent_debt_ledger",
+    "route_event_types",
+    "schema_migrations",
+    "security_audit",
+    "security_events",
+    "square_api_audit",
+    "square_capital_activity",
+    "square_capital_loans",
+    "square_customers",
+    "square_etransfer_reconciliation",
+    "square_payment_categories",
+    "square_payouts",
+    "square_processing_fees",
+    "square_raw_imports",
+    "square_raw_records",
+    "square_review_status",
+    "staging_driver_pay_links",
+    "system_config",
+    "system_locked_years",
+    "t4_compliance_corrections",
+    "tax_periods",
+    "tax_returns",
+    "tax_variances",
+    "tax_year_reference",
+    "training_checklist_items",
+    "training_programs",
+    "transaction_categories",
+    "transaction_chain",
+    "transaction_log",
+    "transaction_subcategories",
+    "unified_charge_lookup",
+    "unified_general_ledger",
+    "unmatched_items",
+    "users",
+    "vacation_pay_records",
+    "vehicle_document_types",
+    "vehicle_documents",
+    "vehicle_financing",
+    "vehicle_financing_complete",
+    "vehicle_fuel_log",
+    "vehicle_insurance",
+    "vehicle_loan_payments",
+    "vehicle_loan_reconciliation_allocations",
+    "vehicle_loans",
+    "vehicle_mileage_log",
+    "vehicle_pre_inspections",
+    "vehicle_purchases",
+    "vehicle_repossessions",
+    "vehicle_sales",
+    "vehicle_writeoffs",
+    "vendor_account_ledger",
+    "vendor_accounts",
+    "vendor_default_categories",
+    "vendor_name_mapping",
+    "vendor_standardization",
+    "vendor_synonyms",
+    "vendors",
+    "verification_queue",
+    "wage_allocation_pool",
+    "wcb_ab_industry_rates",
+    "wcb_ab_premium_rates",
+    "wcb_debt_ledger",
+    "wcb_recurring_charges",
+    "wcb_summary",
+    "zero_payment_resolutions"
+  ],
+  "columns_deleted_in_local": [],
+  "extra_columns_in_local": [
+    {
+      "table": "banking_receipt_matching_ledger",
+      "local_column_count": 16,
+      "neon_column_count": 13,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "amount_allocated",
+        "allocation_type",
+        "allocation_date"
+      ],
+      "position_mismatches": [
+        {
+          "column": "payment_id",
+          "local_pos": 16,
+          "neon_pos": 10
+        },
+        {
+          "column": "accounting_entry_id",
+          "local_pos": 13,
+          "neon_pos": 11
+        },
+        {
+          "column": "income_ledger_id",
+          "local_pos": 15,
+          "neon_pos": 13
+        },
+        {
+          "column": "charter_id",
+          "local_pos": 14,
+          "neon_pos": 12
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "charter_run_types",
+      "local_column_count": 8,
+      "neon_column_count": 7,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "run_type_id"
+      ],
+      "position_mismatches": [
+        {
+          "column": "id",
+          "local_pos": 8,
+          "neon_pos": 1
+        },
+        {
+          "column": "is_active",
+          "local_pos": 4,
+          "neon_pos": 3
+        },
+        {
+          "column": "updated_at",
+          "local_pos": 6,
+          "neon_pos": 7
+        },
+        {
+          "column": "description",
+          "local_pos": 7,
+          "neon_pos": 5
+        },
+        {
+          "column": "created_at",
+          "local_pos": 5,
+          "neon_pos": 6
+        },
+        {
+          "column": "display_order",
+          "local_pos": 3,
+          "neon_pos": 4
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "charters",
+      "local_column_count": 100,
+      "neon_column_count": 93,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "split_run_time",
+        "fuel_gst",
+        "cart_order_list",
+        "fuel_litres",
+        "do_time",
+        "fuel_price",
+        "split_run_start_time"
+      ],
+      "position_mismatches": [
+        {
+          "column": "banking_transaction_id",
+          "local_pos": 192,
+          "neon_pos": 175
+        },
+        {
+          "column": "on_duty_started_at",
+          "local_pos": 211,
+          "neon_pos": 132
+        },
+        {
+          "column": "default_hourly_price",
+          "local_pos": 78,
+          "neon_pos": 77
+        },
+        {
+          "column": "driver_base_pay",
+          "local_pos": 47,
+          "neon_pos": 46
+        },
+        {
+          "column": "red_deer_bylaw_exempt",
+          "local_pos": 218,
+          "neon_pos": 109
+        },
+        {
+          "column": "odometer_end",
+          "local_pos": 68,
+          "neon_pos": 67
+        },
+        {
+          "column": "receipt_id",
+          "local_pos": 217,
+          "neon_pos": 174
+        },
+        {
+          "column": "passengers_loaded_at",
+          "local_pos": 214,
+          "neon_pos": 134
+        },
+        {
+          "column": "payment_status",
+          "local_pos": 216,
+          "neon_pos": 51
+        },
+        {
+          "column": "account_number",
+          "local_pos": 186,
+          "neon_pos": 3
+        },
+        {
+          "column": "fuel_added_liters",
+          "local_pos": 204,
+          "neon_pos": 124
+        },
+        {
+          "column": "standby_rate",
+          "local_pos": 150,
+          "neon_pos": 155
+        },
+        {
+          "column": "charter_type",
+          "local_pos": 148,
+          "neon_pos": 153
+        },
+        {
+          "column": "en_route_to_event_at",
+          "local_pos": 202,
+          "neon_pos": 135
+        },
+        {
+          "column": "reservation_time",
+          "local_pos": 219,
+          "neon_pos": 52
+        },
+        {
+          "column": "return_journey_started_at",
+          "local_pos": 220,
+          "neon_pos": 137
+        },
+        {
+          "column": "nrd_received_at",
+          "local_pos": 207,
+          "neon_pos": 104
+        },
+        {
+          "column": "package_rate",
+          "local_pos": 79,
+          "neon_pos": 78
+        },
+        {
+          "column": "nrd_amount",
+          "local_pos": 98,
+          "neon_pos": 105
+        },
+        {
+          "column": "nrd_received",
+          "local_pos": 96,
+          "neon_pos": 103
+        },
+        {
+          "column": "float_reimbursement_needed",
+          "local_pos": 120,
+          "neon_pos": 126
+        },
+        {
+          "column": "quoted_hours",
+          "local_pos": 149,
+          "neon_pos": 154
+        },
+        {
+          "column": "locked",
+          "local_pos": 185,
+          "neon_pos": 172
+        },
+        {
+          "column": "arrived_at_event_at",
+          "local_pos": 190,
+          "neon_pos": 136
+        },
+        {
+          "column": "dispatcher_approved",
+          "local_pos": 41,
+          "neon_pos": 40
+        },
+        {
+          "column": "vehicle_notes",
+          "local_pos": 71,
+          "neon_pos": 70
+        },
+        {
+          "column": "vehicle_id",
+          "local_pos": 84,
+          "neon_pos": 83
+        },
+        {
+          "column": "off_duty_at",
+          "local_pos": 210,
+          "neon_pos": 138
+        },
+        {
+          "column": "beverage_service_required",
+          "local_pos": 193,
+          "neon_pos": 102
+        },
+        {
+          "column": "driver",
+          "local_pos": 197,
+          "neon_pos": 11
+        },
+        {
+          "column": "notes",
+          "local_pos": 206,
+          "neon_pos": 22
+        },
+        {
+          "column": "assigned_driver_id",
+          "local_pos": 191,
+          "neon_pos": 25
+        },
+        {
+          "column": "workshift_end",
+          "local_pos": 224,
+          "neon_pos": 75
+        },
+        {
+          "column": "driver_total_expense",
+          "local_pos": 49,
+          "neon_pos": 48
+        },
+        {
+          "column": "client_display_name",
+          "local_pos": 86,
+          "neon_pos": 85
+        },
+        {
+          "column": "driver_hourly_rate",
+          "local_pos": 198,
+          "neon_pos": 44
+        },
+        {
+          "column": "on_location_at",
+          "local_pos": 212,
+          "neon_pos": 133
+        },
+        {
+          "column": "vehicle",
+          "local_pos": 223,
+          "neon_pos": 10
+        },
+        {
+          "column": "cancelled",
+          "local_pos": 195,
+          "neon_pos": 20
+        },
+        {
+          "column": "employee_id",
+          "local_pos": 83,
+          "neon_pos": 82
+        },
+        {
+          "column": "calculated_hours",
+          "local_pos": 194,
+          "neon_pos": 43
+        },
+        {
+          "column": "driver_paid",
+          "local_pos": 200,
+          "neon_pos": 13
+        },
+        {
+          "column": "split_run_before_hours",
+          "local_pos": 222,
+          "neon_pos": 156
+        },
+        {
+          "column": "accounting_entry_id",
+          "local_pos": 187,
+          "neon_pos": 176
+        },
+        {
+          "column": "fuel_added",
+          "local_pos": 203,
+          "neon_pos": 69
+        },
+        {
+          "column": "float_received",
+          "local_pos": 119,
+          "neon_pos": 125
+        },
+        {
+          "column": "income_ledger_id",
+          "local_pos": 205,
+          "neon_pos": 177
+        },
+        {
+          "column": "expense_calculated_at",
+          "local_pos": 50,
+          "neon_pos": 49
+        },
+        {
+          "column": "nrr_received",
+          "local_pos": 209,
+          "neon_pos": 35
+        },
+        {
+          "column": "driver_gratuity",
+          "local_pos": 48,
+          "neon_pos": 47
+        },
+        {
+          "column": "is_placeholder",
+          "local_pos": 73,
+          "neon_pos": 72
+        },
+        {
+          "column": "approved_at",
+          "local_pos": 189,
+          "neon_pos": 42
+        },
+        {
+          "column": "completion_timestamp",
+          "local_pos": 196,
+          "neon_pos": 141
+        },
+        {
+          "column": "total_kms",
+          "local_pos": 69,
+          "neon_pos": 68
+        },
+        {
+          "column": "split_run_after_hours",
+          "local_pos": 221,
+          "neon_pos": 157
+        },
+        {
+          "column": "nrd_method",
+          "local_pos": 99,
+          "neon_pos": 106
+        },
+        {
+          "column": "airport_pickup_price",
+          "local_pos": 82,
+          "neon_pos": 81
+        },
+        {
+          "column": "calendar_notes",
+          "local_pos": 168,
+          "neon_pos": 98
+        },
+        {
+          "column": "driver_hours_worked",
+          "local_pos": 199,
+          "neon_pos": 45
+        },
+        {
+          "column": "nrr_amount",
+          "local_pos": 208,
+          "neon_pos": 36
+        },
+        {
+          "column": "calendar_sync_status",
+          "local_pos": 166,
+          "neon_pos": 95
+        },
+        {
+          "column": "workshift_start",
+          "local_pos": 225,
+          "neon_pos": 74
+        },
+        {
+          "column": "actual_hours",
+          "local_pos": 188,
+          "neon_pos": 159
+        },
+        {
+          "column": "daily_rate",
+          "local_pos": 81,
+          "neon_pos": 80
+        },
+        {
+          "column": "odometer_start",
+          "local_pos": 67,
+          "neon_pos": 66
+        },
+        {
+          "column": "separate_customer_printout",
+          "local_pos": 147,
+          "neon_pos": 152
+        },
+        {
+          "column": "payment_id",
+          "local_pos": 215,
+          "neon_pos": 173
+        },
+        {
+          "column": "outlook_entry_id",
+          "local_pos": 167,
+          "neon_pos": 97
+        },
+        {
+          "column": "record_type",
+          "local_pos": 169,
+          "neon_pos": 99
+        },
+        {
+          "column": "calendar_color",
+          "local_pos": 145,
+          "neon_pos": 96
+        },
+        {
+          "column": "extra_time_rate",
+          "local_pos": 80,
+          "neon_pos": 79
+        },
+        {
+          "column": "paid_amount",
+          "local_pos": 213,
+          "neon_pos": 50
+        },
+        {
+          "column": "version",
+          "local_pos": 170,
+          "neon_pos": 101
+        },
+        {
+          "column": "duty_log",
+          "local_pos": 201,
+          "neon_pos": 76
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "invoice_line_items",
+      "local_column_count": 32,
+      "neon_column_count": 31,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "line_item_id"
+      ],
+      "position_mismatches": [
+        {
+          "column": "line_total",
+          "local_pos": 8,
+          "neon_pos": 27
+        },
+        {
+          "column": "tax_amount",
+          "local_pos": 30,
+          "neon_pos": 15
+        },
+        {
+          "column": "quantity",
+          "local_pos": 6,
+          "neon_pos": 7
+        },
+        {
+          "column": "service_type",
+          "local_pos": 29,
+          "neon_pos": 21
+        },
+        {
+          "column": "amount",
+          "local_pos": 15,
+          "neon_pos": 10
+        },
+        {
+          "column": "unit_price",
+          "local_pos": 7,
+          "neon_pos": 8
+        },
+        {
+          "column": "vehicle_id",
+          "local_pos": 32,
+          "neon_pos": 22
+        },
+        {
+          "column": "tax_code",
+          "local_pos": 31,
+          "neon_pos": 14
+        },
+        {
+          "column": "qb_class",
+          "local_pos": 26,
+          "neon_pos": 20
+        },
+        {
+          "column": "notes",
+          "local_pos": 12,
+          "neon_pos": 31
+        },
+        {
+          "column": "gst_amount",
+          "local_pos": 10,
+          "neon_pos": 29
+        },
+        {
+          "column": "is_taxable",
+          "local_pos": 22,
+          "neon_pos": 13
+        },
+        {
+          "column": "qb_item_id",
+          "local_pos": 27,
+          "neon_pos": 19
+        },
+        {
+          "column": "driver_id",
+          "local_pos": 19,
+          "neon_pos": 23
+        },
+        {
+          "column": "description",
+          "local_pos": 5,
+          "neon_pos": 6
+        },
+        {
+          "column": "taxable",
+          "local_pos": 9,
+          "neon_pos": 28
+        },
+        {
+          "column": "created_at",
+          "local_pos": 16,
+          "neon_pos": 24
+        },
+        {
+          "column": "line_type",
+          "local_pos": 4,
+          "neon_pos": 26
+        },
+        {
+          "column": "display_order",
+          "local_pos": 11,
+          "neon_pos": 30
+        },
+        {
+          "column": "rate",
+          "local_pos": 28,
+          "neon_pos": 9
+        },
+        {
+          "column": "line_number",
+          "local_pos": 25,
+          "neon_pos": 3
+        },
+        {
+          "column": "discount_amount",
+          "local_pos": 17,
+          "neon_pos": 12
+        },
+        {
+          "column": "reserve_number",
+          "local_pos": 3,
+          "neon_pos": 25
+        },
+        {
+          "column": "item_type",
+          "local_pos": 24,
+          "neon_pos": 4
+        },
+        {
+          "column": "id",
+          "local_pos": 20,
+          "neon_pos": 1
+        },
+        {
+          "column": "income_account",
+          "local_pos": 21,
+          "neon_pos": 18
+        },
+        {
+          "column": "account_code",
+          "local_pos": 13,
+          "neon_pos": 16
+        },
+        {
+          "column": "item_name",
+          "local_pos": 23,
+          "neon_pos": 5
+        },
+        {
+          "column": "account_name",
+          "local_pos": 14,
+          "neon_pos": 17
+        },
+        {
+          "column": "discount_percent",
+          "local_pos": 18,
+          "neon_pos": 11
+        }
+      ],
+      "type_mismatches": [
+        {
+          "column": "description",
+          "local_type": "character varying",
+          "neon_type": "text"
+        }
+      ]
+    },
+    {
+      "table": "payments",
+      "local_column_count": 53,
+      "neon_column_count": 48,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "square_fee_gl_description",
+        "verified_by",
+        "verified",
+        "verified_date",
+        "square_fee_gl_code"
+      ],
+      "position_mismatches": [
+        {
+          "column": "payment_account",
+          "local_pos": 63,
+          "neon_pos": 36
+        },
+        {
+          "column": "payment_label",
+          "local_pos": 43,
+          "neon_pos": 44
+        },
+        {
+          "column": "related_payment_id",
+          "local_pos": 68,
+          "neon_pos": 42
+        },
+        {
+          "column": "last_updated_by",
+          "local_pos": 62,
+          "neon_pos": 9
+        },
+        {
+          "column": "banking_transaction_id",
+          "local_pos": 54,
+          "neon_pos": 40
+        },
+        {
+          "column": "adjustment_type",
+          "local_pos": 50,
+          "neon_pos": 41
+        },
+        {
+          "column": "square_transaction_id",
+          "local_pos": 79,
+          "neon_pos": 18
+        },
+        {
+          "column": "square_net_sales",
+          "local_pos": 74,
+          "neon_pos": 25
+        },
+        {
+          "column": "applied_to_invoice",
+          "local_pos": 51,
+          "neon_pos": 34
+        },
+        {
+          "column": "square_notes",
+          "local_pos": 75,
+          "neon_pos": 28
+        },
+        {
+          "column": "credit_card_expiry",
+          "local_pos": 58,
+          "neon_pos": 15
+        },
+        {
+          "column": "receipt_id",
+          "local_pos": 67,
+          "neon_pos": 45
+        },
+        {
+          "column": "authorization_code",
+          "local_pos": 52,
+          "neon_pos": 16
+        },
+        {
+          "column": "credit_card_last4",
+          "local_pos": 59,
+          "neon_pos": 14
+        },
+        {
+          "column": "square_last4",
+          "local_pos": 73,
+          "neon_pos": 21
+        },
+        {
+          "column": "deposit_to_account",
+          "local_pos": 60,
+          "neon_pos": 39
+        },
+        {
+          "column": "accounting_entry_id",
+          "local_pos": 49,
+          "neon_pos": 46
+        },
+        {
+          "column": "square_card_brand",
+          "local_pos": 69,
+          "neon_pos": 20
+        },
+        {
+          "column": "income_ledger_id",
+          "local_pos": 61,
+          "neon_pos": 48
+        },
+        {
+          "column": "charter_id",
+          "local_pos": 55,
+          "neon_pos": 4
+        },
+        {
+          "column": "square_tip",
+          "local_pos": 78,
+          "neon_pos": 26
+        },
+        {
+          "column": "square_gross_sales",
+          "local_pos": 72,
+          "neon_pos": 24
+        },
+        {
+          "column": "check_number",
+          "local_pos": 56,
+          "neon_pos": 13
+        },
+        {
+          "column": "square_customer_email",
+          "local_pos": 70,
+          "neon_pos": 23
+        },
+        {
+          "column": "qb_payment_type",
+          "local_pos": 65,
+          "neon_pos": 33
+        },
+        {
+          "column": "banking_receipt_matching_ledger_id",
+          "local_pos": 53,
+          "neon_pos": 47
+        },
+        {
+          "column": "payment_amount",
+          "local_pos": 64,
+          "neon_pos": 30
+        },
+        {
+          "column": "client_id",
+          "local_pos": 57,
+          "neon_pos": 5
+        },
+        {
+          "column": "square_status",
+          "local_pos": 77,
+          "neon_pos": 27
+        },
+        {
+          "column": "square_payment_id",
+          "local_pos": 76,
+          "neon_pos": 19
+        },
+        {
+          "column": "square_customer_name",
+          "local_pos": 71,
+          "neon_pos": 22
+        },
+        {
+          "column": "version",
+          "local_pos": 80,
+          "neon_pos": 43
+        },
+        {
+          "column": "qb_trans_num",
+          "local_pos": 66,
+          "neon_pos": 35
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "receipts",
+      "local_column_count": 109,
+      "neon_column_count": 100,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "gl_code",
+        "receipt_reviewed_by",
+        "receipt_reviewed_at",
+        "verified",
+        "verified_date",
+        "verified_by",
+        "receipt_review_notes",
+        "gl_description",
+        "receipt_review_status"
+      ],
+      "position_mismatches": [
+        {
+          "column": "gl_subcategory",
+          "local_pos": 55,
+          "neon_pos": 54
+        },
+        {
+          "column": "tax_category",
+          "local_pos": 26,
+          "neon_pos": 25
+        },
+        {
+          "column": "banking_transaction_id",
+          "local_pos": 65,
+          "neon_pos": 64
+        },
+        {
+          "column": "gst_code",
+          "local_pos": 46,
+          "neon_pos": 45
+        },
+        {
+          "column": "exported",
+          "local_pos": 113,
+          "neon_pos": 18
+        },
+        {
+          "column": "pay_account",
+          "local_pos": 120,
+          "neon_pos": 28
+        },
+        {
+          "column": "validation_status",
+          "local_pos": 133,
+          "neon_pos": 12
+        },
+        {
+          "column": "card_type",
+          "local_pos": 30,
+          "neon_pos": 29
+        },
+        {
+          "column": "receipt_source",
+          "local_pos": 66,
+          "neon_pos": 65
+        },
+        {
+          "column": "reimbursed_via",
+          "local_pos": 124,
+          "neon_pos": 61
+        },
+        {
+          "column": "revenue",
+          "local_pos": 45,
+          "neon_pos": 44
+        },
+        {
+          "column": "source_file",
+          "local_pos": 52,
+          "neon_pos": 51
+        },
+        {
+          "column": "gst_exempt",
+          "local_pos": 92,
+          "neon_pos": 94
+        },
+        {
+          "column": "card_number",
+          "local_pos": 31,
+          "neon_pos": 30
+        },
+        {
+          "column": "is_split_receipt",
+          "local_pos": 58,
+          "neon_pos": 57
+        },
+        {
+          "column": "parent_receipt_id",
+          "local_pos": 119,
+          "neon_pos": 67
+        },
+        {
+          "column": "reviewed",
+          "local_pos": 126,
+          "neon_pos": 17
+        },
+        {
+          "column": "tip",
+          "local_pos": 130,
+          "neon_pos": 23
+        },
+        {
+          "column": "invoice_date",
+          "local_pos": 82,
+          "neon_pos": 81
+        },
+        {
+          "column": "verified_by_user",
+          "local_pos": 88,
+          "neon_pos": 87
+        },
+        {
+          "column": "gl_account_code",
+          "local_pos": 53,
+          "neon_pos": 52
+        },
+        {
+          "column": "net_amount",
+          "local_pos": 57,
+          "neon_pos": 56
+        },
+        {
+          "column": "reimbursement_date",
+          "local_pos": 125,
+          "neon_pos": 62
+        },
+        {
+          "column": "mapped_expense_account_id",
+          "local_pos": 116,
+          "neon_pos": 33
+        },
+        {
+          "column": "deductible_status",
+          "local_pos": 50,
+          "neon_pos": 49
+        },
+        {
+          "column": "sales_tax",
+          "local_pos": 127,
+          "neon_pos": 22
+        },
+        {
+          "column": "pay_method",
+          "local_pos": 33,
+          "neon_pos": 32
+        },
+        {
+          "column": "sub_classification",
+          "local_pos": 128,
+          "neon_pos": 27
+        },
+        {
+          "column": "vehicle_number",
+          "local_pos": 42,
+          "neon_pos": 41
+        },
+        {
+          "column": "verified_by_edit",
+          "local_pos": 95,
+          "neon_pos": 96
+        },
+        {
+          "column": "fx_rate",
+          "local_pos": 114,
+          "neon_pos": 70
+        },
+        {
+          "column": "paper_verification_date",
+          "local_pos": 87,
+          "neon_pos": 86
+        },
+        {
+          "column": "owner_personal_amount",
+          "local_pos": 60,
+          "neon_pos": 59
+        },
+        {
+          "column": "vehicle_id",
+          "local_pos": 41,
+          "neon_pos": 40
+        },
+        {
+          "column": "comment",
+          "local_pos": 32,
+          "neon_pos": 31
+        },
+        {
+          "column": "split_status",
+          "local_pos": 93,
+          "neon_pos": 95
+        },
+        {
+          "column": "split_group_total",
+          "local_pos": 48,
+          "neon_pos": 47
+        },
+        {
+          "column": "duplicate_check_key",
+          "local_pos": 76,
+          "neon_pos": 75
+        },
+        {
+          "column": "amount_usd",
+          "local_pos": 107,
+          "neon_pos": 69
+        },
+        {
+          "column": "period_start",
+          "local_pos": 123,
+          "neon_pos": 83
+        },
+        {
+          "column": "updated_at",
+          "local_pos": 131,
+          "neon_pos": 93
+        },
+        {
+          "column": "canonical_vendor",
+          "local_pos": 69,
+          "neon_pos": 68
+        },
+        {
+          "column": "date_added",
+          "local_pos": 110,
+          "neon_pos": 20
+        },
+        {
+          "column": "gl_account_name",
+          "local_pos": 54,
+          "neon_pos": 53
+        },
+        {
+          "column": "employee_id",
+          "local_pos": 89,
+          "neon_pos": 88
+        },
+        {
+          "column": "is_transfer",
+          "local_pos": 72,
+          "neon_pos": 71
+        },
+        {
+          "column": "fiscal_year",
+          "local_pos": 81,
+          "neon_pos": 80
+        },
+        {
+          "column": "display_color",
+          "local_pos": 67,
+          "neon_pos": 66
+        },
+        {
+          "column": "mapping_status",
+          "local_pos": 118,
+          "neon_pos": 36
+        },
+        {
+          "column": "due_date",
+          "local_pos": 111,
+          "neon_pos": 82
+        },
+        {
+          "column": "document_type",
+          "local_pos": 20,
+          "neon_pos": 19
+        },
+        {
+          "column": "is_nsf",
+          "local_pos": 77,
+          "neon_pos": 76
+        },
+        {
+          "column": "period_end",
+          "local_pos": 122,
+          "neon_pos": 84
+        },
+        {
+          "column": "fuel_amount",
+          "local_pos": 49,
+          "neon_pos": 48
+        },
+        {
+          "column": "accounting_entry_id",
+          "local_pos": 106,
+          "neon_pos": 99
+        },
+        {
+          "column": "is_driver_reimbursement",
+          "local_pos": 61,
+          "neon_pos": 60
+        },
+        {
+          "column": "income_ledger_id",
+          "local_pos": 115,
+          "neon_pos": 100
+        },
+        {
+          "column": "business_personal",
+          "local_pos": 51,
+          "neon_pos": 50
+        },
+        {
+          "column": "validation_reason",
+          "local_pos": 132,
+          "neon_pos": 13
+        },
+        {
+          "column": "charter_id",
+          "local_pos": 90,
+          "neon_pos": 89
+        },
+        {
+          "column": "classification",
+          "local_pos": 109,
+          "neon_pos": 26
+        },
+        {
+          "column": "event_batch_id",
+          "local_pos": 112,
+          "neon_pos": 14
+        },
+        {
+          "column": "source_hash",
+          "local_pos": 16,
+          "neon_pos": 15
+        },
+        {
+          "column": "payment_method",
+          "local_pos": 12,
+          "neon_pos": 11
+        },
+        {
+          "column": "auto_categorized",
+          "local_pos": 56,
+          "neon_pos": 55
+        },
+        {
+          "column": "cash_box_transaction_id",
+          "local_pos": 108,
+          "neon_pos": 63
+        },
+        {
+          "column": "expense_account",
+          "local_pos": 11,
+          "neon_pos": 10
+        },
+        {
+          "column": "verified_at",
+          "local_pos": 96,
+          "neon_pos": 97
+        },
+        {
+          "column": "fuel",
+          "local_pos": 43,
+          "neon_pos": 42
+        },
+        {
+          "column": "split_key",
+          "local_pos": 47,
+          "neon_pos": 46
+        },
+        {
+          "column": "vendor_account_id",
+          "local_pos": 80,
+          "neon_pos": 79
+        },
+        {
+          "column": "is_personal_purchase",
+          "local_pos": 59,
+          "neon_pos": 58
+        },
+        {
+          "column": "category",
+          "local_pos": 39,
+          "neon_pos": 38
+        },
+        {
+          "column": "split_group_id",
+          "local_pos": 94,
+          "neon_pos": 91
+        },
+        {
+          "column": "created_from_banking",
+          "local_pos": 44,
+          "neon_pos": 43
+        },
+        {
+          "column": "created_at",
+          "local_pos": 17,
+          "neon_pos": 16
+        },
+        {
+          "column": "tax",
+          "local_pos": 129,
+          "neon_pos": 21
+        },
+        {
+          "column": "payment_id",
+          "local_pos": 121,
+          "neon_pos": 98
+        },
+        {
+          "column": "mapping_notes",
+          "local_pos": 117,
+          "neon_pos": 37
+        },
+        {
+          "column": "is_paper_verified",
+          "local_pos": 86,
+          "neon_pos": 85
+        },
+        {
+          "column": "canonical_pay_method",
+          "local_pos": 36,
+          "neon_pos": 35
+        },
+        {
+          "column": "exclude_from_reports",
+          "local_pos": 79,
+          "neon_pos": 78
+        },
+        {
+          "column": "mapped_bank_account_id",
+          "local_pos": 35,
+          "neon_pos": 34
+        },
+        {
+          "column": "expense",
+          "local_pos": 40,
+          "neon_pos": 39
+        },
+        {
+          "column": "potential_duplicate",
+          "local_pos": 75,
+          "neon_pos": 74
+        },
+        {
+          "column": "verified_source",
+          "local_pos": 73,
+          "neon_pos": 72
+        },
+        {
+          "column": "is_verified_banking",
+          "local_pos": 74,
+          "neon_pos": 73
+        },
+        {
+          "column": "type",
+          "local_pos": 25,
+          "neon_pos": 24
+        },
+        {
+          "column": "reserve_number",
+          "local_pos": 91,
+          "neon_pos": 90
+        },
+        {
+          "column": "is_voided",
+          "local_pos": 78,
+          "neon_pos": 77
+        },
+        {
+          "column": "version",
+          "local_pos": 134,
+          "neon_pos": 92
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "vehicle_pricing_defaults",
+      "local_column_count": 22,
+      "neon_column_count": 13,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "split_run_after_hours",
+        "extra_time_rate",
+        "package_rate",
+        "package_hours",
+        "pricing_id",
+        "split_run_before_hours",
+        "charter_type_code",
+        "is_active",
+        "minimum_hours"
+      ],
+      "position_mismatches": [
+        {
+          "column": "airport_pickup_calgary",
+          "local_pos": 14,
+          "neon_pos": 7
+        },
+        {
+          "column": "hourly_rate",
+          "local_pos": 4,
+          "neon_pos": 2
+        },
+        {
+          "column": "fee_1",
+          "local_pos": 18,
+          "neon_pos": 9
+        },
+        {
+          "column": "airport_pickup_edmonton",
+          "local_pos": 15,
+          "neon_pos": 6
+        },
+        {
+          "column": "fee_2",
+          "local_pos": 19,
+          "neon_pos": 10
+        },
+        {
+          "column": "vehicle_type",
+          "local_pos": 2,
+          "neon_pos": 1
+        },
+        {
+          "column": "daily_rate",
+          "local_pos": 17,
+          "neon_pos": 4
+        },
+        {
+          "column": "hourly_package",
+          "local_pos": 21,
+          "neon_pos": 3
+        },
+        {
+          "column": "standby_rate",
+          "local_pos": 9,
+          "neon_pos": 5
+        },
+        {
+          "column": "fee_3",
+          "local_pos": 20,
+          "neon_pos": 11
+        },
+        {
+          "column": "created_at",
+          "local_pos": 16,
+          "neon_pos": 12
+        },
+        {
+          "column": "nrr",
+          "local_pos": 22,
+          "neon_pos": 8
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "vehicles",
+      "local_column_count": 87,
+      "neon_column_count": 83,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "is_active",
+        "fleet_position",
+        "fleet_number",
+        "vehicle_history_id"
+      ],
+      "position_mismatches": [
+        {
+          "column": "financing_amount",
+          "local_pos": 74,
+          "neon_pos": 73
+        },
+        {
+          "column": "last_cvip_date",
+          "local_pos": 67,
+          "neon_pos": 66
+        },
+        {
+          "column": "lifecycle_status",
+          "local_pos": 81,
+          "neon_pos": 80
+        },
+        {
+          "column": "purchase_vendor",
+          "local_pos": 72,
+          "neon_pos": 71
+        },
+        {
+          "column": "cvip_expiry_date",
+          "local_pos": 65,
+          "neon_pos": 64
+        },
+        {
+          "column": "cvip_inspection_number",
+          "local_pos": 66,
+          "neon_pos": 65
+        },
+        {
+          "column": "cvip_compliance_status",
+          "local_pos": 69,
+          "neon_pos": 68
+        },
+        {
+          "column": "writeoff_date",
+          "local_pos": 78,
+          "neon_pos": 77
+        },
+        {
+          "column": "finance_partner",
+          "local_pos": 73,
+          "neon_pos": 72
+        },
+        {
+          "column": "monthly_payment",
+          "local_pos": 75,
+          "neon_pos": 74
+        },
+        {
+          "column": "sale_price",
+          "local_pos": 77,
+          "neon_pos": 76
+        },
+        {
+          "column": "status",
+          "local_pos": 64,
+          "neon_pos": 63
+        },
+        {
+          "column": "writeoff_reason",
+          "local_pos": 79,
+          "neon_pos": 78
+        },
+        {
+          "column": "purchase_date",
+          "local_pos": 70,
+          "neon_pos": 69
+        },
+        {
+          "column": "next_cvip_due",
+          "local_pos": 68,
+          "neon_pos": 67
+        },
+        {
+          "column": "repossession_date",
+          "local_pos": 80,
+          "neon_pos": 79
+        },
+        {
+          "column": "sale_date",
+          "local_pos": 76,
+          "neon_pos": 75
+        },
+        {
+          "column": "purchase_price",
+          "local_pos": 71,
+          "neon_pos": 70
+        },
+        {
+          "column": "version",
+          "local_pos": 88,
+          "neon_pos": 81
+        }
+      ],
+      "type_mismatches": []
+    }
+  ],
+  "position_mismatches": [
+    {
+      "table": "accounting_entries",
+      "local_column_count": 17,
+      "neon_column_count": 17,
+      "missing_in_local": [],
+      "missing_in_neon": [],
+      "position_mismatches": [
+        {
+          "column": "receipt_id",
+          "local_pos": 17,
+          "neon_pos": 15
+        },
+        {
+          "column": "payment_id",
+          "local_pos": 16,
+          "neon_pos": 14
+        },
+        {
+          "column": "banking_transaction_id",
+          "local_pos": 14,
+          "neon_pos": 16
+        },
+        {
+          "column": "income_ledger_id",
+          "local_pos": 15,
+          "neon_pos": 17
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "banking_receipt_matching_ledger",
+      "local_column_count": 16,
+      "neon_column_count": 13,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "amount_allocated",
+        "allocation_type",
+        "allocation_date"
+      ],
+      "position_mismatches": [
+        {
+          "column": "payment_id",
+          "local_pos": 16,
+          "neon_pos": 10
+        },
+        {
+          "column": "accounting_entry_id",
+          "local_pos": 13,
+          "neon_pos": 11
+        },
+        {
+          "column": "income_ledger_id",
+          "local_pos": 15,
+          "neon_pos": 13
+        },
+        {
+          "column": "charter_id",
+          "local_pos": 14,
+          "neon_pos": 12
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "banking_transactions",
+      "local_column_count": 42,
+      "neon_column_count": 42,
+      "missing_in_local": [],
+      "missing_in_neon": [],
+      "position_mismatches": [
+        {
+          "column": "verified_date",
+          "local_pos": 37,
+          "neon_pos": 41
+        },
+        {
+          "column": "income_ledger_id",
+          "local_pos": 41,
+          "neon_pos": 40
+        },
+        {
+          "column": "charter_id",
+          "local_pos": 40,
+          "neon_pos": 38
+        },
+        {
+          "column": "payment_id",
+          "local_pos": 42,
+          "neon_pos": 37
+        },
+        {
+          "column": "verified_by",
+          "local_pos": 38,
+          "neon_pos": 42
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "chart_of_accounts",
+      "local_column_count": 20,
+      "neon_column_count": 20,
+      "missing_in_local": [],
+      "missing_in_neon": [],
+      "position_mismatches": [
+        {
+          "column": "requires_vehicle",
+          "local_pos": 21,
+          "neon_pos": 18
+        },
+        {
+          "column": "default_category_code",
+          "local_pos": 16,
+          "neon_pos": 20
+        },
+        {
+          "column": "is_business_expense",
+          "local_pos": 17,
+          "neon_pos": 16
+        },
+        {
+          "column": "requires_employee",
+          "local_pos": 20,
+          "neon_pos": 19
+        },
+        {
+          "column": "is_linked_account",
+          "local_pos": 18,
+          "neon_pos": 17
+        },
+        {
+          "column": "is_tax_applicable",
+          "local_pos": 19,
+          "neon_pos": 15
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "charter_payments",
+      "local_column_count": 15,
+      "neon_column_count": 15,
+      "missing_in_local": [],
+      "missing_in_neon": [],
+      "position_mismatches": [
+        {
+          "column": "receipt_id",
+          "local_pos": 15,
+          "neon_pos": 12
+        },
+        {
+          "column": "banking_transaction_id",
+          "local_pos": 13,
+          "neon_pos": 14
+        },
+        {
+          "column": "accounting_entry_id",
+          "local_pos": 12,
+          "neon_pos": 13
+        },
+        {
+          "column": "income_ledger_id",
+          "local_pos": 14,
+          "neon_pos": 15
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "charter_routes",
+      "local_column_count": 20,
+      "neon_column_count": 20,
+      "missing_in_local": [],
+      "missing_in_neon": [],
+      "position_mismatches": [
+        {
+          "column": "stop_time",
+          "local_pos": 20,
+          "neon_pos": 19
+        },
+        {
+          "column": "reserve_number",
+          "local_pos": 19,
+          "neon_pos": 20
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "charter_run_types",
+      "local_column_count": 8,
+      "neon_column_count": 7,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "run_type_id"
+      ],
+      "position_mismatches": [
+        {
+          "column": "id",
+          "local_pos": 8,
+          "neon_pos": 1
+        },
+        {
+          "column": "is_active",
+          "local_pos": 4,
+          "neon_pos": 3
+        },
+        {
+          "column": "updated_at",
+          "local_pos": 6,
+          "neon_pos": 7
+        },
+        {
+          "column": "description",
+          "local_pos": 7,
+          "neon_pos": 5
+        },
+        {
+          "column": "created_at",
+          "local_pos": 5,
+          "neon_pos": 6
+        },
+        {
+          "column": "display_order",
+          "local_pos": 3,
+          "neon_pos": 4
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "charters",
+      "local_column_count": 100,
+      "neon_column_count": 93,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "split_run_time",
+        "fuel_gst",
+        "cart_order_list",
+        "fuel_litres",
+        "do_time",
+        "fuel_price",
+        "split_run_start_time"
+      ],
+      "position_mismatches": [
+        {
+          "column": "banking_transaction_id",
+          "local_pos": 192,
+          "neon_pos": 175
+        },
+        {
+          "column": "on_duty_started_at",
+          "local_pos": 211,
+          "neon_pos": 132
+        },
+        {
+          "column": "default_hourly_price",
+          "local_pos": 78,
+          "neon_pos": 77
+        },
+        {
+          "column": "driver_base_pay",
+          "local_pos": 47,
+          "neon_pos": 46
+        },
+        {
+          "column": "red_deer_bylaw_exempt",
+          "local_pos": 218,
+          "neon_pos": 109
+        },
+        {
+          "column": "odometer_end",
+          "local_pos": 68,
+          "neon_pos": 67
+        },
+        {
+          "column": "receipt_id",
+          "local_pos": 217,
+          "neon_pos": 174
+        },
+        {
+          "column": "passengers_loaded_at",
+          "local_pos": 214,
+          "neon_pos": 134
+        },
+        {
+          "column": "payment_status",
+          "local_pos": 216,
+          "neon_pos": 51
+        },
+        {
+          "column": "account_number",
+          "local_pos": 186,
+          "neon_pos": 3
+        },
+        {
+          "column": "fuel_added_liters",
+          "local_pos": 204,
+          "neon_pos": 124
+        },
+        {
+          "column": "standby_rate",
+          "local_pos": 150,
+          "neon_pos": 155
+        },
+        {
+          "column": "charter_type",
+          "local_pos": 148,
+          "neon_pos": 153
+        },
+        {
+          "column": "en_route_to_event_at",
+          "local_pos": 202,
+          "neon_pos": 135
+        },
+        {
+          "column": "reservation_time",
+          "local_pos": 219,
+          "neon_pos": 52
+        },
+        {
+          "column": "return_journey_started_at",
+          "local_pos": 220,
+          "neon_pos": 137
+        },
+        {
+          "column": "nrd_received_at",
+          "local_pos": 207,
+          "neon_pos": 104
+        },
+        {
+          "column": "package_rate",
+          "local_pos": 79,
+          "neon_pos": 78
+        },
+        {
+          "column": "nrd_amount",
+          "local_pos": 98,
+          "neon_pos": 105
+        },
+        {
+          "column": "nrd_received",
+          "local_pos": 96,
+          "neon_pos": 103
+        },
+        {
+          "column": "float_reimbursement_needed",
+          "local_pos": 120,
+          "neon_pos": 126
+        },
+        {
+          "column": "quoted_hours",
+          "local_pos": 149,
+          "neon_pos": 154
+        },
+        {
+          "column": "locked",
+          "local_pos": 185,
+          "neon_pos": 172
+        },
+        {
+          "column": "arrived_at_event_at",
+          "local_pos": 190,
+          "neon_pos": 136
+        },
+        {
+          "column": "dispatcher_approved",
+          "local_pos": 41,
+          "neon_pos": 40
+        },
+        {
+          "column": "vehicle_notes",
+          "local_pos": 71,
+          "neon_pos": 70
+        },
+        {
+          "column": "vehicle_id",
+          "local_pos": 84,
+          "neon_pos": 83
+        },
+        {
+          "column": "off_duty_at",
+          "local_pos": 210,
+          "neon_pos": 138
+        },
+        {
+          "column": "beverage_service_required",
+          "local_pos": 193,
+          "neon_pos": 102
+        },
+        {
+          "column": "driver",
+          "local_pos": 197,
+          "neon_pos": 11
+        },
+        {
+          "column": "notes",
+          "local_pos": 206,
+          "neon_pos": 22
+        },
+        {
+          "column": "assigned_driver_id",
+          "local_pos": 191,
+          "neon_pos": 25
+        },
+        {
+          "column": "workshift_end",
+          "local_pos": 224,
+          "neon_pos": 75
+        },
+        {
+          "column": "driver_total_expense",
+          "local_pos": 49,
+          "neon_pos": 48
+        },
+        {
+          "column": "client_display_name",
+          "local_pos": 86,
+          "neon_pos": 85
+        },
+        {
+          "column": "driver_hourly_rate",
+          "local_pos": 198,
+          "neon_pos": 44
+        },
+        {
+          "column": "on_location_at",
+          "local_pos": 212,
+          "neon_pos": 133
+        },
+        {
+          "column": "vehicle",
+          "local_pos": 223,
+          "neon_pos": 10
+        },
+        {
+          "column": "cancelled",
+          "local_pos": 195,
+          "neon_pos": 20
+        },
+        {
+          "column": "employee_id",
+          "local_pos": 83,
+          "neon_pos": 82
+        },
+        {
+          "column": "calculated_hours",
+          "local_pos": 194,
+          "neon_pos": 43
+        },
+        {
+          "column": "driver_paid",
+          "local_pos": 200,
+          "neon_pos": 13
+        },
+        {
+          "column": "split_run_before_hours",
+          "local_pos": 222,
+          "neon_pos": 156
+        },
+        {
+          "column": "accounting_entry_id",
+          "local_pos": 187,
+          "neon_pos": 176
+        },
+        {
+          "column": "fuel_added",
+          "local_pos": 203,
+          "neon_pos": 69
+        },
+        {
+          "column": "float_received",
+          "local_pos": 119,
+          "neon_pos": 125
+        },
+        {
+          "column": "income_ledger_id",
+          "local_pos": 205,
+          "neon_pos": 177
+        },
+        {
+          "column": "expense_calculated_at",
+          "local_pos": 50,
+          "neon_pos": 49
+        },
+        {
+          "column": "nrr_received",
+          "local_pos": 209,
+          "neon_pos": 35
+        },
+        {
+          "column": "driver_gratuity",
+          "local_pos": 48,
+          "neon_pos": 47
+        },
+        {
+          "column": "is_placeholder",
+          "local_pos": 73,
+          "neon_pos": 72
+        },
+        {
+          "column": "approved_at",
+          "local_pos": 189,
+          "neon_pos": 42
+        },
+        {
+          "column": "completion_timestamp",
+          "local_pos": 196,
+          "neon_pos": 141
+        },
+        {
+          "column": "total_kms",
+          "local_pos": 69,
+          "neon_pos": 68
+        },
+        {
+          "column": "split_run_after_hours",
+          "local_pos": 221,
+          "neon_pos": 157
+        },
+        {
+          "column": "nrd_method",
+          "local_pos": 99,
+          "neon_pos": 106
+        },
+        {
+          "column": "airport_pickup_price",
+          "local_pos": 82,
+          "neon_pos": 81
+        },
+        {
+          "column": "calendar_notes",
+          "local_pos": 168,
+          "neon_pos": 98
+        },
+        {
+          "column": "driver_hours_worked",
+          "local_pos": 199,
+          "neon_pos": 45
+        },
+        {
+          "column": "nrr_amount",
+          "local_pos": 208,
+          "neon_pos": 36
+        },
+        {
+          "column": "calendar_sync_status",
+          "local_pos": 166,
+          "neon_pos": 95
+        },
+        {
+          "column": "workshift_start",
+          "local_pos": 225,
+          "neon_pos": 74
+        },
+        {
+          "column": "actual_hours",
+          "local_pos": 188,
+          "neon_pos": 159
+        },
+        {
+          "column": "daily_rate",
+          "local_pos": 81,
+          "neon_pos": 80
+        },
+        {
+          "column": "odometer_start",
+          "local_pos": 67,
+          "neon_pos": 66
+        },
+        {
+          "column": "separate_customer_printout",
+          "local_pos": 147,
+          "neon_pos": 152
+        },
+        {
+          "column": "payment_id",
+          "local_pos": 215,
+          "neon_pos": 173
+        },
+        {
+          "column": "outlook_entry_id",
+          "local_pos": 167,
+          "neon_pos": 97
+        },
+        {
+          "column": "record_type",
+          "local_pos": 169,
+          "neon_pos": 99
+        },
+        {
+          "column": "calendar_color",
+          "local_pos": 145,
+          "neon_pos": 96
+        },
+        {
+          "column": "extra_time_rate",
+          "local_pos": 80,
+          "neon_pos": 79
+        },
+        {
+          "column": "paid_amount",
+          "local_pos": 213,
+          "neon_pos": 50
+        },
+        {
+          "column": "version",
+          "local_pos": 170,
+          "neon_pos": 101
+        },
+        {
+          "column": "duty_log",
+          "local_pos": 201,
+          "neon_pos": 76
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "clients",
+      "local_column_count": 68,
+      "neon_column_count": 68,
+      "missing_in_local": [],
+      "missing_in_neon": [],
+      "position_mismatches": [
+        {
+          "column": "qb_customer_id",
+          "local_pos": 40,
+          "neon_pos": 54
+        },
+        {
+          "column": "billing_address",
+          "local_pos": 53,
+          "neon_pos": 29
+        },
+        {
+          "column": "address",
+          "local_pos": 58,
+          "neon_pos": 61
+        },
+        {
+          "column": "grace_days",
+          "local_pos": 16,
+          "neon_pos": 42
+        },
+        {
+          "column": "billing_rate_level",
+          "local_pos": 44,
+          "neon_pos": 56
+        },
+        {
+          "column": "province",
+          "local_pos": 49,
+          "neon_pos": 58
+        },
+        {
+          "column": "last_name",
+          "local_pos": 60,
+          "neon_pos": 36
+        },
+        {
+          "column": "writeoff_amount",
+          "local_pos": 32,
+          "neon_pos": 19
+        },
+        {
+          "column": "full_name_search",
+          "local_pos": 65,
+          "neon_pos": 66
+        },
+        {
+          "column": "contact_info",
+          "local_pos": 54,
+          "neon_pos": 30
+        },
+        {
+          "column": "status",
+          "local_pos": 18,
+          "neon_pos": 13
+        },
+        {
+          "column": "discount_flat",
+          "local_pos": 13,
+          "neon_pos": 40
+        },
+        {
+          "column": "bankruptcy_status",
+          "local_pos": 33,
+          "neon_pos": 20
+        },
+        {
+          "column": "warning_flag",
+          "local_pos": 52,
+          "neon_pos": 28
+        },
+        {
+          "column": "account_type",
+          "local_pos": 69,
+          "neon_pos": 34
+        },
+        {
+          "column": "name",
+          "local_pos": 56,
+          "neon_pos": 59
+        },
+        {
+          "column": "recovery_probability",
+          "local_pos": 36,
+          "neon_pos": 21
+        },
+        {
+          "column": "tax_code",
+          "local_pos": 43,
+          "neon_pos": 55
+        },
+        {
+          "column": "billing_no",
+          "local_pos": 21,
+          "neon_pos": 43
+        },
+        {
+          "column": "parent_client_id",
+          "local_pos": 72,
+          "neon_pos": 33
+        },
+        {
+          "column": "credit_limit",
+          "local_pos": 11,
+          "neon_pos": 38
+        },
+        {
+          "column": "notes",
+          "local_pos": 55,
+          "neon_pos": 31
+        },
+        {
+          "column": "sales_tax_code",
+          "local_pos": 46,
+          "neon_pos": 57
+        },
+        {
+          "column": "home_phone",
+          "local_pos": 62,
+          "neon_pos": 63
+        },
+        {
+          "column": "last_collection_date",
+          "local_pos": 29,
+          "neon_pos": 48
+        },
+        {
+          "column": "client_name",
+          "local_pos": 38,
+          "neon_pos": 22
+        },
+        {
+          "column": "lms_customer_number",
+          "local_pos": 39,
+          "neon_pos": 23
+        },
+        {
+          "column": "is_taxable",
+          "local_pos": 71,
+          "neon_pos": 26
+        },
+        {
+          "column": "collection_attempts_count",
+          "local_pos": 28,
+          "neon_pos": 18
+        },
+        {
+          "column": "exemption_notes",
+          "local_pos": 26,
+          "neon_pos": 47
+        },
+        {
+          "column": "created_at",
+          "local_pos": 19,
+          "neon_pos": 14
+        },
+        {
+          "column": "first_overdue_date",
+          "local_pos": 30,
+          "neon_pos": 49
+        },
+        {
+          "column": "country",
+          "local_pos": 50,
+          "neon_pos": 27
+        },
+        {
+          "column": "fax_phone",
+          "local_pos": 64,
+          "neon_pos": 65
+        },
+        {
+          "column": "corporate_parent_id",
+          "local_pos": 66,
+          "neon_pos": 67
+        },
+        {
+          "column": "first_name",
+          "local_pos": 59,
+          "neon_pos": 35
+        },
+        {
+          "column": "is_inactive",
+          "local_pos": 17,
+          "neon_pos": 12
+        },
+        {
+          "column": "exemption_type",
+          "local_pos": 25,
+          "neon_pos": 46
+        },
+        {
+          "column": "collection_notes",
+          "local_pos": 34,
+          "neon_pos": 51
+        },
+        {
+          "column": "phone",
+          "local_pos": 57,
+          "neon_pos": 60
+        },
+        {
+          "column": "exemption_certificate_expiry",
+          "local_pos": 24,
+          "neon_pos": 45
+        },
+        {
+          "column": "is_gst_exempt",
+          "local_pos": 22,
+          "neon_pos": 16
+        },
+        {
+          "column": "updated_at",
+          "local_pos": 20,
+          "neon_pos": 15
+        },
+        {
+          "column": "work_phone",
+          "local_pos": 63,
+          "neon_pos": 64
+        },
+        {
+          "column": "is_company",
+          "local_pos": 70,
+          "neon_pos": 32
+        },
+        {
+          "column": "fraud_case_id",
+          "local_pos": 37,
+          "neon_pos": 53
+        },
+        {
+          "column": "bad_debt_reason",
+          "local_pos": 35,
+          "neon_pos": 52
+        },
+        {
+          "column": "interest_rate",
+          "local_pos": 15,
+          "neon_pos": 41
+        },
+        {
+          "column": "writeoff_date",
+          "local_pos": 31,
+          "neon_pos": 50
+        },
+        {
+          "column": "exemption_certificate_number",
+          "local_pos": 23,
+          "neon_pos": 44
+        },
+        {
+          "column": "gratuity_percentage",
+          "local_pos": 14,
+          "neon_pos": 11
+        },
+        {
+          "column": "corporate_role",
+          "local_pos": 67,
+          "neon_pos": 37
+        },
+        {
+          "column": "bad_debt_status",
+          "local_pos": 27,
+          "neon_pos": 17
+        },
+        {
+          "column": "qb_customer_type",
+          "local_pos": 41,
+          "neon_pos": 24
+        },
+        {
+          "column": "discount_percentage",
+          "local_pos": 12,
+          "neon_pos": 39
+        },
+        {
+          "column": "cell_phone",
+          "local_pos": 61,
+          "neon_pos": 62
+        },
+        {
+          "column": "payment_terms",
+          "local_pos": 42,
+          "neon_pos": 25
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "employees",
+      "local_column_count": 68,
+      "neon_column_count": 68,
+      "missing_in_local": [],
+      "missing_in_neon": [],
+      "position_mismatches": [
+        {
+          "column": "hourly_rate",
+          "local_pos": 38,
+          "neon_pos": 29
+        },
+        {
+          "column": "profile_updated",
+          "local_pos": 37,
+          "neon_pos": 28
+        },
+        {
+          "column": "street_address",
+          "local_pos": 53,
+          "neon_pos": 38
+        },
+        {
+          "column": "qualification_4_date",
+          "local_pos": 83,
+          "neon_pos": 67
+        },
+        {
+          "column": "province",
+          "local_pos": 55,
+          "neon_pos": 40
+        },
+        {
+          "column": "license_class",
+          "local_pos": 71,
+          "neon_pos": 55
+        },
+        {
+          "column": "driver_license_class",
+          "local_pos": 78,
+          "neon_pos": 62
+        },
+        {
+          "column": "t4_sin",
+          "local_pos": 44,
+          "neon_pos": 35
+        },
+        {
+          "column": "hire_date",
+          "local_pos": 21,
+          "neon_pos": 19
+        },
+        {
+          "column": "red_deer_compliant",
+          "local_pos": 69,
+          "neon_pos": 53
+        },
+        {
+          "column": "name",
+          "local_pos": 41,
+          "neon_pos": 32
+        },
+        {
+          "column": "quickbooks_source",
+          "local_pos": 43,
+          "neon_pos": 34
+        },
+        {
+          "column": "bylaw_permit_renewal_fee",
+          "local_pos": 77,
+          "neon_pos": 61
+        },
+        {
+          "column": "medical_fitness_expiry",
+          "local_pos": 72,
+          "neon_pos": 56
+        },
+        {
+          "column": "gratuity_eligible",
+          "local_pos": 65,
+          "neon_pos": 51
+        },
+        {
+          "column": "emergency_contact_name",
+          "local_pos": 25,
+          "neon_pos": 21
+        },
+        {
+          "column": "drivers_abstract_date",
+          "local_pos": 74,
+          "neon_pos": 58
+        },
+        {
+          "column": "driver_code",
+          "local_pos": 86,
+          "neon_pos": 20
+        },
+        {
+          "column": "proserve_number",
+          "local_pos": 75,
+          "neon_pos": 59
+        },
+        {
+          "column": "total_revenue",
+          "local_pos": 35,
+          "neon_pos": 27
+        },
+        {
+          "column": "red_deer_required",
+          "local_pos": 70,
+          "neon_pos": 54
+        },
+        {
+          "column": "country",
+          "local_pos": 57,
+          "neon_pos": 42
+        },
+        {
+          "column": "legacy_employee",
+          "local_pos": 52,
+          "neon_pos": 37
+        },
+        {
+          "column": "qualification_5_date",
+          "local_pos": 84,
+          "neon_pos": 68
+        },
+        {
+          "column": "driver_license_restrictions",
+          "local_pos": 79,
+          "neon_pos": 63
+        },
+        {
+          "column": "quickbooks_id",
+          "local_pos": 40,
+          "neon_pos": 31
+        },
+        {
+          "column": "qualification_2_date",
+          "local_pos": 81,
+          "neon_pos": 65
+        },
+        {
+          "column": "rate_effective_date",
+          "local_pos": 39,
+          "neon_pos": 30
+        },
+        {
+          "column": "chauffeur_permit_number",
+          "local_pos": 61,
+          "neon_pos": 45
+        },
+        {
+          "column": "total_hours",
+          "local_pos": 33,
+          "neon_pos": 26
+        },
+        {
+          "column": "qualification_3_date",
+          "local_pos": 82,
+          "neon_pos": 66
+        },
+        {
+          "column": "hourly_pay_rate",
+          "local_pos": 64,
+          "neon_pos": 50
+        },
+        {
+          "column": "driver_license_number",
+          "local_pos": 59,
+          "neon_pos": 43
+        },
+        {
+          "column": "city",
+          "local_pos": 54,
+          "neon_pos": 39
+        },
+        {
+          "column": "emergency_contact_phone",
+          "local_pos": 26,
+          "neon_pos": 22
+        },
+        {
+          "column": "email",
+          "local_pos": 42,
+          "neon_pos": 33
+        },
+        {
+          "column": "legacy_name",
+          "local_pos": 45,
+          "neon_pos": 36
+        },
+        {
+          "column": "postal_code",
+          "local_pos": 56,
+          "neon_pos": 41
+        },
+        {
+          "column": "driver_license_expiry",
+          "local_pos": 60,
+          "neon_pos": 44
+        },
+        {
+          "column": "salary_deferred",
+          "local_pos": 63,
+          "neon_pos": 47
+        },
+        {
+          "column": "qualification_1_date",
+          "local_pos": 80,
+          "neon_pos": 64
+        },
+        {
+          "column": "total_trips",
+          "local_pos": 32,
+          "neon_pos": 25
+        },
+        {
+          "column": "gratuity_percentage",
+          "local_pos": 66,
+          "neon_pos": 52
+        },
+        {
+          "column": "vulnerable_sector_check_date",
+          "local_pos": 73,
+          "neon_pos": 57
+        },
+        {
+          "column": "proserve_expiry",
+          "local_pos": 76,
+          "neon_pos": 60
+        },
+        {
+          "column": "compliance_status",
+          "local_pos": 31,
+          "neon_pos": 24
+        },
+        {
+          "column": "version",
+          "local_pos": 87,
+          "neon_pos": 49
+        },
+        {
+          "column": "chauffeur_permit_expiry",
+          "local_pos": 62,
+          "neon_pos": 46
+        },
+        {
+          "column": "employment_status",
+          "local_pos": 30,
+          "neon_pos": 23
+        },
+        {
+          "column": "department",
+          "local_pos": 85,
+          "neon_pos": 48
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "general_ledger",
+      "local_column_count": 45,
+      "neon_column_count": 45,
+      "missing_in_local": [],
+      "missing_in_neon": [],
+      "position_mismatches": [
+        {
+          "column": "customer_full_name",
+          "local_pos": 52,
+          "neon_pos": 25
+        },
+        {
+          "column": "account_full_name",
+          "local_pos": 47,
+          "neon_pos": 15
+        },
+        {
+          "column": "customer",
+          "local_pos": 50,
+          "neon_pos": 24
+        },
+        {
+          "column": "account_description",
+          "local_pos": 46,
+          "neon_pos": 22
+        },
+        {
+          "column": "transaction_id",
+          "local_pos": 71,
+          "neon_pos": 36
+        },
+        {
+          "column": "customer_first_name",
+          "local_pos": 51,
+          "neon_pos": 27
+        },
+        {
+          "column": "customer_middle_name",
+          "local_pos": 53,
+          "neon_pos": 28
+        },
+        {
+          "column": "employee_billable",
+          "local_pos": 60,
+          "neon_pos": 33
+        },
+        {
+          "column": "employee_deleted",
+          "local_pos": 61,
+          "neon_pos": 30
+        },
+        {
+          "column": "transaction_date",
+          "local_pos": 70,
+          "neon_pos": 13
+        },
+        {
+          "column": "item_supplier_company",
+          "local_pos": 63,
+          "neon_pos": 17
+        },
+        {
+          "column": "tax_slip_type",
+          "local_pos": 69,
+          "neon_pos": 19
+        },
+        {
+          "column": "account_type",
+          "local_pos": 49,
+          "neon_pos": 21
+        },
+        {
+          "column": "tax_code",
+          "local_pos": 67,
+          "neon_pos": 37
+        },
+        {
+          "column": "account_number",
+          "local_pos": 48,
+          "neon_pos": 18
+        },
+        {
+          "column": "distribution_account_description",
+          "local_pos": 56,
+          "neon_pos": 41
+        },
+        {
+          "column": "distribution_account",
+          "local_pos": 55,
+          "neon_pos": 39
+        },
+        {
+          "column": "po_number",
+          "local_pos": 66,
+          "neon_pos": 34
+        },
+        {
+          "column": "parent_distribution_account_id",
+          "local_pos": 65,
+          "neon_pos": 42
+        },
+        {
+          "column": "tax_name",
+          "local_pos": 68,
+          "neon_pos": 38
+        },
+        {
+          "column": "ungrouped_tags",
+          "local_pos": 72,
+          "neon_pos": 35
+        },
+        {
+          "column": "parent_account_id",
+          "local_pos": 64,
+          "neon_pos": 23
+        },
+        {
+          "column": "employee_id",
+          "local_pos": 62,
+          "neon_pos": 32
+        },
+        {
+          "column": "distribution_account_subtype",
+          "local_pos": 58,
+          "neon_pos": 43
+        },
+        {
+          "column": "distribution_account_number",
+          "local_pos": 57,
+          "neon_pos": 14
+        },
+        {
+          "column": "customer_title",
+          "local_pos": 54,
+          "neon_pos": 26
+        },
+        {
+          "column": "distribution_account_type",
+          "local_pos": 59,
+          "neon_pos": 40
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "income_ledger",
+      "local_column_count": 28,
+      "neon_column_count": 28,
+      "missing_in_local": [],
+      "missing_in_neon": [],
+      "position_mismatches": [
+        {
+          "column": "receipt_id",
+          "local_pos": 28,
+          "neon_pos": 26
+        },
+        {
+          "column": "accounting_entry_id",
+          "local_pos": 26,
+          "neon_pos": 28
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "invoice_line_items",
+      "local_column_count": 32,
+      "neon_column_count": 31,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "line_item_id"
+      ],
+      "position_mismatches": [
+        {
+          "column": "line_total",
+          "local_pos": 8,
+          "neon_pos": 27
+        },
+        {
+          "column": "tax_amount",
+          "local_pos": 30,
+          "neon_pos": 15
+        },
+        {
+          "column": "quantity",
+          "local_pos": 6,
+          "neon_pos": 7
+        },
+        {
+          "column": "service_type",
+          "local_pos": 29,
+          "neon_pos": 21
+        },
+        {
+          "column": "amount",
+          "local_pos": 15,
+          "neon_pos": 10
+        },
+        {
+          "column": "unit_price",
+          "local_pos": 7,
+          "neon_pos": 8
+        },
+        {
+          "column": "vehicle_id",
+          "local_pos": 32,
+          "neon_pos": 22
+        },
+        {
+          "column": "tax_code",
+          "local_pos": 31,
+          "neon_pos": 14
+        },
+        {
+          "column": "qb_class",
+          "local_pos": 26,
+          "neon_pos": 20
+        },
+        {
+          "column": "notes",
+          "local_pos": 12,
+          "neon_pos": 31
+        },
+        {
+          "column": "gst_amount",
+          "local_pos": 10,
+          "neon_pos": 29
+        },
+        {
+          "column": "is_taxable",
+          "local_pos": 22,
+          "neon_pos": 13
+        },
+        {
+          "column": "qb_item_id",
+          "local_pos": 27,
+          "neon_pos": 19
+        },
+        {
+          "column": "driver_id",
+          "local_pos": 19,
+          "neon_pos": 23
+        },
+        {
+          "column": "description",
+          "local_pos": 5,
+          "neon_pos": 6
+        },
+        {
+          "column": "taxable",
+          "local_pos": 9,
+          "neon_pos": 28
+        },
+        {
+          "column": "created_at",
+          "local_pos": 16,
+          "neon_pos": 24
+        },
+        {
+          "column": "line_type",
+          "local_pos": 4,
+          "neon_pos": 26
+        },
+        {
+          "column": "display_order",
+          "local_pos": 11,
+          "neon_pos": 30
+        },
+        {
+          "column": "rate",
+          "local_pos": 28,
+          "neon_pos": 9
+        },
+        {
+          "column": "line_number",
+          "local_pos": 25,
+          "neon_pos": 3
+        },
+        {
+          "column": "discount_amount",
+          "local_pos": 17,
+          "neon_pos": 12
+        },
+        {
+          "column": "reserve_number",
+          "local_pos": 3,
+          "neon_pos": 25
+        },
+        {
+          "column": "item_type",
+          "local_pos": 24,
+          "neon_pos": 4
+        },
+        {
+          "column": "id",
+          "local_pos": 20,
+          "neon_pos": 1
+        },
+        {
+          "column": "income_account",
+          "local_pos": 21,
+          "neon_pos": 18
+        },
+        {
+          "column": "account_code",
+          "local_pos": 13,
+          "neon_pos": 16
+        },
+        {
+          "column": "item_name",
+          "local_pos": 23,
+          "neon_pos": 5
+        },
+        {
+          "column": "account_name",
+          "local_pos": 14,
+          "neon_pos": 17
+        },
+        {
+          "column": "discount_percent",
+          "local_pos": 18,
+          "neon_pos": 11
+        }
+      ],
+      "type_mismatches": [
+        {
+          "column": "description",
+          "local_type": "character varying",
+          "neon_type": "text"
+        }
+      ]
+    },
+    {
+      "table": "payments",
+      "local_column_count": 53,
+      "neon_column_count": 48,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "square_fee_gl_description",
+        "verified_by",
+        "verified",
+        "verified_date",
+        "square_fee_gl_code"
+      ],
+      "position_mismatches": [
+        {
+          "column": "payment_account",
+          "local_pos": 63,
+          "neon_pos": 36
+        },
+        {
+          "column": "payment_label",
+          "local_pos": 43,
+          "neon_pos": 44
+        },
+        {
+          "column": "related_payment_id",
+          "local_pos": 68,
+          "neon_pos": 42
+        },
+        {
+          "column": "last_updated_by",
+          "local_pos": 62,
+          "neon_pos": 9
+        },
+        {
+          "column": "banking_transaction_id",
+          "local_pos": 54,
+          "neon_pos": 40
+        },
+        {
+          "column": "adjustment_type",
+          "local_pos": 50,
+          "neon_pos": 41
+        },
+        {
+          "column": "square_transaction_id",
+          "local_pos": 79,
+          "neon_pos": 18
+        },
+        {
+          "column": "square_net_sales",
+          "local_pos": 74,
+          "neon_pos": 25
+        },
+        {
+          "column": "applied_to_invoice",
+          "local_pos": 51,
+          "neon_pos": 34
+        },
+        {
+          "column": "square_notes",
+          "local_pos": 75,
+          "neon_pos": 28
+        },
+        {
+          "column": "credit_card_expiry",
+          "local_pos": 58,
+          "neon_pos": 15
+        },
+        {
+          "column": "receipt_id",
+          "local_pos": 67,
+          "neon_pos": 45
+        },
+        {
+          "column": "authorization_code",
+          "local_pos": 52,
+          "neon_pos": 16
+        },
+        {
+          "column": "credit_card_last4",
+          "local_pos": 59,
+          "neon_pos": 14
+        },
+        {
+          "column": "square_last4",
+          "local_pos": 73,
+          "neon_pos": 21
+        },
+        {
+          "column": "deposit_to_account",
+          "local_pos": 60,
+          "neon_pos": 39
+        },
+        {
+          "column": "accounting_entry_id",
+          "local_pos": 49,
+          "neon_pos": 46
+        },
+        {
+          "column": "square_card_brand",
+          "local_pos": 69,
+          "neon_pos": 20
+        },
+        {
+          "column": "income_ledger_id",
+          "local_pos": 61,
+          "neon_pos": 48
+        },
+        {
+          "column": "charter_id",
+          "local_pos": 55,
+          "neon_pos": 4
+        },
+        {
+          "column": "square_tip",
+          "local_pos": 78,
+          "neon_pos": 26
+        },
+        {
+          "column": "square_gross_sales",
+          "local_pos": 72,
+          "neon_pos": 24
+        },
+        {
+          "column": "check_number",
+          "local_pos": 56,
+          "neon_pos": 13
+        },
+        {
+          "column": "square_customer_email",
+          "local_pos": 70,
+          "neon_pos": 23
+        },
+        {
+          "column": "qb_payment_type",
+          "local_pos": 65,
+          "neon_pos": 33
+        },
+        {
+          "column": "banking_receipt_matching_ledger_id",
+          "local_pos": 53,
+          "neon_pos": 47
+        },
+        {
+          "column": "payment_amount",
+          "local_pos": 64,
+          "neon_pos": 30
+        },
+        {
+          "column": "client_id",
+          "local_pos": 57,
+          "neon_pos": 5
+        },
+        {
+          "column": "square_status",
+          "local_pos": 77,
+          "neon_pos": 27
+        },
+        {
+          "column": "square_payment_id",
+          "local_pos": 76,
+          "neon_pos": 19
+        },
+        {
+          "column": "square_customer_name",
+          "local_pos": 71,
+          "neon_pos": 22
+        },
+        {
+          "column": "version",
+          "local_pos": 80,
+          "neon_pos": 43
+        },
+        {
+          "column": "qb_trans_num",
+          "local_pos": 66,
+          "neon_pos": 35
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "receipts",
+      "local_column_count": 109,
+      "neon_column_count": 100,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "gl_code",
+        "receipt_reviewed_by",
+        "receipt_reviewed_at",
+        "verified",
+        "verified_date",
+        "verified_by",
+        "receipt_review_notes",
+        "gl_description",
+        "receipt_review_status"
+      ],
+      "position_mismatches": [
+        {
+          "column": "gl_subcategory",
+          "local_pos": 55,
+          "neon_pos": 54
+        },
+        {
+          "column": "tax_category",
+          "local_pos": 26,
+          "neon_pos": 25
+        },
+        {
+          "column": "banking_transaction_id",
+          "local_pos": 65,
+          "neon_pos": 64
+        },
+        {
+          "column": "gst_code",
+          "local_pos": 46,
+          "neon_pos": 45
+        },
+        {
+          "column": "exported",
+          "local_pos": 113,
+          "neon_pos": 18
+        },
+        {
+          "column": "pay_account",
+          "local_pos": 120,
+          "neon_pos": 28
+        },
+        {
+          "column": "validation_status",
+          "local_pos": 133,
+          "neon_pos": 12
+        },
+        {
+          "column": "card_type",
+          "local_pos": 30,
+          "neon_pos": 29
+        },
+        {
+          "column": "receipt_source",
+          "local_pos": 66,
+          "neon_pos": 65
+        },
+        {
+          "column": "reimbursed_via",
+          "local_pos": 124,
+          "neon_pos": 61
+        },
+        {
+          "column": "revenue",
+          "local_pos": 45,
+          "neon_pos": 44
+        },
+        {
+          "column": "source_file",
+          "local_pos": 52,
+          "neon_pos": 51
+        },
+        {
+          "column": "gst_exempt",
+          "local_pos": 92,
+          "neon_pos": 94
+        },
+        {
+          "column": "card_number",
+          "local_pos": 31,
+          "neon_pos": 30
+        },
+        {
+          "column": "is_split_receipt",
+          "local_pos": 58,
+          "neon_pos": 57
+        },
+        {
+          "column": "parent_receipt_id",
+          "local_pos": 119,
+          "neon_pos": 67
+        },
+        {
+          "column": "reviewed",
+          "local_pos": 126,
+          "neon_pos": 17
+        },
+        {
+          "column": "tip",
+          "local_pos": 130,
+          "neon_pos": 23
+        },
+        {
+          "column": "invoice_date",
+          "local_pos": 82,
+          "neon_pos": 81
+        },
+        {
+          "column": "verified_by_user",
+          "local_pos": 88,
+          "neon_pos": 87
+        },
+        {
+          "column": "gl_account_code",
+          "local_pos": 53,
+          "neon_pos": 52
+        },
+        {
+          "column": "net_amount",
+          "local_pos": 57,
+          "neon_pos": 56
+        },
+        {
+          "column": "reimbursement_date",
+          "local_pos": 125,
+          "neon_pos": 62
+        },
+        {
+          "column": "mapped_expense_account_id",
+          "local_pos": 116,
+          "neon_pos": 33
+        },
+        {
+          "column": "deductible_status",
+          "local_pos": 50,
+          "neon_pos": 49
+        },
+        {
+          "column": "sales_tax",
+          "local_pos": 127,
+          "neon_pos": 22
+        },
+        {
+          "column": "pay_method",
+          "local_pos": 33,
+          "neon_pos": 32
+        },
+        {
+          "column": "sub_classification",
+          "local_pos": 128,
+          "neon_pos": 27
+        },
+        {
+          "column": "vehicle_number",
+          "local_pos": 42,
+          "neon_pos": 41
+        },
+        {
+          "column": "verified_by_edit",
+          "local_pos": 95,
+          "neon_pos": 96
+        },
+        {
+          "column": "fx_rate",
+          "local_pos": 114,
+          "neon_pos": 70
+        },
+        {
+          "column": "paper_verification_date",
+          "local_pos": 87,
+          "neon_pos": 86
+        },
+        {
+          "column": "owner_personal_amount",
+          "local_pos": 60,
+          "neon_pos": 59
+        },
+        {
+          "column": "vehicle_id",
+          "local_pos": 41,
+          "neon_pos": 40
+        },
+        {
+          "column": "comment",
+          "local_pos": 32,
+          "neon_pos": 31
+        },
+        {
+          "column": "split_status",
+          "local_pos": 93,
+          "neon_pos": 95
+        },
+        {
+          "column": "split_group_total",
+          "local_pos": 48,
+          "neon_pos": 47
+        },
+        {
+          "column": "duplicate_check_key",
+          "local_pos": 76,
+          "neon_pos": 75
+        },
+        {
+          "column": "amount_usd",
+          "local_pos": 107,
+          "neon_pos": 69
+        },
+        {
+          "column": "period_start",
+          "local_pos": 123,
+          "neon_pos": 83
+        },
+        {
+          "column": "updated_at",
+          "local_pos": 131,
+          "neon_pos": 93
+        },
+        {
+          "column": "canonical_vendor",
+          "local_pos": 69,
+          "neon_pos": 68
+        },
+        {
+          "column": "date_added",
+          "local_pos": 110,
+          "neon_pos": 20
+        },
+        {
+          "column": "gl_account_name",
+          "local_pos": 54,
+          "neon_pos": 53
+        },
+        {
+          "column": "employee_id",
+          "local_pos": 89,
+          "neon_pos": 88
+        },
+        {
+          "column": "is_transfer",
+          "local_pos": 72,
+          "neon_pos": 71
+        },
+        {
+          "column": "fiscal_year",
+          "local_pos": 81,
+          "neon_pos": 80
+        },
+        {
+          "column": "display_color",
+          "local_pos": 67,
+          "neon_pos": 66
+        },
+        {
+          "column": "mapping_status",
+          "local_pos": 118,
+          "neon_pos": 36
+        },
+        {
+          "column": "due_date",
+          "local_pos": 111,
+          "neon_pos": 82
+        },
+        {
+          "column": "document_type",
+          "local_pos": 20,
+          "neon_pos": 19
+        },
+        {
+          "column": "is_nsf",
+          "local_pos": 77,
+          "neon_pos": 76
+        },
+        {
+          "column": "period_end",
+          "local_pos": 122,
+          "neon_pos": 84
+        },
+        {
+          "column": "fuel_amount",
+          "local_pos": 49,
+          "neon_pos": 48
+        },
+        {
+          "column": "accounting_entry_id",
+          "local_pos": 106,
+          "neon_pos": 99
+        },
+        {
+          "column": "is_driver_reimbursement",
+          "local_pos": 61,
+          "neon_pos": 60
+        },
+        {
+          "column": "income_ledger_id",
+          "local_pos": 115,
+          "neon_pos": 100
+        },
+        {
+          "column": "business_personal",
+          "local_pos": 51,
+          "neon_pos": 50
+        },
+        {
+          "column": "validation_reason",
+          "local_pos": 132,
+          "neon_pos": 13
+        },
+        {
+          "column": "charter_id",
+          "local_pos": 90,
+          "neon_pos": 89
+        },
+        {
+          "column": "classification",
+          "local_pos": 109,
+          "neon_pos": 26
+        },
+        {
+          "column": "event_batch_id",
+          "local_pos": 112,
+          "neon_pos": 14
+        },
+        {
+          "column": "source_hash",
+          "local_pos": 16,
+          "neon_pos": 15
+        },
+        {
+          "column": "payment_method",
+          "local_pos": 12,
+          "neon_pos": 11
+        },
+        {
+          "column": "auto_categorized",
+          "local_pos": 56,
+          "neon_pos": 55
+        },
+        {
+          "column": "cash_box_transaction_id",
+          "local_pos": 108,
+          "neon_pos": 63
+        },
+        {
+          "column": "expense_account",
+          "local_pos": 11,
+          "neon_pos": 10
+        },
+        {
+          "column": "verified_at",
+          "local_pos": 96,
+          "neon_pos": 97
+        },
+        {
+          "column": "fuel",
+          "local_pos": 43,
+          "neon_pos": 42
+        },
+        {
+          "column": "split_key",
+          "local_pos": 47,
+          "neon_pos": 46
+        },
+        {
+          "column": "vendor_account_id",
+          "local_pos": 80,
+          "neon_pos": 79
+        },
+        {
+          "column": "is_personal_purchase",
+          "local_pos": 59,
+          "neon_pos": 58
+        },
+        {
+          "column": "category",
+          "local_pos": 39,
+          "neon_pos": 38
+        },
+        {
+          "column": "split_group_id",
+          "local_pos": 94,
+          "neon_pos": 91
+        },
+        {
+          "column": "created_from_banking",
+          "local_pos": 44,
+          "neon_pos": 43
+        },
+        {
+          "column": "created_at",
+          "local_pos": 17,
+          "neon_pos": 16
+        },
+        {
+          "column": "tax",
+          "local_pos": 129,
+          "neon_pos": 21
+        },
+        {
+          "column": "payment_id",
+          "local_pos": 121,
+          "neon_pos": 98
+        },
+        {
+          "column": "mapping_notes",
+          "local_pos": 117,
+          "neon_pos": 37
+        },
+        {
+          "column": "is_paper_verified",
+          "local_pos": 86,
+          "neon_pos": 85
+        },
+        {
+          "column": "canonical_pay_method",
+          "local_pos": 36,
+          "neon_pos": 35
+        },
+        {
+          "column": "exclude_from_reports",
+          "local_pos": 79,
+          "neon_pos": 78
+        },
+        {
+          "column": "mapped_bank_account_id",
+          "local_pos": 35,
+          "neon_pos": 34
+        },
+        {
+          "column": "expense",
+          "local_pos": 40,
+          "neon_pos": 39
+        },
+        {
+          "column": "potential_duplicate",
+          "local_pos": 75,
+          "neon_pos": 74
+        },
+        {
+          "column": "verified_source",
+          "local_pos": 73,
+          "neon_pos": 72
+        },
+        {
+          "column": "is_verified_banking",
+          "local_pos": 74,
+          "neon_pos": 73
+        },
+        {
+          "column": "type",
+          "local_pos": 25,
+          "neon_pos": 24
+        },
+        {
+          "column": "reserve_number",
+          "local_pos": 91,
+          "neon_pos": 90
+        },
+        {
+          "column": "is_voided",
+          "local_pos": 78,
+          "neon_pos": 77
+        },
+        {
+          "column": "version",
+          "local_pos": 134,
+          "neon_pos": 92
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "run_type_default_charges",
+      "local_column_count": 12,
+      "neon_column_count": 12,
+      "missing_in_local": [],
+      "missing_in_neon": [],
+      "position_mismatches": [
+        {
+          "column": "sequence",
+          "local_pos": 8,
+          "neon_pos": 10
+        },
+        {
+          "column": "formula",
+          "local_pos": 11,
+          "neon_pos": 8
+        },
+        {
+          "column": "id",
+          "local_pos": 12,
+          "neon_pos": 1
+        },
+        {
+          "column": "calc_type",
+          "local_pos": 5,
+          "neon_pos": 6
+        },
+        {
+          "column": "run_type_id",
+          "local_pos": 1,
+          "neon_pos": 2
+        },
+        {
+          "column": "is_taxable",
+          "local_pos": 7,
+          "neon_pos": 9
+        },
+        {
+          "column": "charge_type",
+          "local_pos": 3,
+          "neon_pos": 4
+        },
+        {
+          "column": "amount",
+          "local_pos": 4,
+          "neon_pos": 5
+        },
+        {
+          "column": "charge_description",
+          "local_pos": 2,
+          "neon_pos": 3
+        },
+        {
+          "column": "updated_at",
+          "local_pos": 10,
+          "neon_pos": 12
+        },
+        {
+          "column": "value",
+          "local_pos": 6,
+          "neon_pos": 7
+        },
+        {
+          "column": "created_at",
+          "local_pos": 9,
+          "neon_pos": 11
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "vehicle_pricing_defaults",
+      "local_column_count": 22,
+      "neon_column_count": 13,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "split_run_after_hours",
+        "extra_time_rate",
+        "package_rate",
+        "package_hours",
+        "pricing_id",
+        "split_run_before_hours",
+        "charter_type_code",
+        "is_active",
+        "minimum_hours"
+      ],
+      "position_mismatches": [
+        {
+          "column": "airport_pickup_calgary",
+          "local_pos": 14,
+          "neon_pos": 7
+        },
+        {
+          "column": "hourly_rate",
+          "local_pos": 4,
+          "neon_pos": 2
+        },
+        {
+          "column": "fee_1",
+          "local_pos": 18,
+          "neon_pos": 9
+        },
+        {
+          "column": "airport_pickup_edmonton",
+          "local_pos": 15,
+          "neon_pos": 6
+        },
+        {
+          "column": "fee_2",
+          "local_pos": 19,
+          "neon_pos": 10
+        },
+        {
+          "column": "vehicle_type",
+          "local_pos": 2,
+          "neon_pos": 1
+        },
+        {
+          "column": "daily_rate",
+          "local_pos": 17,
+          "neon_pos": 4
+        },
+        {
+          "column": "hourly_package",
+          "local_pos": 21,
+          "neon_pos": 3
+        },
+        {
+          "column": "standby_rate",
+          "local_pos": 9,
+          "neon_pos": 5
+        },
+        {
+          "column": "fee_3",
+          "local_pos": 20,
+          "neon_pos": 11
+        },
+        {
+          "column": "created_at",
+          "local_pos": 16,
+          "neon_pos": 12
+        },
+        {
+          "column": "nrr",
+          "local_pos": 22,
+          "neon_pos": 8
+        }
+      ],
+      "type_mismatches": []
+    },
+    {
+      "table": "vehicles",
+      "local_column_count": 87,
+      "neon_column_count": 83,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "is_active",
+        "fleet_position",
+        "fleet_number",
+        "vehicle_history_id"
+      ],
+      "position_mismatches": [
+        {
+          "column": "financing_amount",
+          "local_pos": 74,
+          "neon_pos": 73
+        },
+        {
+          "column": "last_cvip_date",
+          "local_pos": 67,
+          "neon_pos": 66
+        },
+        {
+          "column": "lifecycle_status",
+          "local_pos": 81,
+          "neon_pos": 80
+        },
+        {
+          "column": "purchase_vendor",
+          "local_pos": 72,
+          "neon_pos": 71
+        },
+        {
+          "column": "cvip_expiry_date",
+          "local_pos": 65,
+          "neon_pos": 64
+        },
+        {
+          "column": "cvip_inspection_number",
+          "local_pos": 66,
+          "neon_pos": 65
+        },
+        {
+          "column": "cvip_compliance_status",
+          "local_pos": 69,
+          "neon_pos": 68
+        },
+        {
+          "column": "writeoff_date",
+          "local_pos": 78,
+          "neon_pos": 77
+        },
+        {
+          "column": "finance_partner",
+          "local_pos": 73,
+          "neon_pos": 72
+        },
+        {
+          "column": "monthly_payment",
+          "local_pos": 75,
+          "neon_pos": 74
+        },
+        {
+          "column": "sale_price",
+          "local_pos": 77,
+          "neon_pos": 76
+        },
+        {
+          "column": "status",
+          "local_pos": 64,
+          "neon_pos": 63
+        },
+        {
+          "column": "writeoff_reason",
+          "local_pos": 79,
+          "neon_pos": 78
+        },
+        {
+          "column": "purchase_date",
+          "local_pos": 70,
+          "neon_pos": 69
+        },
+        {
+          "column": "next_cvip_due",
+          "local_pos": 68,
+          "neon_pos": 67
+        },
+        {
+          "column": "repossession_date",
+          "local_pos": 80,
+          "neon_pos": 79
+        },
+        {
+          "column": "sale_date",
+          "local_pos": 76,
+          "neon_pos": 75
+        },
+        {
+          "column": "purchase_price",
+          "local_pos": 71,
+          "neon_pos": 70
+        },
+        {
+          "column": "version",
+          "local_pos": 88,
+          "neon_pos": 81
+        }
+      ],
+      "type_mismatches": []
+    }
+  ],
+  "type_mismatches": [
+    {
+      "table": "invoice_line_items",
+      "local_column_count": 32,
+      "neon_column_count": 31,
+      "missing_in_local": [],
+      "missing_in_neon": [
+        "line_item_id"
+      ],
+      "position_mismatches": [
+        {
+          "column": "line_total",
+          "local_pos": 8,
+          "neon_pos": 27
+        },
+        {
+          "column": "tax_amount",
+          "local_pos": 30,
+          "neon_pos": 15
+        },
+        {
+          "column": "quantity",
+          "local_pos": 6,
+          "neon_pos": 7
+        },
+        {
+          "column": "service_type",
+          "local_pos": 29,
+          "neon_pos": 21
+        },
+        {
+          "column": "amount",
+          "local_pos": 15,
+          "neon_pos": 10
+        },
+        {
+          "column": "unit_price",
+          "local_pos": 7,
+          "neon_pos": 8
+        },
+        {
+          "column": "vehicle_id",
+          "local_pos": 32,
+          "neon_pos": 22
+        },
+        {
+          "column": "tax_code",
+          "local_pos": 31,
+          "neon_pos": 14
+        },
+        {
+          "column": "qb_class",
+          "local_pos": 26,
+          "neon_pos": 20
+        },
+        {
+          "column": "notes",
+          "local_pos": 12,
+          "neon_pos": 31
+        },
+        {
+          "column": "gst_amount",
+          "local_pos": 10,
+          "neon_pos": 29
+        },
+        {
+          "column": "is_taxable",
+          "local_pos": 22,
+          "neon_pos": 13
+        },
+        {
+          "column": "qb_item_id",
+          "local_pos": 27,
+          "neon_pos": 19
+        },
+        {
+          "column": "driver_id",
+          "local_pos": 19,
+          "neon_pos": 23
+        },
+        {
+          "column": "description",
+          "local_pos": 5,
+          "neon_pos": 6
+        },
+        {
+          "column": "taxable",
+          "local_pos": 9,
+          "neon_pos": 28
+        },
+        {
+          "column": "created_at",
+          "local_pos": 16,
+          "neon_pos": 24
+        },
+        {
+          "column": "line_type",
+          "local_pos": 4,
+          "neon_pos": 26
+        },
+        {
+          "column": "display_order",
+          "local_pos": 11,
+          "neon_pos": 30
+        },
+        {
+          "column": "rate",
+          "local_pos": 28,
+          "neon_pos": 9
+        },
+        {
+          "column": "line_number",
+          "local_pos": 25,
+          "neon_pos": 3
+        },
+        {
+          "column": "discount_amount",
+          "local_pos": 17,
+          "neon_pos": 12
+        },
+        {
+          "column": "reserve_number",
+          "local_pos": 3,
+          "neon_pos": 25
+        },
+        {
+          "column": "item_type",
+          "local_pos": 24,
+          "neon_pos": 4
+        },
+        {
+          "column": "id",
+          "local_pos": 20,
+          "neon_pos": 1
+        },
+        {
+          "column": "income_account",
+          "local_pos": 21,
+          "neon_pos": 18
+        },
+        {
+          "column": "account_code",
+          "local_pos": 13,
+          "neon_pos": 16
+        },
+        {
+          "column": "item_name",
+          "local_pos": 23,
+          "neon_pos": 5
+        },
+        {
+          "column": "account_name",
+          "local_pos": 14,
+          "neon_pos": 17
+        },
+        {
+          "column": "discount_percent",
+          "local_pos": 18,
+          "neon_pos": 11
+        }
+      ],
+      "type_mismatches": [
+        {
+          "column": "description",
+          "local_type": "character varying",
+          "neon_type": "text"
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

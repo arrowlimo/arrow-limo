@@ -1,7 +1,6 @@
 """Invoices API Router"""
 from datetime import date, datetime
 from decimal import Decimal
-from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -10,33 +9,36 @@ from ..db import get_connection
 
 router = APIRouter(prefix="/api/invoices", tags=["invoices"])
 
+# Constants
+ERROR_INVOICE_NOT_FOUND = "Invoice not found"
+
 
 # Pydantic Models
 class InvoiceCreate(BaseModel):
-    charter_id: Optional[int] = None
-    customer_id: Optional[int] = None
+    charter_id: int | None = None
+    customer_id: int | None = None
     invoice_number: str
     invoice_date: date
     due_date: date
     amount: Decimal
     gst: Decimal
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class InvoiceUpdate(BaseModel):
-    invoice_date: Optional[date] = None
-    due_date: Optional[date] = None
-    amount: Optional[Decimal] = None
-    gst: Optional[Decimal] = None
-    description: Optional[str] = None
-    status: Optional[str] = None
+    invoice_date: date | None = None
+    due_date: date | None = None
+    amount: Decimal | None = None
+    gst: Decimal | None = None
+    description: str | None = None
+    status: str | None = None
 
 
 class InvoiceResponse(BaseModel):
     invoice_id: int
-    charter_id: Optional[int]
-    customer_id: Optional[int]
-    customer_name: Optional[str]
+    charter_id: int | None
+    customer_id: int | None
+    customer_name: str | None
     invoice_number: str
     invoice_date: date
     due_date: date
@@ -44,17 +46,17 @@ class InvoiceResponse(BaseModel):
     gst: Decimal
     total: Decimal
     status: str
-    paid_date: Optional[date]
-    description: Optional[str]
-    created_at: Optional[datetime]
+    paid_date: date | None
+    description: str | None
+    created_at: datetime | None
 
 
 @router.get("/")
 def get_invoices(
-    status: Optional[str] = None,
-    start_date: Optional[date] = None,
-    end_date: Optional[date] = None,
-    customer_id: Optional[int] = None,
+    status: str | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    customer_id: int | None = None,
     limit: int = 100,
     offset: int = 0,
 ):
@@ -178,7 +180,7 @@ def get_invoice(invoice_id: int):
     if not row:
         cur.close()
         conn.close()
-        raise HTTPException(status_code=404, detail="Invoice not found")
+        raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
     invoice = {
         "invoice_id": row[0],
@@ -246,7 +248,7 @@ def create_invoice(invoice: InvoiceCreate):
         cur.close()
         conn.close()
         raise HTTPException(
-            status_code=500, detail=f"Failed to create invoice: {str(e)}"
+            status_code=500, detail=f"Failed to create invoice: {e!s}"
         )
 
 
@@ -293,7 +295,7 @@ def update_invoice(invoice_id: int, invoice: InvoiceUpdate):
             conn.rollback()
             cur.close()
             conn.close()
-            raise HTTPException(status_code=404, detail="Invoice not found")
+            raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
         conn.commit()
         cur.close()
@@ -308,12 +310,12 @@ def update_invoice(invoice_id: int, invoice: InvoiceUpdate):
         cur.close()
         conn.close()
         raise HTTPException(
-            status_code=500, detail=f"Failed to update invoice: {str(e)}"
+            status_code=500, detail=f"Failed to update invoice: {e!s}"
         )
 
 
 @router.put("/{invoice_id}/mark-paid")
-def mark_invoice_paid(invoice_id: int, paid_date: Optional[date] = None):
+def mark_invoice_paid(invoice_id: int, paid_date: date | None = None):
     """Mark invoice as paid"""
     conn = get_connection()
     cur = conn.cursor()
@@ -335,7 +337,7 @@ def mark_invoice_paid(invoice_id: int, paid_date: Optional[date] = None):
             conn.rollback()
             cur.close()
             conn.close()
-            raise HTTPException(status_code=404, detail="Invoice not found")
+            raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
         conn.commit()
         cur.close()
@@ -350,7 +352,7 @@ def mark_invoice_paid(invoice_id: int, paid_date: Optional[date] = None):
         cur.close()
         conn.close()
         raise HTTPException(
-            status_code=500, detail=f"Failed to mark invoice as paid: {str(e)}"
+            status_code=500, detail=f"Failed to mark invoice as paid: {e!s}"
         )
 
 
@@ -367,7 +369,7 @@ def delete_invoice(invoice_id: int):
             conn.rollback()
             cur.close()
             conn.close()
-            raise HTTPException(status_code=404, detail="Invoice not found")
+            raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
         conn.commit()
         cur.close()
@@ -382,7 +384,7 @@ def delete_invoice(invoice_id: int):
         cur.close()
         conn.close()
         raise HTTPException(
-            status_code=500, detail=f"Failed to delete invoice: {str(e)}"
+            status_code=500, detail=f"Failed to delete invoice: {e!s}"
         )
 
 

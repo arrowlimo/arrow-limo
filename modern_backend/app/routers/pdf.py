@@ -2,13 +2,12 @@
 PDF Generation Endpoints
 """
 
-from io import BytesIO
 
 from fastapi import APIRouter, HTTPException, Path
 from fastapi.responses import StreamingResponse
 
 from ..db import cursor
-from ..services.pdf_generator import generate_charter_pdf
+from ..services.pdf_generator import generate_charter_pdf, generate_t4_pdf
 
 router = APIRouter(prefix="/api", tags=["pdf"])
 
@@ -98,7 +97,7 @@ def get_charter_invoice_pdf(charter_id: int = Path(...)):
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e!s}")
 
     # Return as downloadable file
     return StreamingResponse(
@@ -195,7 +194,157 @@ def preview_charter_invoice_pdf(charter_id: int = Path(...)):
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e!s}")
 
     # Return as inline display
     return StreamingResponse(iter([pdf_bytes]), media_type="application/pdf")
+
+
+@router.get("/employees/{employee_id}/t4-pdf/{tax_year}")
+def get_employee_t4_pdf(employee_id: int = Path(...), tax_year: int = Path(...)):
+    """Generate and download T4 tax form for an employee"""
+
+    with cursor() as cur:
+        # Get employee information
+        cur.execute(
+            """
+            SELECT
+                employee_id,
+                full_name,
+                sin,
+                address,
+                city,
+                province,
+                postal_code
+            FROM employees
+            WHERE employee_id = %s
+            """,
+            (employee_id,),
+        )
+        employee_row = cur.fetchone()
+
+        if not employee_row:
+            raise HTTPException(status_code=404, detail=f"Employee {employee_id} not found")
+
+        employee_data = dict(employee_row)
+
+        # Get T4 data from payroll
+        cur.execute(
+            """
+            SELECT
+                COALESCE(SUM(gross_pay), 0) as box14,
+                COALESCE(SUM(cpp), 0) as box16,
+                COALESCE(SUM(ei), 0) as box18,
+                COALESCE(SUM(tax), 0) as box22,
+                COALESCE(SUM(CASE WHEN ei_insurable_earnings > 0 THEN ei_insurable_earnings ELSE gross_pay END), 0) as box24,
+                COALESCE(SUM(CASE WHEN cpp_pensionable_earnings > 0 THEN cpp_pensionable_earnings ELSE gross_pay END), 0) as box26,
+                COALESCE(SUM(commission), 0) as box44,
+                COALESCE(SUM(union_dues), 0) as box52
+            FROM driver_payroll
+            WHERE employee_id = %s AND year = %s
+            """,
+            (employee_id, tax_year),
+        )
+        t4_row = cur.fetchone()
+
+        if not t4_row:
+            # No payroll data - return empty T4
+            t4_data = {
+                "box14": 0.00,
+                "box16": 0.00,
+                "box18": 0.00,
+                "box22": 0.00,
+                "box24": 0.00,
+                "box26": 0.00,
+                "box44": 0.00,
+                "box52": 0.00,
+            }
+        else:
+            t4_data = dict(t4_row)
+
+    # Generate T4 PDF
+    try:
+        pdf_bytes = generate_t4_pdf(employee_data, t4_data, tax_year)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"T4 PDF generation failed: {e!s}")
+
+    # Return as download
+    return StreamingResponse(
+        iter([pdf_bytes]),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=T4_{tax_year}_{employee_data.get('full_name', 'Employee').replace(' ', '_')}.pdf"
+        },
+    )
+
+
+@router.get("/employees/{employee_id}/t4-pdf-preview/{tax_year}")
+def preview_employee_t4_pdf(employee_id: int = Path(...), tax_year: int = Path(...)):
+    """Preview T4 tax form for an employee (inline)"""
+
+    with cursor() as cur:
+        # Get employee information
+        cur.execute(
+            """
+            SELECT
+                employee_id,
+                full_name,
+                sin,
+                address,
+                city,
+                province,
+                postal_code
+            FROM employees
+            WHERE employee_id = %s
+            """,
+            (employee_id,),
+        )
+        employee_row = cur.fetchone()
+
+        if not employee_row:
+            raise HTTPException(status_code=404, detail=f"Employee {employee_id} not found")
+
+        employee_data = dict(employee_row)
+
+        # Get T4 data from payroll
+        cur.execute(
+            """
+            SELECT
+                COALESCE(SUM(gross_pay), 0) as box14,
+                COALESCE(SUM(cpp), 0) as box16,
+                COALESCE(SUM(ei), 0) as box18,
+                COALESCE(SUM(tax), 0) as box22,
+                COALESCE(SUM(CASE WHEN ei_insurable_earnings > 0 THEN ei_insurable_earnings ELSE gross_pay END), 0) as box24,
+                COALESCE(SUM(CASE WHEN cpp_pensionable_earnings > 0 THEN cpp_pensionable_earnings ELSE gross_pay END), 0) as box26,
+                COALESCE(SUM(commission), 0) as box44,
+                COALESCE(SUM(union_dues), 0) as box52
+            FROM driver_payroll
+            WHERE employee_id = %s AND year = %s
+            """,
+            (employee_id, tax_year),
+        )
+        t4_row = cur.fetchone()
+
+        if not t4_row:
+            t4_data = {
+                "box14": 0.00,
+                "box16": 0.00,
+                "box18": 0.00,
+                "box22": 0.00,
+                "box24": 0.00,
+                "box26": 0.00,
+                "box44": 0.00,
+                "box52": 0.00,
+            }
+        else:
+            t4_data = dict(t4_row)
+
+    # Generate T4 PDF
+    try:
+        pdf_bytes = generate_t4_pdf(employee_data, t4_data, tax_year)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"T4 PDF generation failed: {e!s}")
+
+    # Return as inline display
+    return StreamingResponse(iter([pdf_bytes]), media_type="application/pdf")
+

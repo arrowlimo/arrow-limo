@@ -10,7 +10,6 @@ Returns complete charter sheet with:
 - Driver trip log
 - Balance calculation
 """
-from decimal import Decimal
 
 from fastapi import APIRouter, HTTPException
 

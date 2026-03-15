@@ -1,0 +1,282 @@
+╔══════════════════════════════════════════════════════════════════╗
+║          DISPATCH1 INSTALLATION CHECKLIST                        ║
+║          Use this to track installation progress                 ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Date: _____________    Installer: _______________________
+
+┌──────────────────────────────────────────────────────────────────┐
+│ PHASE 1: PREPARE DISPATCHMAIN (Your Development Computer)       │
+└──────────────────────────────────────────────────────────────────┘
+
+☐ Open PowerShell as Administrator
+
+☐ Navigate to: cd L:\limo\DEPLOYMENT_PACKAGE
+
+☐ Run: .\SETUP_NETWORK_SHARE_FOR_AUTOUPDATE.ps1
+
+☐ Verify script completed successfully
+
+☐ Test share access:
+  - Open File Explorer
+  - Type: \\DISPATCHMAIN\limo
+  - Confirm limo folder visible
+
+☐ Note credentials created:
+  Username: DISPATCHMAIN\ArrowDispatch
+  Password: Dispatch2026!
+
+┌──────────────────────────────────────────────────────────────────┐
+│ PHASE 2: PREPARE DISPATCH1 COMPUTER                             │
+└──────────────────────────────────────────────────────────────────┘
+
+☐ Create Y: volume (if needed):
+  - Open Disk Management (diskmgmt.msc)
+  - Shrink C: drive or add new disk
+  - Create new volume
+  - Assign letter: Y:
+  - Format as: NTFS
+  - Volume label: ALMS
+
+☐ Verify Y: drive appears in File Explorer
+
+☐ Check available space on Y: (need ~500MB minimum)
+  Available: _________ GB
+
+┌──────────────────────────────────────────────────────────────────┐
+│ PHASE 3: COPY DEPLOYMENT PACKAGE TO DISPATCH1                   │
+└──────────────────────────────────────────────────────────────────┘
+
+Method Used: ☐ USB Drive    ☐ Network Copy
+
+IF USING USB:
+☐ Copy L:\limo\DEPLOYMENT_PACKAGE to USB
+☐ Plug USB into DISPATCH1
+☐ Copy DEPLOYMENT_PACKAGE to Desktop
+
+IF USING NETWORK:
+☐ On DISPATCH1, open File Explorer
+☐ Type: \\DISPATCHMAIN\limo
+☐ Enter credentials when prompted:
+  - Username: DISPATCHMAIN\ArrowDispatch
+  - Password: Dispatch2026!
+  - ☑ Remember my credentials
+☐ Copy DEPLOYMENT_PACKAGE to Desktop
+
+☐ Verify DEPLOYMENT_PACKAGE folder on DISPATCH1
+  Location: _________________________________
+
+┌──────────────────────────────────────────────────────────────────┐
+│ PHASE 4: RUN INSTALLER ON DISPATCH1                             │
+└──────────────────────────────────────────────────────────────────┘
+
+☐ On DISPATCH1, navigate to DEPLOYMENT_PACKAGE folder
+
+☐ Right-click: INSTALL_DISPATCH1_Y_DRIVE.bat
+
+☐ Select "Run as administrator"
+
+☐ Click "Yes" when UAC prompts
+
+☐ Watch installation progress:
+  
+  ☐ [1/8] Y: drive check - PASSED
+  
+  ☐ [2/8] Z: drive mapping - COMPLETED
+      Z: mapped to: \\DISPATCHMAIN\limo_files
+  
+  ☐ [3/8] L: drive mapping - COMPLETED
+      L: mapped to: \\DISPATCHMAIN\limo
+  
+  ☐ [4/8] Installation directory - CREATED
+      Directory: Y:\ArrowLimo
+  
+  ☐ [5/8] Application files - COPIED
+  
+  ☐ [6/8] Configuration - SAVED
+      .env file created
+  
+  ☐ [7/8] Auto-update script - CREATED
+      AUTO_UPDATE.ps1 ready
+  
+  ☐ [8/8] Desktop shortcut - CREATED
+      "Arrow Limo DISPATCH1" on desktop
+
+☐ Installation completed successfully
+
+┌──────────────────────────────────────────────────────────────────┐
+│ PHASE 5: VERIFY INSTALLATION                                    │
+└──────────────────────────────────────────────────────────────────┘
+
+☐ Desktop shortcut exists:
+  Name: Arrow Limo DISPATCH1
+
+☐ Y:\ArrowLimo folder exists
+
+☐ Y:\ArrowLimo contains:
+  ☐ desktop_app folder
+  ☐ .env file
+  ☐ AUTO_UPDATE.ps1
+  ☐ START_DISPATCH1.bat
+
+☐ Z: drive accessible
+  ☐ Z:\limo_files opens
+  ☐ Subfolders visible (employees, vehicles, etc.)
+
+☐ L: drive accessible (for auto-updates)
+  ☐ L:\limo opens
+  ☐ L:\limo\desktop_app visible
+
+┌──────────────────────────────────────────────────────────────────┐
+│ PHASE 6: LAUNCH AND TEST APPLICATION                            │
+└──────────────────────────────────────────────────────────────────┘
+
+☐ Double-click "Arrow Limo DISPATCH1" on desktop
+
+☐ Auto-update runs:
+  Checking for updates... _____ file(s) synced
+
+☐ Application launches
+
+☐ Login screen appears
+
+☐ Login with test credentials:
+  Username: _________________
+  Password: _________________
+
+☐ Application opens to main screen
+
+☐ Test database connectivity:
+  ☐ Browse to Bookings tab
+  ☐ Charter list loads
+  ☐ Can view charter details
+  ☐ Browse to Clients tab
+  ☐ Client list loads
+
+☐ Test file storage access:
+  ☐ Navigate to file upload feature
+  ☐ Browse to Z:\limo_files
+  ☐ Can access folders
+
+☐ Verify workstation ID:
+  ☐ Check .env: WORKSTATION_ID=DISPATCH1
+
+┌──────────────────────────────────────────────────────────────────┐
+│ PHASE 7: TEST AUTO-UPDATE SYSTEM                                │
+└──────────────────────────────────────────────────────────────────┘
+
+☐ Close app on DISPATCH1
+
+☐ On DISPATCHMAIN, make test change:
+  - Edit: L:\limo\desktop_app\main.py
+  - Add comment: # Test auto-update
+  - Save file
+
+☐ On DISPATCH1, relaunch app
+
+☐ Watch console window:
+  ☐ "Checking for updates..." appears
+  ☐ Shows updated file(s)
+  ☐ "Starting application..." appears
+
+☐ Verify change applied:
+  - Check Y:\ArrowLimo\desktop_app\main.py
+  - Test comment should be present
+
+☐ Auto-update system working correctly
+
+┌──────────────────────────────────────────────────────────────────┐
+│ PHASE 8: FINAL VERIFICATION                                     │
+└──────────────────────────────────────────────────────────────────┘
+
+☐ Close and relaunch app 3 times:
+  Launch 1: ☐ OK
+  Launch 2: ☐ OK  
+  Launch 3: ☐ OK
+
+☐ Test from both computers simultaneously:
+  ☐ Launch on DISPATCHMAIN
+  ☐ Launch on DISPATCH1
+  ☐ Both connect successfully
+  ☐ Both show same data
+
+☐ Make test charter on DISPATCH1
+  Charter #: _____________
+
+☐ Verify appears on DISPATCHMAIN immediately
+
+☐ Make test charter on DISPATCHMAIN
+  Charter #: _____________
+
+☐ Verify appears on DISPATCH1 after refresh
+
+☐ Real-time sync working correctly
+
+┌──────────────────────────────────────────────────────────────────┐
+│ TROUBLESHOOTING NOTES                                            │
+└──────────────────────────────────────────────────────────────────┘
+
+Issues Encountered:
+___________________________________________________________________
+
+___________________________________________________________________
+
+___________________________________________________________________
+
+Solutions Applied:
+___________________________________________________________________
+
+___________________________________________________________________
+
+___________________________________________________________________
+
+┌──────────────────────────────────────────────────────────────────┐
+│ SIGN-OFF                                                         │
+└──────────────────────────────────────────────────────────────────┘
+
+Installation Completed By: _______________________
+
+Date: _____________  Time: _____________
+
+Verified By: _______________________
+
+Date: _____________  Time: _____________
+
+Notes:
+___________________________________________________________________
+
+___________________________________________________________________
+
+___________________________________________________________________
+
+☐ Installation documentation filed
+
+☐ Quick Reference Card printed and posted
+
+☐ Users trained on dual dispatcher system
+
+☐ Emergency contact information updated
+
+┌──────────────────────────────────────────────────────────────────┐
+│ POST-INSTALLATION                                                │
+└──────────────────────────────────────────────────────────────────┘
+
+☐ Print QUICK_REFERENCE_CARD.txt
+  Place near: ☐ DISPATCHMAIN  ☐ DISPATCH1
+
+☐ Save DISPATCH1_SETUP_GUIDE.txt to desktop
+  For future reference
+
+☐ Bookmark file storage locations:
+  Z:\limo_files (both computers)
+
+☐ Schedule follow-up check:
+  Date: _____________
+
+☐ Review auto-update logs weekly
+
+☐ Monitor app_errors.log for issues
+
+╔══════════════════════════════════════════════════════════════════╗
+║  Installation Complete! Both dispatchers ready for production.   ║
+╚══════════════════════════════════════════════════════════════════╝

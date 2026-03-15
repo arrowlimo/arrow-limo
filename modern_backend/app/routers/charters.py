@@ -1,17 +1,15 @@
+from contextlib import contextmanager
 from typing import Any
 
-from contextlib import contextmanager
+from fastapi import APIRouter, Body, HTTPException, Path, Query
 
-from fastapi import APIRouter, HTTPException, Path, Query, Body
-
-from ..db import cursor, get_connection
+from ..db import get_connection, return_connection
 from ..models.charter_routes import (
     CharterRoute,
     CharterRouteCreate,
     CharterRouteUpdate,
     CharterWithRoutes,
 )
-
 
 router = APIRouter(prefix="/api", tags=["charters"])
 
@@ -28,7 +26,7 @@ def _db_cursor():
         raise
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/charters")
@@ -59,6 +57,93 @@ def list_charters(
         rows = cur.fetchall()
         cols = [d[0] for d in (cur.description or [])]
     return [dict(zip(cols, r, strict=False)) for r in rows]
+
+
+@router.get("/charters/search")
+def search_charters(
+    q: str = Query(default="", description="Search by reserve number, client name, or charter ID"),
+    limit: int = Query(default=10, ge=1, le=100),
+):
+    """Search charters with detailed information for autocomplete/search features."""
+    sql = """
+        SELECT 
+            c.charter_id,
+            c.reserve_number,
+            c.charter_date,
+            c.client_id,
+            COALESCE(cl.client_name, '') AS client_name,
+            COALESCE(c.status, 'pending') AS status
+        FROM charters c
+        LEFT JOIN clients cl ON c.client_id = cl.client_id
+        WHERE (c.reserve_number ILIKE %s 
+           OR COALESCE(cl.client_name,'') ILIKE %s
+           OR c.charter_id::text ILIKE %s)
+        ORDER BY c.charter_date DESC, c.charter_id DESC
+        LIMIT %s
+        """
+    like = f"%{q}%"
+    with _db_cursor() as cur:
+        cur.execute(sql, (like, like, like, limit))
+        rows = cur.fetchall()
+        cols = [d[0] for d in (cur.description or [])]
+    results = [dict(zip(cols, r, strict=False)) for r in rows]
+    return {"results": results, "count": len(results)}
+
+
+@router.get("/charters/by-reserve/{reserve_number}")
+def get_charter_by_reserve(reserve_number: str):
+    """Lookup charter by reserve number for receipt linking"""
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    try:
+        cur.execute(
+            """
+            SELECT c.charter_id, c.reserve_number, c.charter_date, 
+                   cl.client_name, c.vehicle_id, c.assigned_driver_id
+            FROM charters c
+            LEFT JOIN clients cl ON c.client_id = cl.client_id
+            WHERE c.reserve_number = %s
+            LIMIT 1
+            """,
+            (reserve_number,)
+        )
+        
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Charter not found")
+        
+        return {
+            "charter_id": row[0],
+            "reserve_number": row[1],
+            "charter_date": row[2],
+            "client_name": row[3],
+            "vehicle_id": row[4],
+            "driver_id": row[5]
+        }
+    finally:
+        cur.close()
+        return_connection(conn)
+
+
+@router.get("/charges/{reserve_number}")
+def get_charges_by_reserve_number(reserve_number: str):
+    """Fetch all charges for a given reserve number."""
+    with _db_cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, reserve_number, charge_type, amount, description, created_at
+            FROM charges
+            WHERE reserve_number = %s
+            ORDER BY id
+            """,
+            (reserve_number,)
+        )
+        rows = cur.fetchall()
+        cols = [d[0] for d in (cur.description or [])]
+        charges = [dict(zip(cols, r, strict=False)) for r in rows]
+    
+    return {"reserve_number": reserve_number, "charges": charges}
 
 
 @router.get("/charters/{charter_id}")

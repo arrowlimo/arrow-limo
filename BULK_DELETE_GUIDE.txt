@@ -1,0 +1,127 @@
+═══════════════════════════════════════════════════════════════════════════
+  HOW TO DELETE MULTIPLE RECEIPTS AT ONCE
+═══════════════════════════════════════════════════════════════════════════
+
+METHOD 1: EASIEST - Double-click the batch file
+───────────────────────────────────────────────────────────────────────────
+1. Find this file: l:\limo\BULK_DELETE_RECEIPTS.bat
+2. Double-click it
+3. Choose a preset option:
+   
+   Option 1: Delete all 'POS CATEGORY' receipts with $0.00
+   Option 2: Delete all $0.00 receipts from today
+   Option 3: Delete all $0.00 receipts from this week
+   Option 4: Delete receipts from specific vendor
+   Option 5: Custom filter
+   
+4. Review the list of receipts to delete
+5. Type 'YES' to confirm
+6. Done!
+
+═══════════════════════════════════════════════════════════════════════════
+
+METHOD 2: Command Line (Advanced)
+───────────────────────────────────────────────────────────────────────────
+Open PowerShell or Command Prompt and run:
+
+cd l:\limo
+
+# Delete all POS CATEGORY receipts with $0.00
+.venv\Scripts\python.exe scripts\bulk_delete_receipts.py --vendor "POS CATEGORY" --min-amount 0 --max-amount 0
+
+# Delete all receipts from a specific vendor
+.venv\Scripts\python.exe scripts\bulk_delete_receipts.py --vendor "Costco"
+
+# Delete all $0.00 receipts from today
+.venv\Scripts\python.exe scripts\bulk_delete_receipts.py --min-amount 0 --max-amount 0 --from-date 2026-02-13
+
+# Delete receipts in a date range
+.venv\Scripts\python.exe scripts\bulk_delete_receipts.py --from-date 2026-02-01 --to-date 2026-02-13
+
+# Delete by category
+.venv\Scripts\python.exe scripts\bulk_delete_receipts.py --category "fuel" --min-amount 0 --max-amount 0
+
+═══════════════════════════════════════════════════════════════════════════
+
+METHOD 3: SQL Script (If you prefer pgAdmin)
+───────────────────────────────────────────────────────────────────────────
+Use one of these pre-made scripts:
+
+l:\limo\QUICK_DELETE_POS_RECEIPTS.sql  - Delete POS CATEGORY $0 receipts
+l:\limo\DELETE_POS_CATEGORY_RECEIPTS.sql - More detailed version
+
+Open in pgAdmin → Query Tool → Execute (F5)
+
+═══════════════════════════════════════════════════════════════════════════
+
+EXAMPLES: What Each Option Does
+───────────────────────────────────────────────────────────────────────────
+
+OPTION 1: Delete all 'POS CATEGORY' receipts with $0.00
+  → Removes all those test receipts you're seeing
+  → Safe - only deletes $0.00 amounts
+
+OPTION 2: Delete all $0.00 receipts from today
+  → Cleans up today's test/placeholder receipts
+  → Any vendor, but only $0.00 amounts from today
+
+OPTION 3: Delete all $0.00 receipts from this week
+  → Same as #2 but for the last 7 days
+  → Good for cleaning up a week of testing
+
+OPTION 4: Delete all receipts with specific vendor
+  → You type the vendor name
+  → Deletes ALL receipts from that vendor (any amount)
+  → BE CAREFUL with this one!
+
+OPTION 5: Custom filter
+  → Interactive menu where you specify:
+    - Vendor name (contains)
+    - Category
+    - Min/max amount
+    - Date range
+  → Most flexible option
+
+═══════════════════════════════════════════════════════════════════════════
+
+SAFETY FEATURES
+───────────────────────────────────────────────────────────────────────────
+✓ Shows you EXACTLY what will be deleted before doing it
+✓ Requires you to type 'YES' to confirm
+✓ Won't delete without your explicit confirmation
+✓ Shows first 20-50 receipts so you can review them
+✓ Tells you how many receipts will be deleted
+
+═══════════════════════════════════════════════════════════════════════════
+
+QUICK START: Delete Those POS CATEGORY Receipts NOW
+───────────────────────────────────────────────────────────────────────────
+
+1. Double-click: l:\limo\BULK_DELETE_RECEIPTS.bat
+
+2. Press: 1 (for option 1)
+
+3. Review the list
+
+4. Type: YES
+
+5. Done! Go back to your desktop app and refresh (F5)
+
+═══════════════════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING
+───────────────────────────────────────────────────────────────────────────
+
+"No receipts found"
+  → Your filter criteria didn't match anything
+  → Try broader criteria (less specific)
+
+"Error connecting to database"
+  → Make sure PostgreSQL is running
+  → Check your .env file has correct database credentials
+
+"Permission denied"
+  → Make sure no one else is editing those receipts
+  → Close the desktop application briefly
+
+═══════════════════════════════════════════════════════════════════════════

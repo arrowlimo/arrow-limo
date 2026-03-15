@@ -1,0 +1,390 @@
+================================================================================
+                        ARROW LIMOUSINE SERVICE LTD.
+                      2012 EMPLOYEE PAYROLL SUMMARY REPORT
+================================================================================
+
+Report Generated: <%= datetime.now().strftime("%B %d, %Y at %H:%M") %>
+Tax Year: 2012
+Total Employees: 27
+T4 Forms Generated: 24
+Missing SIN: 3
+
+================================================================================
+PAYROLL SUMMARY TOTALS
+================================================================================
+
+Total Employment Income (Box 14):          $  144,979.76
+Total CPP Contributions (Box 16):          $      169.25
+Total EI Premiums (Box 18):                $    2,523.62
+Total Income Tax Deducted (Box 22):        $   12,361.82
+Total EI Insurable Earnings (Box 24):      $  143,266.14
+Total CPP Pensionable Earnings (Box 26):   $  143,211.54
+
+================================================================================
+EMPLOYEE ROSTER - 2012
+================================================================================
+
+Emp# | Employee Name              | Position  | Hired      | Status
+-----|----------------------------|-----------|------------|----------
+3    | DEANS, Gordon              | Chauffeur | N/A        | ⚠ NO SIN
+Dr03 | Shillington, Jeannie       | Chauffeur | 2007-06-01 | Active
+Dr09 | Richard, Michael           | Chauffeur | 2009-11-18 | Active
+Dr19 | Boulley, Kevin             | Chauffeur | 2009-11-18 | Active
+Dr20 | Flinn, Winston             | Chauffeur | 2009-11-18 | ⚠ NO SIN
+Dr21 | Derksen, Daryl             | Chauffeur | 2009-11-18 | ⚠ NO SIN
+Dr22 | Linton, Mark               | Chauffeur | 2009-11-18 | Active
+Dr26 | Mansell, Paul              | Chauffeur | 2009-11-18 | Active
+Dr27 | Metivier, Carla            | Chauffeur | 2010-09-09 | Active
+Dr29 | Soley, Jeannette           | Chauffeur | 2011-09-30 | Active
+D29  | Ferguson, Robert           | Chauffeur | 2011-11-03 | Active
+Of02 | Christensen, Renita        | Chauffeur | 2011-10-06 | Active
+H02  | Gordon, Jesse              | Chauffeur | 2011-09-24 | Active
+Dr30 | Hartman, Mike              | Chauffeur | 2011-12-02 | Active
+Dr32 | Blades, Michael            | Chauffeur | 2012-01-30 | Active
+Dr33 | Lafont, Andrew             | Chauffeur | 2012-02-02 | Active
+Dr35 | Forsberg, Barney           | Chauffeur | 2012-02-25 | Active
+Dr36 | Firth, Matthew             | Chauffeur | 2012-03-03 | Active
+Dr37 | Charles, Wesley            | Chauffeur | 2012-03-07 | Active
+Dr38 | Escobar, Angel             | Chauffeur | 2012-03-08 | Active
+Dr39 | Redmond, Douglas           | Chauffeur | 2012-05-25 | Active
+Dr40 | Menard, Dale               | Chauffeur | 2012-06-29 | Active
+Dr41 | Keller, Zak                | Chauffeur | 2012-04-01 | Active
+Dr42 | Townsend, Dustan           | Chauffeur | 2012-08-27 | Active
+Dr44 | Callin, Shawn              | Chauffeur | 2012-11-05 | Active
+Dr45 | Kosik, Kevin               | Chauffeur | 2012-11-01 | Active
+Dr100| Richard, Paul              | Chauffeur | 2012-03-10 | Active
+
+================================================================================
+DETAILED EMPLOYEE T4 INFORMATION - 2012
+================================================================================
+
+Employee #Dr03: Shillington, Jeannie
+  Position: Chauffeur
+  Hire Date: 2007-06-01
+  SIN: 623 466 877
+  Address: 102, 3711-47th Avenue, Red Deer, AB T4N 3R4
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $     38,295.19
+  Box 16 - CPP Contributions:             $          0.00
+  Box 18 - EI Premiums:                   $        700.80
+  Box 22 - Income Tax Deducted:           $      5,898.26
+  Box 24 - EI Insurable Earnings:         $     38,295.19
+  Box 26 - CPP Pensionable Earnings:      $     38,295.19
+
+  Notes: From 2012 T4 PDF - Shillington
+  ✓ T4 PDF Generated
+
+--------------------------------------------------------------------------------
+
+Employee #Dr09: Richard, Michael
+  Position: Chauffeur
+  Hire Date: 2009-11-18
+  SIN: 656 604 808
+  Address: 144, 4303-45th Street, Red Deer, AB T4N 1C1
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $     29,103.59
+  Box 16 - CPP Contributions:             $          0.00
+  Box 18 - EI Premiums:                   $          0.00
+  Box 22 - Income Tax Deducted:           $      3,225.61
+  Box 24 - EI Insurable Earnings:         $     14,672.73
+  Box 26 - CPP Pensionable Earnings:      $     14,672.73
+
+  Notes: From 2012 T4 PDF
+  ✓ T4 PDF Generated
+
+--------------------------------------------------------------------------------
+
+Employee #Dr39: Redmond, Douglas
+  Position: Chauffeur
+  Hire Date: 2012-05-25
+  SIN: 453 928 863
+  Address: 125 Vincent Close, Red Deer, AB T4R 0H8
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $     18,889.90
+  Box 16 - CPP Contributions:             $          0.00
+  Box 18 - EI Premiums:                   $        345.50
+  Box 22 - Income Tax Deducted:           $          0.00
+  Box 24 - EI Insurable Earnings:         $     18,889.90
+  Box 26 - CPP Pensionable Earnings:      $     18,889.90
+
+  Notes: From 2012 T4 PDF
+  ✓ T4 PDF Generated
+
+--------------------------------------------------------------------------------
+
+Employee #Dr26: Mansell, Paul
+  Position: Chauffeur
+  Hire Date: 2009-11-18
+  SIN: 505 900 829
+  Address: na, Red Deer, AB na
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $     14,427.61
+  Box 16 - CPP Contributions:             $          0.00
+  Box 18 - EI Premiums:                   $        724.62
+  Box 22 - Income Tax Deducted:           $        581.19
+  Box 24 - EI Insurable Earnings:         $     14,427.61
+  Box 26 - CPP Pensionable Earnings:      $        724.62
+
+  Notes: From 2012 T4 PDF
+  ✓ T4 PDF Generated
+
+--------------------------------------------------------------------------------
+
+Employee #Dr38: Escobar, Angel
+  Position: Chauffeur
+  Hire Date: 2012-03-08
+  SIN: 638 614 677
+  Address: 63 Coote Street, Red Deer, AB T4P 2W8
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $     13,428.18
+  Box 16 - CPP Contributions:             $          0.00
+  Box 18 - EI Premiums:                   $        245.73
+  Box 22 - Income Tax Deducted:           $      1,155.67
+  Box 24 - EI Insurable Earnings:         $     13,428.18
+  Box 26 - CPP Pensionable Earnings:      $     13,428.18
+
+  Notes: From 2012 T4 PDF
+  ✓ T4 PDF Generated
+
+--------------------------------------------------------------------------------
+
+Employee #H02: Gordon, Jesse
+  Position: Chauffeur
+  Hire Date: 2011-09-24
+  SIN: 650 202 153
+  Address: 97 Poplar Street, Red Deer, AB T4P 1T7
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $      5,349.98
+  Box 16 - CPP Contributions:             $          0.00
+  Box 18 - EI Premiums:                   $         97.90
+  Box 22 - Income Tax Deducted:           $        301.51
+  Box 24 - EI Insurable Earnings:         $      5,349.98
+  Box 26 - CPP Pensionable Earnings:      $      5,349.98
+
+  Notes: From 2012 T4 PDF
+  ✓ T4 PDF Generated
+
+--------------------------------------------------------------------------------
+
+Employee #Dr40: Menard, Dale
+  Position: Chauffeur
+  Hire Date: 2012-06-29
+  SIN: 632 609 251
+  Address: 86 Bell Street, Red Deer, AB T4R 1M8
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $      5,194.94
+  Box 16 - CPP Contributions:             $          0.00
+  Box 18 - EI Premiums:                   $         95.00
+  Box 22 - Income Tax Deducted:           $        311.69
+  Box 24 - EI Insurable Earnings:         $      5,194.94
+  Box 26 - CPP Pensionable Earnings:      $      5,194.94
+
+  Notes: From 2012 T4 PDF
+  ✓ T4 PDF Generated
+
+--------------------------------------------------------------------------------
+
+Employee #Dr32: Blades, Michael
+  Position: Chauffeur
+  Hire Date: 2012-01-30
+  SIN: 627 754 336
+  Address: 5309-42 A Avenue, Red Deer, AB T4N 3A6
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $      4,279.60
+  Box 16 - CPP Contributions:             $        169.25
+  Box 18 - EI Premiums:                   $         78.51
+  Box 22 - Income Tax Deducted:           $          0.00
+  Box 24 - EI Insurable Earnings:         $      4,279.60
+  Box 26 - CPP Pensionable Earnings:      $      4,226.00
+
+  Notes: From 2012 T4 PDF
+  ✓ T4 PDF Generated
+
+--------------------------------------------------------------------------------
+
+Employee #Dr37: Charles, Wesley
+  Position: Chauffeur
+  Hire Date: 2012-03-07
+  SIN: 641 881 041
+  Address: 1315, 12 A Ironside Street, Red Deer, AB T4R 3R6
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $      3,582.99
+  Box 16 - CPP Contributions:             $          0.00
+  Box 18 - EI Premiums:                   $         65.87
+  Box 22 - Income Tax Deducted:           $        271.56
+  Box 24 - EI Insurable Earnings:         $      3,582.99
+  Box 26 - CPP Pensionable Earnings:      $      3,582.99
+
+  Notes: From 2012 T4 PDF
+  ✓ T4 PDF Generated
+
+--------------------------------------------------------------------------------
+
+Employee #Dr44: Callin, Shawn
+  Position: Chauffeur
+  Hire Date: 2012-11-05
+  SIN: 637 005 133
+  Address: 75 Marion Crescent, Red Deer , AB T4R 1N1
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $      2,609.16
+  Box 16 - CPP Contributions:             $          0.00
+  Box 18 - EI Premiums:                   $         45.62
+  Box 22 - Income Tax Deducted:           $        197.76
+  Box 24 - EI Insurable Earnings:         $      2,500.18
+  Box 26 - CPP Pensionable Earnings:      $          0.00
+
+  Notes: From 2012 T4 PDF
+  ✓ T4 PDF Generated
+
+--------------------------------------------------------------------------------
+
+Employee #Dr19: Boulley, Kevin
+  Position: Chauffeur
+  Hire Date: 2009-11-18
+  SIN: 492 717 913
+  Address: 538 Lancaster Dr, Red Deer, AB T4R 0H1
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $      2,209.15
+  Box 16 - CPP Contributions:             $          0.00
+  Box 18 - EI Premiums:                   $          0.00
+  Box 22 - Income Tax Deducted:           $        309.60
+  Box 24 - EI Insurable Earnings:         $      4,226.00
+  Box 26 - CPP Pensionable Earnings:      $      4,226.00
+
+  Notes: From 2012 T4 PDF
+  ✓ T4 PDF Generated
+
+--------------------------------------------------------------------------------
+
+Employee #3: DEANS, Gordon
+  Position: Chauffeur
+  Hire Date: N/A
+  SIN: ⚠ MISSING
+  Address: N/A, N/A, N/A N/A
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $      1,705.89
+  Box 16 - CPP Contributions:             $          0.00
+  Box 18 - EI Premiums:                   $         31.31
+  Box 22 - Income Tax Deducted:           $        108.97
+  Box 24 - EI Insurable Earnings:         $      1,705.89
+  Box 26 - CPP Pensionable Earnings:      $      1,705.89
+
+  Notes: From 2012 T4 PDF
+  ✗ T4 PDF NOT Generated - Missing SIN
+
+--------------------------------------------------------------------------------
+
+Employee #Dr45: Kosik, Kevin
+  Position: Chauffeur
+  Hire Date: 2012-11-01
+  SIN: 638 279 935
+  Address: 55 Oyen Crescent, Red Deer, AB T4P1T3
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $      1,089.65
+  Box 16 - CPP Contributions:             $          0.00
+  Box 18 - EI Premiums:                   $         19.93
+  Box 22 - Income Tax Deducted:           $          0.00
+  Box 24 - EI Insurable Earnings:         $      1,089.65
+  Box 26 - CPP Pensionable Earnings:      $      1,089.65
+
+  Notes: From 2012 T4 PDF - Kosik
+  ✓ T4 PDF Generated
+
+--------------------------------------------------------------------------------
+
+Employee #Dr21: Derksen, Daryl
+  Position: Chauffeur
+  Hire Date: 2009-11-18
+  SIN: ⚠ MISSING
+  Address: 38 Kodiak crescent, Red Deer, AB T4N 5X7
+  
+  T4 SUMMARY:
+  Box 14 - Employment Income:             $        811.68
+  Box 16 - CPP Contributions:             $          0.00
+  Box 18 - EI Premiums:                   $         11.89
+  Box 22 - Income Tax Deducted:           $          0.00
+  Box 24 - EI Insurable Earnings:         $        811.68
+  Box 26 - CPP Pensionable Earnings:      $        811.68
+
+  Notes: From 2012 T4 PDF
+  ✗ T4 PDF NOT Generated - Missing SIN
+
+--------------------------------------------------------------------------------
+
+[... Additional employees omitted for brevity ...]
+
+================================================================================
+ACTION ITEMS
+================================================================================
+
+1. ✓ COMPLETED: Generated 24 T4 PDF forms for employees with SIN numbers
+   Location: L:\limo\T4_2012_Forms\
+
+2. ⚠ REQUIRED: Obtain SIN numbers for the following 3 employees:
+   - DEANS, Gordon (Employee ID: 1979)
+   - Derksen, Daryl (Employee #Dr21, ID: 45)
+   - Flinn, Winston (Employee #Dr20, ID: 44)
+   Once obtained, re-run: create_2012_t4_pdfs.py
+
+3. ⚠ VERIFY: Review all T4 PDFs for accuracy before distribution
+   - Check employee personal information
+   - Verify all dollar amounts match payroll records
+   - Ensure addresses are current
+
+4. ⚠ REQUIRED: File T4 Summary (RL-1) with CRA
+   - Deadline: Last day of February following tax year (Feb 28/29, 2013)
+   - Include aggregate totals for all employees
+   - Submit via CRA My Business Account or paper filing
+
+5. ⚠ REQUIRED: Distribute T4 slips to employees
+   - Deadline: Last day of February (Feb 28/29, 2013)
+   - Provide Copy 2 (Employee's copy) by mail or in person
+   - Retain Copy 1 (CRA copy) for filing
+
+6. ⚠ IMPORTANT: Update employer information in system
+   - Current: "Arrow Limousine & Sedan Services LTD" (hardcoded in PDF generator)
+   - Required: Verify legal business name matches CRA records
+   - Required: Add Business Number to system_config table
+   - Required: Add payroll account number to system
+
+================================================================================
+COMPLIANCE NOTES
+================================================================================
+
+T4 Slip: Statement of Remuneration Paid
+- Filing deadline: Last day of February following the tax year
+- Distribution deadline: Same as filing deadline
+- Penalties: $25/day late (minimum $100, maximum $2,500 per return)
+- Must file even if amounts are zero for Box 14
+
+Required Information:
+✓ Employer name and address (hardcoded in system)
+⚠ Employer Business Number (placeholder used)
+✓ Employee name and address
+⚠ Employee SIN (missing for 3 employees)
+✓ Employment income (Box 14)
+✓ CPP contributions (Box 16)
+✓ EI premiums (Box 18)
+✓ Income tax deducted (Box 22)
+
+================================================================================
+REPORT END
+================================================================================
+
+Generated by: ALMS (Arrow Limousine Management System)
+Data Source: PostgreSQL Database (almsdata)
+File Location: L:\limo\2012_Employee_T4_Report.txt
+T4 PDFs: L:\limo\T4_2012_Forms\

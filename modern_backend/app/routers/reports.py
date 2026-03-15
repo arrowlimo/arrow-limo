@@ -1620,7 +1620,7 @@ def export_quickbooks_view(
 
         # Check if view has a "Date" column
         cur.execute(
-            f"SELECT column_name FROM information_schema.columns WHERE table_name = %s AND column_name = 'Date'",
+            "SELECT column_name FROM information_schema.columns WHERE table_name = %s AND column_name = 'Date'",
             (view_name,),
         )
         has_date_column = cur.fetchone() is not None
@@ -1715,7 +1715,7 @@ def export_all_quickbooks_views(
 
                 # Check if view has a "Date" column
                 cur.execute(
-                    f"SELECT column_name FROM information_schema.columns WHERE table_name = %s AND column_name = 'Date'",
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = %s AND column_name = 'Date'",
                     (view_name,),
                 )
                 has_date_column = cur.fetchone() is not None

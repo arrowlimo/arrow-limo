@@ -1,0 +1,670 @@
+{
+  "timestamp": "2026-02-05T17:53:51.261207",
+  "local_tables": 277,
+  "neon_tables": 304,
+  "common_tables": 247,
+  "local_only_tables": [
+    "square_customers_staging",
+    "receipt_cashbox_links",
+    "customer_feedback",
+    "tax_rollovers",
+    "charter_receipts",
+    "dispatch_events",
+    "vehicle_capacity_tiers",
+    "square_lms_matches",
+    "customer_comms_log",
+    "tax_overrides",
+    "driver_comms_log",
+    "invoices",
+    "credit_lines_backup_20260123_233917",
+    "square_cc_staging",
+    "receipts_square_dedupe_backup_20260201",
+    "hos_log",
+    "staging_pd7a_year_end_summary",
+    "verification_audit",
+    "square_fees_staging",
+    "staging_driver_pay_files",
+    "hos_14day_summary",
+    "receipt_banking_links",
+    "lms2026_payments_staging",
+    "charters_routing_times",
+    "receipts_square_final_backup_20260201",
+    "audit_log",
+    "tax_remittances",
+    "charter_incidents",
+    "staging_employee_reference_data",
+    "chart_of_accounts_backup_2026"
+  ],
+  "neon_only_tables": [
+    "transaction_subcategories_archive",
+    "etransfer_accounting_assessment",
+    "square_refunds",
+    "charter_charge_defaults",
+    "etransfer_analysis_results",
+    "income_ledger_payment_archive",
+    "transaction_categories_archive",
+    "journal_batches",
+    "lms_vehicle_mapping",
+    "square_payments",
+    "lms_rate_mapping",
+    "lms_customers_enhanced",
+    "payroll_approval_workflow",
+    "lms_sync_log",
+    "payment_reconciliation_ledger",
+    "suppliers",
+    "lms_charges",
+    "limo_clients_clean",
+    "category_to_account_map_archive",
+    "square_payouts_extracted",
+    "limo_addresses",
+    "charter_driver_logs",
+    "square_disputes",
+    "square_fees_extracted",
+    "journal_lines",
+    "limo_clients",
+    "split_run_segments",
+    "financing_payments",
+    "etransfer_fix_final_results",
+    "balance_sheet",
+    "email_log",
+    "lms_deposits",
+    "non_charter_payroll",
+    "banking_payment_links",
+    "square_customers_extracted",
+    "category_mappings_archive",
+    "limo_addresses_clean",
+    "wage_allocation_decisions",
+    "driver_hos_log",
+    "square_validation_summary",
+    "square_loans_extracted",
+    "audit_logs",
+    "orphaned_charges_archive",
+    "driver_internal_notes",
+    "driver_performance_private",
+    "active_floats_detailed",
+    "profit_and_loss",
+    "credit_lines",
+    "account_categories_archive",
+    "qb_journal_entries",
+    "trial_balance",
+    "multi_charter_payments",
+    "limo_contacts",
+    "square_loan_repayments_extracted",
+    "journal",
+    "square_loan_payments",
+    "qb_import_batches"
+  ],
+  "identical_count": 214,
+  "differences": [
+    {
+      "table": "accounting_entries",
+      "local_only_cols": [],
+      "neon_only_cols": [
+        "banking_transaction_id",
+        "payment_id",
+        "income_ledger_id",
+        "receipt_id"
+      ],
+      "type_mismatches": [],
+      "local_rows": 16,
+      "neon_rows": 16,
+      "row_variance_pct": 0.0
+    },
+    {
+      "table": "alberta_tax_brackets",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 15,
+      "neon_rows": 30,
+      "row_variance_pct": 50.0
+    },
+    {
+      "table": "app_errors",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 1,
+      "neon_rows": 0,
+      "row_variance_pct": 100.0
+    },
+    {
+      "table": "banking_receipt_matching_ledger",
+      "local_only_cols": [
+        "allocation_type",
+        "allocation_date",
+        "amount_allocated"
+      ],
+      "neon_only_cols": [
+        "payment_id",
+        "income_ledger_id",
+        "charter_id",
+        "accounting_entry_id"
+      ],
+      "type_mismatches": [],
+      "local_rows": 128921,
+      "neon_rows": 0,
+      "row_variance_pct": 100.0
+    },
+    {
+      "table": "banking_transactions",
+      "local_only_cols": [],
+      "neon_only_cols": [
+        "payment_id",
+        "income_ledger_id",
+        "charter_id",
+        "accounting_entry_id"
+      ],
+      "type_mismatches": [],
+      "local_rows": 32411,
+      "neon_rows": 32418,
+      "row_variance_pct": 0.021592942192609044
+    },
+    {
+      "table": "chart_of_accounts",
+      "local_only_cols": [],
+      "neon_only_cols": [
+        "requires_vehicle",
+        "is_linked_account",
+        "is_business_expense",
+        "is_tax_applicable",
+        "default_category_code",
+        "requires_employee"
+      ],
+      "type_mismatches": [],
+      "local_rows": 169,
+      "neon_rows": 124,
+      "row_variance_pct": 26.627218934911244
+    },
+    {
+      "table": "charter_charges",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 66075,
+      "neon_rows": 70262,
+      "row_variance_pct": 5.959124420027895
+    },
+    {
+      "table": "charter_payments",
+      "local_only_cols": [],
+      "neon_only_cols": [
+        "banking_transaction_id",
+        "receipt_id",
+        "income_ledger_id",
+        "accounting_entry_id"
+      ],
+      "type_mismatches": [],
+      "local_rows": 25413,
+      "neon_rows": 31248,
+      "row_variance_pct": 18.673195084485407
+    },
+    {
+      "table": "charter_refunds",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 343,
+      "neon_rows": 375,
+      "row_variance_pct": 8.533333333333333
+    },
+    {
+      "table": "charter_routes",
+      "local_only_cols": [],
+      "neon_only_cols": [
+        "stop_time",
+        "address",
+        "reserve_number"
+      ],
+      "type_mismatches": [],
+      "local_rows": 18676,
+      "neon_rows": 52071,
+      "row_variance_pct": 64.13358683336214
+    },
+    {
+      "table": "charter_run_types",
+      "local_only_cols": [
+        "run_type_id"
+      ],
+      "neon_only_cols": [
+        "id",
+        "description"
+      ],
+      "type_mismatches": [],
+      "local_rows": 10,
+      "neon_rows": 20,
+      "row_variance_pct": 50.0
+    },
+    {
+      "table": "charters",
+      "local_only_cols": [
+        "fuel_price",
+        "fuel_litres",
+        "split_run_time",
+        "fuel_gst",
+        "cart_order_list",
+        "split_run_start_time",
+        "do_time"
+      ],
+      "neon_only_cols": [
+        "actual_hours",
+        "workshift_start",
+        "off_duty_at",
+        "arrived_at_event_at",
+        "payment_status",
+        "approved_at",
+        "calculated_hours",
+        "driver_paid",
+        "on_location_at",
+        "duty_log",
+        "passengers_loaded_at",
+        "payment_id",
+        "nrr_received",
+        "completion_timestamp",
+        "vehicle",
+        "fuel_added",
+        "nrd_received_at",
+        "receipt_id",
+        "reservation_time",
+        "workshift_end",
+        "driver",
+        "en_route_to_event_at",
+        "red_deer_bylaw_exempt",
+        "account_number",
+        "driver_hours_worked",
+        "split_run_before_hours",
+        "beverage_service_required",
+        "fuel_added_liters",
+        "assigned_driver_id",
+        "cancelled",
+        "notes",
+        "on_duty_started_at",
+        "return_journey_started_at",
+        "split_run_after_hours",
+        "accounting_entry_id",
+        "banking_transaction_id",
+        "income_ledger_id",
+        "driver_hourly_rate",
+        "nrr_amount",
+        "paid_amount"
+      ],
+      "type_mismatches": [],
+      "local_rows": 18747,
+      "neon_rows": 18721,
+      "row_variance_pct": 0.13868885688376806
+    },
+    {
+      "table": "cheque_register",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 202,
+      "neon_rows": 206,
+      "row_variance_pct": 1.9417475728155338
+    },
+    {
+      "table": "clients",
+      "local_only_cols": [],
+      "neon_only_cols": [
+        "account_type",
+        "is_taxable",
+        "is_company",
+        "parent_client_id"
+      ],
+      "type_mismatches": [],
+      "local_rows": 9266,
+      "neon_rows": 6667,
+      "row_variance_pct": 28.04878048780488
+    },
+    {
+      "table": "employees",
+      "local_only_cols": [],
+      "neon_only_cols": [
+        "version",
+        "driver_code",
+        "department"
+      ],
+      "type_mismatches": [],
+      "local_rows": 147,
+      "neon_rows": 142,
+      "row_variance_pct": 3.4013605442176873
+    },
+    {
+      "table": "general_ledger",
+      "local_only_cols": [],
+      "neon_only_cols": [
+        "distribution_account",
+        "item_supplier_company",
+        "tax_name",
+        "distribution_account_type",
+        "employee_billable",
+        "customer_title",
+        "distribution_account_number",
+        "tax_slip_type",
+        "ungrouped_tags",
+        "distribution_account_subtype",
+        "customer_full_name",
+        "parent_distribution_account_id",
+        "transaction_id",
+        "parent_account_id",
+        "account_number",
+        "transaction_date",
+        "employee_deleted",
+        "customer_middle_name",
+        "customer",
+        "account_full_name",
+        "customer_first_name",
+        "account_description",
+        "po_number",
+        "tax_code",
+        "account_type",
+        "employee_id",
+        "distribution_account_description"
+      ],
+      "type_mismatches": [],
+      "local_rows": 115738,
+      "neon_rows": 128786,
+      "row_variance_pct": 10.13153603652571
+    },
+    {
+      "table": "gl_transactions",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 981,
+      "neon_rows": 1081,
+      "row_variance_pct": 9.250693802035153
+    },
+    {
+      "table": "income_ledger",
+      "local_only_cols": [],
+      "neon_only_cols": [
+        "banking_transaction_id",
+        "receipt_id",
+        "accounting_entry_id"
+      ],
+      "type_mismatches": [],
+      "local_rows": 0,
+      "neon_rows": 0,
+      "row_variance_pct": 0
+    },
+    {
+      "table": "invoice_line_items",
+      "local_only_cols": [
+        "line_item_id"
+      ],
+      "neon_only_cols": [
+        "id",
+        "discount_percent",
+        "created_at",
+        "vehicle_id",
+        "qb_class",
+        "account_name",
+        "line_number",
+        "discount_amount",
+        "rate",
+        "service_type",
+        "amount",
+        "account_code",
+        "qb_item_id",
+        "driver_id",
+        "tax_amount",
+        "income_account",
+        "tax_code",
+        "item_name",
+        "item_type",
+        "is_taxable"
+      ],
+      "type_mismatches": [
+        {
+          "column": "description",
+          "local_type": "character varying",
+          "neon_type": "text"
+        }
+      ],
+      "local_rows": 0,
+      "neon_rows": 0,
+      "row_variance_pct": 0
+    },
+    {
+      "table": "master_relationships",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 636025,
+      "neon_rows": 766565,
+      "row_variance_pct": 17.029214743694272
+    },
+    {
+      "table": "payments",
+      "local_only_cols": [
+        "verified",
+        "verified_date",
+        "verified_by",
+        "square_fee_gl_description",
+        "square_fee_gl_code"
+      ],
+      "neon_only_cols": [
+        "square_tip",
+        "credit_card_last4",
+        "square_gross_sales",
+        "authorization_code",
+        "qb_trans_num",
+        "square_customer_name",
+        "square_customer_email",
+        "square_notes",
+        "deposit_to_account",
+        "payment_account",
+        "receipt_id",
+        "square_card_brand",
+        "credit_card_expiry",
+        "payment_amount",
+        "square_net_sales",
+        "version",
+        "qb_payment_type",
+        "banking_receipt_matching_ledger_id",
+        "check_number",
+        "square_last4",
+        "square_status",
+        "applied_to_invoice",
+        "square_transaction_id",
+        "charter_id",
+        "last_updated_by",
+        "square_payment_id",
+        "banking_transaction_id",
+        "client_id",
+        "accounting_entry_id",
+        "income_ledger_id",
+        "adjustment_type",
+        "related_payment_id"
+      ],
+      "type_mismatches": [],
+      "local_rows": 27360,
+      "neon_rows": 20416,
+      "row_variance_pct": 25.380116959064324
+    },
+    {
+      "table": "receipt_categories",
+      "local_only_cols": [],
+      "neon_only_cols": [
+        "gl_account_code",
+        "is_business_expense"
+      ],
+      "type_mismatches": [],
+      "local_rows": 13,
+      "neon_rows": 13,
+      "row_variance_pct": 0.0
+    },
+    {
+      "table": "receipts",
+      "local_only_cols": [
+        "gl_code",
+        "verified",
+        "verified_date",
+        "gl_description",
+        "receipt_reviewed_by",
+        "verified_by",
+        "receipt_reviewed_at",
+        "receipt_review_notes",
+        "receipt_review_status"
+      ],
+      "neon_only_cols": [
+        "amount_usd",
+        "sub_classification",
+        "period_start",
+        "reimbursed_via",
+        "mapped_expense_account_id",
+        "payment_id",
+        "exported",
+        "pay_account",
+        "mapping_notes",
+        "event_batch_id",
+        "validation_reason",
+        "reviewed",
+        "tip",
+        "updated_at",
+        "version",
+        "period_end",
+        "mapping_status",
+        "sales_tax",
+        "classification",
+        "parent_receipt_id",
+        "validation_status",
+        "cash_box_transaction_id",
+        "due_date",
+        "date_added",
+        "fx_rate",
+        "accounting_entry_id",
+        "reimbursement_date",
+        "income_ledger_id",
+        "tax"
+      ],
+      "type_mismatches": [],
+      "local_rows": 78670,
+      "neon_rows": 29429,
+      "row_variance_pct": 62.591839328842
+    },
+    {
+      "table": "route_event_types",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 10,
+      "neon_rows": 13,
+      "row_variance_pct": 23.076923076923077
+    },
+    {
+      "table": "run_type_default_charges",
+      "local_only_cols": [],
+      "neon_only_cols": [
+        "formula",
+        "id"
+      ],
+      "type_mismatches": [],
+      "local_rows": 11,
+      "neon_rows": 6,
+      "row_variance_pct": 45.45454545454545
+    },
+    {
+      "table": "square_capital_loans",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 0,
+      "neon_rows": 2,
+      "row_variance_pct": 100.0
+    },
+    {
+      "table": "square_raw_imports",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 5,
+      "neon_rows": 9,
+      "row_variance_pct": 44.44444444444444
+    },
+    {
+      "table": "users",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 5,
+      "neon_rows": 11,
+      "row_variance_pct": 54.54545454545454
+    },
+    {
+      "table": "vehicle_loans",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 44,
+      "neon_rows": 46,
+      "row_variance_pct": 4.3478260869565215
+    },
+    {
+      "table": "vehicle_pricing_defaults",
+      "local_only_cols": [
+        "charter_type_code",
+        "split_run_before_hours",
+        "split_run_after_hours",
+        "pricing_id",
+        "package_rate",
+        "minimum_hours",
+        "package_hours",
+        "extra_time_rate",
+        "is_active"
+      ],
+      "neon_only_cols": [
+        "daily_rate",
+        "airport_pickup_edmonton",
+        "fee_1",
+        "created_at",
+        "hourly_package",
+        "nrr",
+        "airport_pickup_calgary",
+        "fee_3",
+        "fee_2"
+      ],
+      "type_mismatches": [],
+      "local_rows": 16,
+      "neon_rows": 11,
+      "row_variance_pct": 31.25
+    },
+    {
+      "table": "vehicle_repossessions",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 0,
+      "neon_rows": 1,
+      "row_variance_pct": 100.0
+    },
+    {
+      "table": "vehicle_sales",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 0,
+      "neon_rows": 1,
+      "row_variance_pct": 100.0
+    },
+    {
+      "table": "vehicles",
+      "local_only_cols": [
+        "fleet_position",
+        "fleet_number",
+        "vehicle_history_id",
+        "is_active"
+      ],
+      "neon_only_cols": [
+        "version",
+        "requires_class_2"
+      ],
+      "type_mismatches": [],
+      "local_rows": 26,
+      "neon_rows": 26,
+      "row_variance_pct": 0.0
+    }
+  ],
+  "errors": 0
+}

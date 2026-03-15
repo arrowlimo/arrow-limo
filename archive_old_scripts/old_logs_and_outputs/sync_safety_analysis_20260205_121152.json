@@ -1,0 +1,240 @@
+{
+  "timestamp": "2026-02-05T12:11:49.610046",
+  "safe_to_sync": [
+    {
+      "table": "beverage_products",
+      "reason": "Neon is empty, local has data"
+    },
+    {
+      "table": "lms2026_payment_matches",
+      "reason": "Missing in Neon, has 22,026 rows in local"
+    },
+    {
+      "table": "charter_gst_details_2010_2012",
+      "reason": "Missing in Neon, has 3,805 rows in local"
+    },
+    {
+      "table": "employee_t4_records",
+      "reason": "Missing in Neon, has 59 rows in local"
+    },
+    {
+      "table": "employee_t4_summary",
+      "reason": "Missing in Neon, has 51 rows in local"
+    },
+    {
+      "table": "alcohol_business_tracking",
+      "reason": "Missing in Neon, has 105 rows in local"
+    }
+  ],
+  "needs_review": [],
+  "skip_sync": [
+    {
+      "table": "employee_pay_master",
+      "reason": "Error or skip"
+    },
+    {
+      "table": "transaction_categories",
+      "reason": "Error or skip"
+    },
+    {
+      "table": "transaction_subcategories",
+      "reason": "Error or skip"
+    },
+    {
+      "table": "tax_periods",
+      "reason": "Error or skip"
+    },
+    {
+      "table": "tax_returns",
+      "reason": "Error or skip"
+    },
+    {
+      "table": "tax_variances",
+      "reason": "Error or skip"
+    },
+    {
+      "table": "tax_overrides",
+      "reason": "Error or skip"
+    },
+    {
+      "table": "tax_remittances",
+      "reason": "Error or skip"
+    },
+    {
+      "table": "tax_rollovers",
+      "reason": "Error or skip"
+    },
+    {
+      "table": "category_mappings",
+      "reason": "Error or skip"
+    },
+    {
+      "table": "account_categories",
+      "reason": "Error or skip"
+    },
+    {
+      "table": "category_to_account_map",
+      "reason": "Error or skip"
+    },
+    {
+      "table": "charter_incidents",
+      "reason": "Empty in local"
+    },
+    {
+      "table": "charter_receipts",
+      "reason": "Empty in local"
+    },
+    {
+      "table": "charters_routing_times",
+      "reason": "Empty in local"
+    },
+    {
+      "table": "receipt_banking_links",
+      "reason": "Empty in local"
+    },
+    {
+      "table": "receipt_cashbox_links",
+      "reason": "Empty in local"
+    }
+  ],
+  "samples": {
+    "lms2026_payment_matches": {
+      "row_count": 22026,
+      "columns": [
+        "match_id",
+        "payment_id",
+        "lms_payment_id",
+        "reserve_no",
+        "amount",
+        "payment_date",
+        "lms_date",
+        "match_method",
+        "confidence",
+        "created_at"
+      ],
+      "sample_rows": 3
+    },
+    "charter_gst_details_2010_2012": {
+      "row_count": 3805,
+      "columns": [
+        "id",
+        "charter_id",
+        "reserve_number",
+        "reserve_date",
+        "service_fee",
+        "travel_time",
+        "extra_stops",
+        "gratuity",
+        "fuel_surcharge",
+        "beverage_charge",
+        "other_charge",
+        "other_charge_2",
+        "extra_charge",
+        "gst_amount",
+        "gst_taxable",
+        "total_amount",
+        "total_bill",
+        "reduced_revenue",
+        "adjusted_delivery",
+        "reconcil_e_to_total",
+        "difference_e_to_total",
+        "diff_total",
+        "diff_gst",
+        "source_sheet",
+        "source_file",
+        "source_hash",
+        "imported_at"
+      ],
+      "sample_rows": 3
+    },
+    "employee_t4_records": {
+      "row_count": 59,
+      "columns": [
+        "t4_id",
+        "employee_id",
+        "tax_year",
+        "box_14_employment_income",
+        "box_16_cpp_contributions",
+        "box_18_ei_premiums",
+        "box_22_income_tax",
+        "box_24_ei_insurable_earnings",
+        "box_26_cpp_pensionable_earnings",
+        "box_44_union_dues",
+        "box_46_charitable_donations",
+        "box_52_pension_adjustment",
+        "notes",
+        "created_at",
+        "updated_at",
+        "box_81_wcb_insurable_earnings",
+        "box_82_charitable_tax_credit",
+        "box_84_eligible_retiring_allowance",
+        "box_85_non_eligible_retiring_allowance",
+        "box_86_wcb_reportable_earnings",
+        "box_12_taxable_benefits",
+        "box_20_rpp_contributions",
+        "box_28_exempt_cpp_cpp_pensionable",
+        "box_29_exempt_ei_ei_insurable",
+        "box_30_boarding_lodging",
+        "box_32_travel_personal_vehicle",
+        "box_34_travel_allowances",
+        "box_36_medical_travel_assistance",
+        "box_38_employer_paid_premiums_group_term_life",
+        "box_40_other_taxable_allowances",
+        "box_42_employment_commissions",
+        "box_50_security_options_benefits",
+        "box_56_labour_sponsored_funds",
+        "box_66_eligible_retiring_allowance",
+        "box_67_non_eligible_retiring_allowance",
+        "box_68_fishers_gross_earnings",
+        "box_69_fishers_net_partnership",
+        "box_70_fishers_share_costs",
+        "box_71_indian_employment_exempt",
+        "box_78_non_cash_taxable_benefits"
+      ],
+      "sample_rows": 3
+    },
+    "employee_t4_summary": {
+      "row_count": 51,
+      "columns": [
+        "t4_id",
+        "employee_id",
+        "fiscal_year",
+        "t4_employment_income",
+        "t4_federal_tax",
+        "t4_provincial_tax",
+        "t4_cpp_contributions",
+        "t4_ei_contributions",
+        "t4_union_dues",
+        "t4_other_deductions",
+        "source",
+        "confidence_level",
+        "is_verified",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "notes"
+      ],
+      "sample_rows": 3
+    },
+    "alcohol_business_tracking": {
+      "row_count": 105,
+      "columns": [
+        "id",
+        "transaction_date",
+        "transaction_type",
+        "alcohol_type",
+        "quantity",
+        "unit_cost",
+        "total_cost",
+        "sale_price",
+        "total_revenue",
+        "profit_loss",
+        "charter_id",
+        "receipt_id",
+        "notes",
+        "created_at"
+      ],
+      "sample_rows": 3
+    }
+  }
+}

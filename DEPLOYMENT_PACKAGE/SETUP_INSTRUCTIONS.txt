@@ -1,0 +1,79 @@
+==================================================
+  ARROW LIMOUSINE DISPATCH SETUP INSTRUCTIONS
+==================================================
+
+STEP 1: ON DISPATCHMAIN (Main Computer)
+----------------------------------------
+1. Open PowerShell AS ADMINISTRATOR
+2. Run: cd L:\limo
+3. Run: .\unlock_shared_user.ps1
+4. This creates the shared user account
+
+STEP 2: COPY FILES TO DISPATCH1
+--------------------------------
+Copy the entire DEPLOYMENT_PACKAGE folder to dispatch1:
+- Via USB drive, OR
+- Via network: \\DISPATCHMAIN\limo\DEPLOYMENT_PACKAGE
+
+STEP 3: ON DISPATCH1 (Employee Computer)
+-----------------------------------------
+1. Right-click INSTALL_DISPATCH.bat
+2. Select "Run as administrator"
+3. Click Yes when prompted
+4. The installer will:
+   - Map Z: drive to \\DISPATCHMAIN\limo_files
+   - Configure database connection
+   - Create desktop shortcuts
+
+CREDENTIALS (Automatic)
+-----------------------
+Username: DISPATCHMAIN\ArrowDispatch
+Password: Dispatch2026!
+(These are embedded in the installer)
+
+VERIFY Z: DRIVE ACCESS
+----------------------
+After installation:
+1. Open File Explorer
+2. Check that Z: drive appears
+3. Open Z:\limo_files - you should see folders:
+   - employees
+   - vehicles
+   - business_documents
+   - etc.
+
+TROUBLESHOOTING
+---------------
+If Z: drive asks for credentials:
+1. Make sure DISPATCHMAIN computer is ON
+2. Make sure you ran unlock_shared_user.ps1 on DISPATCHMAIN
+3. Verify both computers are on same network
+4. Try manually: 
+   net use Z: \\DISPATCHMAIN\limo_files /user:DISPATCHMAIN\ArrowDispatch Dispatch2026! /persistent:yes
+
+If it still doesn't work:
+- Check Windows Firewall on DISPATCHMAIN
+- Make sure File and Printer Sharing is enabled
+- Verify the limo_files share exists
+
+RUNNING THE APPLICATION
+-----------------------
+After setup, the application runs from the network:
+- Open File Explorer
+- Navigate to \\DISPATCHMAIN\limo
+- Run the main application file
+
+Or copy the application to C:\ArrowLimo locally.
+
+DATABASE CONNECTION
+-------------------
+All dispatch computers connect to Neon PostgreSQL:
+- Host: ep-curly-dream-a9nuyxfx-pooler.us-east-2.aws.neon.tech
+- Database: almsdata
+- Connection is encrypted (SSL)
+- Internet required for database access
+
+==================================================
+For support, contact main office.
+Last Updated: February 4, 2026
+==================================================

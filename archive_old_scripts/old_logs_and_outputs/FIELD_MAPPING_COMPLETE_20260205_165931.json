@@ -1,0 +1,2877 @@
+{
+  "charters": [
+    {
+      "column_name": "charter_id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('charters_charter_id_seq'::regclass)",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "reserve_number",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "client_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "charter_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "pickup_time",
+      "data_type": "time without time zone",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "pickup_address",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "dropoff_address",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "passenger_count",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "rate",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "balance",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "payment_totals",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_TIMESTAMP",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "updated_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_TIMESTAMP",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "driver_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "client_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "booking_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "total_amount_due",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "dispatcher_approved",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "driver_base_pay",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "driver_gratuity",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0.00",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "driver_total_expense",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "expense_calculated_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "odometer_start",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "odometer_end",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "total_kms",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "vehicle_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_placeholder",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "default_hourly_price",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "package_rate",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "extra_time_rate",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "daily_rate",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "airport_pickup_price",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "employee_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "vehicle_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "client_display_name",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "nrd_received",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "nrd_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "nrd_method",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_out_of_town",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "fuel_litres",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "float_received",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "float_reimbursement_needed",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "calendar_color",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "separate_customer_printout",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "charter_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'hourly'::character varying",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "quoted_hours",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0.00",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "standby_rate",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "25.00",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "split_run_start_time",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0.00",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "split_run_time",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0.00",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "calendar_sync_status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "outlook_entry_id",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "calendar_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "record_type",
+      "data_type": "USER-DEFINED",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "version",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "do_time",
+      "data_type": "time without time zone",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "cart_order_list",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "fuel_price",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "fuel_gst",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "locked",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "character_maximum_length": null
+    }
+  ],
+  "clients": [
+    {
+      "column_name": "client_id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('clients_client_id_seq'::regclass)",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "account_number",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "company_name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 255
+    },
+    {
+      "column_name": "primary_phone",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "email",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 255
+    },
+    {
+      "column_name": "address_line1",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 255
+    },
+    {
+      "column_name": "city",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "state",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "zip_code",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "balance",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "credit_limit",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "discount_percentage",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "discount_flat",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "gratuity_percentage",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "18.00",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "interest_rate",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "grace_days",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_inactive",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'active'::character varying",
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_TIMESTAMP",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "updated_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_TIMESTAMP",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "billing_no",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_gst_exempt",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "exemption_certificate_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "exemption_certificate_expiry",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "exemption_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "exemption_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "bad_debt_status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'current'::character varying",
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "collection_attempts_count",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "last_collection_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "first_overdue_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "writeoff_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "writeoff_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0.00",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "bankruptcy_status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'none'::character varying",
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "collection_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "bad_debt_reason",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "NULL::character varying",
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "recovery_probability",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'high'::character varying",
+      "character_maximum_length": 10
+    },
+    {
+      "column_name": "fraud_case_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "client_name",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "lms_customer_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "qb_customer_id",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "qb_customer_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "payment_terms",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'Net 30'::character varying",
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "tax_code",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "billing_rate_level",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "sales_tax_code",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "province",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "country",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'Canada'::character varying",
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "warning_flag",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "billing_address",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "''::character varying",
+      "character_maximum_length": 500
+    },
+    {
+      "column_name": "contact_info",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "''::character varying",
+      "character_maximum_length": 200
+    },
+    {
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "''::text",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "phone",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "address",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "first_name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "last_name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "cell_phone",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "home_phone",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "work_phone",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "fax_phone",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "full_name_search",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "corporate_parent_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "corporate_role",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "gst_exempt",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    }
+  ],
+  "payments": [
+    {
+      "column_name": "payment_id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('payments_payment_id_seq'::regclass)",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "account_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "reserve_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "payment_key",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "last_updated",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_TIMESTAMP",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "payment_method",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "payment_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'pending'::character varying",
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "payment_code_4char",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 4
+    },
+    {
+      "column_name": "updated_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "reference_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "is_deposited",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "payment_label",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "verified",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "verified_date",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "verified_by",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "square_fee_gl_code",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "square_fee_gl_description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    }
+  ],
+  "receipts": [
+    {
+      "column_name": "receipt_id",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": "nextval('receipts_id_seq'::regclass)",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "source_system",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'BANKING_IMPORT'::text",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "source_reference",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'BANKING_IMPORT'::text",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "receipt_date",
+      "data_type": "date",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "vendor_name",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'BANKING TRANSACTION'::text",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "currency",
+      "data_type": "character",
+      "is_nullable": "NO",
+      "column_default": "'CAD'::bpchar",
+      "character_maximum_length": 3
+    },
+    {
+      "column_name": "gross_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "gst_amount",
+      "data_type": "numeric",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "expense_account",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'BANKING'::text",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "payment_method",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "source_hash",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'AUTO_GENERATED'::text",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "document_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "tax_category",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "card_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "card_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "comment",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "pay_method",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "mapped_bank_account_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "canonical_pay_method",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "category",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "expense",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "vehicle_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "vehicle_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "fuel",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "created_from_banking",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "revenue",
+      "data_type": "numeric",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "gst_code",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "split_key",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "split_group_total",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "fuel_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "deductible_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "business_personal",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "source_file",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "gl_account_code",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 10
+    },
+    {
+      "column_name": "gl_account_name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 200
+    },
+    {
+      "column_name": "gl_subcategory",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 200
+    },
+    {
+      "column_name": "auto_categorized",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "net_amount",
+      "data_type": "numeric",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_split_receipt",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_personal_purchase",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "owner_personal_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_driver_reimbursement",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "banking_transaction_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "receipt_source",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "display_color",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "canonical_vendor",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 255
+    },
+    {
+      "column_name": "is_transfer",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "verified_source",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_verified_banking",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "potential_duplicate",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "duplicate_check_key",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_nsf",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_voided",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "exclude_from_reports",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "vendor_account_id",
+      "data_type": "bigint",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "fiscal_year",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "invoice_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_paper_verified",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "paper_verification_date",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "verified_by_user",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "NULL::character varying",
+      "character_maximum_length": 255
+    },
+    {
+      "column_name": "employee_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "charter_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "reserve_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "gst_exempt",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "split_status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'single'::character varying",
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "split_group_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "verified_by_edit",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "verified_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "verified",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "verified_date",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "verified_by",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "gl_code",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "gl_description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "receipt_review_status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "NULL::character varying",
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "receipt_review_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "receipt_reviewed_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "receipt_reviewed_by",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "NULL::character varying",
+      "character_maximum_length": 100
+    }
+  ],
+  "vehicles": [
+    {
+      "column_name": "vehicle_id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('vehicles_vehicle_id_seq'::regclass)",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "vehicle_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "make",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "model",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "year",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "license_plate",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "passenger_capacity",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "updated_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_TIMESTAMP",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "operational_status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'active'::character varying",
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "last_service_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "next_service_due",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "vin_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 17
+    },
+    {
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "ext_color",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "int_color",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "length",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "width",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "height",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "odometer",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "odometer_type",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "column_default": "'mi'::character varying",
+      "character_maximum_length": 2
+    },
+    {
+      "column_name": "type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "engine_oil_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "fuel_filter_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "fuel_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "transmission_fluid_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "transmission_fluid_quantity",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "fuel_filter_interval_km",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "60000",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "transmission_service_interval_km",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "80000",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "curb_weight",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "gross_vehicle_weight",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "fuel_efficiency_data",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": "'{}'::jsonb",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "oil_quantity",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "oil_filter_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "coolant_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "coolant_quantity",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "belt_size",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "tire_size",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "tire_pressure",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "brake_fluid_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "power_steering_fluid_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "oil_change_interval_km",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "8000",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "oil_change_interval_months",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "6",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "air_filter_interval_km",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "30000",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "coolant_change_interval_km",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "150000",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "brake_fluid_change_interval_months",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "24",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "air_filter_part_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "cabin_filter_part_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "serpentine_belt_part_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "return_to_service_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "maintenance_schedule",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": "'{}'::jsonb",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "service_history",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": "'[]'::jsonb",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "parts_replacement_history",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": "'[]'::jsonb",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "vehicle_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "fleet_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 10
+    },
+    {
+      "column_name": "vehicle_category",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "vehicle_class",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "fleet_position",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "vehicle_history_id",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "commission_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_DATE",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "decommission_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_active",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "unit_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "cvip_expiry_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "cvip_inspection_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "last_cvip_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "next_cvip_due",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "cvip_compliance_status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "purchase_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "purchase_price",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "purchase_vendor",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 200
+    },
+    {
+      "column_name": "finance_partner",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 200
+    },
+    {
+      "column_name": "financing_amount",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "monthly_payment",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "sale_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "sale_price",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "writeoff_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "writeoff_reason",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 200
+    },
+    {
+      "column_name": "repossession_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "lifecycle_status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "tier_id",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "maintenance_start_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "maintenance_end_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_in_maintenance",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "red_deer_compliant",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    }
+  ],
+  "employees": [
+    {
+      "column_name": "employee_id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('employees_employee_id_seq'::regclass)",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "employee_number",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "full_name",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": 255
+    },
+    {
+      "column_name": "last_name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "first_name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "phone",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "cell_phone",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "employee_category",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'driver'::character varying",
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "position",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'chauffeur'::character varying",
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "is_chauffeur",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "salary",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "tax_exemptions",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "deduction_per_voucher",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "deduction_radio_dues",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "deduction_misc_fees",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'active'::character varying",
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_TIMESTAMP",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "updated_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_TIMESTAMP",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "hire_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "emergency_contact_name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "emergency_contact_phone",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "employment_status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'active'::character varying",
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "compliance_status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'unknown'::character varying",
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "total_trips",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "total_hours",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0.00",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "total_revenue",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0.00",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "profile_updated",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_TIMESTAMP",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "hourly_rate",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "15.00",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "rate_effective_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_DATE",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "quickbooks_id",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 255
+    },
+    {
+      "column_name": "email",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 255
+    },
+    {
+      "column_name": "quickbooks_source",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 255
+    },
+    {
+      "column_name": "t4_sin",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 15
+    },
+    {
+      "column_name": "legacy_name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 255
+    },
+    {
+      "column_name": "legacy_employee",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "street_address",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 200
+    },
+    {
+      "column_name": "city",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 100
+    },
+    {
+      "column_name": "province",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'AB'::character varying",
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "postal_code",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 10
+    },
+    {
+      "column_name": "country",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'Canada'::character varying",
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "driver_license_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "driver_license_expiry",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "chauffeur_permit_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "chauffeur_permit_expiry",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "salary_deferred",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0.00",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "hourly_pay_rate",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "gratuity_eligible",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "gratuity_percentage",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "100",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "red_deer_compliant",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "red_deer_required",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "license_class",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 10
+    },
+    {
+      "column_name": "medical_fitness_expiry",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "vulnerable_sector_check_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "drivers_abstract_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "proserve_number",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "proserve_expiry",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "bylaw_permit_renewal_fee",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0.00",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "driver_license_class",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "driver_license_restrictions",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "qualification_1_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "qualification_2_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "qualification_3_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "qualification_4_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "qualification_5_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    }
+  ],
+  "banking_receipt_matching_ledger": [
+    {
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('banking_receipt_matching_ledger_id_seq'::regclass)",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "banking_transaction_id",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "receipt_id",
+      "data_type": "bigint",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "match_date",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_TIMESTAMP",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "match_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "match_status",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "match_confidence",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 20
+    },
+    {
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "created_by",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'system'::character varying",
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "amount_allocated",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "allocation_date",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": "now()",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "allocation_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": "'payment'::character varying",
+      "character_maximum_length": 50
+    }
+  ],
+  "chart_of_accounts": [
+    {
+      "column_name": "account_code",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": 10
+    },
+    {
+      "column_name": "parent_account",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 10
+    },
+    {
+      "column_name": "account_name",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": 200
+    },
+    {
+      "column_name": "account_type",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_active",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "true",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_TIMESTAMP",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "qb_account_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 50
+    },
+    {
+      "column_name": "account_level",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "is_header_account",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "normal_balance",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": 10
+    },
+    {
+      "column_name": "current_balance",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "bank_account_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "updated_at",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": "CURRENT_TIMESTAMP",
+      "character_maximum_length": null
+    }
+  ],
+  "split_run_segments": [],
+  "beverage_orders": [
+    {
+      "column_name": "order_id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('beverage_orders_order_id_seq'::regclass)",
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "reserve_number",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": 32
+    },
+    {
+      "column_name": "order_date",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "subtotal",
+      "data_type": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "gst",
+      "data_type": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "total",
+      "data_type": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'pending'::text",
+      "character_maximum_length": null
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+"""
+Employee SIN Number Verification Report
+Shows which employees are missing SIN numbers for T4 reporting
+"""
+
+print("=" * 80)
+print("EMPLOYEE SIN NUMBER VERIFICATION REPORT")
+print("=" * 80)
+print()
+print("Run this query in psql or pgAdmin:")
+print()
+print("-" * 80)
+
+SQL = """
+-- Employees missing or invalid SIN numbers
+SELECT 
+    employee_id,
+    employee_name,
+    COALESCE(first_name, '(not separate)') as first_name,
+    COALESCE(last_name, '(not separate)') as last_name,
+    COALESCE(sin, '(MISSING)') as sin_status,
+    CASE 
+        WHEN sin IS NULL OR sin = '' THEN 'MISSING SIN'
+        WHEN LENGTH(REPLACE(REPLACE(sin, ' ', ''), '-', '')) < 9 THEN 'INVALID SIN (too short)'
+        ELSE 'OK'
+    END as validation,
+    employment_status
+FROM employees
+WHERE sin IS NULL 
+   OR sin = '' 
+   OR LENGTH(REPLACE(REPLACE(sin, ' ', ''), '-', '')) < 9
+ORDER BY employment_status DESC, employee_name;
+
+-- Summary counts
+SELECT 
+    'TOTAL EMPLOYEES' as category,
+    COUNT(*) as count
+FROM employees
+UNION ALL
+SELECT 
+    'WITH VALID SIN',
+    COUNT(*)
+FROM employees
+WHERE sin IS NOT NULL 
+  AND sin != ''
+  AND LENGTH(REPLACE(REPLACE(sin, ' ', ''), '-', '')) >= 9
+UNION ALL
+SELECT 
+    'MISSING SIN',
+    COUNT(*)
+FROM employees
+WHERE sin IS NULL 
+   OR sin = ''
+UNION ALL  
+SELECT
+    'INVALID SIN FORMAT',
+    COUNT(*)
+FROM employees
+WHERE sin IS NOT NULL
+  AND sin != ''
+  AND LENGTH(REPLACE(REPLACE(sin, ' ', ''), '-', '')) < 9
+UNION ALL
+SELECT 
+    'ACTIVE EMPLOYEES',
+    COUNT(*)
+FROM employees
+WHERE employment_status = 'active'
+UNION ALL
+SELECT
+    'ACTIVE MISSING SIN',
+    COUNT(*)
+FROM employees
+WHERE employment_status = 'active'
+  AND (sin IS NULL OR sin = '' OR LENGTH(REPLACE(REPLACE(sin, ' ', ''), '-', '')) < 9);
+"""
+
+print(SQL)
+print("-" * 80)
+print()
+print("INSTRUCTIONS:")
+print("1. Copy the SQL query above")
+print("2. Run in psql:")
+print("   psql -U postgres -d arrow_limo")
+print("   Then paste the query")
+print()
+print("3. Or run in pgAdmin:")
+print("   Tools > Query Tool > Paste > Execute (F5)")
+print()
+print("NAME STORAGE FORMAT:")
+print("  - If database has 'first_name' and 'last_name' columns: Use those")
+print("  - If only 'employee_name': T4 form will split first/last automatically")
+print("  - All names will be CAPITALIZED on T4 forms per CRA standards")
+print()
+print("T4 REQUIREMENTS:")
+print("  - SIN must be 9 digits (format: 123-456-789 or 123456789)")
+print("  - Missing SIN will show WARNING when printing T4")
+print("  - CRA requires SIN on all T4 slips")
+print("=" * 80)

@@ -4,9 +4,8 @@ File Storage Router - Role-based file upload/download/list for employees, vehicl
 import os
 import shutil
 from pathlib import Path
-from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -41,13 +40,13 @@ class FileInfo(BaseModel):
     modified: str
 
 
-def get_user_role(user_id: Optional[int] = None) -> str:
+def get_user_role(user_id: int | None = None) -> str:
     """Get user role from session/token. For now, return 'admin' as placeholder."""
     # TODO: Integrate with actual authentication system
     return "admin"
 
 
-def get_employee_id(user_id: Optional[int] = None) -> Optional[int]:
+def get_employee_id(user_id: int | None = None) -> int | None:
     """Get employee ID for current user. For drivers, returns their employee ID."""
     # TODO: Integrate with actual authentication system
     return user_id
@@ -56,8 +55,8 @@ def get_employee_id(user_id: Optional[int] = None) -> Optional[int]:
 def check_access(
     category: str,
     user_role: str,
-    employee_id: Optional[int] = None,
-    target_employee_id: Optional[int] = None,
+    employee_id: int | None = None,
+    target_employee_id: int | None = None,
 ) -> bool:
     """Check if user has access to category/folder."""
     if user_role == "admin":
@@ -102,7 +101,7 @@ async def upload_file(
     entity_id: str,
     subfolder: str,
     file: UploadFile = File(...),
-    user_id: Optional[int] = None,
+    user_id: int | None = None,
 ):
     """
     Upload file to category/entity/subfolder.
@@ -143,8 +142,8 @@ async def list_files(
     category: str,
     entity_id: str,
     subfolder: str,
-    user_id: Optional[int] = None,
-) -> List[FileInfo]:
+    user_id: int | None = None,
+) -> list[FileInfo]:
     """List files in category/entity/subfolder."""
     user_role = get_user_role(user_id)
     employee_id = get_employee_id(user_id)
@@ -179,7 +178,7 @@ async def download_file(
     entity_id: str,
     subfolder: str,
     filename: str,
-    user_id: Optional[int] = None,
+    user_id: int | None = None,
 ):
     """Download file from category/entity/subfolder."""
     user_role = get_user_role(user_id)
@@ -202,7 +201,7 @@ async def delete_file(
     entity_id: str,
     subfolder: str,
     filename: str,
-    user_id: Optional[int] = None,
+    user_id: int | None = None,
 ):
     """Delete file from category/entity/subfolder."""
     user_role = get_user_role(user_id)

@@ -1,0 +1,20 @@
+DATABASE COMPARISON SUMMARY
+================================================================================
+Generated: 2026-02-05 11:52:23
+
+Local Database: almsdata
+  Tables: 277
+  Total Rows: 1,576,686
+
+Neon Database: neondb
+  Tables: 289
+  Total Rows: 1,668,033
+
+Differences:
+  Missing in Neon: 41
+  Missing in Local: 30
+  Schema Mismatches: 10
+  Row Count Diffs: 20
+
+Recommendations: 30
+  Critical Actions: 10
