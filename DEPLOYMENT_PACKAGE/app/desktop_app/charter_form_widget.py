@@ -7895,7 +7895,13 @@ class CharterFormWidget(QWidget):
                      line_total, float(value), row_idx + 1,
                      charge_type, charge_type))
 
-            # Sync grand_total and gst_amount back to charters row
+            # Sync grand_total, gst_amount, amount_paid, balance_owing as stored values
+            reserve_number = getattr(self, '_current_reserve_number', None)
+            if not reserve_number:
+                try:
+                    reserve_number = self.customer_widget.reserve_input.text() or None
+                except Exception:
+                    reserve_number = None
             cur.execute("""
                 UPDATE charters
                 SET grand_total = (
@@ -7906,9 +7912,21 @@ class CharterFormWidget(QWidget):
                     SELECT COALESCE(SUM(amount), 0)
                     FROM charter_charges WHERE charter_id = %s AND charge_type = 'tax'
                 ),
+                amount_paid = (
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM charter_payments WHERE charter_id = %s
+                ),
+                balance_owing = (
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM charter_charges WHERE charter_id = %s
+                ) - (
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM charter_payments WHERE charter_id = %s
+                ),
                 updated_at = NOW()
                 WHERE charter_id = %s
-            """, (self.charter_id, self.charter_id, self.charter_id))
+            """, (self.charter_id, self.charter_id, reserve_number,
+                  self.charter_id, reserve_number, self.charter_id))
 
             print(
                 f"✅ Saved {self.charges_table.rowCount()} charges for charter {self.charter_id}")
