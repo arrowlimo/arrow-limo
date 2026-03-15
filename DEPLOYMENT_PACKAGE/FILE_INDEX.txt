@@ -1,0 +1,433 @@
+═══════════════════════════════════════════════════════════════════════════
+DEPLOYMENT PACKAGE - COMPLETE FILE INDEX
+Arrow Limousine Dual Dispatcher Setup - Network PostgreSQL Edition
+═══════════════════════════════════════════════════════════════════════════
+
+This folder contains everything needed for dual-dispatcher setup with
+network PostgreSQL database. Files organized by purpose below.
+
+═══════════════════════════════════════════════════════════════════════════
+🚀 START HERE - PRIMARY GUIDES
+═══════════════════════════════════════════════════════════════════════════
+
+📘 QUICK_START.md
+   → Main setup guide - 4-step walkthrough for complete installation
+   → Read this first for overview and step-by-step instructions
+   → Time: 30 minutes total setup
+
+📘 DISPATCH1_VS_CODE_SETUP.txt  ⭐ NEW!
+   → Guide for running setup from VS Code on DISPATCH1
+   → Instructions for automated installation
+   → Covers PowerShell terminal usage in VS Code
+
+📘 README.txt
+   → Package overview with quick reference
+   → Installation summary
+   → Troubleshooting common issues
+   → Daily operations guide
+
+📘 README_NETWORK_SETUP.txt
+   → Detailed comprehensive guide
+   → Architecture explanation
+   → Advantages and security
+   → Maintenance procedures
+
+═══════════════════════════════════════════════════════════════════════════
+🤖 AUTOMATED SETUP SCRIPTS (For DISPATCH1)
+═══════════════════════════════════════════════════════════════════════════
+
+⚡ SETUP_DISPATCH1_COMPLETE.ps1  ⭐ THE BIG ONE!
+   Purpose: COMPLETE automated setup for DISPATCH1 from VS Code
+   What it does:
+     ✓ Creates Y: drive (virtual disk)
+     ✓ Maps L: and Z: network drives
+     ✓ Installs application to Y:\ArrowLimo
+     ✓ Configures database connection
+     ✓ Removes old installations
+     ✓ Creates desktop shortcut
+     ✓ Tests connectivity
+     ✓ Verifies everything works
+   
+   Usage on DISPATCH1:
+     .\SETUP_DISPATCH1_COMPLETE.ps1
+   
+   What you need:
+     - Running as Administrator
+     - DISPATCHMAIN IP address
+     - PostgreSQL password
+     - 10-15 minutes
+   
+   See: AUTOMATION_SCRIPT_OVERVIEW.txt for full details
+
+📄 AUTOMATION_SCRIPT_OVERVIEW.txt  ⭐ NEW!
+   → Complete documentation of SETUP_DISPATCH1_COMPLETE.ps1
+   → Step-by-step breakdown of what the script does
+   → Command line options
+   → Troubleshooting automation issues
+
+═══════════════════════════════════════════════════════════════════════════
+🔧 MANUAL SETUP SCRIPTS (Alternative to Automation)
+═══════════════════════════════════════════════════════════════════════════
+
+DISPATCHMAIN Scripts (Run on DISPATCHMAIN first):
+──────────────────────────────────────────────────
+
+📜 GET_DISPATCHMAIN_IP.ps1
+   Purpose: Display DISPATCHMAIN IP address for DISPATCH1 setup
+   Usage: .\GET_DISPATCHMAIN_IP.ps1
+   Output: IP address, network info, PostgreSQL status
+
+📜 SETUP_POSTGRESQL_NETWORK_ACCESS.ps1
+   Purpose: Configure PostgreSQL for network connections
+   What it does:
+     - Modifies postgresql.conf (listen_addresses)
+     - Updates pg_hba.conf (allow local network)
+     - Opens firewall port 5432
+     - Restarts PostgreSQL service
+     - Creates config backups
+   Usage: .\SETUP_POSTGRESQL_NETWORK_ACCESS.ps1
+   Note: Run as Administrator
+
+📜 SETUP_NETWORK_SHARE_FOR_AUTOUPDATE.ps1
+   Purpose: Create network shares for L: and Z: drives
+   Creates: \\DISPATCHMAIN\limo and \\DISPATCHMAIN\limo_files
+   Usage: .\SETUP_NETWORK_SHARE_FOR_AUTOUPDATE.ps1
+
+DISPATCH1 Scripts (Run on DISPATCH1):
+─────────────────────────────────────
+
+📜 TEST_DATABASE_CONNECTION.ps1
+   Purpose: Test connectivity from DISPATCH1 to DISPATCHMAIN database
+   What it tests:
+     - Ping DISPATCHMAIN
+     - Port 5432 accessibility
+     - PostgreSQL login
+     - Database stats
+   Usage: .\TEST_DATABASE_CONNECTION.ps1
+
+📜 DispatchInstaller_Dispatch1.ps1
+   Purpose: Install application on DISPATCH1 (older version)
+   Note: Use SETUP_DISPATCH1_COMPLETE.ps1 instead (newer, better)
+   
+📜 INSTALL_DISPATCH1_Y_DRIVE.bat
+   Purpose: Batch launcher for DispatchInstaller_Dispatch1.ps1
+   Note: Use SETUP_DISPATCH1_COMPLETE.ps1 instead
+
+Legacy Scripts (From Old Setup):
+─────────────────────────────────
+
+📜 COMPLETE_SETUP.bat
+   Old automated installer (for C: drive installation)
+   Status: Superseded by SETUP_DISPATCH1_COMPLETE.ps1
+
+📜 INSTALL_DISPATCH.bat
+   Old manual installer
+   Status: Superseded by new scripts
+
+📜 INSTALL_PYTHON.bat
+   Python installer helper
+   Status: Python should already be installed
+
+═══════════════════════════════════════════════════════════════════════════
+📚 DOCUMENTATION FILES
+═══════════════════════════════════════════════════════════════════════════
+
+Technical Documentation:
+────────────────────────
+📘 NETWORK_DATABASE_SETUP_GUIDE.md (15 pages)
+   - Complete technical reference
+   - Architecture diagrams
+   - Troubleshooting guide
+   - Backup/recovery procedures
+   - Security configuration
+
+📘 DUAL_DISPATCHER_README.md
+   - Dual dispatcher architecture overview
+   - Network PostgreSQL benefits
+   - Daily operations
+
+Setup Instructions:
+───────────────────
+📄 INSTALLATION_CHECKLIST.txt
+   - Pre-flight checklist
+   - Step-by-step verification
+   - What to check before starting
+
+📄 DISPATCH1_SETUP_GUIDE.txt
+   - Original DISPATCH1 setup guide
+   - Manual step-by-step instructions
+   - Network drive mapping
+
+📄 SETUP_INSTRUCTIONS.txt
+   - General setup instructions
+   - Legacy documentation
+
+Quick References:
+─────────────────
+📄 QUICK_REFERENCE_CARD.txt
+   - Daily operations cheat sheet
+   - Common commands
+   - Troubleshooting tips
+
+📘 INSTALLER_README.md
+   - Installer package overview
+   - What each script does
+
+═══════════════════════════════════════════════════════════════════════════
+📁 OTHER FILES
+═══════════════════════════════════════════════════════════════════════════
+
+📜 ACCESS_NETWORK_FILES.bat
+   Purpose: Map Z: drive to network share
+   Usage: Double-click to map Z: drive
+
+📜 DispatchInstaller.ps1
+   Purpose: Original installer script (generic)
+   Status: Legacy, use newer scripts
+
+📁 app/
+   Purpose: Application files (if included)
+   Note: Application now copied from L:\limo\desktop_app
+
+═══════════════════════════════════════════════════════════════════════════
+🎯 WHICH FILES DO I NEED?
+═══════════════════════════════════════════════════════════════════════════
+
+For DISPATCH1 Setup (FROM VS CODE) - RECOMMENDED:
+──────────────────────────────────────────────────
+1. Read: DISPATCH1_VS_CODE_SETUP.txt
+2. Run: SETUP_DISPATCH1_COMPLETE.ps1
+3. Done! (Everything else is automatic)
+
+For DISPATCH1 Setup (MANUAL) - Alternative:
+────────────────────────────────────────────
+1. Read: QUICK_START.md
+2. On DISPATCHMAIN: GET_DISPATCHMAIN_IP.ps1
+3. On DISPATCHMAIN: SETUP_POSTGRESQL_NETWORK_ACCESS.ps1
+4. On DISPATCH1: TEST_DATABASE_CONNECTION.ps1
+5. On DISPATCH1: DispatchInstaller_Dispatch1.ps1 or SETUP_DISPATCH1_COMPLETE.ps1
+
+For DISPATCHMAIN Setup:
+───────────────────────
+1. Run: GET_DISPATCHMAIN_IP.ps1 (get IP address)
+2. Run: SETUP_POSTGRESQL_NETWORK_ACCESS.ps1 (enable network DB)
+3. Done!
+
+For Troubleshooting:
+────────────────────
+1. Read: README.txt (common issues)
+2. Read: NETWORK_DATABASE_SETUP_GUIDE.md (detailed troubleshooting)
+3. Run: TEST_DATABASE_CONNECTION.ps1 (diagnose connectivity)
+4. Check: app_errors.log (on Y:\ArrowLimo\)
+
+For Daily Reference:
+────────────────────
+1. Keep: QUICK_REFERENCE_CARD.txt handy
+2. Bookmark: README.txt for quick answers
+
+═══════════════════════════════════════════════════════════════════════════
+🏃 QUICK START COMPARISON
+═══════════════════════════════════════════════════════════════════════════
+
+METHOD 1: Full Automation (RECOMMENDED for DISPATCH1)
+──────────────────────────────────────────────────────
+Time: 10-15 minutes
+Difficulty: Easy
+Requirements: VS Code, PowerShell as Admin
+
+Steps:
+  1. Copy DEPLOYMENT_PACKAGE to DISPATCH1
+  2. Open VS Code as Administrator
+  3. Run: .\SETUP_DISPATCH1_COMPLETE.ps1
+  4. Enter IP and password when prompted
+  5. Wait for completion
+
+Files needed:
+  - SETUP_DISPATCH1_COMPLETE.ps1
+  - DISPATCH1_VS_CODE_SETUP.txt (instructions)
+
+METHOD 2: Manual Setup (Step-by-Step)
+──────────────────────────────────────
+Time: 30 minutes
+Difficulty: Medium
+Requirements: PowerShell, follow instructions carefully
+
+Steps: See QUICK_START.md
+
+Files needed:
+  - GET_DISPATCHMAIN_IP.ps1
+  - SETUP_POSTGRESQL_NETWORK_ACCESS.ps1
+  - TEST_DATABASE_CONNECTION.ps1
+  - DispatchInstaller_Dispatch1.ps1
+  - QUICK_START.md (guide)
+
+METHOD 3: Legacy Setup (Old Method)
+────────────────────────────────────
+Status: Deprecated, use Method 1 or 2 instead
+
+═══════════════════════════════════════════════════════════════════════════
+📊 FILE STATISTICS
+═══════════════════════════════════════════════════════════════════════════
+
+Total Files: 24
+PowerShell Scripts: 8
+Batch Files: 5
+Documentation (MD): 4
+Documentation (TXT): 7
+Folders: 1
+
+Categories:
+  - Automation Scripts: 1 (SETUP_DISPATCH1_COMPLETE.ps1)
+  - Setup Scripts: 5 (PostgreSQL, testing, old installers)
+  - Documentation: 11 (guides, readmes, references)
+  - Legacy/Optional: 7 (old installers, batch files)
+
+Key Files (Most Important):
+  1. SETUP_DISPATCH1_COMPLETE.ps1 ⭐ (DISPATCH1 automation)
+  2. QUICK_START.md ⭐ (main guide)
+  3. DISPATCH1_VS_CODE_SETUP.txt ⭐ (VS Code instructions)
+  4. SETUP_POSTGRESQL_NETWORK_ACCESS.ps1 (DISPATCHMAIN setup)
+  5. GET_DISPATCHMAIN_IP.ps1 (get IP)
+  6. TEST_DATABASE_CONNECTION.ps1 (verify connectivity)
+  7. NETWORK_DATABASE_SETUP_GUIDE.md (technical reference)
+  8. README.txt (quick reference)
+
+═══════════════════════════════════════════════════════════════════════════
+🔄 TYPICAL WORKFLOW
+═══════════════════════════════════════════════════════════════════════════
+
+INITIAL SETUP (One Time):
+─────────────────────────
+
+On DISPATCHMAIN:
+  Step 1: .\GET_DISPATCHMAIN_IP.ps1
+          → Note the IP address (e.g., 192.168.1.100)
+  
+  Step 2: .\SETUP_POSTGRESQL_NETWORK_ACCESS.ps1
+          → Configures PostgreSQL for network access
+          → Opens firewall
+  
+  Step 3: Copy DEPLOYMENT_PACKAGE to DISPATCH1
+
+On DISPATCH1:
+  Step 4: Open VS Code as Administrator
+  
+  Step 5: .\SETUP_DISPATCH1_COMPLETE.ps1
+          → Enter IP from Step 1
+          → Enter postgres password
+          → Wait 10-15 minutes
+  
+  Step 6: Done! Both dispatchers ready
+
+DAILY OPERATIONS:
+─────────────────
+  1. Turn on DISPATCHMAIN (database server)
+  2. Turn on DISPATCH1
+  3. Launch app on both (desktop shortcuts)
+  4. Both work simultaneously with shared database
+
+CODE UPDATES:
+─────────────
+  1. Edit code on DISPATCHMAIN (L:\limo\desktop_app)
+  2. Save changes
+  3. On DISPATCH1: Close app → Relaunch
+  4. Auto-update syncs changes automatically
+
+═══════════════════════════════════════════════════════════════════════════
+💡 TIPS & RECOMMENDATIONS
+═══════════════════════════════════════════════════════════════════════════
+
+Best Practices:
+  ✓ Use SETUP_DISPATCH1_COMPLETE.ps1 for new DISPATCH1 setups
+  ✓ Always run PowerShell scripts as Administrator
+  ✓ Keep DISPATCHMAIN on during business hours (database server)
+  ✓ Use wired ethernet instead of WiFi for faster database
+  ✓ Test with TEST_DATABASE_CONNECTION.ps1 before full setup
+
+File Organization:
+  ✓ Keep entire DEPLOYMENT_PACKAGE folder together
+  ✓ Don't delete old files (may be useful for troubleshooting)
+  ✓ Copy to USB for DISPATCH1 installation
+
+Documentation:
+  ✓ Start with QUICK_START.md for overview
+  ✓ Use DISPATCH1_VS_CODE_SETUP.txt if using VS Code
+  ✓ Refer to NETWORK_DATABASE_SETUP_GUIDE.md for technical details
+  ✓ Keep README.txt bookmarked for quick reference
+
+Troubleshooting:
+  ✓ Run scripts one at a time to isolate issues
+  ✓ Check error messages carefully
+  ✓ Verify prerequisites before starting
+  ✓ See NETWORK_DATABASE_SETUP_GUIDE.md troubleshooting section
+
+═══════════════════════════════════════════════════════════════════════════
+🆘 COMMON QUESTIONS
+═══════════════════════════════════════════════════════════════════════════
+
+Q: Which script should I use on DISPATCH1?
+A: Use SETUP_DISPATCH1_COMPLETE.ps1 - it does everything automatically.
+
+Q: Do I need all these files?
+A: Technically no, but keep them all for troubleshooting and documentation.
+
+Q: What's the difference between the installers?
+A: SETUP_DISPATCH1_COMPLETE.ps1 is newest and most comprehensive.
+   DispatchInstaller_Dispatch1.ps1 is older, manual steps.
+   COMPLETE_SETUP.bat is legacy (C: drive installation).
+
+Q: Can I run this without VS Code?
+A: Yes! Use PowerShell directly. See QUICK_START.md.
+
+Q: What if automation fails?
+A: Follow manual steps in QUICK_START.md or NETWORK_DATABASE_SETUP_GUIDE.md.
+
+Q: How do I uninstall?
+A: See README.txt "UNINSTALLING" section or DISPATCH1_VS_CODE_SETUP.txt.
+
+Q: Where are error logs?
+A: Y:\ArrowLimo\app_errors.log (DISPATCH1)
+   L:\limo\app_errors.log (DISPATCHMAIN)
+
+Q: Can I reinstall?
+A: Yes! Run SETUP_DISPATCH1_COMPLETE.ps1 with -ForceReinstall flag.
+
+Q: Do I need internet?
+A: Only for Python package installation (pip install).
+   Database works 100% offline on local network.
+
+Q: What Python version?
+A: Python 3.10 or higher required.
+
+═══════════════════════════════════════════════════════════════════════════
+📞 SUPPORT
+═══════════════════════════════════════════════════════════════════════════
+
+Documentation:
+  - QUICK_START.md - Main setup guide
+  - NETWORK_DATABASE_SETUP_GUIDE.md - Complete technical reference
+  - README.txt - Quick reference and troubleshooting
+
+Script Help:
+  - AUTOMATION_SCRIPT_OVERVIEW.txt - Automation script documentation
+  - DISPATCH1_VS_CODE_SETUP.txt - VS Code specific instructions
+
+Testing Tools:
+  - GET_DISPATCHMAIN_IP.ps1 - Get server IP
+  - TEST_DATABASE_CONNECTION.ps1 - Diagnose connectivity
+
+Error Logs:
+  - Y:\ArrowLimo\app_errors.log (DISPATCH1)
+  - L:\limo\app_errors.log (DISPATCHMAIN)
+  - C:\Program Files\PostgreSQL\[version]\data\log\ (PostgreSQL)
+
+═══════════════════════════════════════════════════════════════════════════
+
+Package Version: 2.0 - Network PostgreSQL Edition
+February 2026
+
+For DISPATCH1 FROM VS CODE: Start with DISPATCH1_VS_CODE_SETUP.txt
+For General Setup: Start with QUICK_START.md
+For Technical Details: See NETWORK_DATABASE_SETUP_GUIDE.md
+
+═══════════════════════════════════════════════════════════════════════════

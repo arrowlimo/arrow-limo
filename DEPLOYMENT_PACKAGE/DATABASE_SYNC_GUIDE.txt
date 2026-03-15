@@ -1,0 +1,322 @@
+═══════════════════════════════════════════════════════════════════════════
+DATABASE SYNC GUIDE
+Keeping Local PostgreSQL and Neon Cloud in Sync
+═══════════════════════════════════════════════════════════════════════════
+
+🎯 OVERVIEW
+═══════════════════════════════════════════════════════════════════════════
+
+You have TWO separate databases:
+  1. Local PostgreSQL (DISPATCHMAIN) - Fast, in-office only
+  2. Neon Cloud - Slower, accessible from anywhere
+
+They DO NOT automatically sync!
+
+This guide shows you how to keep them synchronized.
+
+═══════════════════════════════════════════════════════════════════════════
+⚡ QUICK SYNC
+═══════════════════════════════════════════════════════════════════════════
+
+RECOMMENDED WORKFLOW:
+
+End of Day (Before Leaving Office):
+  1. Double-click: L:\limo\SYNC_DATABASES.bat
+  2. Choose option 1: "Sync Local → Cloud"
+  3. Type 'yes' to confirm
+  4. Wait 2-5 minutes
+  5. Done! Cloud now has all today's work
+
+Start of Day (After Working from Home):
+  1. Double-click: L:\limo\SYNC_DATABASES.bat
+  2. Choose option 2: "Sync Cloud → Local"
+  3. Type 'yes' to confirm
+  4. Wait 2-5 minutes
+  5. Done! Office database has work from home
+
+Weekly Backup:
+  1. Double-click: L:\limo\SYNC_DATABASES.bat
+  2. Choose option 3: "Backup Both Databases"
+  3. Backups saved to L:\limo\backups\
+
+═══════════════════════════════════════════════════════════════════════════
+📋 SYNC OPTIONS EXPLAINED
+═══════════════════════════════════════════════════════════════════════════
+
+Option 1: Local → Cloud (Upload)
+────────────────────────────────
+When to use:
+  • End of office workday
+  • Before going home for the weekend
+  • After making important changes in office
+  
+What it does:
+  ✓ Backs up local PostgreSQL database
+  ✓ Backs up cloud database (safety)
+  ✓ Uploads local data to cloud
+  ⚠ OVERWRITES cloud with local data
+  
+Result: Cloud database matches office database
+
+Option 2: Cloud → Local (Download)
+───────────────────────────────────
+When to use:
+  • Start of office workday (if worked from home)
+  • After making changes while off-site
+  • Getting latest remote work
+  
+What it does:
+  ✓ Backs up cloud database
+  ✓ Backs up local database (safety)
+  ✓ Downloads cloud data to local
+  ⚠ OVERWRITES local with cloud data
+  
+Result: Office database matches cloud database
+
+Option 3: Backup Both
+─────────────────────
+When to use:
+  • Weekly backups
+  • Before major changes
+  • For safety/peace of mind
+  
+What it does:
+  ✓ Creates backup of local database
+  ✓ Creates backup of cloud database
+  ✓ Stores in L:\limo\backups\ folder
+  ✓ Does NOT modify either database
+  
+Result: Safety backups created
+
+═══════════════════════════════════════════════════════════════════════════
+📅 RECOMMENDED SCHEDULES
+═══════════════════════════════════════════════════════════════════════════
+
+SCENARIO 1: Mostly Work in Office
+──────────────────────────────────
+Daily:   Work in office (local database - fast!)
+Weekly:  Friday 5pm - Sync Local → Cloud
+As Needed: When working from home, use cloud
+Monthly: Backup both databases
+
+SCENARIO 2: Hybrid Work (Office + Home)
+────────────────────────────────────────
+Before leaving office: Sync Local → Cloud
+Before starting in office: Sync Cloud → Local
+Weekly: Friday - Backup both databases
+
+SCENARIO 3: Primary Cloud (Always Synced)
+──────────────────────────────────────────
+Daily:   Use cloud database always (see note below)
+Weekly:  Backup both databases
+Note: Modify smart_launcher.py to prefer cloud
+
+═══════════════════════════════════════════════════════════════════════════
+⚠️ IMPORTANT WARNINGS
+═══════════════════════════════════════════════════════════════════════════
+
+1. SYNCING OVERWRITES DATA!
+   • Local → Cloud: Cloud data is REPLACED
+   • Cloud → Local: Local data is REPLACED
+   • Always creates safety backups first
+   • Type 'yes' to confirm (safety check)
+
+2. DON'T WORK ON BOTH SIMULTANEOUSLY!
+   • If working in office: Use local database only
+   • If working from home: Use cloud database only
+   • Sync when switching locations
+   • Otherwise you'll have conflicts
+
+3. SYNC DIRECTION MATTERS!
+   • Local → Cloud: Use when office has latest data
+   • Cloud → Local: Use when cloud has latest data
+   • Choose wrong direction = lose recent work!
+
+4. BACKUPS ARE AUTOMATIC!
+   • Sync always creates backups first
+   • Backups stored in L:\limo\backups\
+   • Timestamped: backup_local_20260207_153045.sql
+   • Keep backups for at least 1 month
+
+═══════════════════════════════════════════════════════════════════════════
+🔧 MANUAL SYNC (Advanced)
+═══════════════════════════════════════════════════════════════════════════
+
+If you prefer command line:
+
+Run sync utility:
+  cd L:\limo
+  python database_sync.py
+
+Interactive menu will guide you through options.
+
+═══════════════════════════════════════════════════════════════════════════
+📊 SYNC PROCESS DETAILS
+═══════════════════════════════════════════════════════════════════════════
+
+What happens during sync (Local → Cloud example):
+
+Step 1: Backup Local Database
+  → Creates: backups/backup_local_[timestamp].sql
+  → Uses: pg_dump (PostgreSQL backup tool)
+  → Size: Compressed, typically 1-50 MB
+
+Step 2: Backup Cloud Database (Safety)
+  → Creates: backups/backup_cloud_before_sync_[timestamp].sql
+  → In case you need to undo sync
+
+Step 3: Restore Local Backup to Cloud
+  → Uses: pg_restore
+  → Drops existing cloud tables
+  → Recreates from local backup
+  → Time: 2-5 minutes typically
+
+Step 4: Verify
+  → Confirms restore completed
+  → Shows success message
+
+═══════════════════════════════════════════════════════════════════════════
+🗂️ BACKUP FILE MANAGEMENT
+═══════════════════════════════════════════════════════════════════════════
+
+Location: L:\limo\backups\
+
+File naming:
+  backup_local_20260207_153045.sql     ← Local database at 3:30 PM
+  backup_cloud_20260207_170030.sql     ← Cloud database at 5:00 PM
+  backup_cloud_before_sync_[time].sql  ← Cloud before overwrite
+
+Cleanup:
+  • Backups accumulate over time
+  • Keep recent backups (last 30 days)
+  • Archive or delete older backups
+  • Check disk space occasionally
+
+Restore from backup:
+  1. Open pgAdmin or use psql
+  2. Create new database or drop existing
+  3. Use pg_restore with backup file
+  4. Or run: pg_restore -d almsdata backup_file.sql
+
+═══════════════════════════════════════════════════════════════════════════
+🔍 TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════════
+
+"pg_dump not found":
+→ Install PostgreSQL client tools
+→ Download from postgresql.org
+→ Make sure bin folder in PATH
+
+"Connection failed":
+→ Check .env.local and .env.cloud files
+→ Verify database credentials
+→ Test connection with smart_launcher first
+→ Make sure DISPATCHMAIN is on (for local)
+
+"Permission denied":
+→ Check postgres user password
+→ Verify user has database access
+→ Check pg_hba.conf allows connection
+
+"Sync too slow":
+→ Normal for large databases
+→ Can take 5-10 minutes for 100+ MB
+→ Use fast internet for cloud sync
+→ Run during off-hours if very large
+
+"Which direction to sync?":
+→ Where did you make most recent changes?
+→ That's the source database
+→ Sync FROM source TO destination
+→ Local → Cloud: Office is source
+→ Cloud → Local: Cloud is source
+
+═══════════════════════════════════════════════════════════════════════════
+✅ STEP-BY-STEP EXAMPLE
+═══════════════════════════════════════════════════════════════════════════
+
+SCENARIO: Worked in office all week, going home for weekend
+
+Step 1: Finish work in office
+  • Close Arrow Limo application
+  • All data in local PostgreSQL
+
+Step 2: Start sync utility
+  • Double-click: L:\limo\SYNC_DATABASES.bat
+  • Window opens with menu
+
+Step 3: Choose sync direction
+  • You see:
+    1. Sync Local → Cloud
+    2. Sync Cloud → Local
+    3. Backup Both
+    4. Exit
+  • Enter: 1 (Local → Cloud)
+
+Step 4: Confirm
+  • Prompt: "This will OVERWRITE cloud database!"
+  • Type: yes
+  • Press Enter
+
+Step 5: Wait
+  • Creating backup... ✓
+  • Backing up cloud... ✓
+  • Restoring to cloud... ✓
+  • Done!
+
+Step 6: Go home
+  • Cloud database now has all office work
+  • Can work from home using cloud database
+  • When back in office Monday: Sync Cloud → Local
+
+═══════════════════════════════════════════════════════════════════════════
+🎓 BEST PRACTICES
+═══════════════════════════════════════════════════════════════════════════
+
+1. Decide on Primary Database
+   • Local = Primary (recommended for speed)
+   • Cloud = Backup/remote access
+   • OR Cloud = Primary (if mostly remote)
+
+2. Establish Sync Routine
+   • Friday 5pm: Sync Local → Cloud
+   • Monday 9am: Sync Cloud → Local (if worked from home)
+   • Consistency prevents data loss
+
+3. Backup Regularly
+   • Weekly: Backup both databases
+   • Before major changes: Backup
+   • Keep backups 30+ days
+
+4. Communicate with Team
+   • If multiple users: Coordinate syncing
+   • Don't sync while someone else working
+   • Establish who syncs when
+
+5. Monitor Backup Folder
+   • Check L:\limo\backups\ monthly
+   • Clean up old backups
+   • Verify backups not corrupt
+
+═══════════════════════════════════════════════════════════════════════════
+📞 SUPPORT
+═══════════════════════════════════════════════════════════════════════════
+
+Sync Utility:
+  L:\limo\database_sync.py
+  L:\limo\SYNC_DATABASES.bat
+
+Documentation:
+  L:\limo\DEPLOYMENT_PACKAGE\HYBRID_AUTO_DETECTION_GUIDE.md
+
+Backups Location:
+  L:\limo\backups\
+
+Hybrid Setup:
+  L:\limo\DEPLOYMENT_PACKAGE\HYBRID_QUICK_START.txt
+
+═══════════════════════════════════════════════════════════════════════════
+
+Ready to sync? Double-click: L:\limo\SYNC_DATABASES.bat
+
+═══════════════════════════════════════════════════════════════════════════

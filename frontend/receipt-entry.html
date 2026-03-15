@@ -68,6 +68,8 @@
         .form-group.inline { display: flex; gap: 10px; align-items: center; }
         .form-group.inline input { flex: 1; }
         .form-group.inline label { flex: 1; margin-bottom: 0; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 15px; }
+        .form-row .form-group { margin-bottom: 0; }
         .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; }
         .checkbox-label input { width: auto; margin: 0; }
         button {
@@ -182,29 +184,31 @@
         <div class="form-section">
             <h2>Add New Receipt</h2>
             <form @submit.prevent="submitReceipt">
-                <div class="form-group">
-                    <label for="date">Date *</label>
-                    <input type="date" id="date" v-model="form.receipt_date" required />
-                </div>
+                <div class="form-row" style="margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label for="date">Date *</label>
+                        <input type="date" id="date" v-model="form.receipt_date" required />
+                    </div>
 
-                <div class="form-group">
-                    <label for="vendor">Vendor *</label>
-                    <input type="text" id="vendor" v-model="form.vendor_name" 
-                           @input="searchVendors" 
-                           @blur="loadVendorProfile"
-                           placeholder="Type vendor name..." required />
-                    <div v-if="vendorSuggestions.length > 0" class="vendor-suggestions">
-                        <div v-for="v in vendorSuggestions" :key="v" @click="selectVendor(v)" 
-                             class="suggestion-item">
-                            {{ v }}
+                    <div class="form-group">
+                        <label for="amount">Amount *</label>
+                        <input type="number" id="amount" v-model.number="form.gross_amount" 
+                               step="0.01" @input="autoCalculateGST" placeholder="0.00" required />
+                    </div>
+
+                    <div class="form-group" style="position: relative;">
+                        <label for="vendor">Vendor *</label>
+                        <input type="text" id="vendor" v-model="form.vendor_name" 
+                               @input="searchVendors" 
+                               @blur="loadVendorProfile"
+                               placeholder="Type vendor name..." required />
+                        <div v-if="vendorSuggestions.length > 0" class="vendor-suggestions" style="position: absolute; width: 100%; z-index: 100;">
+                            <div v-for="v in vendorSuggestions" :key="v" @click="selectVendor(v)" 
+                                 class="suggestion-item">
+                                {{ v }}
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="amount">Amount *</label>
-                    <input type="number" id="amount" v-model.number="form.gross_amount" 
-                           step="0.01" @input="autoCalculateGST" placeholder="0.00" required />
                 </div>
 
                 <div class="form-group">

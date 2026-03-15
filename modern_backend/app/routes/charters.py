@@ -10,35 +10,29 @@ Implements 5 main endpoints:
 """
 
 from datetime import date, datetime
-from decimal import Decimal
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import text, String, cast
 
 from app.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import String, cast, text
+from sqlalchemy.orm import Session
+
 from app.models import (
+    Charge,
     Charter,
     CharterRoute,
-    Charge,
-    Payment,
     Customer,
-    Vehicle,
     Employee,
+    Payment,
+    Vehicle,
 )
 from app.schemas.booking import (
+    CHARGE_TYPE_ADDITIONAL,
+    CHARGE_TYPE_AIRPORT,
+    CHARGE_TYPE_BASE,
+    CHARGE_TYPE_GST,
     ChartRequest,
     ChartResponse,
-    CharterSearch,
-    CustomerSearch,
-    VehicleResponse,
-    DriverResponse,
-    ErrorResponse,
     calculate_gst,
-    CHARGE_TYPE_BASE,
-    CHARGE_TYPE_AIRPORT,
-    CHARGE_TYPE_ADDITIONAL,
-    CHARGE_TYPE_GST,
 )
 
 router = APIRouter()
@@ -231,7 +225,7 @@ async def create_charter(request: ChartRequest, db: Session = Depends(get_db)):
         # Rollback on any database error
         db.rollback()
         raise HTTPException(
-            status_code=400, detail=f"Failed to create charter: {str(e)}"
+            status_code=400, detail=f"Failed to create charter: {e!s}"
         )
 
 
@@ -290,7 +284,7 @@ async def search_charters(
             "count": len(results),
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Search failed: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Search failed: {e!s}")
 
 
 # =============================================================================
@@ -334,7 +328,7 @@ async def search_customers(
             "count": len(results),
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Search failed: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Search failed: {e!s}")
 
 
 # =============================================================================
@@ -368,7 +362,7 @@ async def list_vehicles(db: Session = Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(
-            status_code=400, detail=f"Failed to list vehicles: {str(e)}"
+            status_code=400, detail=f"Failed to list vehicles: {e!s}"
         )
 
 
@@ -405,7 +399,7 @@ async def list_drivers(db: Session = Depends(get_db)):
             "count": len(drivers),
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to list drivers: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to list drivers: {e!s}")
 
 
 # =============================================================================

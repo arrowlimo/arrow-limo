@@ -1,15 +1,17 @@
 """
 User authentication routes - supports any user role (admin, driver, manager, super_user, etc.)
 Serves login page and handles login for all user types
-Last updated: 2026-01-30 11:45 AM - Added JSON login endpoint
+Last updated: 2026-02-07 - Added auto-login support for local development
 """
 
+import os
 import secrets
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Request, Form, HTTPException, Response
+
+from fastapi import APIRouter, Form, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
-import psycopg2
+
 from ..db import get_connection
 
 router = APIRouter(prefix="/auth", tags=["user_auth"])
@@ -255,6 +257,33 @@ async def login_page(request: Request):
     if session_token and get_session(session_token):
         return RedirectResponse(url="/auth/dashboard", status_code=302)
     return LOGIN_HTML
+
+
+@router.get("/auto-login-check")
+async def auto_login_check():
+    """Check if auto-login is enabled for local development"""
+    auto_login = os.getenv('AUTO_LOGIN', 'false').lower() in ('true', '1', 'yes')
+    
+    if auto_login:
+        # Create auto-login session
+        auto_login_user = os.getenv('AUTO_LOGIN_USER', 'admin')
+        token = create_session(
+            employee_id=0,
+            employee_name=auto_login_user
+        )
+        
+        return JSONResponse({
+            "auto_login": True,
+            "token": token,
+            "user": {
+                "username": auto_login_user,
+                "role": "admin",
+                "employee_id": 0,
+                "permissions": {}
+            }
+        })
+    
+    return JSONResponse({"auto_login": False})
 
 
 @router.post("/login-submit")

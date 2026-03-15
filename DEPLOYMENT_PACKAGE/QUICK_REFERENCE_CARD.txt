@@ -1,0 +1,167 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                  ARROW LIMO DUAL DISPATCHER                      ║
+║                   QUICK REFERENCE CARD                           ║
+╚══════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────┐
+│ STARTING THE APPLICATION                                         │
+└──────────────────────────────────────────────────────────────────┘
+
+  DISPATCHMAIN (Development Computer):
+  • Double-click "Arrow Limousine Dispatch" on desktop
+  • Login with your credentials
+  
+  DISPATCH1 (Employee Computer):
+  • Double-click "Arrow Limo DISPATCH1" on desktop
+  • App auto-updates first (takes 5-10 seconds)
+  • Login with your credentials
+
+┌──────────────────────────────────────────────────────────────────┐
+│ DRIVE MAPPINGS                                                   │
+└──────────────────────────────────────────────────────────────────┘
+
+  L:\limo (DISPATCH1 only)
+  • Auto-update source code from DISPATCHMAIN
+  • Read-only access
+  • Maps to: \\DISPATCHMAIN\limo
+  
+  Z:\limo_files (Both computers)
+  • Shared file storage for all documents
+  • Read/Write access
+  • Employee files, vehicle docs, reports
+  • Maps to: \\DISPATCHMAIN\limo_files
+  
+  Y:\ArrowLimo (DISPATCH1 only)
+  • Local application installation
+  • Updated automatically from L:\limo
+
+┌──────────────────────────────────────────────────────────────────┐
+│ NETWORK CREDENTIALS                                              │
+└──────────────────────────────────────────────────────────────────┘
+
+  If Windows asks for network credentials:
+  
+  Username: DISPATCHMAIN\ArrowDispatch
+  Password: Dispatch2026!
+  
+  ☑ Remember my credentials
+
+┌──────────────────────────────────────────────────────────────────┐
+│ WHEN CODE IS UPDATED                                             │
+└──────────────────────────────────────────────────────────────────┘
+
+  ON DISPATCHMAIN:
+  1. Make code changes to L:\limo\desktop_app\...
+  2. Save files
+  3. Test changes
+  4. Done! (DISPATCH1 will auto-sync next launch)
+  
+  ON DISPATCH1:
+  1. Close the app
+  2. Relaunch from desktop shortcut
+  3. Auto-update runs (watch console window)
+  4. Updated app starts automatically
+
+┌──────────────────────────────────────────────────────────────────┐
+│ TROUBLESHOOTING                                                  │
+└──────────────────────────────────────────────────────────────────┘
+
+  ⚠ "Cannot access L:\limo\desktop_app"
+  → Verify DISPATCHMAIN computer is turned ON
+  → Check network connection
+  → Remap L: drive (see below)
+  
+  ⚠ "Database connection failed"
+  → Check internet connection (database is in cloud)
+  → Try from DISPATCHMAIN to verify database online
+  → Check .env file has correct credentials
+  
+  ⚠ Z: drive won't open / asks for password
+  → DISPATCHMAIN must be ON
+  → Enter network credentials (above)
+  → Check "Remember my credentials"
+  
+  ⚠ Auto-update shows errors
+  → Run manually: Y:\ArrowLimo\AUTO_UPDATE.ps1
+  → Check L: drive accessible
+  → Contact system administrator
+
+┌──────────────────────────────────────────────────────────────────┐
+│ MANUAL DRIVE MAPPING (If needed)                                │
+└──────────────────────────────────────────────────────────────────┘
+
+  Open PowerShell or Command Prompt:
+  
+  Map L: drive (DISPATCH1 only):
+  net use L: \\DISPATCHMAIN\limo /user:DISPATCHMAIN\ArrowDispatch Dispatch2026! /persistent:yes
+  
+  Map Z: drive (Both computers):
+  net use Z: \\DISPATCHMAIN\limo_files /user:DISPATCHMAIN\ArrowDispatch Dispatch2026! /persistent:yes
+  
+  Verify drives mapped:
+  net use
+
+┌──────────────────────────────────────────────────────────────────┐
+│ FILE LOCATIONS                                                   │
+└──────────────────────────────────────────────────────────────────┘
+
+  DISPATCHMAIN:
+  • App: C:\ArrowLimo or L:\limo\desktop_app
+  • Config: .env file in app directory
+  • Logs: app_errors.log in app directory
+  
+  DISPATCH1:
+  • App: Y:\ArrowLimo\desktop_app
+  • Config: Y:\ArrowLimo\.env
+  • Logs: Y:\ArrowLimo\app_errors.log
+  • Update Script: Y:\ArrowLimo\AUTO_UPDATE.ps1
+
+┌──────────────────────────────────────────────────────────────────┐
+│ DATABASE INFO                                                    │
+└──────────────────────────────────────────────────────────────────┘
+
+  Type: Neon PostgreSQL Cloud Database
+  Location: AWS US-West-2
+  Shared: Yes - both dispatchers use same database
+  Connection: Requires internet access
+  
+  All changes immediately visible to both workstations
+  No manual sync needed
+
+┌──────────────────────────────────────────────────────────────────┐
+│ DAILY CHECKLIST                                                  │
+└──────────────────────────────────────────────────────────────────┘
+
+  ☐ Turn on DISPATCHMAIN computer
+  ☐ Turn on DISPATCH1 computer
+  ☐ Launch app on needed workstation(s)
+  ☐ Login with credentials
+  ☐ Verify database connection (browse charters)
+  ☐ Begin dispatching
+
+┌──────────────────────────────────────────────────────────────────┐
+│ EMERGENCY CONTACTS                                               │
+└──────────────────────────────────────────────────────────────────┘
+
+  System Administrator: ______________________________
+  
+  Database Issues: ______________________________
+  
+  Network Issues: ______________________________
+
+┌──────────────────────────────────────────────────────────────────┐
+│ ADDITIONAL NOTES                                                 │
+└──────────────────────────────────────────────────────────────────┘
+
+  _______________________________________________________________
+  
+  _______________________________________________________________
+  
+  _______________________________________________________________
+  
+  _______________________________________________________________
+
+╔══════════════════════════════════════════════════════════════════╗
+║  Arrow Limousine Management System - Dual Dispatcher Setup       ║
+║  Last Updated: February 6, 2026                                  ║
+╚══════════════════════════════════════════════════════════════════╝

@@ -1,0 +1,156 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    DATABASE TIMEOUT FIX DEPLOYMENT                           ║
+║                         DISPATCH1 QUICK GUIDE                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📅 DEPLOYMENT DATE: Pending
+✅ STATUS: Code ready, awaiting deployment to DISPATCH1
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🎯 WHAT THIS FIXES:
+
+  ❌ BEFORE: Program hangs for 5+ minutes when database is offline
+  ✅ AFTER:  Program fails within 30 seconds with clear error message
+
+  ❌ BEFORE: Long queries run forever, freezing the application
+  ✅ AFTER:  Queries automatically cancelled after 5 minutes
+
+  ❌ BEFORE: Cloud database connections drop after 5 minutes idle
+  ✅ AFTER:  Keepalive support prevents idle disconnects
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📋 DEPLOYMENT CHECKLIST FOR DISPATCH1:
+
+  [ ] 1. Backup current main.py on DISPATCH1
+         Location: Y:\ArrowLimo\app\desktop_app\main.py
+         Backup to: Y:\ArrowLimo\app\desktop_app\main.py.BEFORE_TIMEOUT_FIX
+
+  [ ] 2. Copy new main.py from DISPATCHMAIN
+         From: \\DISPATCHMAIN\limo\DEPLOYMENT_PACKAGE\app\desktop_app\main.py
+         To:   Y:\ArrowLimo\app\desktop_app\main.py
+
+  [ ] 3. Verify .env file has timeout settings
+         Location: Y:\ArrowLimo\app\.env
+         Must contain:
+           DB_CONNECT_TIMEOUT=30
+           DB_STATEMENT_TIMEOUT=300
+           DB_KEEPALIVES=0
+
+  [ ] 4. Copy test script to DISPATCH1 (optional but recommended)
+         From: \\DISPATCHMAIN\limo\scripts\test_database_timeouts.py
+         To:   Y:\ArrowLimo\scripts\test_database_timeouts.py
+
+  [ ] 5. Run verification test
+         Command: Y:\ArrowLimo\.venv\Scripts\python.exe scripts\test_database_timeouts.py
+         Expected: "✅ ALL TESTS PASSED!"
+
+  [ ] 6. Restart the desktop application
+         Close: Any running instances of Arrow Limo Desktop
+         Start: Y:\ArrowLimo\DISPATCH1_DESKTOP_STARTUP.bat
+
+  [ ] 7. Verify application works normally
+         Test: Open a charter, view reports, confirm no errors
+
+═══════════════════════════════════════════════════════════════════════════════
+
+⚙️ .ENV CONFIGURATION (Y:\ArrowLimo\app\.env):
+
+# Add these lines to .env if not present:
+
+# Database timeout protection (prevents hangs)
+DB_CONNECT_TIMEOUT=30          # Max 30 seconds to establish connection
+DB_STATEMENT_TIMEOUT=300       # Max 5 minutes per query (300 seconds)
+DB_KEEPALIVES=0                # Disabled for localhost, set to 1 for cloud
+
+# Optional keepalive settings (only needed if DB_KEEPALIVES=1):
+DB_KEEPALIVES_IDLE=30          # Start keepalive after 30s idle
+DB_KEEPALIVES_INTERVAL=10      # Probe every 10s
+DB_KEEPALIVES_COUNT=5          # 5 failed probes = dead connection
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🧪 TESTING (OPTIONAL BUT RECOMMENDED):
+
+After deployment, verify the fix is working:
+
+1. Open PowerShell on DISPATCH1
+2. Navigate: cd Y:\ArrowLimo
+3. Run test: .venv\Scripts\python.exe scripts\test_database_timeouts.py
+4. Expected output:
+
+   ======================================================================
+   ✅ ALL TESTS PASSED!
+   ======================================================================
+
+   Summary:
+     ✓ Connection timeout: 30s
+     ✓ Statement timeout: 300s (5.0 minutes)
+     ✓ Keepalives: Disabled
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔍 VERIFICATION COMMANDS:
+
+Check .env has timeout settings:
+  C:\> type Y:\ArrowLimo\app\.env | findstr TIMEOUT
+
+Check main.py has timeout code:
+  C:\> findstr /C:"connect_timeout" Y:\ArrowLimo\app\desktop_app\main.py
+
+Expected: Should find 2 lines (one in __init__, one in _reconnect)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+⚠️ TROUBLESHOOTING:
+
+Issue: Application won't start after update
+  → Check: .env file has DB_CONNECT_TIMEOUT and DB_STATEMENT_TIMEOUT
+  → Fix: Add missing settings to .env as shown above
+  → Restart: Close and restart application
+
+Issue: "Connection still takes forever to timeout"
+  → Check: Did you restart the application after deployment?
+  → Check: Is .env file in correct location? (Y:\ArrowLimo\app\.env)
+  → Check: Run test script to verify configuration
+
+Issue: Queries being cancelled too early
+  → Fix: Increase DB_STATEMENT_TIMEOUT in .env (e.g., 600 for 10 minutes)
+  → Restart application
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📞 SUPPORT:
+
+If issues occur after deployment:
+
+1. Check logs: Y:\ArrowLimo\app\logs\
+2. Restore backup: Copy main.py.BEFORE_TIMEOUT_FIX back to main.py
+3. Restart application to return to previous version
+4. Contact: Document the error and report to DISPATCHMAIN
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📝 DEPLOYMENT SIGN-OFF:
+
+Deployed by:  ___________________   Date: ____________  Time: ______
+
+Tested by:    ___________________   Date: ____________  Time: ______
+
+Verified:     [ ] Application starts normally
+              [ ] Charters load correctly
+              [ ] Reports work
+              [ ] No database errors
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📚 REFERENCE DOCUMENTS:
+
+  • DATABASE_TIMEOUT_FIX.md - Original problem analysis and solution design
+  • DATABASE_TIMEOUT_FIX_APPLIED.md - Complete fix documentation with test results
+  • DISPATCH1_READ_ME_FIRST.md - Complete DISPATCH1 setup guide
+  • test_database_timeouts.py - Automated verification script
+
+═══════════════════════════════════════════════════════════════════════════════
+END OF DEPLOYMENT GUIDE

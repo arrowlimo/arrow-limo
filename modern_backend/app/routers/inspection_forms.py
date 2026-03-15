@@ -97,7 +97,7 @@ def check_authorization(user_id: int, user_role: str, charter_id: int) -> None:
         conn.close()
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Authorization check failed",
@@ -201,7 +201,7 @@ async def get_signed_url(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate signed URL",
@@ -327,7 +327,7 @@ async def download_inspection_form(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to download inspection form",
@@ -403,7 +403,7 @@ async def get_form_metadata(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get form metadata",

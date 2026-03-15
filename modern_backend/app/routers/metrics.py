@@ -1,6 +1,8 @@
 """Dashboard metrics endpoint - returns JSON with operational KPIs"""
-from fastapi import APIRouter, Query
 from datetime import datetime, timedelta
+
+from fastapi import APIRouter, Query
+
 from ..db import cursor
 
 router = APIRouter(prefix="/api", tags=["dashboard"])

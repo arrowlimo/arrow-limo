@@ -1,0 +1,91 @@
+{
+  "table": "run_type_default_charges",
+  "timestamp": "2026-02-11T18:12:44.602637",
+  "row_count": 6,
+  "data": [
+    {
+      "id": 1,
+      "run_type_id": 1,
+      "charge_description": "Calgary Airport Fee",
+      "charge_type": "airport_fee",
+      "amount": "18.00",
+      "calc_type": "Fixed",
+      "value": "18.00",
+      "formula": null,
+      "is_taxable": true,
+      "sequence": 100,
+      "created_at": "2026-01-31 00:07:47.553811",
+      "updated_at": "2026-01-31 00:07:47.553811"
+    },
+    {
+      "id": 2,
+      "run_type_id": 2,
+      "charge_description": "Calgary Airport Fee",
+      "charge_type": "airport_fee",
+      "amount": "18.00",
+      "calc_type": "Fixed",
+      "value": "18.00",
+      "formula": null,
+      "is_taxable": true,
+      "sequence": 100,
+      "created_at": "2026-01-31 00:07:47.553811",
+      "updated_at": "2026-01-31 00:07:47.553811"
+    },
+    {
+      "id": 3,
+      "run_type_id": 3,
+      "charge_description": "Edmonton Airport Fee",
+      "charge_type": "airport_fee",
+      "amount": "18.00",
+      "calc_type": "Fixed",
+      "value": "18.00",
+      "formula": null,
+      "is_taxable": true,
+      "sequence": 100,
+      "created_at": "2026-01-31 00:07:47.553811",
+      "updated_at": "2026-01-31 00:07:47.553811"
+    },
+    {
+      "id": 4,
+      "run_type_id": 4,
+      "charge_description": "Edmonton Airport Fee",
+      "charge_type": "airport_fee",
+      "amount": "18.00",
+      "calc_type": "Fixed",
+      "value": "18.00",
+      "formula": null,
+      "is_taxable": true,
+      "sequence": 100,
+      "created_at": "2026-01-31 00:07:47.553811",
+      "updated_at": "2026-01-31 00:07:47.553811"
+    },
+    {
+      "id": 5,
+      "run_type_id": 5,
+      "charge_description": "Red Deer Airport Fee",
+      "charge_type": "airport_fee",
+      "amount": "25.00",
+      "calc_type": "Fixed",
+      "value": "25.00",
+      "formula": null,
+      "is_taxable": true,
+      "sequence": 100,
+      "created_at": "2026-01-31 00:07:47.553811",
+      "updated_at": "2026-01-31 00:07:47.553811"
+    },
+    {
+      "id": 6,
+      "run_type_id": 6,
+      "charge_description": "Red Deer Airport Fee",
+      "charge_type": "airport_fee",
+      "amount": "25.00",
+      "calc_type": "Fixed",
+      "value": "25.00",
+      "formula": null,
+      "is_taxable": true,
+      "sequence": 100,
+      "created_at": "2026-01-31 00:07:47.553811",
+      "updated_at": "2026-01-31 00:07:47.553811"
+    }
+  ]
+}

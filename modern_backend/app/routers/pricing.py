@@ -6,10 +6,11 @@ Endpoints:
 - GET /pricing/by-vehicle/{vehicle_type} - Get pricing for specific vehicle type
 - POST /pricing/calculate-quotes - Calculate 3 quote options (hourly, package, split run)
 """
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
-from typing import Optional, List
 from decimal import Decimal
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
 from ..db import get_connection
 
 router = APIRouter(prefix="/api/pricing", tags=["pricing"])
@@ -30,12 +31,12 @@ class QuoteOption(BaseModel):
     quote_type: str  # 'hourly', 'package', 'split_run'
     quote_name: str
     base_rate: Decimal
-    hours_included: Optional[float]
-    extra_time_rate: Optional[Decimal]
-    standby_rate: Optional[Decimal]
+    hours_included: float | None
+    extra_time_rate: Decimal | None
+    standby_rate: Decimal | None
     total_before_gratuity: Decimal
-    gratuity_amount: Optional[Decimal]
-    total_with_gratuity: Optional[Decimal]
+    gratuity_amount: Decimal | None
+    total_with_gratuity: Decimal | None
     calculation_notes: str
 
 
@@ -194,7 +195,7 @@ def calculate_quotes(request: QuoteRequest):
             quotes.append(
                 {
                     "quote_type": "hourly",
-                    "quote_name": f"Quote 1: Hourly Rate",
+                    "quote_name": "Quote 1: Hourly Rate",
                     "base_rate": hourly["hourly_rate"],
                     "hours_included": quoted_hours,
                     "extra_time_rate": hourly["extra_time_rate"],
@@ -233,7 +234,7 @@ def calculate_quotes(request: QuoteRequest):
                 quotes.append(
                     {
                         "quote_type": "package",
-                        "quote_name": f"Quote 2: Package Rate",
+                        "quote_name": "Quote 2: Package Rate",
                         "base_rate": pkg["package_rate"],
                         "hours_included": pkg_hours,
                         "extra_time_rate": pkg["extra_time_rate"],
@@ -272,7 +273,7 @@ def calculate_quotes(request: QuoteRequest):
             quotes.append(
                 {
                     "quote_type": "split_run",
-                    "quote_name": f"Quote 3: Split Run",
+                    "quote_name": "Quote 3: Split Run",
                     "base_rate": 0.00,
                     "hours_included": free_hours,
                     "extra_time_rate": split["extra_time_rate"],

@@ -14,8 +14,9 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .api import receipt_verification as receipt_verification_router
-from .db import get_connection
+from .db import close_all_connections
 from .routers import accounting as accounting_router
+from .routers import bank_audit_reconciliation as bank_audit_reconciliation_router
 from .routers import banking as banking_router
 from .routers import banking_allocations as banking_allocations_router
 from .routers import bookings as bookings_router
@@ -30,13 +31,19 @@ from .routers import inspection_forms as inspection_forms_router
 from .routers import invoices as invoices_router
 from .routers import metrics as metrics_router
 from .routers import payments as payments_router
+from .routers import payroll_tax as payroll_tax_router
 from .routers import pdf as pdf_router
 from .routers import pricing as pricing_router
 from .routers import receipts as receipts_router
+from .routers import receipts_linked_display as receipts_linked_display_router
 from .routers import receipts_simple as receipts_simple_router
 from .routers import receipts_split as receipts_split_router
+from .routers import reconciliation_report as reconciliation_report_router
 from .routers import reports as reports_router
+from .routers import t2_returns as t2_returns_router
+from .routers import table_management as table_management_router
 from .routers import vehicles as vehicles_router
+from .routers import vendor_standardization as vendor_standardization_router
 from .settings import get_settings
 
 settings = get_settings()
@@ -119,21 +126,30 @@ async def health():
     return {"status": "ok"}
 
 
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources on shutdown"""
+    close_all_connections()
+
+
 @app.get("/db-ping")
 async def db_ping():
     """Test database connectivity by running a simple query."""
     try:
+        from .db import get_connection, return_connection
         conn = get_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM banking_transactions")
-        count = cur.fetchone()[0]
-        cur.close()
-        conn.close()
-        return {
-            "status": "ok",
-            "database": "connected",
-            "banking_transactions_count": count,
-        }
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM banking_transactions")
+            count = cur.fetchone()[0]
+            cur.close()
+            return {
+                "status": "ok",
+                "database": "connected",
+                "banking_transactions_count": count,
+            }
+        finally:
+            return_connection(conn)
     except Exception as e:
         return {"status": "error", "database": "disconnected", "error": str(e)}
 
@@ -153,6 +169,7 @@ app.include_router(
     receipts_simple_router.router
 )  # Simplified receipts matching actual schema
 app.include_router(receipts_split_router.router)
+app.include_router(receipts_linked_display_router.router)  # Linked split receipts display
 app.include_router(
     receipt_verification_router.router
 )  # Receipt verification (physical match)
@@ -164,15 +181,23 @@ app.include_router(vehicles_router.router)
 app.include_router(employees_router.router)
 app.include_router(customers_router.router)
 app.include_router(pricing_router.router)
+app.include_router(table_management_router.router)
+app.include_router(t2_returns_router.router)  # T2 Corporate Tax Return entry
 app.include_router(charter_sheet_router.router)
 app.include_router(file_storage_router.router)  # File storage with role-based access
+app.include_router(payroll_tax_router.router)  # Payroll & T4 form entry
+app.include_router(reconciliation_report_router.router)  # Banking-receipt reconciliation
+app.include_router(vendor_standardization_router.router)  # Vendor name standardization
+app.include_router(bank_audit_reconciliation_router.router)  # Bank account reconciliation for auditors
 
 # Import and include cheque books router
-from app.routes import cheque_books as cheque_books_router
+from .routes import cheque_books as cheque_books_router
+
 app.include_router(cheque_books_router.router)  # Cheque book management
 
 # Import and include received payments router
-from app.routes import received_payments as received_payments_router
+from .routes import received_payments as received_payments_router
+
 app.include_router(received_payments_router.router)  # Record received payments
 
 # Mount Vue frontend at root LAST (after all API routes are registered)

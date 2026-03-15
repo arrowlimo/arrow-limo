@@ -1,0 +1,474 @@
+═══════════════════════════════════════════════════════════════════════════
+DUAL DISPATCHER SETUP - SHARED STATUS TRACKER
+Arrow Limousine Network PostgreSQL Deployment
+Location: L:\limo\DEPLOYMENT_PACKAGE\SETUP_STATUS.txt
+═══════════════════════════════════════════════════════════════════════════
+
+⚠️ INSTRUCTIONS: Update this file as you complete each task
+   Both DISPATCHMAIN and DISPATCH1 can see this file in real-time
+   Change [ ] to [✓] when task is complete
+   Add notes in the NOTES section at bottom
+
+═══════════════════════════════════════════════════════════════════════════
+📋 SETUP STATUS - Last Updated: February 7, 2026 15:07
+═══════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 1: DISPATCHMAIN SETUP                                            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+[✓] Code Updates Complete
+    - Receipt widget editing enabled
+    - .env configuration updated for localhost PostgreSQL
+    - All Python files ready in L:\limo\desktop_app
+    - Completed: February 7, 2026
+
+[✓] Documentation Created
+    - Setup scripts created (8 PowerShell scripts)
+    - User guides created (7 documentation files)
+    - Automation script completed (SETUP_DISPATCH1_COMPLETE.ps1)
+    - Completed: February 7, 2026
+
+[✓] Hybrid Auto-Detection Setup Complete
+    - Smart launcher created (auto-detects location)
+    - Local/cloud configuration files created
+    - Database sync utility created
+    - Documentation: HYBRID_AUTO_DETECTION_GUIDE.md
+    - Completed: February 7, 2026
+
+[✓] Get DISPATCHMAIN IP Address
+    Action: Run this on DISPATCHMAIN in PowerShell:
+      cd L:\limo\DEPLOYMENT_PACKAGE
+      .\GET_DISPATCHMAIN_IP.ps1
+    
+    Write IP address here: 192.168.1.106
+    
+    Who does this: DISPATCHMAIN user
+    Estimated time: 1 minute
+    Status: COMPLETE
+
+[ ] Configure PostgreSQL for Network Access
+    Action: Run this on DISPATCHMAIN as Administrator:
+      cd L:\limo\DEPLOYMENT_PACKAGE
+      .\SETUP_POSTGRESQL_NETWORK_ACCESS.ps1
+    
+    What it does:
+      - Modifies postgresql.conf (listen on network)
+      - Updates pg_hba.conf (allow DISPATCH1)
+      - Opens Windows Firewall port 5432
+      - Restarts PostgreSQL service
+      - Creates config backups on Desktop
+    
+    Who does this: DISPATCHMAIN user
+    Estimated time: 5 minutes
+    Status: WAITING
+
+[ ] Verify PostgreSQL Network Configuration
+    Action: After above step, check that service restarted:
+      Services.msc → PostgreSQL → Status = Running
+    
+    Or check in PowerShell:
+      Get-Service postgresql*
+    
+    Who does this: DISPATCHMAIN user
+    Estimated time: 1 minute
+    Status: WAITING
+
+[ ] Share Network Folders (Optional - may already exist)
+    Action: Verify these shares exist:
+      - \\DISPATCHMAIN\limo (points to L:\limo)
+      - \\DISPATCHMAIN\limo_files (points to Z:\limo_files)
+    
+    If not, run:
+      .\SETUP_NETWORK_SHARE_FOR_AUTOUPDATE.ps1
+    
+    Who does this: DISPATCHMAIN user
+    Estimated time: 2 minutes
+    Status: WAITING
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 2: DISPATCH1 PREPARATION                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+[✓] Verify DISPATCH1 Can Access L: Drive
+    Action: On DISPATCH1, open File Explorer and navigate to:
+      L:\limo\DEPLOYMENT_PACKAGE
+    
+    You should see:
+      - SETUP_DISPATCH1_COMPLETE.ps1
+      - DISPATCH1_VS_CODE_SETUP.txt
+      - All setup files
+    
+    Who does this: DISPATCH1 user
+    Estimated time: 1 minute
+    Status: WAITING
+
+[✓] Verify Python Installed on DISPATCH1
+    Action: On DISPATCH1, run in PowerShell:
+      python --version
+    
+    Should show: Python 3.10 or higher
+    
+    If not installed:
+      - Download from python.org
+      - Install with "Add to PATH" checked
+    
+    Who does this: DISPATCH1 user
+    Estimated time: 1 minute (or 5 min if installing)
+    Status: WAITING
+
+[ ] Test Network Connectivity
+    Action: On DISPATCH1, run in PowerShell:
+      ping DISPATCHMAIN
+      Test-NetConnection -ComputerName [DISPATCHMAIN_IP] -Port 5432
+    
+    Both should succeed
+    
+    Who does this: DISPATCH1 user  
+    Estimated time: 1 minute
+    Status: WAITING (needs IP from Phase 1)
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 3: DISPATCH1 AUTOMATED SETUP                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+[ ] Run Complete Automation Script
+    Action: On DISPATCH1, in VS Code as Administrator:
+      cd L:\limo\DEPLOYMENT_PACKAGE
+      .\SETUP_DISPATCH1_COMPLETE.ps1
+    
+    When prompted, enter:
+      - DISPATCHMAIN IP: [from Phase 1]
+      - PostgreSQL password: [postgres user password]
+    
+    Script automatically does:
+      ✓ Creates Y: drive (10GB virtual disk)
+      ✓ Maps L: and Z: network drives
+      ✓ Installs application to Y:\ArrowLimo
+      ✓ Creates .env configuration
+      ✓ Creates auto-update script
+      ✓ Creates launcher and desktop shortcut
+      ✓ Tests database connection
+      ✓ Removes old C:\ArrowLimo installation
+      ✓ Verifies all components
+    
+    Who does this: DISPATCH1 user
+    Estimated time: 10-15 minutes
+    Status: WAITING (needs Phases 1 & 2 complete)
+
+[ ] Verify DISPATCH1 Installation
+    Action: Check these on DISPATCH1:
+      □ Y: drive exists in File Explorer
+      □ L: drive mapped to \\DISPATCHMAIN\limo
+      □ Z: drive mapped to \\DISPATCHMAIN\limo_files
+      □ Desktop shortcut: "Arrow Limo DISPATCH1"
+      □ File exists: Y:\ArrowLimo\.env
+      □ File exists: Y:\ArrowLimo\desktop_app\launcher.py
+    
+    Who does this: DISPATCH1 user
+    Estimated time: 2 minutes
+    Status: WAITING
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 4: FINAL TESTING                                                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+[ ] Test Database Connection from DISPATCH1
+    Action: Should be done automatically by setup script
+    
+    Can also manually test:
+      cd L:\limo\DEPLOYMENT_PACKAGE
+      .\TEST_DATABASE_CONNECTION.ps1
+    
+    Should show:
+      ✓ Ping successful
+      ✓ Port 5432 accessible
+      ✓ Database login successful
+      ✓ Table count displayed
+    
+    Who does this: DISPATCH1 user
+    Estimated time: 1 minute
+    Status: WAITING
+
+[ ] Launch Application on DISPATCHMAIN
+    Action: On DISPATCHMAIN desktop, double-click:
+      "Arrow Limousine Dispatch" (or similar)
+    
+    Or run from L:\limo:
+      cd L:\limo\desktop_app
+      python launcher.py
+    
+    Should launch successfully and connect to database
+    
+    Who does this: DISPATCHMAIN user
+    Estimated time: 1 minute
+    Status: WAITING
+
+[ ] Launch Application on DISPATCH1
+    Action: On DISPATCH1 desktop, double-click:
+      "Arrow Limo DISPATCH1"
+    
+    Should:
+      - Check for updates from L: drive
+      - Launch application
+      - Connect to database on DISPATCHMAIN
+    
+    Who does this: DISPATCH1 user
+    Estimated time: 1 minute
+    Status: WAITING
+
+[ ] Test Real-Time Sync Between Dispatchers
+    Action: With both apps running:
+    
+    On DISPATCHMAIN:
+      - Make a change (add/edit receipt, charter, etc.)
+      - Note the change
+    
+    On DISPATCH1:
+      - Refresh or navigate to same record
+      - Verify change appears
+    
+    On DISPATCH1:
+      - Make a different change
+    
+    On DISPATCHMAIN:
+      - Verify that change appears
+    
+    Both should see each other's changes in real-time
+    
+    Who does this: Both users together
+    Estimated time: 5 minutes
+    Status: WAITING
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 5: CLEANUP & DOCUMENTATION                                       │
+└─────────────────────────────────────────────────────────────────────────┘
+
+[ ] Verify Old Installation Removed on DISPATCH1
+    Action: Check that C:\ArrowLimo is gone (if existed)
+    Should be done automatically by setup script
+    
+    Who does this: DISPATCH1 user
+    Estimated time: 30 seconds
+    Status: WAITING
+
+[ ] Bookmark Documentation
+    Action: On both machines, keep these files handy:
+      - L:\limo\DEPLOYMENT_PACKAGE\README.txt (quick reference)
+      - L:\limo\DEPLOYMENT_PACKAGE\QUICK_REFERENCE_CARD.txt (daily ops)
+    
+    Who does this: Both users
+    Estimated time: 1 minute
+    Status: WAITING
+
+[ ] Update This Status File to COMPLETE
+    Action: Mark all tasks [✓] and update completion date below
+    
+    Who does this: Last person finishing setup
+    Status: WAITING
+
+═══════════════════════════════════════════════════════════════════════════
+📊 OVERALL PROGRESS
+═══════════════════════════════════════════════════════════════════════════
+
+Phase 1 (DISPATCHMAIN Setup):     [~] 1/5 tasks complete
+Phase 2 (DISPATCH1 Prep):         [~] 2/3 tasks complete
+Phase 3 (DISPATCH1 Install):      [ ] 0/2 tasks complete
+Phase 4 (Final Testing):          [ ] 0/4 tasks complete
+Phase 5 (Cleanup):                [ ] 0/3 tasks complete
+
+TOTAL PROGRESS:                   5/17 tasks complete (29%)
+
+Estimated Time Remaining:         ~30 minutes (when following automation)
+
+═══════════════════════════════════════════════════════════════════════════
+🎯 QUICK STATUS SUMMARY
+═══════════════════════════════════════════════════════════════════════════
+
+Current Phase: PHASE 1 - DISPATCHMAIN SETUP
+
+Next Action: 
+  WHO: DISPATCHMAIN user
+  WHAT: Run .\GET_DISPATCHMAIN_IP.ps1
+  WHERE: L:\limo\DEPLOYMENT_PACKAGE
+  TIME: 1 minute
+
+Blocking Issues: None - ready to proceed
+
+Ready for DISPATCH1 Setup?: NO - Complete Phase 1 first
+
+═══════════════════════════════════════════════════════════════════════════
+📝 NOTES & ISSUES LOG
+═══════════════════════════════════════════════════════════════════════════
+
+Add timestamped notes here as you work through setup:
+
+[YYYY-MM-DD HH:MM] - [WHO] - [NOTE]
+
+Examples:
+[2026-02-07 14:30] - DISPATCHMAIN - Got IP: 192.168.1.100
+[2026-02-07 14:35] - DISPATCHMAIN - PostgreSQL configured, service restarted OK
+[2026-02-07 14:50] - DISPATCH1 - Ping test successful
+[2026-02-07 15:00] - DISPATCH1 - Automation script running...
+[2026-02-07 15:12] - DISPATCH1 - Setup complete! All tests passed
+[2026-02-07 15:15] - BOTH - Real-time sync working perfectly!
+
+═══════════════════════════════════════════════════════════════════════════
+ACTUAL NOTES (Write your notes below):
+═══════════════════════════════════════════════════════════════════════════
+
+
+[Write notes here]
+
+[2026-02-07 15:07] - DISPATCH1 - Got DISPATCHMAIN IP: 192.168.1.106
+[2026-02-07 15:07] - DISPATCH1 - Verified Python 3.11.8 installed
+[2026-02-07 15:07] - DISPATCH1 - Verified L: drive access successful
+
+[2026-02-07 15:25] - DISPATCH1 - VS Code restarted as Administrator
+[2026-02-07 15:25] - DISPATCH1 - Opened SETUP_STATUS.txt for reference
+[2026-02-07 15:25] - DISPATCH1 - RunCharterTab.vue editor got stuck (Copilot inline edit animation)
+[2026-02-07 15:26] - DISPATCH1 - Resolved: Press ESC to cancel editor animation
+[2026-02-07 15:26] - DISPATCH1 - READY TO PROCEED with setup script
+
+[2026-02-07 15:48] - DISPATCH1 - SETUP_DISPATCH1_COMPLETE.ps1 has PowerShell encoding issues (Unicode corruption)
+[2026-02-07 15:48] - DISPATCH1 - Switching to manual step-by-step approach
+[2026-02-07 15:49] - DISPATCH1 - Created DISPATCH1_QUICK_INSTALL.ps1 (simpler, no encoding issues)
+[2026-02-07 15:52] - DISPATCH1 - User needs to leave - setup paused
+
+WHEN YOU RETURN - Run this in Admin PowerShell:
+  cd L:\limo\DEPLOYMENT_PACKAGE
+  .\DISPATCH1_QUICK_INSTALL.ps1 -DispatchMainIP "192.168.1.106"
+  (Enter PostgreSQL password when prompted)
+  
+Takes 5-10 minutes, fully automated, no encoding issues.
+
+
+
+
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════
+🔧 TROUBLESHOOTING LOG
+═══════════════════════════════════════════════════════════════════════════
+
+If you encounter problems, document them here:
+
+[YYYY-MM-DD HH:MM] - [ISSUE] - [RESOLUTION]
+
+Common issues and solutions:
+
+Issue: Script execution policy error
+Fix: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+
+Issue: Cannot create Y: drive
+Fix: Close all apps, unmount if exists, delete old VHDX, retry
+
+Issue: Port 5432 blocked
+Fix: Re-run SETUP_POSTGRESQL_NETWORK_ACCESS.ps1, check firewall
+
+Issue: Database connection fails
+Fix: Verify IP, check password, verify PostgreSQL running
+
+Issue: L: drive won't map
+Fix: Verify share exists, check credentials, test \\DISPATCHMAIN\limo
+
+═══════════════════════════════════════════════════════════════════════════
+ACTUAL TROUBLESHOOTING (Write issues below):
+═══════════════════════════════════════════════════════════════════════════
+
+
+[Write troubleshooting notes here]
+
+
+
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════
+✅ COMPLETION CHECKLIST
+═══════════════════════════════════════════════════════════════════════════
+
+When ALL tasks above are [✓], verify final setup:
+
+On DISPATCHMAIN:
+  □ PostgreSQL service running and accepting network connections
+  □ Application launches and connects to database
+  □ Can see/edit all data
+
+On DISPATCH1:
+  □ Y: drive exists with application installed
+  □ L: and Z: drives mapped
+  □ Desktop shortcut works
+  □ Application launches and connects to database
+  □ Can see/edit all data
+  □ Auto-update works (tested by closing/reopening)
+
+Real-Time Sync:
+  □ Changes on DISPATCHMAIN appear on DISPATCH1 immediately
+  □ Changes on DISPATCH1 appear on DISPATCHMAIN immediately
+  □ No conflicts or database lock errors
+  □ Both users can work simultaneously
+
+Performance:
+  □ Database is fast (local network speed)
+  □ No lag when making changes
+  □ Application responsive on both machines
+
+Documentation:
+  □ Both users know where to find guides
+  □ Both users know how to check error logs
+  □ Both users understand daily startup procedure
+
+═══════════════════════════════════════════════════════════════════════════
+🎉 SETUP COMPLETION
+═══════════════════════════════════════════════════════════════════════════
+
+Setup Completed By: _____________________
+
+Date: ___________________
+
+Time: ___________________
+
+Both dispatchers working?: [ ] YES  [ ] NO
+
+Any outstanding issues?: _______________________________________________
+
+__________________________________________________________________________
+
+Signature: _____________________
+
+
+═══════════════════════════════════════════════════════════════════════════
+📞 SUPPORT RESOURCES
+═══════════════════════════════════════════════════════════════════════════
+
+Documentation Files (all in L:\limo\DEPLOYMENT_PACKAGE):
+  - QUICK_START.md - Complete setup walkthrough
+  - NETWORK_DATABASE_SETUP_GUIDE.md - Technical reference
+  - README.txt - Quick reference and troubleshooting
+  - FILE_INDEX.txt - Index of all deployment files
+
+Error Logs:
+  - DISPATCHMAIN: L:\limo\app_errors.log
+  - DISPATCH1: Y:\ArrowLimo\app_errors.log
+  - PostgreSQL: C:\Program Files\PostgreSQL\[version]\data\log\
+
+Testing Scripts:
+  - GET_DISPATCHMAIN_IP.ps1 - Display server IP
+  - TEST_DATABASE_CONNECTION.ps1 - Test connectivity
+  - All in L:\limo\DEPLOYMENT_PACKAGE
+
+═══════════════════════════════════════════════════════════════════════════
+
+Network PostgreSQL Edition - Version 2.0
+February 2026 - Arrow Limousine Management System
+
+Keep this file updated as you progress through setup!
+Both DISPATCHMAIN and DISPATCH1 can view/edit this file in real-time.
+
+═══════════════════════════════════════════════════════════════════════════
+
+

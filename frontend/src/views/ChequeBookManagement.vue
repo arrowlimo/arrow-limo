@@ -171,7 +171,7 @@
               <td>{{ formatDate(cheque.transaction_date) }}</td>
               <td>
                 <input 
-                  v-model="getEditableValue(cheque.transaction_id, 'payee', cheque.payee)"
+                  :value="getEditableValue(cheque.transaction_id, 'payee', cheque.payee)"
                   @input="markForUpdate(cheque, 'payee', $event.target.value)"
                   type="text"
                   class="inline-edit"
@@ -182,7 +182,7 @@
               <td>{{ cheque.bank_name }}</td>
               <td>
                 <select 
-                  v-model="getEditableValue(cheque.transaction_id, 'status', cheque.status)"
+                  :value="getEditableValue(cheque.transaction_id, 'status', cheque.status)"
                   @change="markForUpdate(cheque, 'status', $event.target.value)"
                   class="status-select"
                   :class="`status-${(getEditableValue(cheque.transaction_id, 'status', cheque.status) || '').toLowerCase()}`"
@@ -195,7 +195,7 @@
               </td>
               <td>
                 <input 
-                  v-model="getEditableValue(cheque.transaction_id, 'gl_code', cheque.gl_code)"
+                  :value="getEditableValue(cheque.transaction_id, 'gl_code', cheque.gl_code)"
                   @input="markForUpdate(cheque, 'gl_code', $event.target.value)"
                   type="text"
                   class="inline-edit gl-code"
@@ -220,17 +220,9 @@
 
       <!-- GL Code datalist for autocomplete -->
       <datalist id="gl-codes">
-        <option value="5110">5110 - Vehicle Fuel</option>
-        <option value="5116">5116 - Alcohol</option>
-        <option value="5120">5120 - Maintenance & Repairs</option>
-        <option value="5125">5125 - Vehicle Lease Payments</option>
-        <option value="5130">5130 - Vehicle Insurance</option>
-        <option value="5305">5305 - Employee Wages</option>
-        <option value="5605">5605 - Rent</option>
-        <option value="5650">5650 - Telephone & Internet</option>
-        <option value="5660">5660 - Bank Charges & NSF Fees</option>
-        <option value="5810">5810 - Uniforms & Laundry</option>
-        <option value="5880">5880 - Owner Personal</option>
+        <option v-for="account in glAccounts" :key="account.account_code" :value="account.account_code">
+          {{ account.account_code }} - {{ account.account_name }}
+        </option>
       </datalist>
     </div>
 
@@ -310,7 +302,6 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue';
-import axios from 'axios';
 
 export default {
   name: 'ChequeBookManagement',
@@ -322,6 +313,7 @@ export default {
     const showEditModal = ref(false);
     const editingCheque = ref(null);
     const pendingUpdates = ref(new Map());
+    const glAccounts = ref([]);
     
     const searchForm = ref({
       cheque_number: '',
@@ -358,8 +350,9 @@ export default {
     const loadBankSummaries = async () => {
       loading.value = true;
       try {
-        const response = await axios.get('/api/cheque-books/summary');
-        bankSummaries.value = response.data;
+        const response = await fetch('http://127.0.0.1:8000/api/cheque-books/summary');
+        if (!response.ok) throw new Error('Failed to fetch');
+        bankSummaries.value = await response.json();
       } catch (error) {
         console.error('Failed to load bank summaries:', error);
         alert('Failed to load bank summaries');
@@ -377,8 +370,13 @@ export default {
     const searchCheques = async () => {
       loading.value = true;
       try {
-        const response = await axios.post('/api/cheque-books/search', searchForm.value);
-        cheques.value = response.data;
+        const response = await fetch('http://127.0.0.1:8000/api/cheque-books/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(searchForm.value)
+        });
+        if (!response.ok) throw new Error('Failed to fetch');
+        cheques.value = await response.json();
         pendingUpdates.value.clear();
       } catch (error) {
         console.error('Failed to search cheques:', error);
@@ -432,6 +430,17 @@ export default {
       return pendingUpdates.value.has(transactionId);
     };
 
+    const loadGLAccounts = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/table-management/chart-of-accounts');
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+        glAccounts.value = data.filter(acc => acc.is_active);
+      } catch (error) {
+        console.error('Error loading GL accounts:', error);
+      }
+    };
+
     const saveBulkUpdates = async () => {
       if (pendingUpdates.value.size === 0) return;
       
@@ -442,10 +451,16 @@ export default {
           ...update.changes
         }));
         
-        const response = await axios.post('/api/cheque-books/bulk-update', updates);
+        const response = await fetch('http://127.0.0.1:8000/api/cheque-books/bulk-update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
         
-        if (response.data.success) {
-          alert(`Successfully updated ${response.data.updated} cheques!`);
+        if (data.success) {
+          alert(`Successfully updated ${data.updated} cheques!`);
           pendingUpdates.value.clear();
           // Refresh search results
           await searchCheques();
@@ -483,10 +498,15 @@ export default {
       
       loading.value = true;
       try {
-        await axios.put(`/api/cheque-books/${editingCheque.value.transaction_id}`, {
-          cheque_number: editingCheque.value.cheque_number,
-          ...editForm.value
+        const response = await fetch(`http://127.0.0.1:8000/api/cheque-books/${editingCheque.value.transaction_id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cheque_number: editingCheque.value.cheque_number,
+            ...editForm.value
+          })
         });
+        if (!response.ok) throw new Error('Failed to fetch');
         
         alert('Cheque updated successfully!');
         closeEditModal();
@@ -501,6 +521,7 @@ export default {
 
     onMounted(() => {
       loadBankSummaries();
+      loadGLAccounts();
     });
 
     return {
@@ -513,6 +534,7 @@ export default {
       editingCheque,
       editForm,
       pendingUpdates,
+      glAccounts,
       hasPendingChanges,
       formatMoney,
       formatDate,

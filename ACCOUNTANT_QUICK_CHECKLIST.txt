@@ -1,0 +1,47 @@
+# ✅ ACCOUNTANT AUDIT PACKAGE - QUICK CHECKLIST
+
+## Before Starting
+- [ ] All 2025 receipts entered and categorized
+- [ ] All bank statements reconciled through Dec 31, 2025
+- [ ] All payroll runs completed
+
+## Reports to Generate (in Desktop App → Financial Dashboard)
+
+### Core Financial Reports
+- [ ] Trial Balance (Dec 31, 2025) → Export to Excel
+- [ ] Profit & Loss (Jan-Dec 2025) → Export to Excel
+- [ ] P&L by Category (2025) → Export to Excel
+- [ ] Bank Reconciliation (2025) → Export to Excel
+
+### Tax & Compliance
+- [ ] GST Collection & ITC (2025) → Export to Excel
+- [ ] Receipt Ledger with GL Codes (2025) → Export to Excel
+- [ ] Personal Expenses (2025) → Export to Excel
+
+### Tax Forms (in Tax Management Widget)
+- [ ] T4 Forms → Generate PDFs (one per employee)
+- [ ] Payroll Summary for PD7A → Export to Excel
+- [ ] WCB Annual Return → Export to PDF
+
+### Supporting Documents
+- [ ] Income & Expense Summary → Export to Excel
+- [ ] Reconciliation Status → Export to Excel
+- [ ] Asset CCA Schedule (Asset Management) → Export to CSV
+
+## File Organization
+Create folder: `Audit_2025_Arrow_Limousine/`
+
+Subfolders:
+- `01_Financial_Statements/`
+- `02_Banking/`
+- `03_Tax_Forms/`
+- `04_Supporting_Docs/`
+
+## Send to Accountant
+- [ ] Zip entire folder
+- [ ] Email with cover letter (see guide)
+- [ ] Confirm receipt
+
+---
+**Full Guide:** ACCOUNTANT_AUDIT_PACKAGE_GUIDE.md
+**Status:** All reports verified and operational ✅

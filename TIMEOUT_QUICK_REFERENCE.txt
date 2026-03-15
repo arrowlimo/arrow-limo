@@ -1,0 +1,113 @@
+═══════════════════════════════════════════════════════════════════════════
+  URGENT: STOP TIMEOUT ERRORS WHILE EDITING RECEIPTS
+═══════════════════════════════════════════════════════════════════════════
+
+⚡ INSTANT FIX (Do this RIGHT NOW):
+═══════════════════════════════════════════════════════════════════════════
+
+1. Open pgAdmin (or your database tool)
+2. Connect to 'almsdata' database  
+3. Click the "Query Tool" button
+4. Paste this and click Execute (▶️):
+
+   SET idle_in_transaction_session_timeout = '1h';
+   SET statement_timeout = '10min';
+
+5. Go back to your receipt - you now have 1 HOUR to work!
+
+═══════════════════════════════════════════════════════════════════════════
+⚙️ PERMANENT FIX (Do this once, never worry again):
+═══════════════════════════════════════════════════════════════════════════
+
+Option 1: Run the full script
+  📁 File: l:\limo\scripts\quick_timeout_fix.sql
+  • Open in pgAdmin
+  • Execute entire script
+  • Done!
+
+Option 2: Run the pre-made fix
+  📁 File: l:\limo\FIX_RECEIPTS_LOCKUP_URGENT.sql
+  • Open in pgAdmin
+  • Execute entire script
+  • Restart desktop application
+  • Done!
+
+═══════════════════════════════════════════════════════════════════════════
+🆘 EMERGENCY: Lost your changes?
+═══════════════════════════════════════════════════════════════════════════
+
+If the form times out and you lose your changes:
+
+1. Don't panic - the receipt is still in the database
+2. Close the frozen form (X button or End Task)
+3. Reopen the receipt - it shows the last saved state
+4. Re-enter your changes
+5. Click SAVE immediately (don't wait!)
+6. Then run the INSTANT FIX above before continuing
+
+═══════════════════════════════════════════════════════════════════════════
+💡 TIPS TO AVOID TIMEOUTS:
+═══════════════════════════════════════════════════════════════════════════
+
+While you're waiting for the permanent fix:
+
+✅ Click SAVE every 30 seconds while editing
+✅ Close the form when you take a call or step away
+✅ Write down important info in notepad before saving
+✅ Don't leave forms open while doing other tasks
+
+❌ Don't leave a receipt open for 5+ minutes
+❌ Don't step away with unsaved changes
+❌ Don't try to work on multiple receipts at once
+
+═══════════════════════════════════════════════════════════════════════════
+📋 SYMPTOMS vs FIXES:
+═══════════════════════════════════════════════════════════════════════════
+
+[  ] Form freezes after a few minutes
+     → Run INSTANT FIX above (SET idle_in_transaction_session_timeout)
+
+[  ] Takes 30+ seconds to open a receipt
+     → Run PERMANENT FIX (create indexes)
+
+[  ] "Not Responding" in window title
+     → Apply both fixes
+
+[  ] Lost changes when timeout happens
+     → No technical fix, just SAVE MORE OFTEN
+
+═══════════════════════════════════════════════════════════════════════════
+✅ VERIFY THE FIX WORKED:
+═══════════════════════════════════════════════════════════════════════════
+
+After running the permanent fix:
+
+Test 1: Open a receipt
+  BEFORE: 30+ seconds to load
+  AFTER:  < 1 second ✨
+
+Test 2: Leave form open for 5 minutes
+  BEFORE: Times out and freezes
+  AFTER:  Still works fine ✨
+
+Test 3: Edit and save
+  BEFORE: Slow, sometimes loses changes
+  AFTER:  Instant save ✨
+
+═══════════════════════════════════════════════════════════════════════════
+📞 STILL HAVING TROUBLE?
+═══════════════════════════════════════════════════════════════════════════
+
+Read the full guide:
+  📁 l:\limo\DESKTOP_APP_TIMEOUT_EMERGENCY_FIX.md
+
+Check if it's a different issue:
+  📁 l:\limo\DISPATCH1_TIMEOUT_FIX_DEPLOYMENT.txt
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎯 BOTTOM LINE: Run the "quick_timeout_fix.sql" script RIGHT NOW!
+
+   It takes 30 seconds and will save you HOURS of frustration.
+
+═══════════════════════════════════════════════════════════════════════════

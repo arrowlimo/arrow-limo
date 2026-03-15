@@ -1,0 +1,6 @@
+# Prevent auto-formatting in deployment package
+# Black formatter was corrupting f-strings
+[*.py]
+max_line_length = 999
+indent_style = space
+indent_size = 4

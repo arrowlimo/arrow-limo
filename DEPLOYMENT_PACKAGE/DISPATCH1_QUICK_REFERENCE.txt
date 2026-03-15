@@ -1,0 +1,189 @@
+# DISPATCH1 CLEANUP - QUICK REFERENCE CARD
+## For dispatch1 VS Code - Follow in Order
+
+---
+
+## 🚀 QUICKEST PATH (5 minutes, mostly automated)
+
+**On dispatch1, in VS Code Terminal:**
+
+```powershell
+# Copy paste this one command - it does everything:
+& "L:\limo\DEPLOYMENT_PACKAGE\DISPATCH1_EXECUTE_CLEANUP.ps1"; & "L:\limo\DEPLOYMENT_PACKAGE\DISPATCH1_REBUILD_STRUCTURE.ps1"
+```
+
+Then test:
+```powershell
+python "L:\limo\desktop_app\main.py"
+```
+
+---
+
+## 📋 STEP-BY-STEP PATH (Follow in VS Code)
+
+### Step 1: Open Folder
+**File → Open Folder** → Select `L:\limo`
+
+### Step 2: Open Terminal
+**Terminal → New Terminal** (or Ctrl + ~)
+
+### Step 3: Show Plan (View Only, No Changes)
+```powershell
+& "L:\limo\DEPLOYMENT_PACKAGE\DISPATCH1_CLEANUP_AND_REBUILD.ps1"
+```
+
+### Step 4: Execute Cleanup
+```powershell
+& "L:\limo\DEPLOYMENT_PACKAGE\DISPATCH1_EXECUTE_CLEANUP.ps1"
+```
+**Removes Y:, Z:, M:, N:, O:, P:, Q: drives**
+
+### Step 5: Rebuild Structure
+```powershell
+& "L:\limo\DEPLOYMENT_PACKAGE\DISPATCH1_REBUILD_STRUCTURE.ps1"
+```
+**Creates proper app organization**
+
+### Step 6: Verify Cleanup
+```powershell
+Get-PSDrive -PSProvider FileSystem | Where-Object {$_.Root -like '\\*'} | Select Name, Root
+```
+**Should show only: L: → \\DISPATCHMAIN\limo**
+
+### Step 7: Test App Launch
+```powershell
+python "L:\limo\desktop_app\main.py"
+```
+**Should open Arrow Dispatcher app window**
+
+---
+
+## ⚡ VS CODE TASKS (Easier!)
+
+**Command Palette: Ctrl + Shift + P**
+
+Then type and select:
+- `DISPATCH1: Show Cleanup Plan`
+- `DISPATCH1: Execute Cleanup (PHASE 1)`
+- `DISPATCH1: Rebuild Structure (PHASE 2)`
+- `DISPATCH1: Verify After Cleanup`
+- `DISPATCH1: Test Desktop App Launch`
+- `DISPATCH1: Run All Cleanup Steps (Full Automation)` ← Does everything!
+
+---
+
+## ✅ SUCCESS CHECKLIST
+
+After running cleanup, verify:
+
+```powershell
+# 1. Only L: drive should exist
+Get-PSDrive -PSProvider FileSystem | Where {$_.Root -like '\\*'}
+# ✓ Should show only L:
+
+# 2. Desktop app main exists
+Test-Path "L:\limo\desktop_app\main.py"
+# ✓ Should show True
+
+# 3. All base folders exist
+Get-ChildItem "L:\limo" -Directory | Where Name -in 'backend','desktop_app','frontend','scripts','DEPLOYMENT_PACKAGE'
+# ✓ Should show all 5 folders
+
+# 4. App launches
+python "L:\limo\desktop_app\main.py"
+# ✓ App window opens, no path errors
+```
+
+---
+
+## 🆘 TROUBLESHOOTING
+
+**"Access denied" running scripts:**
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+```
+
+**Still see Y: drive after cleanup:**
+```powershell
+taskkill /IM explorer.exe /F
+timeout /t 2
+explorer.exe
+```
+
+**Python not found:**
+```powershell
+python --version
+# If fails, check if Python is in PATH
+```
+
+**L: drive shows wrong path:**
+```powershell
+net use L: /delete
+net use L: \\DISPATCHMAIN\limo /persistent:yes
+```
+
+---
+
+## 📚 FULL DOCUMENTATION
+
+- **Detailed guide:** `DISPATCH1_VSCODE_COPILOT_GUIDE.md` ← 14 steps with explanations
+- **Step-by-step:** `DISPATCH1_CLEANUP_INSTRUCTIONS.md`
+- **Architecture:** `DISPATCH1_CLEANUP_PLAN.md`
+- **Overview:** `DISPATCH1_CLEANUP_README.md`
+
+---
+
+## 🎯 WHAT GETS DONE
+
+### Removed:
+- ❌ Y: drive → alms
+- ❌ Z: drive
+- ❌ M:, N:, O:, P:, Q: drives (any old mappings)
+
+### Created:
+- ✅ Single L: drive → \\DISPATCHMAIN\limo
+- ✅ Clean folder structure
+- ✅ Working desktop app launcher
+- ✅ All 130+ desktop app files accessible
+
+### Result:
+- File Explorer shows only L: drive
+- Desktop app launches from `L:\limo\desktop_app\main.py`
+- Everything is organized and maintainable
+
+---
+
+## 🏁 LAUNCH THE APP (After Cleanup)
+
+**Option 1: Direct Python**
+```powershell
+python "L:\limo\desktop_app\main.py"
+```
+
+**Option 2: Via Launcher**
+```powershell
+python "L:\limo\DEPLOYMENT_PACKAGE\app\launcher.py"
+```
+
+**Option 3: Batch File**
+```cmd
+"L:\limo\DEPLOYMENT_PACKAGE\app\START_DISPATCH.bat"
+```
+
+**Option 4: Desktop Shortcut (if created)**
+- Double-click "Arrow Dispatcher.lnk" on desktop
+
+---
+
+## 📞 NEXT STEPS
+
+1. ✅ Follow the steps above (15-20 min)
+2. ✅ Verify everything works (5 min)
+3. ✅ Create desktop shortcut (2 min) - optional
+4. ✅ Restart Arrow Dispatcher service (if needed)
+
+**Total time: ~30 minutes for complete cleanup**
+
+---
+
+**Ready? Start with Step 1 above or use VS Code Tasks!**

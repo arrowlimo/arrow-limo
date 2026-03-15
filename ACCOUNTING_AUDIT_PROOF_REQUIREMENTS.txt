@@ -1,0 +1,187 @@
+
+ACCOUNTING AUDIT PROOF REQUIREMENTS
+====================================
+
+Current Issues (NOT Audit-Proof):
+---------------------------------
+1. CREDIT transactions (refunds/reversals) showing as POSITIVE expenses
+   - Overstates expenses by including money coming IN as expenses
+   - NSF example: $100 payment + $100 NSF return = $200 expense (should be $0 + $45 NSF fee)
+
+2. No way to distinguish transaction types in receipts table:
+   - Expense (money OUT)
+   - Refund (money IN - reversal of expense)
+   - NSF Reversal (money IN - bounced payment)
+   - Bank Error Correction (money IN or OUT)
+
+3. No audit trail for paired transactions:
+   - Original payment + NSF return are separate receipts with no link
+   - Can't prove they offset each other
+
+4. No documentation of why amounts were recorded:
+   - Who entered it, when, why
+   - What source document supports it
+
+
+Audit-Proof Requirements:
+--------------------------
+
+1. SOURCE DOCUMENT TRACEABILITY
+   ✓ Already have: banking_transaction_id links to banking_transactions
+   ✓ Banking transactions have: date, description, amount, account
+   Need: Additional fields to preserve source document details
+
+2. PROPER TRANSACTION CATEGORIZATION
+   Need: receipt_type field
+   Values:
+   - 'EXPENSE'        - Normal payment (DEBIT from bank)
+   - 'REFUND'         - Money returned (CREDIT from bank)
+   - 'NSF_REVERSAL'   - Bounced payment returned (CREDIT from bank)
+   - 'CORRECTION'     - Bank error correction (CREDIT from bank)
+   - 'BANK_CHARGE'    - NSF fee, service charge (DEBIT from bank)
+
+3. BANK TRANSACTION TYPE TRACKING
+   Need: banking_transaction_type field
+   Values: 'DEBIT' or 'CREDIT'
+   - DEBIT  = Money leaving account (withdrawals, payments, fees)
+   - CREDIT = Money entering account (deposits, refunds, reversals)
+
+4. PAIRED TRANSACTION LINKING
+   Need: related_receipt_id field (nullable)
+   - Links NSF reversal to original expense
+   - Links correction to original transaction
+   - Creates audit trail showing offsetting entries
+
+5. PROPER AMOUNT HANDLING
+   Current: All receipts stored as positive amounts
+   Need: Apply sign based on banking_transaction_type
+   - DEBIT  (expense) = positive amount in reports
+   - CREDIT (refund)  = negative amount in reports
+   OR use separate debit_amount/credit_amount columns
+
+6. AUDIT LOG FIELDS
+   Already have: created_at
+   Need:
+   - created_by (user who entered)
+   - modified_at (last change timestamp)
+   - modified_by (user who modified)
+   - notes (explanation for corrections)
+
+7. RECONCILIATION SUPPORT
+   Need ability to prove:
+   - Bank statement balance = receipts balance
+   - All banking transactions either linked to receipt or excluded with reason
+   - Paired transactions net to correct amount
+
+
+Recommended Schema Changes:
+---------------------------
+
+ALTER TABLE receipts ADD COLUMN receipt_type VARCHAR(20) DEFAULT 'EXPENSE';
+ALTER TABLE receipts ADD COLUMN banking_transaction_type VARCHAR(10);
+ALTER TABLE receipts ADD COLUMN related_receipt_id INTEGER REFERENCES receipts(receipt_id);
+ALTER TABLE receipts ADD COLUMN modified_at TIMESTAMP;
+ALTER TABLE receipts ADD COLUMN modified_by VARCHAR(100);
+ALTER TABLE receipts ADD COLUMN notes TEXT;
+
+-- Add proper constraints
+ALTER TABLE receipts ADD CONSTRAINT chk_receipt_type 
+    CHECK (receipt_type IN ('EXPENSE', 'REFUND', 'NSF_REVERSAL', 'CORRECTION', 'BANK_CHARGE'));
+
+ALTER TABLE receipts ADD CONSTRAINT chk_banking_trans_type 
+    CHECK (banking_transaction_type IN ('DEBIT', 'CREDIT') OR banking_transaction_type IS NULL);
+
+
+Recommended Process Changes:
+-----------------------------
+
+1. When linking banking transaction to receipt:
+   a. Automatically populate receipt_type based on:
+      - banking debit_amount > 0 + no NSF keywords → 'EXPENSE'
+      - banking credit_amount > 0 + description like '%NSF%' → 'NSF_REVERSAL'
+      - banking credit_amount > 0 + description like '%CORRECT%' → 'CORRECTION'
+      - banking credit_amount > 0 + description like '%REFUND%' → 'REFUND'
+      - banking debit_amount > 0 + description like '%NSF CHARGE%' → 'BANK_CHARGE'
+
+   b. Set banking_transaction_type from banking_transactions:
+      - 'DEBIT' if debit_amount > 0
+      - 'CREDIT' if credit_amount > 0
+
+2. For NSF/Correction scenarios:
+   a. Create receipt for original payment (EXPENSE, DEBIT)
+   b. Create separate receipt for reversal (NSF_REVERSAL, CREDIT)
+   c. Link them: reversal.related_receipt_id = original.receipt_id
+   d. Create separate receipt for NSF fee (BANK_CHARGE, DEBIT)
+
+3. Financial reporting:
+   Net Expenses = SUM(CASE 
+       WHEN receipt_type = 'EXPENSE' THEN amount
+       WHEN receipt_type IN ('REFUND', 'NSF_REVERSAL', 'CORRECTION') THEN -amount
+       WHEN receipt_type = 'BANK_CHARGE' THEN amount
+       ELSE 0 END)
+
+
+What This Gives You for Audits:
+--------------------------------
+
+1. ✓ Complete audit trail: receipt → banking_transaction → bank statement
+2. ✓ Clear categorization: expense vs refund vs reversal
+3. ✓ Paired transaction tracking: can prove NSF netted to $0
+4. ✓ Accurate financial statements: expenses not overstated
+5. ✓ Reconciliation proof: bank balance = receipt balance
+6. ✓ Change tracking: who modified what, when, why
+7. ✓ Source document support: banking transaction ID preserves reference
+
+
+Example Audit Questions and Answers:
+-------------------------------------
+
+Q: "Why is there a $500 credit to vehicle expenses on March 1?"
+A: [Query shows receipt_type='NSF_REVERSAL', related to receipt #1234, 
+    banking_transaction #5678 shows "NSF RETURN - ABC Company"]
+
+Q: "Prove your vehicle expenses balance to the bank statement."
+A: [Run reconciliation report showing all DEBIT transactions = expenses,
+    all CREDIT transactions = negative adjustments, net = bank withdrawals]
+
+Q: "This vendor shows $10,000 paid but they say they never got paid."
+A: [Query shows original payment receipt + NSF_REVERSAL receipt with same amount,
+    net = $0, payment bounced and was returned]
+
+Q: "Why did receipts change from $X to $Y in March?"
+A: [Audit log shows user John modified receipt #999 on Mar 15 to fix vendor,
+    notes field explains "Corrected vendor from ABC to XYZ per bank statement"]
+
+
+Current State vs Audit-Proof State:
+------------------------------------
+
+CURRENT STATE:
+- 2,390 CREDIT transactions recorded as positive expenses
+- Total overstatement: ~$1.5 million (estimated)
+- Cannot distinguish refund from expense
+- Cannot prove NSF transactions offset
+- Hard to defend in audit
+
+AUDIT-PROOF STATE:
+- Every transaction categorized by type
+- Refunds/reversals show as negative adjustments
+- Paired transactions linked and provable
+- Complete audit trail to bank statements
+- Accurate expense totals
+- Easy to defend in audit
+
+
+Next Steps:
+-----------
+
+1. Backup database
+2. Add new schema fields
+3. Populate receipt_type for existing receipts based on banking_transaction link
+4. Update ReceiptForm.vue to auto-populate new fields
+5. Create reconciliation report
+6. Test with sample audit questions
+7. Document the process
+
+
+This gives you GAAP-compliant, audit-defensible accounting records.

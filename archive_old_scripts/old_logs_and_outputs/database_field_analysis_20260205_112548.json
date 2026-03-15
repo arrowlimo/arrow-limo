@@ -1,0 +1,1247 @@
+{
+  "timestamp": "2026-02-05T11:25:45.229145",
+  "issues": [
+    {
+      "category": "Missing Table",
+      "message": "Table 'account_categories' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.311705"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'alcohol_business_tracking' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.311806"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'audit_log' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.311930"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'category_mappings' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.312042"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'category_to_account_map' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.312252"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'chart_of_accounts_backup_2026' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.312373"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'charter_gst_details_2010_2012' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.312495"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'charter_incidents' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.312590"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'charter_receipts' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.312668"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'charters_routing_times' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.312751"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'credit_lines_backup_20260123_233917' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.312830"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'customer_comms_log' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313057"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'customer_feedback' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313109"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'dispatch_events' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313146"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'driver_comms_log' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313183"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'employee_pay_master' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313260"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'employee_t4_records' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313306"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'employee_t4_summary' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313346"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'hos_14day_summary' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313390"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'hos_log' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313500"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'invoices' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313578"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'lms2026_payment_matches' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313617"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'lms2026_payments_staging' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313659"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'receipt_banking_links' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313754"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'receipt_cashbox_links' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313840"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'receipts_square_dedupe_backup_20260201' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313912"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'receipts_square_final_backup_20260201' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.313985"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'square_cc_staging' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.314079"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'square_customers_staging' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.314181"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'square_fees_staging' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.314269"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'square_lms_matches' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.314349"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'staging_driver_pay_files' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.314453"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'staging_employee_reference_data' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.314559"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'staging_pd7a_year_end_summary' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.314638"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'tax_overrides' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.314712"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'tax_periods' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.314788"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'tax_remittances' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.314861"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'tax_returns' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.314945"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'tax_rollovers' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.315020"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'tax_variances' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.315059"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'transaction_categories' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.315110"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'transaction_subcategories' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.315189"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'vehicle_capacity_tiers' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.315234"
+    },
+    {
+      "category": "Missing Table",
+      "message": "Table 'verification_audit' exists locally but NOT in Neon",
+      "severity": "ERROR",
+      "timestamp": "2026-02-05T11:25:46.315276"
+    }
+  ],
+  "warnings": [
+    {
+      "category": "Extra Table",
+      "message": "Table 'account_categories_archive' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.315375"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'active_floats_detailed' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.315418"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'audit_logs' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.315511"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'balance_sheet' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.315592"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'banking_payment_links' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.315661"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'category_mappings_archive' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.315729"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'category_to_account_map_archive' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.315794"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'charter_charge_defaults' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.315872"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'charter_driver_logs' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.315926"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'credit_lines' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.315970"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'driver_hos_log' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.316012"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'driver_internal_notes' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.316071"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'driver_performance_private' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.316179"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'email_log' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.316221"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'etransfer_accounting_assessment' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.316281"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'etransfer_analysis_results' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.316336"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'etransfer_fix_final_results' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.316412"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'financing_payments' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.316486"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'income_ledger_payment_archive' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.316592"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'journal' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.316703"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'journal_batches' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.316769"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'journal_lines' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.316854"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'limo_addresses' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.316938"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'limo_addresses_clean' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.317005"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'limo_clients' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.317051"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'limo_clients_clean' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.317748"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'limo_contacts' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.317818"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'lms_charges' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.317859"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'lms_customers_enhanced' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.318395"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'lms_deposits' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.318472"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'lms_rate_mapping' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.318498"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'lms_sync_log' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.318536"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'lms_vehicle_mapping' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.318619"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'multi_charter_payments' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.318693"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'non_charter_payroll' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.318822"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'orphaned_charges_archive' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.318897"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'payment_reconciliation_ledger' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.318979"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'payroll_approval_workflow' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319043"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'profit_and_loss' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319110"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'qb_import_batches' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319161"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'qb_journal_entries' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319207"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'square_customers_extracted' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319251"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'square_disputes' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319333"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'square_fees_extracted' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319406"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'square_loan_payments' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319514"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'square_loan_repayments_extracted' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319603"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'square_loans_extracted' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319694"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'square_payments' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319815"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'square_payouts_extracted' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319866"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'square_refunds' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319910"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'square_validation_summary' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.319948"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'suppliers' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.320042"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'transaction_categories_archive' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.320121"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'transaction_subcategories_archive' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.320216"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'trial_balance' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.320296"
+    },
+    {
+      "category": "Extra Table",
+      "message": "Table 'wage_allocation_decisions' exists in Neon but NOT locally",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:46.320377"
+    },
+    {
+      "category": "Widget: admin_management_widget.py",
+      "message": "Hard-coded dropdown values found: \"admin\", \"dispatcher\", \"driver\", \"accountant\", \"viewer\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.488942"
+    },
+    {
+      "category": "Widget: admin_management_widget.py",
+      "message": "Hard-coded dropdown values found: \"operations\", \"dispatch\", \"accounting\", \"management\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.489049"
+    },
+    {
+      "category": "Widget: admin_management_widget.py",
+      "message": "Hard-coded dropdown values found: \"active\", \"inactive\", \"suspended\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.489310"
+    },
+    {
+      "category": "Widget: beverage_management_widget.py",
+      "message": "Hard-coded dropdown values found:  \"Beer\",\n    \"Spirits\",\n    \"Wine\",\n    \"Ready-To-Drink\",\n    \"Hard Seltzers\",\n    \"Champagne\",\n    ...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.492403"
+    },
+    {
+      "category": "Widget: beverage_management_widget.py",
+      "message": "Hard-coded dropdown values found:  \"Beer\",\n    \"Spirits\",\n    \"Wine\",\n    \"Ready-To-Drink\",\n    \"Hard Seltzers\",\n    \"Champagne\",\n    ...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.492595"
+    },
+    {
+      "category": "Widget: beverage_management_widget.py",
+      "message": "Hard-coded dropdown values found: \"Percentage Increase\",\n    \"Percentage Decrease\",\n    \"Fixed Amount Add\",\n     \"Fixed Amount Subtrac...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.492716"
+    },
+    {
+      "category": "Widget: billing_management_widget.py",
+      "message": "Hard-coded dropdown values found: \n            \"NRP (Non-Refundable Deposit)\",\n            \"Refundable Deposit\",\n            \"Partial ...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.494498"
+    },
+    {
+      "category": "Widget: billing_management_widget.py",
+      "message": "Hard-coded dropdown values found: \n            \"cash\", \"check\", \"credit_card\", \"debit_card\",\n            \"bank_transfer\", \"trade_of_se...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.494627"
+    },
+    {
+      "category": "Widget: billing_management_widget.py",
+      "message": "Beverage references found but no beverage table lookup",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.495023"
+    },
+    {
+      "category": "Widget: dispatch_management_widget.py",
+      "message": "Hard-coded dropdown values found: \"All\", \"Pending\", \"Assigned\", \"Active\", \"Completed\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.499692"
+    },
+    {
+      "category": "Widget: employee_management_widget.py",
+      "message": "Hard-coded dropdown values found: \"All Departments\", \"Operations\", \"Administration\", \"Maintenance\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.504317"
+    },
+    {
+      "category": "Widget: employee_management_widget.py",
+      "message": "Hard-coded dropdown values found: \"All Status\", \"active\", \"inactive\", \"on_leave\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.504398"
+    },
+    {
+      "category": "Widget: employee_management_widget.py",
+      "message": "Hard-coded dropdown values found: \"Operations\", \"Administration\", \"Maintenance\", \"Other\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.504469"
+    },
+    {
+      "category": "Widget: enhanced_charter_widget.py",
+      "message": "Hard-coded dropdown values found: \"All\", \"Pending\", \"Confirmed\", \"In Progress\", \"Completed\", \"Cancelled\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.506436"
+    },
+    {
+      "category": "Widget: enhanced_client_widget.py",
+      "message": "Hard-coded dropdown values found: \"All\", \"Active\", \"Inactive\", \"Suspended\", \"VIP\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.507334"
+    },
+    {
+      "category": "Widget: enhanced_employee_widget.py",
+      "message": "Hard-coded dropdown values found: \"All\", \"Driver\", \"Dispatcher\", \"Manager\", \"Admin\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.508093"
+    },
+    {
+      "category": "Widget: enhanced_employee_widget.py",
+      "message": "Hard-coded dropdown values found: \"All\", \"Active\", \"Suspended\", \"Terminated\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.508127"
+    },
+    {
+      "category": "Widget: enhanced_vehicle_widget.py",
+      "message": "Hard-coded dropdown values found: \"All Types\", \"Sedan\", \"SUV\", \"Limousine\", \"Stretch Limo\", \"Van\", \"Bus\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.508925"
+    },
+    {
+      "category": "Widget: enhanced_vehicle_widget.py",
+      "message": "Hard-coded dropdown values found: \"All\", \"Active\", \"In Service\", \"Out of Service\", \"Retired\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.508974"
+    },
+    {
+      "category": "Widget: manage_cash_box_widget.py",
+      "message": "Hard-coded dropdown values found: \"All\", \"Deposit\", \"Withdrawal\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.511397"
+    },
+    {
+      "category": "Widget: manage_personal_expenses_widget.py",
+      "message": "Hard-coded dropdown values found: \"All\", \"Pending\", \"Approved\", \"Reimbursed\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.512085"
+    },
+    {
+      "category": "Widget: manage_receipts_widget.py",
+      "message": "Hard-coded dropdown values found: \"All\", \"Verified\", \"Unverified\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.512763"
+    },
+    {
+      "category": "Widget: manage_receipts_widget.py",
+      "message": "GL code references found but no chart_of_accounts lookup",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.512853"
+    },
+    {
+      "category": "Widget: payroll_entry_widget.py",
+      "message": "Hard-coded dropdown values found: \"active\", \"inactive\", \"leave\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.518464"
+    },
+    {
+      "category": "Widget: payroll_entry_widget.py",
+      "message": "Hard-coded dropdown values found: \n            \"Hire\", \"Termination\", \"Salary Change\", \"Bonus\", \"Adjustment\", \"Other\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.518538"
+    },
+    {
+      "category": "Widget: payroll_entry_widget.py",
+      "message": "Hard-coded dropdown values found: \"employee_master\", \"charter_default\", \"manual_override\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.518640"
+    },
+    {
+      "category": "Widget: quote_generator_widget.py",
+      "message": "Hard-coded dropdown values found: \"All\", \"quote\", \"booked\", \"completed\", \"cancelled\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.521829"
+    },
+    {
+      "category": "Widget: receipt_search_match_widget.py",
+      "message": "Hard-coded dropdown values found: \n            \"AB (GST 5%)\", \"BC (GST 5% + PST 7%)\", \"SK (GST 5%)\", \"MB (GST 5%)\",\n            \"ON (H...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.526654"
+    },
+    {
+      "category": "Widget: receipt_search_match_widget.py",
+      "message": "Hard-coded dropdown values found: \n            \"Standard purchase\",\n            \"Manual - Government fee\",\n            \"Manual - Adjus...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.526773"
+    },
+    {
+      "category": "Widget: receipt_search_match_widget.py",
+      "message": "Hard-coded dropdown values found: \n            \"credit/debit_card\",\n            \"cash\",\n            \"check\",\n            \"bank_transfe...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.526858"
+    },
+    {
+      "category": "Widget: receipt_search_match_widget.py",
+      "message": "Beverage references found but no beverage table lookup",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.528094"
+    },
+    {
+      "category": "Widget: reports_widget.py",
+      "message": "Hard-coded dropdown values found: \n            \"Revenue Analysis (Drill-Down)\",\n            \"Expense Analysis (Drill-Down)\",\n         ...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.528863"
+    },
+    {
+      "category": "Widget: roe_form_widget.py",
+      "message": "Hard-coded dropdown values found: \n            \"shortage_of_work\",\n            \"dismissal\",\n            \"illness_or_injury\",\n         ...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.530380"
+    },
+    {
+      "category": "Widget: roe_form_widget.py",
+      "message": "Hard-coded dropdown values found: \"weekly\", \"biweekly\", \"semimonthly\", \"monthly\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.530448"
+    },
+    {
+      "category": "Widget: split_receipt_details_widget.py",
+      "message": "Hard-coded dropdown values found: \"cash_received\", \"float_out\", \"reimbursed\", \"other\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.531541"
+    },
+    {
+      "category": "Widget: tax_management_widget.py",
+      "message": "Hard-coded dropdown values found: \"filed\", \"paid\", \"submitted\", \"draft\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.535790"
+    },
+    {
+      "category": "Widget: tax_widget.py",
+      "message": "Hard-coded dropdown values found: \"Q1\", \"Q2\", \"Q3\", \"Q4\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.537591"
+    },
+    {
+      "category": "Widget: vehicle_management_widget.py",
+      "message": "Hard-coded dropdown values found: \"Active\", \"Inactive\", \"Decommissioned\", \"All Status\"...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.540252"
+    },
+    {
+      "category": "Widget: vehicle_management_widget.py",
+      "message": "Hard-coded dropdown values found: \n            \"Sedan\",\n            \"SUV\",\n            \"Shuttle Bus\",\n            \"Party Bus\",\n       ...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.540306"
+    },
+    {
+      "category": "Widget: vehicle_management_widget.py",
+      "message": "Hard-coded dropdown values found: \n            \"Active\",\n            \"Inactive\",\n            \"Maintenance\",\n            # Additional s...",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.540362"
+    },
+    {
+      "category": "Vue: BookingFormLMS.vue",
+      "message": "Beverage references but no API call to fetch beverages",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.554060"
+    },
+    {
+      "category": "Vue: ReceiptForm.vue",
+      "message": "Beverage references but no API call to fetch beverages",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.557479"
+    },
+    {
+      "category": "API: /list/{category}/{entity_id}/{subfolder}",
+      "message": "Endpoint may return hard-coded list instead of database query",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.560415"
+    },
+    {
+      "category": "API: /categories",
+      "message": "Endpoint may return hard-coded list instead of database query",
+      "severity": "WARNING",
+      "timestamp": "2026-02-05T11:25:48.561608"
+    }
+  ],
+  "verified": [
+    {
+      "category": "Critical Table",
+      "message": "Table 'beverages' exists in Neon",
+      "severity": "INFO",
+      "timestamp": "2026-02-05T11:25:46.359485"
+    },
+    {
+      "category": "Critical Table",
+      "message": "Table 'beverage_products' exists in Neon",
+      "severity": "INFO",
+      "timestamp": "2026-02-05T11:25:46.451080"
+    },
+    {
+      "category": "Critical Table",
+      "message": "Table 'chart_of_accounts' exists in Neon",
+      "severity": "INFO",
+      "timestamp": "2026-02-05T11:25:46.540897"
+    },
+    {
+      "category": "Critical Table",
+      "message": "Table 'charters' exists in Neon",
+      "severity": "INFO",
+      "timestamp": "2026-02-05T11:25:46.649347"
+    },
+    {
+      "category": "Critical Table",
+      "message": "Table 'clients' exists in Neon",
+      "severity": "INFO",
+      "timestamp": "2026-02-05T11:25:47.198117"
+    },
+    {
+      "category": "Critical Table",
+      "message": "Table 'employees' exists in Neon",
+      "severity": "INFO",
+      "timestamp": "2026-02-05T11:25:47.315109"
+    },
+    {
+      "category": "Critical Table",
+      "message": "Table 'vehicles' exists in Neon",
+      "severity": "INFO",
+      "timestamp": "2026-02-05T11:25:47.431518"
+    },
+    {
+      "category": "Critical Table",
+      "message": "Table 'payments' exists in Neon",
+      "severity": "INFO",
+      "timestamp": "2026-02-05T11:25:47.595021"
+    },
+    {
+      "category": "Critical Table",
+      "message": "Table 'receipts' exists in Neon",
+      "severity": "INFO",
+      "timestamp": "2026-02-05T11:25:47.958067"
+    }
+  ],
+  "tables_checked": {
+    "neon_count": 289,
+    "local_count": 277,
+    "common_count": 233,
+    "missing_in_neon": [
+      "hos_14day_summary",
+      "hos_log",
+      "tax_overrides",
+      "charter_receipts",
+      "receipt_cashbox_links",
+      "square_cc_staging",
+      "credit_lines_backup_20260123_233917",
+      "chart_of_accounts_backup_2026",
+      "lms2026_payment_matches",
+      "verification_audit",
+      "charter_gst_details_2010_2012",
+      "staging_employee_reference_data",
+      "vehicle_capacity_tiers",
+      "employee_t4_summary",
+      "tax_returns",
+      "alcohol_business_tracking",
+      "employee_pay_master",
+      "invoices",
+      "charters_routing_times",
+      "staging_driver_pay_files",
+      "dispatch_events",
+      "square_fees_staging",
+      "square_customers_staging",
+      "customer_feedback",
+      "employee_t4_records",
+      "category_to_account_map",
+      "tax_periods",
+      "account_categories",
+      "driver_comms_log",
+      "category_mappings",
+      "receipt_banking_links",
+      "transaction_categories",
+      "tax_rollovers",
+      "square_lms_matches",
+      "receipts_square_dedupe_backup_20260201",
+      "customer_comms_log",
+      "tax_variances",
+      "receipts_square_final_backup_20260201",
+      "charter_incidents",
+      "audit_log",
+      "transaction_subcategories",
+      "staging_pd7a_year_end_summary",
+      "lms2026_payments_staging",
+      "tax_remittances"
+    ],
+    "extra_in_neon": [
+      "credit_lines",
+      "square_customers_extracted",
+      "driver_performance_private",
+      "square_fees_extracted",
+      "financing_payments",
+      "payroll_approval_workflow",
+      "journal_batches",
+      "square_validation_summary",
+      "suppliers",
+      "trial_balance",
+      "journal_lines",
+      "orphaned_charges_archive",
+      "category_to_account_map_archive",
+      "banking_payment_links",
+      "etransfer_fix_final_results",
+      "limo_clients_clean",
+      "square_loan_payments",
+      "multi_charter_payments",
+      "transaction_subcategories_archive",
+      "profit_and_loss",
+      "etransfer_analysis_results",
+      "account_categories_archive",
+      "audit_logs",
+      "lms_rate_mapping",
+      "square_disputes",
+      "charter_driver_logs",
+      "limo_addresses",
+      "driver_hos_log",
+      "email_log",
+      "income_ledger_payment_archive",
+      "square_payments",
+      "square_refunds",
+      "square_loans_extracted",
+      "etransfer_accounting_assessment",
+      "non_charter_payroll",
+      "active_floats_detailed",
+      "square_loan_repayments_extracted",
+      "driver_internal_notes",
+      "balance_sheet",
+      "limo_contacts",
+      "limo_clients",
+      "limo_addresses_clean",
+      "lms_sync_log",
+      "wage_allocation_decisions",
+      "qb_import_batches",
+      "lms_deposits",
+      "transaction_categories_archive",
+      "lms_vehicle_mapping",
+      "charter_charge_defaults",
+      "payment_reconciliation_ledger",
+      "journal",
+      "qb_journal_entries",
+      "lms_charges",
+      "lms_customers_enhanced",
+      "category_mappings_archive",
+      "square_payouts_extracted"
+    ]
+  },
+  "widgets_analyzed": [
+    "admin_management_widget.py",
+    "asset_management_widget.py",
+    "beverage_management_widget.py",
+    "billing_management_widget.py",
+    "copilot_widget.py",
+    "dispatcher_calendar_widget.py",
+    "dispatch_management_widget.py",
+    "document_management_widget.py",
+    "driver_calendar_widget.py",
+    "employee_management_widget.py",
+    "enhanced_charter_widget.py",
+    "enhanced_client_widget.py",
+    "enhanced_employee_widget.py",
+    "enhanced_vehicle_widget.py",
+    "improved_customer_widget.py",
+    "manage_banking_widget.py",
+    "manage_cash_box_widget.py",
+    "manage_personal_expenses_widget.py",
+    "manage_receipts_widget.py",
+    "mega_menu_widget.py",
+    "outlook_style_calendar_widget.py",
+    "payroll_entry_widget.py",
+    "pdf_charter_export_widget.py",
+    "pdf_payroll_accounting_widget.py",
+    "quick_charter_lookup_widget.py",
+    "quote_generator_widget.py",
+    "receipt_search_match_widget.py",
+    "reports_widget.py",
+    "report_explorer_widget.py",
+    "roe_form_widget.py",
+    "split_receipt_details_widget.py",
+    "table_management_widget.py",
+    "tax_management_widget.py",
+    "tax_widget.py",
+    "unbooked_calendar_report_widget.py",
+    "vehicle_management_widget.py",
+    "wcb_rate_widget.py"
+  ],
+  "vue_components_analyzed": [
+    "Charter.vue",
+    "Customers.vue",
+    "Dashboard.vue",
+    "Dispatch.vue",
+    "Employees.vue",
+    "Vehicles.vue",
+    "BusinessDashboard.vue",
+    "CustomerForm.vue",
+    "DocumentUploadSection.vue",
+    "GstSection.vue",
+    "InsuranceSection.vue",
+    "NavigationBar.vue",
+    "PayrollSection.vue",
+    "Accounting.vue",
+    "Admin.vue",
+    "BeverageOrderPrint.vue",
+    "BookingPage.vue",
+    "Charter.vue",
+    "ChequeBookManagement.vue",
+    "CompanySnapshot.vue",
+    "Customers.vue",
+    "Dashboard.vue",
+    "Dispatch.vue",
+    "DispatchSimple.vue",
+    "DispatchTest.vue",
+    "DriverHOSLog.vue",
+    "Drivers.vue",
+    "Employees.vue",
+    "Login.vue",
+    "Main.vue",
+    "OweDavid.vue",
+    "QuoteGenerator.vue",
+    "ReceiptsView.vue",
+    "ReceivedPayments.vue",
+    "Reports.vue",
+    "TableManagement.vue",
+    "Vehicles.vue",
+    "BookingForm.vue",
+    "BookingFormLMS.vue",
+    "CharterPrintTemplate.vue",
+    "CIBCCardConfiguration.vue",
+    "CustomerForm.vue",
+    "CustomerForm_NEW.vue",
+    "DriverFloatManagement.vue",
+    "EmployeeForm.vue",
+    "FileUpload.vue",
+    "FormField.vue",
+    "NavigationBar.vue",
+    "ProfessionalForm.vue",
+    "QuickBookForm.vue",
+    "ReceiptForm.vue",
+    "ReceiptVerificationWidget.vue",
+    "VehicleForm.vue"
+  ],
+  "api_endpoints_analyzed": [
+    "GET /stats",
+    "GET /gst/summary",
+    "GET /chart-of-accounts",
+    "GET /reports/profit-loss",
+    "GET /reports/cash-flow",
+    "GET /reports/ar-aging",
+    "GET /transactions",
+    "GET /accounts",
+    "PUT /transactions/{transaction_id}/categorize",
+    "GET /reconciliation/status",
+    "GET /{transaction_id}/allocations/preview",
+    "POST /{transaction_id}/allocate",
+    "GET /bookings",
+    "GET /bookings/{charter_id}",
+    "GET /bookings/search",
+    "POST /bookings/create",
+    "GET /charters/{charter_id}/charges",
+    "POST /charters/{charter_id}/charges",
+    "DELETE /charges/{charge_id}",
+    "GET /charges/catalog",
+    "GET /charges/by-reserve/{reserve_number}",
+    "GET /charters",
+    "GET /charters/search",
+    "GET /charges/{reserve_number}",
+    "GET /charters/{charter_id}",
+    "GET /charters/{charter_id}/routes",
+    "GET /charters/{charter_id}/with-routes",
+    "DELETE /charters/{charter_id}/routes/{route_id}",
+    "POST /charters/{charter_id}/routes/reorder",
+    "GET /charter-sheet/{reserve_number}",
+    "GET /search",
+    "GET /",
+    "GET /login",
+    "POST /login-submit",
+    "POST /login",
+    "GET /dashboard",
+    "GET /logout",
+    "GET /",
+    "GET /drivers",
+    "GET /{employee_id}",
+    "POST /",
+    "POST /upload/{category}/{entity_id}/{subfolder}",
+    "GET /list/{category}/{entity_id}/{subfolder}",
+    "GET /download/{category}/{entity_id}/{subfolder}/{filename}",
+    "DELETE /delete/{category}/{entity_id}/{subfolder}/{filename}",
+    "POST /employees/{employee_id}/create-folder",
+    "POST /vehicles/{vehicle_number}/create-folder",
+    "POST /signed-url/{reserve_number}",
+    "GET /{reserve_number}",
+    "GET /{reserve_number}/metadata",
+    "GET /",
+    "GET /{invoice_id}",
+    "POST /",
+    "PUT /{invoice_id}",
+    "PUT /{invoice_id}/mark-paid",
+    "DELETE /{invoice_id}",
+    "GET /stats/summary",
+    "GET /dashboard",
+    "GET /charters/{charter_id}/payments",
+    "POST /charters/{charter_id}/payments",
+    "DELETE /payments/{payment_id}",
+    "GET /charters/{charter_id}/invoice-pdf",
+    "GET /charters/{charter_id}/invoice-pdf-preview",
+    "GET /defaults",
+    "GET /by-vehicle/{vehicle_type}",
+    "POST /calculate-quotes",
+    "GET /charter-types",
+    "GET /vendors",
+    "GET /categories",
+    "GET /",
+    "GET /{receipt_id}",
+    "POST /",
+    "PUT /{receipt_id}",
+    "DELETE /{receipt_id}",
+    "GET /summary/by-category",
+    "GET /vendors",
+    "GET /vendor-profile",
+    "GET /check-duplicates",
+    "GET /match-banking",
+    "POST /{receipt_id}/link-banking/{transaction_id}",
+    "POST /",
+    "GET /",
+    "POST /{receipt_id}/auto-split",
+    "GET /export",
+    "GET /trial-balance",
+    "GET /journals",
+    "GET /bank-reconciliation",
+    "GET /pl-summary",
+    "GET /vehicle-performance",
+    "GET /driver-costs",
+    "GET /driver-monthly-costs",
+    "GET /vehicle-insurance-yearly",
+    "GET /vehicle-damage-summary",
+    "GET /pl-categories",
+    "GET /vehicle-revenue",
+    "GET /driver-revenue-vs-pay",
+    "GET /bank-reconciliation-suggestions",
+    "GET /fleet-maintenance-summary",
+    "GET /cra-audit-export",
+    "GET /quickbooks/views",
+    "GET /quickbooks/export/{view_name}",
+    "GET /quickbooks/export-all",
+    "GET /company-snapshot",
+    "GET /chart-of-accounts",
+    "POST /chart-of-accounts",
+    "GET /receipt-categories",
+    "POST /receipt-categories",
+    "GET /charter-types",
+    "POST /charter-types",
+    "GET /vehicle-pricing",
+    "POST /vehicle-pricing",
+    "GET /beverages",
+    "POST /beverages",
+    "GET /",
+    "POST /"
+  ]
+}

@@ -253,7 +253,6 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue';
-import axios from 'axios';
 
 export default {
   name: 'ReceivedPayments',
@@ -362,12 +361,12 @@ export default {
       }
 
       try {
-        const response = await axios.get(`/api/charters/search`, {
-          params: { q: form.value.reserve_number, limit: 1 }
-        });
+        const response = await fetch(`http://127.0.0.1:8000/api/charters/search?q=${encodeURIComponent(form.value.reserve_number)}&limit=1`);
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
 
-        if (response.data.charters && response.data.charters.length > 0) {
-          charterInfo.value = response.data.charters[0];
+        if (data.charters && data.charters.length > 0) {
+          charterInfo.value = data.charters[0];
           form.value.charter_id = charterInfo.value.charter_id;
         } else {
           charterInfo.value = null;
@@ -384,9 +383,15 @@ export default {
     const recordPayment = async () => {
       loading.value = true;
       try {
-        const response = await axios.post('/api/received-payments/', form.value);
+        const response = await fetch('http://127.0.0.1:8000/api/received-payments/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form.value)
+        });
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
 
-        if (response.data.success) {
+        if (data.success) {
           successMessage.value = `Payment of $${formatMoney(form.value.amount)} from ${form.value.payer_name} recorded!`;
           setTimeout(() => successMessage.value = '', 3000);
 
@@ -404,10 +409,9 @@ export default {
     const loadRecentPayments = async () => {
       loading.value = true;
       try {
-        const response = await axios.get('/api/received-payments/search', {
-          params: { limit: 100 }
-        });
-        payments.value = response.data;
+        const response = await fetch('http://127.0.0.1:8000/api/received-payments/search?limit=100');
+        if (!response.ok) throw new Error('Failed to fetch');
+        payments.value = await response.json();
 
         // Extract unique customer names
         const names = new Set();
@@ -450,7 +454,10 @@ export default {
       }
 
       try {
-        await axios.delete(`/api/received-payments/${payment.payment_id}`);
+        const response = await fetch(`http://127.0.0.1:8000/api/received-payments/${payment.payment_id}`, {
+          method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Failed to fetch');
         successMessage.value = 'Payment deleted';
         setTimeout(() => successMessage.value = '', 3000);
         await loadRecentPayments();

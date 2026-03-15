@@ -1,9 +1,8 @@
 """Banking Transactions API Router"""
 from datetime import date
 from decimal import Decimal
-from typing import Optional
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from ..db import get_connection
@@ -16,19 +15,19 @@ class BankingTransactionResponse(BaseModel):
     account_number: str
     transaction_date: date
     description: str
-    debit_amount: Optional[Decimal]
-    credit_amount: Optional[Decimal]
-    balance: Optional[Decimal]
-    category: Optional[str]
+    debit_amount: Decimal | None
+    credit_amount: Decimal | None
+    balance: Decimal | None
+    category: str | None
     verified: bool
 
 
 @router.get("/transactions")
 def get_banking_transactions(
-    account_number: Optional[str] = None,
-    start_date: Optional[date] = None,
-    end_date: Optional[date] = None,
-    category: Optional[str] = None,
+    account_number: str | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    category: str | None = None,
     limit: int = 100,
     offset: int = 0,
 ):
@@ -83,6 +82,85 @@ def get_banking_transactions(
                 "balance": float(row[6]) if row[6] else None,
                 "category": row[7],
                 "verified": row[8],
+            }
+        )
+
+    cur.close()
+    conn.close()
+
+    return transactions
+
+
+@router.get("/search")
+def search_banking_transactions(
+    amount: float | None = None,
+    vendor: str | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    limit: int = 50,
+    offset: int = 0,
+):
+    """Search banking transactions by amount and/or vendor."""
+    vendor = (vendor or "").strip()
+    if amount is None and not vendor:
+        raise HTTPException(status_code=400, detail="Provide amount or vendor")
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    query = """
+        SELECT
+            transaction_id,
+            account_number,
+            transaction_date,
+            description,
+            debit_amount,
+            credit_amount,
+            balance,
+            category,
+            COALESCE(verified, false) as verified,
+            vendor_extracted,
+            receipt_id
+        FROM banking_transactions
+        WHERE 1=1
+    """
+    params = []
+
+    if amount is not None:
+        query += " AND (ABS(debit_amount - %s) < 0.01 OR ABS(credit_amount - %s) < 0.01)"
+        params.extend([amount, amount])
+
+    if vendor:
+        query += " AND (description ILIKE %s OR vendor_extracted ILIKE %s)"
+        params.extend([f"%{vendor}%", f"%{vendor}%"])
+
+    if start_date:
+        query += " AND transaction_date >= %s"
+        params.append(start_date)
+    if end_date:
+        query += " AND transaction_date <= %s"
+        params.append(end_date)
+
+    query += " ORDER BY transaction_date DESC, transaction_id DESC LIMIT %s OFFSET %s"
+    params.extend([limit, offset])
+
+    cur.execute(query, params)
+
+    transactions = []
+    for row in cur.fetchall():
+        transactions.append(
+            {
+                "transaction_id": row[0],
+                "account_number": row[1],
+                "transaction_date": row[2],
+                "description": row[3],
+                "debit_amount": float(row[4]) if row[4] else None,
+                "credit_amount": float(row[5]) if row[5] else None,
+                "balance": float(row[6]) if row[6] else None,
+                "category": row[7],
+                "verified": row[8],
+                "vendor_extracted": row[9],
+                "receipt_id": row[10],
             }
         )
 
@@ -161,7 +239,94 @@ def categorize_transaction(transaction_id: int, category: str):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(status_code=500, detail=f"Failed to categorize: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to categorize: {e!s}")
+
+
+class BankingTransactionUpdate(BaseModel):
+    description: str | None = None
+    category: str | None = None
+    verified: bool | None = None
+
+
+@router.put("/transactions/{transaction_id}")
+def update_banking_transaction(transaction_id: int, update: BankingTransactionUpdate):
+    """Update a banking transaction (description, category, verified status)"""
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        # Build dynamic update query based on provided fields
+        update_fields = []
+        params = []
+        
+        if update.description is not None:
+            update_fields.append("description = %s")
+            params.append(update.description)
+        
+        if update.category is not None:
+            update_fields.append("category = %s")
+            params.append(update.category)
+        
+        if update.verified is not None:
+            update_fields.append("verified = %s")
+            params.append(update.verified)
+        
+        if not update_fields:
+            raise HTTPException(status_code=400, detail="No fields to update")
+        
+        params.append(transaction_id)
+        query = f"""
+            UPDATE banking_transactions
+            SET {', '.join(update_fields)}
+            WHERE transaction_id = %s
+        """
+        
+        cur.execute(query, params)
+
+        if cur.rowcount == 0:
+            conn.rollback()
+            cur.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Transaction not found")
+
+        conn.commit()
+        
+        # Return updated transaction
+        cur.execute(
+            """
+            SELECT transaction_id, account_number, transaction_date, description,
+                   debit_amount, credit_amount, balance, category, COALESCE(verified, false)
+            FROM banking_transactions
+            WHERE transaction_id = %s
+            """,
+            (transaction_id,)
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        return {
+            "message": "Transaction updated successfully",
+            "transaction": {
+                "transaction_id": row[0],
+                "account_number": row[1],
+                "transaction_date": row[2],
+                "description": row[3],
+                "debit_amount": float(row[4]) if row[4] else None,
+                "credit_amount": float(row[5]) if row[5] else None,
+                "balance": float(row[6]) if row[6] else None,
+                "category": row[7],
+                "verified": row[8],
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        cur.close()
+        conn.close()
+        raise HTTPException(status_code=500, detail=f"Failed to update transaction: {e!s}")
 
 
 @router.get("/reconciliation/status")

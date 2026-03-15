@@ -141,6 +141,37 @@
         <button @click="uploadReceipts" class="btn-secondary">Upload Receipt Images</button>
       </div>
 
+      <!-- Split Receipts Search Section -->
+      <div class="split-receipts-search">
+        <h3>🔍 Search Split Receipts</h3>
+        <div class="search-controls">
+          <div class="search-group">
+            <input 
+              v-model="splitSearchAmount" 
+              type="number" 
+              placeholder="Enter amount (e.g., 50.01, 120.00)"
+              step="0.01"
+              class="search-input"
+            />
+            <button @click="searchSplitReceipts" class="btn-search">
+              🔎 Find Split Receipts
+            </button>
+          </div>
+          <div class="search-info">
+            <small>Enter an amount to find all linked receipt parts (splits from same banking transaction)</small>
+          </div>
+        </div>
+        
+        <!-- Split Receipts Display Component -->
+        <SplitReceiptsDisplay 
+          :receiptId="selectedReceiptForSplit"
+          :show="showSplitDisplay"
+          @close="showSplitDisplay = false"
+          @edit="editSplitReceipt"
+          @view-banking="viewBankingTransaction"
+        />
+      </div>
+
       <div v-if="showReceiptForm" class="receipt-form">
         <h3>{{ splitMode ? 'Split Receipt' : 'Add Receipt/Expense' }}</h3>
         <form @submit.prevent="addReceipt">
@@ -336,6 +367,7 @@
 import { ref, computed, onMounted } from 'vue'
 import ReceiptVerificationWidget from '../components/ReceiptVerificationWidget.vue'
 import BankingDeposits from '../components/BankingDeposits.vue'
+import SplitReceiptsDisplay from '../components/SplitReceiptsDisplay.vue'
 
 const activeTab = ref('banking')
 const showReceiptForm = ref(false)
@@ -360,6 +392,11 @@ const invoices = ref([])
 const receipts = ref([])
 const dataLoaded = ref(false)
 const isLoading = ref(false)
+
+// Split Receipts Search
+const splitSearchAmount = ref('')
+const showSplitDisplay = ref(false)
+const selectedReceiptForSplit = ref(null)
 
 const newReceipt = ref({
   date: '',
@@ -632,6 +669,48 @@ function cancelReceiptForm() {
 function uploadReceipts() {
   console.log('Upload receipts')
   // TODO: Implement file upload
+}
+
+// Split Receipts Search Methods
+async function searchSplitReceipts() {
+  if (!splitSearchAmount.value) {
+    alert('Please enter an amount to search for split receipts')
+    return
+  }
+
+  try {
+    isLoading.value = true
+    
+    // First, find a receipt with this amount
+    const amount = parseFloat(splitSearchAmount.value)
+    const foundReceipt = receipts.value.find(r => Math.abs(r.amount - amount) < 0.01)
+    
+    if (!foundReceipt) {
+      alert(`No receipt found with amount $${amount.toFixed(2)}`)
+      return
+    }
+    
+    // Show the split display for this receipt
+    selectedReceiptForSplit.value = foundReceipt.id
+    showSplitDisplay.value = true
+    
+  } catch (err) {
+    alert('Error searching split receipts: ' + err.message)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+function editSplitReceipt(receiptId) {
+  console.log('Edit split receipt:', receiptId)
+  // Could open the receipt in the form for editing
+  alert(`Edit receipt #${receiptId} - feature coming soon`)
+}
+
+function viewBankingTransaction(transactionId) {
+  console.log('View banking transaction:', transactionId)
+  // Could navigate to banking tab and highlight this transaction
+  alert(`View banking transaction #${transactionId} - feature coming soon`)
 }
 
 function generateGstReport() {
@@ -1191,5 +1270,68 @@ h2 {
 .loading-indicator p {
   font-size: 1.1rem;
   margin: 0;
+}
+
+/* Split Receipts Search Styles */
+.split-receipts-search {
+  background: #f9f9f9;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.split-receipts-search h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-controls {
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+}
+
+.search-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.search-input {
+  flex: 1;
+  max-width: 300px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.btn-search {
+  padding: 10px 20px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.btn-search:hover {
+  background: #45a049;
+}
+
+.search-info {
+  color: #666;
+  font-size: 12px;
+  margin-top: 8px;
 }
 </style>

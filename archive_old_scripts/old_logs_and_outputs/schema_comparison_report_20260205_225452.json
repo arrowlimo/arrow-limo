@@ -1,0 +1,407 @@
+{
+  "timestamp": "2026-02-05T22:54:52.889834",
+  "local_tables": 277,
+  "neon_tables": 304,
+  "common_tables": 247,
+  "local_only_tables": [
+    "staging_pd7a_year_end_summary",
+    "verification_audit",
+    "charter_receipts",
+    "dispatch_events",
+    "chart_of_accounts_backup_2026",
+    "square_cc_staging",
+    "charter_incidents",
+    "driver_comms_log",
+    "tax_remittances",
+    "hos_log",
+    "receipt_banking_links",
+    "tax_overrides",
+    "square_fees_staging",
+    "hos_14day_summary",
+    "customer_comms_log",
+    "vehicle_capacity_tiers",
+    "credit_lines_backup_20260123_233917",
+    "tax_rollovers",
+    "square_lms_matches",
+    "audit_log",
+    "staging_employee_reference_data",
+    "square_customers_staging",
+    "staging_driver_pay_files",
+    "receipts_square_dedupe_backup_20260201",
+    "receipts_square_final_backup_20260201",
+    "charters_routing_times",
+    "receipt_cashbox_links",
+    "customer_feedback",
+    "invoices",
+    "lms2026_payments_staging"
+  ],
+  "neon_only_tables": [
+    "audit_logs",
+    "balance_sheet",
+    "suppliers",
+    "etransfer_fix_final_results",
+    "limo_clients",
+    "email_log",
+    "non_charter_payroll",
+    "qb_import_batches",
+    "driver_internal_notes",
+    "split_run_segments",
+    "transaction_subcategories_archive",
+    "financing_payments",
+    "square_validation_summary",
+    "charter_driver_logs",
+    "trial_balance",
+    "wage_allocation_decisions",
+    "transaction_categories_archive",
+    "profit_and_loss",
+    "category_to_account_map_archive",
+    "square_disputes",
+    "square_refunds",
+    "square_customers_extracted",
+    "orphaned_charges_archive",
+    "square_payouts_extracted",
+    "lms_rate_mapping",
+    "payment_reconciliation_ledger",
+    "charter_charge_defaults",
+    "credit_lines",
+    "category_mappings_archive",
+    "limo_addresses_clean",
+    "qb_journal_entries",
+    "banking_payment_links",
+    "journal_batches",
+    "driver_hos_log",
+    "payroll_approval_workflow",
+    "square_loan_repayments_extracted",
+    "driver_performance_private",
+    "journal_lines",
+    "active_floats_detailed",
+    "lms_vehicle_mapping",
+    "lms_customers_enhanced",
+    "square_loans_extracted",
+    "limo_contacts",
+    "multi_charter_payments",
+    "lms_sync_log",
+    "square_payments",
+    "limo_clients_clean",
+    "limo_addresses",
+    "etransfer_analysis_results",
+    "square_fees_extracted",
+    "journal",
+    "income_ledger_payment_archive",
+    "lms_charges",
+    "square_loan_payments",
+    "account_categories_archive",
+    "lms_deposits",
+    "etransfer_accounting_assessment"
+  ],
+  "identical_count": 219,
+  "differences": [
+    {
+      "table": "alberta_tax_brackets",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 15,
+      "neon_rows": 30,
+      "row_variance_pct": 50.0
+    },
+    {
+      "table": "app_errors",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 1,
+      "neon_rows": 0,
+      "row_variance_pct": 100.0
+    },
+    {
+      "table": "banking_receipt_matching_ledger",
+      "local_only_cols": [
+        "allocation_date",
+        "amount_allocated",
+        "allocation_type"
+      ],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 128921,
+      "neon_rows": 0,
+      "row_variance_pct": 100.0
+    },
+    {
+      "table": "chart_of_accounts",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 169,
+      "neon_rows": 124,
+      "row_variance_pct": 26.627218934911244
+    },
+    {
+      "table": "charter_charges",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 66075,
+      "neon_rows": 70262,
+      "row_variance_pct": 5.959124420027895
+    },
+    {
+      "table": "charter_payments",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 25413,
+      "neon_rows": 31248,
+      "row_variance_pct": 18.673195084485407
+    },
+    {
+      "table": "charter_refunds",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 343,
+      "neon_rows": 375,
+      "row_variance_pct": 8.533333333333333
+    },
+    {
+      "table": "charter_routes",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 18676,
+      "neon_rows": 52071,
+      "row_variance_pct": 64.13358683336214
+    },
+    {
+      "table": "charter_run_types",
+      "local_only_cols": [
+        "run_type_id"
+      ],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 10,
+      "neon_rows": 20,
+      "row_variance_pct": 50.0
+    },
+    {
+      "table": "charters",
+      "local_only_cols": [
+        "subtotal",
+        "gratuity_percent",
+        "extra_gratuity",
+        "grand_total",
+        "custom_charges",
+        "airport_location",
+        "dropoff_time",
+        "gst_permit_number",
+        "gst_exempt",
+        "hourly_rate",
+        "charter_fee_type",
+        "beverage_total",
+        "gst_amount"
+      ],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 18747,
+      "neon_rows": 18721,
+      "row_variance_pct": 0.13868885688376806
+    },
+    {
+      "table": "cheque_register",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 202,
+      "neon_rows": 206,
+      "row_variance_pct": 1.9417475728155338
+    },
+    {
+      "table": "clients",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 9266,
+      "neon_rows": 6667,
+      "row_variance_pct": 28.04878048780488
+    },
+    {
+      "table": "employees",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 147,
+      "neon_rows": 142,
+      "row_variance_pct": 3.4013605442176873
+    },
+    {
+      "table": "general_ledger",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 115738,
+      "neon_rows": 128786,
+      "row_variance_pct": 10.13153603652571
+    },
+    {
+      "table": "gl_transactions",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 981,
+      "neon_rows": 1081,
+      "row_variance_pct": 9.250693802035153
+    },
+    {
+      "table": "invoice_line_items",
+      "local_only_cols": [
+        "line_item_id"
+      ],
+      "neon_only_cols": [],
+      "type_mismatches": [
+        {
+          "column": "description",
+          "local_type": "character varying",
+          "neon_type": "text"
+        }
+      ],
+      "local_rows": 0,
+      "neon_rows": 0,
+      "row_variance_pct": 0
+    },
+    {
+      "table": "master_relationships",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 636025,
+      "neon_rows": 766565,
+      "row_variance_pct": 17.029214743694272
+    },
+    {
+      "table": "payments",
+      "local_only_cols": [
+        "square_fee_gl_description",
+        "verified_date",
+        "verified",
+        "square_fee_gl_code",
+        "verified_by"
+      ],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 27360,
+      "neon_rows": 20416,
+      "row_variance_pct": 25.380116959064324
+    },
+    {
+      "table": "receipts",
+      "local_only_cols": [
+        "receipt_review_notes",
+        "receipt_reviewed_by",
+        "verified_date",
+        "verified",
+        "receipt_review_status",
+        "gl_description",
+        "receipt_reviewed_at",
+        "gl_code",
+        "verified_by"
+      ],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 78670,
+      "neon_rows": 29429,
+      "row_variance_pct": 62.591839328842
+    },
+    {
+      "table": "route_event_types",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 10,
+      "neon_rows": 13,
+      "row_variance_pct": 23.076923076923077
+    },
+    {
+      "table": "run_type_default_charges",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 11,
+      "neon_rows": 6,
+      "row_variance_pct": 45.45454545454545
+    },
+    {
+      "table": "square_capital_loans",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 0,
+      "neon_rows": 2,
+      "row_variance_pct": 100.0
+    },
+    {
+      "table": "square_raw_imports",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 5,
+      "neon_rows": 9,
+      "row_variance_pct": 44.44444444444444
+    },
+    {
+      "table": "users",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 5,
+      "neon_rows": 11,
+      "row_variance_pct": 54.54545454545454
+    },
+    {
+      "table": "vehicle_loans",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 44,
+      "neon_rows": 46,
+      "row_variance_pct": 4.3478260869565215
+    },
+    {
+      "table": "vehicle_pricing_defaults",
+      "local_only_cols": [
+        "package_rate",
+        "package_hours",
+        "split_run_after_hours",
+        "pricing_id",
+        "extra_time_rate",
+        "charter_type_code",
+        "is_active",
+        "split_run_before_hours",
+        "minimum_hours"
+      ],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 16,
+      "neon_rows": 11,
+      "row_variance_pct": 31.25
+    },
+    {
+      "table": "vehicle_repossessions",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 0,
+      "neon_rows": 1,
+      "row_variance_pct": 100.0
+    },
+    {
+      "table": "vehicle_sales",
+      "local_only_cols": [],
+      "neon_only_cols": [],
+      "type_mismatches": [],
+      "local_rows": 0,
+      "neon_rows": 1,
+      "row_variance_pct": 100.0
+    }
+  ],
+  "errors": 0
+}

@@ -1,0 +1,907 @@
+<template>
+  <div class="charter-details-tab">
+    <!-- Out of Town Checkbox -->
+    <div class="form-section highlight-section">
+      <label class="checkbox-label">
+        <input type="checkbox" v-model="form.isOutOfTown" @change="onOutOfTownChange" />
+        <span class="checkbox-text">🌄 Out of Town Run</span>
+      </label>
+      <p class="help-text">Check if charter leaves Red Deer city limits</p>
+    </div>
+
+    <!-- PRIMARY A/B ROUTES (shown when Out of Town is checked) -->
+    <div v-if="form.isOutOfTown" class="master-routes primary-routes">
+      <h3>📍 Primary Routes (Departure)</h3>
+      <div class="route-master-row">
+        <div class="route-label">Primary A</div>
+        <div class="route-type-display">Leave Red Deer For</div>
+        <input 
+          v-model="form.primaryA.address" 
+          type="text" 
+          placeholder="Destination city/location"
+          class="route-input"
+          :readonly="form.routingLocked"
+        />
+        <input 
+          v-model="form.primaryA.time" 
+          type="time" 
+          class="route-time"
+          :readonly="form.routingLocked"
+        />
+      </div>
+
+      <div class="route-master-row">
+        <div class="route-label">Primary B</div>
+        <div class="route-type-display">Pickup In</div>
+        <input 
+          v-model="form.primaryB.address" 
+          type="text" 
+          placeholder="Pickup address/location"
+          class="route-input"
+          :readonly="form.routingLocked"
+        />
+        <input 
+          v-model="form.primaryB.time" 
+          type="time" 
+          class="route-time"
+          :readonly="form.routingLocked"
+        />
+      </div>
+
+      <div class="route-notes">
+        <label>Notes:</label>
+        <textarea 
+          v-model="form.primaryNotes" 
+          rows="2" 
+          placeholder="Client notes for departure and pickup"
+          :readonly="form.routingLocked"
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- CUSTOMER DETAILS -->
+    <div class="form-section">
+      <h3>👤 Customer Information</h3>
+      
+      <div class="form-row">
+        <label>Customer Name *</label>
+        <div class="autocomplete-wrapper">
+          <input 
+            v-model="form.clientName" 
+            type="text" 
+            @input="searchClients"
+            @focus="showClientDropdown = true"
+            placeholder="Search or enter customer name"
+            autocomplete="off"
+          />
+          <ul v-if="showClientDropdown && clientMatches.length" class="dropdown">
+            <li v-for="c in clientMatches" :key="c.client_id" @click="selectClient(c)">
+              <strong>{{ c.client_name }}</strong>
+              <small v-if="c.phone">{{ c.phone }}</small>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="form-row-dual">
+        <div class="form-field">
+          <label>Phone</label>
+          <input v-model="form.phone" type="tel" placeholder="(403) 555-1234" />
+        </div>
+        <div class="form-field">
+          <label>Email</label>
+          <input v-model="form.email" type="email" placeholder="customer@example.com" />
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTER BASIC INFO -->
+    <div class="form-section">
+      <h3>📅 Charter Information</h3>
+      
+      <div class="form-row-dual">
+        <div class="form-field">
+          <label>Charter Date *</label>
+          <input v-model="form.charterDate" type="date" required />
+        </div>
+        <div class="form-field">
+          <label>Pickup Time *</label>
+          <input v-model="form.pickupTime" type="time" required />
+        </div>
+      </div>
+
+      <div class="form-row-dual">
+        <div class="form-field">
+          <label>Passenger Count *</label>
+          <input v-model.number="form.passengerCount" type="number" min="1" max="50" required />
+        </div>
+        <div class="form-field">
+          <label>Vehicle Type</label>
+          <select v-model="form.vehicleType">
+            <option value="">-- Select --</option>
+            <option value="sedan">Sedan (1-4)</option>
+            <option value="suv">SUV (1-6)</option>
+            <option value="stretch">Stretch Limo (1-8)</option>
+            <option value="shuttle">Shuttle Bus (8-15)</option>
+            <option value="party_bus">Party Bus (16-26)</option>
+            <option value="coach">Coach Bus (27-56)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- INTERMEDIATE ROUTING STOPS -->
+    <div class="form-section">
+      <h3>🗺️ Routing Stops</h3>
+      <div class="routing-controls">
+        <button 
+          type="button" 
+          @click="form.routingLocked = !form.routingLocked" 
+          :class="['lock-btn', form.routingLocked ? 'locked' : 'unlocked']"
+        >
+          {{ form.routingLocked ? '🔒 Locked - Click to Edit' : '🔓 Unlocked - Click to Lock' }}
+        </button>
+        <button 
+          type="button" 
+          @click="addRoutingStop" 
+          class="add-route-btn"
+          :disabled="form.routingLocked"
+        >
+          + Add Routing Stop
+        </button>
+      </div>
+
+      <div class="routing-table">
+        <div v-for="(stop, idx) in form.routingStops" :key="stop.id" class="routing-row">
+          <div class="route-number">{{ idx + 1 }}</div>
+          <input 
+            v-model="stop.type" 
+            type="text" 
+            placeholder="Stop type (e.g., 'Stop At', 'Via')"
+            class="route-type"
+            :readonly="form.routingLocked"
+          />
+          <input 
+            v-model="stop.address" 
+            type="text" 
+            placeholder="Address or location"
+            class="route-address"
+            :readonly="form.routingLocked"
+          />
+          <input 
+            v-model="stop.time" 
+            type="time" 
+            class="route-time"
+            :readonly="form.routingLocked"
+          />
+          <button 
+            type="button" 
+            @click="removeRoutingStop(idx)" 
+            class="remove-btn"
+            :disabled="form.routingLocked"
+          >
+            ×
+          </button>
+        </div>
+        <p v-if="!form.routingStops.length" class="no-routes">
+          No intermediate stops. Click "Add Routing Stop" to add waypoints.
+        </p>
+      </div>
+    </div>
+
+    <!-- SECONDARY B/A ROUTES (shown when Out of Town is checked) -->
+    <div v-if="form.isOutOfTown" class="master-routes secondary-routes">
+      <h3>🏁 Secondary Routes (Return)</h3>
+      <div class="route-master-row">
+        <div class="route-label">Secondary B</div>
+        <div class="route-type-display">Drop Off At</div>
+        <input 
+          v-model="form.secondaryB.address" 
+          type="text" 
+          placeholder="Drop off address/location"
+          class="route-input"
+          :readonly="form.routingLocked"
+        />
+        <input 
+          v-model="form.secondaryB.time" 
+          type="time" 
+          class="route-time"
+          :readonly="form.routingLocked"
+        />
+      </div>
+
+      <div class="route-master-row">
+        <div class="route-label">Secondary A</div>
+        <div class="route-type-display">Returned to Red Deer At</div>
+        <input 
+          v-model="form.secondaryA.address" 
+          type="text" 
+          placeholder="Return location in Red Deer"
+          class="route-input"
+          :readonly="form.routingLocked"
+        />
+        <input 
+          v-model="form.secondaryA.time" 
+          type="time" 
+          class="route-time"
+          :readonly="form.routingLocked"
+        />
+      </div>
+
+      <div class="route-notes">
+        <label>Notes:</label>
+        <textarea 
+          v-model="form.secondaryNotes" 
+          rows="2" 
+          placeholder="Client notes for drop off and return"
+          :readonly="form.routingLocked"
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- PRICING & FEES -->
+    <div class="form-section">
+      <h3>💰 Pricing & Fees</h3>
+      
+      <div class="pricing-grid">
+        <div class="price-row">
+          <label>Base Rate</label>
+          <input v-model.number="form.baseRate" type="number" step="0.01" placeholder="0.00" />
+        </div>
+        <div class="price-row">
+          <label>Airport Fee</label>
+          <input v-model.number="form.airportFee" type="number" step="0.01" placeholder="0.00" />
+        </div>
+        <div class="price-row">
+          <label>Fuel Surcharge</label>
+          <input v-model.number="form.fuelSurcharge" type="number" step="0.01" placeholder="0.00" />
+        </div>
+        <div class="price-row">
+          <label>Gratuity</label>
+          <input v-model.number="form.gratuity" type="number" step="0.01" placeholder="0.00" />
+        </div>
+        <div class="price-row total-row">
+          <label>Total Amount Due</label>
+          <input v-model.number="totalAmountDue" type="number" step="0.01" readonly />
+        </div>
+      </div>
+    </div>
+
+    <!-- QUOTE GENERATOR -->
+    <div class="form-section quote-section">
+      <h3>📊 Generate Quote</h3>
+      <p class="help-text">Generate quotes for different vehicle types based on route and pricing</p>
+      
+      <div class="quote-controls">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="quoteMultiVehicle" />
+          <span>Multi-vehicle quote (e.g., shuttle + limos for bride/groom)</span>
+        </label>
+      </div>
+
+      <div v-if="quoteMultiVehicle" class="multi-vehicle-setup">
+        <h4>Vehicle Combinations</h4>
+        <div v-for="(config, idx) in vehicleConfigs" :key="idx" class="vehicle-config-row">
+          <select v-model="config.type">
+            <option value="sedan">Sedan</option>
+            <option value="suv">SUV</option>
+            <option value="stretch">Stretch Limo</option>
+            <option value="shuttle">Shuttle Bus</option>
+            <option value="party_bus">Party Bus</option>
+          </select>
+          <input v-model.number="config.quantity" type="number" min="1" max="10" placeholder="Qty" class="qty-input" />
+          <input v-model="config.purpose" type="text" placeholder="Purpose (e.g., 'Guest transport')" />
+          <button type="button" @click="removeVehicleConfig(idx)" class="remove-btn">×</button>
+        </div>
+        <button type="button" @click="addVehicleConfig" class="add-btn">+ Add Vehicle</button>
+      </div>
+
+      <button type="button" @click="generateQuote" class="generate-quote-btn">
+        🎯 Generate Quote
+      </button>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="form-actions">
+      <button type="button" @click="saveCharter" class="btn-primary">
+        💾 Save Charter
+      </button>
+      <button type="button" @click="resetForm" class="btn-secondary">
+        🔄 Reset Form
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch } from 'vue'
+
+const emit = defineEmits(['save', 'quote-generated'])
+
+// Form state
+const form = ref({
+  isOutOfTown: false,
+  routingLocked: false,
+  
+  // Master routes (only visible when isOutOfTown = true)
+  primaryA: { address: '', time: '' },  // Leave Red Deer For
+  primaryB: { address: '', time: '' },  // Pickup In
+  secondaryB: { address: '', time: '' }, // Drop Off At
+  secondaryA: { address: '', time: '' }, // Returned to Red Deer At
+  primaryNotes: '',
+  secondaryNotes: '',
+  
+  // Customer
+  clientName: '',
+  phone: '',
+  email: '',
+  
+  // Charter basics
+  charterDate: '',
+  pickupTime: '',
+  passengerCount: 1,
+  vehicleType: '',
+  
+  // Intermediate routing stops (numbered 1, 2, 3...)
+  routingStops: [],
+  
+  // Pricing
+  baseRate: 0,
+  airportFee: 0,
+  fuelSurcharge: 0,
+  gratuity: 0
+})
+
+// UI state
+const showClientDropdown = ref(false)
+const clientMatches = ref([])
+const quoteMultiVehicle = ref(false)
+const vehicleConfigs = ref([
+  { type: 'shuttle', quantity: 2, purpose: 'Guest shuttles' },
+  { type: 'stretch', quantity: 1, purpose: 'Bride & Groom' }
+])
+
+// Computed
+const totalAmountDue = computed(() => {
+  return (form.value.baseRate || 0) + 
+         (form.value.airportFee || 0) + 
+         (form.value.fuelSurcharge || 0) + 
+         (form.value.gratuity || 0)
+})
+
+// Watchers - sync routing table changes back to master routes
+watch(() => form.value.routingStops, (newStops) => {
+  if (!form.value.isOutOfTown) return
+  
+  // Update master routes when routing table is edited
+  updateMasterRoutesFromTable()
+}, { deep: true })
+
+// Methods
+function onOutOfTownChange() {
+  if  (form.value.isOutOfTown) {
+    // Initialize master routes if not set
+    if (!form.value.primaryA.address) {
+      form.value.primaryA = { address: '', time: form.value.pickupTime }
+    }
+  }
+}
+
+function addRoutingStop() {
+  form.value.routingStops.push({
+    id: Date.now(),
+    type: 'Stop At',
+    address: '',
+    time: ''
+  })
+}
+
+function removeRoutingStop(idx) {
+  form.value.routingStops.splice(idx, 1)
+}
+
+function updateMasterRoutesFromTable() {
+  // This syncs any routing table edits back to the master route fields
+  // Implementation depends on business logic
+  console.log('Routing table updated, syncing to master routes')
+}
+
+function searchClients() {
+  // TODO: API call to search clients
+  showClientDropdown.value = true
+}
+
+function selectClient(client) {
+  form.value.clientName = client.client_name
+  form.value.phone = client.phone || ''
+  form.value.email = client.email || ''
+  showClientDropdown.value = false
+}
+
+function addVehicleConfig() {
+  vehicleConfigs.value.push({
+    type: 'sedan',
+    quantity: 1,
+    purpose: ''
+  })
+}
+
+function removeVehicleConfig(idx) {
+  vehicleConfigs.value.splice(idx, 1)
+}
+
+function generateQuote() {
+  const quoteData = {
+    charter: form.value,
+    vehicles: quoteMultiVehicle.value ? vehicleConfigs.value : [
+      { type: form.value.vehicleType, quantity: 1, purpose: 'Charter' }
+    ]
+  }
+  
+  emit('quote-generated', quoteData)
+  console.log('Generating quote:', quoteData)
+}
+
+function saveCharter() {
+  emit('save', form.value)
+}
+
+function resetForm() {
+  if (confirm('Clear all form data?')) {
+    form.value = {
+      isOutOfTown: false,
+      routingLocked: false,
+      primaryA: { address: '', time: '' },
+      primaryB: { address: '', time: '' },
+      secondaryB: { address: '', time: '' },
+      secondaryA: { address: '', time: '' },
+      primaryNotes: '',
+      secondaryNotes: '',
+      clientName: '',
+      phone: '',
+      email: '',
+      charterDate: '',
+      pickupTime: '',
+      passengerCount: 1,
+      vehicleType: '',
+      routingStops: [],
+      baseRate: 0,
+      airportFee: 0,
+      fuelSurcharge: 0,
+      gratuity: 0
+    }
+  }
+}
+</script>
+
+<style scoped>
+.charter-details-tab {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.form-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e0e0e0;
+}
+
+.highlight-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.highlight-section .help-text {
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 0.5rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.master-routes {
+  background: #f8f9ff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 2px solid #667eea;
+}
+
+.primary-routes {
+  border-color: #667eea;
+}
+
+.secondary-routes {
+  border-color: #48bb78;
+}
+
+.route-master-row {
+  display: grid;
+  grid-template-columns: 100px 180px 1fr 120px;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.route-label {
+  font-weight: 700;
+  color: #667eea;
+  font-size: 1.1rem;
+}
+
+.route-type-display {
+  font-weight: 600;
+  color: #4a5568;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 4px;
+}
+
+.route-input, .route-time {
+  padding: 0.6rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.route-input:readonly, .route-time:readonly {
+  background: #f7fafc;
+  cursor: not-allowed;
+}
+
+.route-notes {
+  margin-top: 1rem;
+}
+
+.route-notes label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.route-notes textarea {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.form-row, .form-row-dual {
+  margin-bottom: 1rem;
+}
+
+.form-row-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #2d3748;
+}
+
+.form-field input, .form-field select {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.autocomplete-wrapper {
+  position: relative;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown li {
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dropdown li:hover {
+  background: #edf2f7;
+}
+
+.dropdown strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.dropdown small {
+  color: #718096;
+  margin-left: 0.5rem;
+}
+
+.routing-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.lock-btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.lock-btn.locked {
+  background: #fc8181;
+  color: white;
+}
+
+.lock-btn.unlocked {
+  background: #48bb78;
+  color: white;
+}
+
+.add-route-btn {
+  padding: 0.6rem 1.2rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-route-btn:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+}
+
+.routing-table {
+  background: white;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.routing-row {
+  display: grid;
+  grid-template-columns: 50px 150px 1fr 120px 50px;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f7fafc;
+  border-radius: 4px;
+}
+
+.route-number {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #667eea;
+  text-align: center;
+}
+
+.route-type, .route-address {
+  padding: 0.5rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+}
+
+.route-type:readonly, .route-address:readonly {
+  background: #edf2f7;
+  cursor: not-allowed;
+}
+
+.remove-btn {
+  background: #fc8181;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove-btn:hover {
+  background: #f56565;
+}
+
+.remove-btn:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+}
+
+.no-routes {
+  text-align: center;
+  color: #a0aec0;
+  padding: 2rem;
+  font-style: italic;
+}
+
+.pricing-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.price-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.price-row label {
+  font-weight: 600;
+}
+
+.price-row input {
+  padding: 0.6rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  max-width: 200px;
+}
+
+.total-row {
+  background: #fffacd;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+}
+
+.total-row input {
+  font-weight: 700;
+  font-size: 1.2rem;
+  background: white;
+}
+
+.quote-section {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border: none;
+}
+
+.quote-section h3 {
+  color: white;
+}
+
+.quote-controls {
+  margin-bottom: 1rem;
+}
+
+.multi-vehicle-setup {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.multi-vehicle-setup h4 {
+  margin-top: 0;
+  color: #2d3748;
+}
+
+.vehicle-config-row {
+  display: grid;
+  grid-template-columns: 150px 80px 1fr 50px;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  align-items: center;
+}
+
+.vehicle-config-row select,
+.vehicle-config-row input {
+  padding: 0.5rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+}
+
+.qty-input {
+  width: 60px;
+}
+
+.add-btn {
+  padding: 0.5rem 1rem;
+  background: #48bb78;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.generate-quote-btn {
+  padding: 0.8rem 2rem;
+  background: white;
+  color: #f5576c;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s;
+}
+
+.generate-quote-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 0.8rem 2rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #5568d3;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #2d3748;
+}
+
+.btn-secondary:hover {
+  background: #cbd5e0;
+}
+
+h3 {
+  margin-top: 0;
+  color: #2d3748;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+}
+
+.help-text {
+  color: #718096;
+  font-size: 0.95rem;
+  margin: 0;
+}
+</style>

@@ -3,18 +3,92 @@
     <h2>{{ editMode ? 'Edit Receipt' : 'Add New Receipt' }}</h2>
     
     <form @submit.prevent="submitReceipt" class="receipt-form">
-      <!-- Date -->
-      <div class="form-group">
-        <label for="receipt_date">Date *</label>
-        <input 
-          type="date" 
-          id="receipt_date" 
-          v-model="form.receipt_date" 
-          required 
-        />
+      <!-- Row 1: Amount and Date -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="gross_amount">Total Amount *</label>
+          <input 
+            type="number" 
+            id="gross_amount" 
+            v-model.number="form.gross_amount" 
+            step="0.01" 
+            @input="autoCalculateGST"
+            @keyup.enter="submitReceipt"
+            required 
+            placeholder="0.00"
+            autofocus
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="receipt_date">Date *</label>
+          <input 
+            type="date" 
+            id="receipt_date" 
+            v-model="form.receipt_date" 
+            required 
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="category">Category *</label>
+          <select id="category" v-model="form.category" @change="onCategoryChange" required>
+            <option value="">-- Select --</option>
+            <option value="fuel">Fuel</option>
+            <option value="maintenance">Vehicle Maintenance</option>
+            <option value="insurance">Insurance</option>
+            <option value="office">Office Supplies</option>
+            <option value="meals">Meals & Entertainment</option>
+            <option value="client_beverages">Client Beverages</option>
+            <option value="client_supplies">Client Supplies</option>
+            <option value="client_food">Client Food</option>
+            <option value="professional">Professional Services</option>
+            <option value="utilities">Utilities</option>
+            <option value="rent">Rent</option>
+            <option value="wages">Wages</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
       </div>
 
-      <!-- Vendor with Fuzzy Search -->
+      <!-- Row 2: Invoice #, Description, Bank Transaction ID -->
+      <div class="form-row">
+        <div class="form-group" style="max-width: 120px;">
+          <label for="invoice_number">Invoice #</label>
+          <input 
+            type="text" 
+            id="invoice_number" 
+            v-model="form.invoice_number" 
+            maxlength="10"
+            placeholder="e.g., 12345"
+          />
+        </div>
+
+        <div class="form-group" style="flex: 1;">
+          <label for="description">Description</label>
+          <input
+            type="text" 
+            id="description" 
+            v-model="form.description" 
+            placeholder="Additional notes..."
+          />
+        </div>
+
+        <div class="form-group" style="max-width: 150px;">
+          <label for="banking_transaction_id">Bank Trans ID</label>
+          <input 
+            type="text" 
+            id="banking_transaction_id" 
+            v-model="form.banking_transaction_id" 
+            readonly
+            class="readonly-input"
+            placeholder="(linked)"
+            title="Linked banking transaction ID"
+          />
+        </div>
+      </div>
+
+      <!-- Row 3: Vendor with Fuzzy Search -->
       <div class="form-group">
         <label for="vendor_name">Vendor *</label>
         <input 
@@ -50,91 +124,155 @@
         </div>
       </div>
 
-      <!-- Category -->
-      <div class="form-group">
-        <label for="category">Category *</label>
-        <select id="category" v-model="form.category" @change="onCategoryChange" required>
-          <option value="">-- Select Category --</option>
-          <option value="fuel">Fuel</option>
-          <option value="maintenance">Vehicle Maintenance</option>
-          <option value="insurance">Insurance</option>
-          <option value="office">Office Supplies</option>
-          <option value="meals">Meals & Entertainment</option>
-          <option value="client_beverages">Client Beverages</option>
-          <option value="client_supplies">Client Supplies</option>
-          <option value="client_food">Client Food</option>
-          <option value="professional">Professional Services</option>
-          <option value="utilities">Utilities</option>
-          <option value="rent">Rent</option>
-          <option value="wages">Wages</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-
-      <!-- Conditional Fuel Section -->
-      <div v-if="form.category === 'fuel'" class="fuel-section">
-        <h3><span class="icon">⛽</span> Fuel Details</h3>
-        
-        <div class="form-group">
-          <label for="vehicle_id">Vehicle</label>
-          <select id="vehicle_id" v-model="form.vehicle_id">
-            <option value="">-- Select Vehicle --</option>
-            <option v-for="vehicle in vehicles" :key="vehicle.vehicle_id" :value="vehicle.vehicle_id">
-              {{ vehicle.number }} - {{ vehicle.make }} {{ vehicle.model }}
-            </option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="liters">Liters</label>
-          <input 
-            type="number" 
-            id="liters" 
-            v-model.number="form.liters" 
-            step="0.01"
-            placeholder="e.g., 45.5"
-          />
-          <span v-if="form.liters && form.gross_amount" class="price-per-liter">
-            = ${{ pricePerLiter }} / liter
-          </span>
-        </div>
-
-        <div class="form-group">
-          <label for="charter_number">Charter Number</label>
+      <!-- Row 4: Charter + Driver Reimburse checkbox (for fuel category) -->
+      <div v-if="form.category === 'fuel' || form.is_personal" class="form-row">
+        <div class="form-group" style="flex: 1;">
+          <label for="charter_number">Charter/Reserve #</label>
           <input 
             type="text" 
             id="charter_number" 
             v-model="form.charter_number" 
             placeholder="e.g., RES12345"
           />
+          <small class="hint">For reference only</small>
+        </div>
+
+        <div class="form-group inline" style="align-self: center;">
+          <label>
+            <input type="checkbox" v-model="form.is_personal" />
+            Driver Reimburse
+          </label>
+        </div>
+
+        <div v-if="form.is_personal" class="form-group inline" style="align-self: center;">
+          <label>
+            <input type="checkbox" v-model="form.is_driver_personal" />
+            Driver Personal (exclude)
+          </label>
         </div>
       </div>
 
-      <!-- Amount -->
-      <div class="form-group">
-        <label for="gross_amount">Total Amount *</label>
-        <input 
-          type="number" 
-          id="gross_amount" 
-          v-model.number="form.gross_amount" 
-          step="0.01" 
-          @input="autoCalculateGST"
-          required 
-          placeholder="0.00"
-        />
+      <!-- Row 5: Driver, Vehicle, Fuel (for fuel or reimbursements) -->
+      <div v-if="form.category === 'fuel' || form.is_personal" class="form-row">
+        <div class="form-group" style="flex: 2;">
+          <label for="employee_id">Driver</label>
+          <select id="employee_id" v-model="form.employee_id">
+            <option value="">-- Select Driver --</option>
+            <option v-for="driver in drivers" :key="driver.employee_id" :value="driver.employee_id">
+              {{ driver.first_name }} {{ driver.last_name }}
+            </option>
+          </select>
+        </div>
+
+        <div v-if="form.category === 'fuel'" class="form-group" style="flex: 2;">
+          <label for="vehicle_id">Vehicle</label>
+          <select id="vehicle_id" v-model="form.vehicle_id">
+            <option value="">-- Select --</option>
+            <option v-for="vehicle in vehicles" :key="vehicle.vehicle_id" :value="vehicle.vehicle_id">
+              {{ vehicle.number }} - {{ vehicle.make }} {{ vehicle.model }}
+            </option>
+          </select>
+        </div>
+
+        <div v-if="form.category === 'fuel'" class="form-group" style="max-width: 130px;">
+          <label for="liters">Fuel (L)</label>
+          <input 
+            type="number" 
+            id="liters" 
+            v-model.number="form.liters" 
+            step="0.01"
+            placeholder="45.5"
+          />
+          <span v-if="form.liters && form.gross_amount" class="price-per-liter">
+            ${{ pricePerLiter }}/L
+          </span>
+        </div>
       </div>
 
-      <!-- Tax mode -->
-      <div class="form-group">
-        <label for="tax_mode">Tax Treatment</label>
-        <select id="tax_mode" v-model="taxMode" @change="autoCalculateGST">
-          <option value="GST_INCL_5">GST 5% Included (AB)</option>
-          <option value="GST_PST_INCL_12">GST+PST 12% Included (BC example)</option>
-          <option value="NO_TAX">No Tax / US / Exempt</option>
-          <option value="CUSTOM">Custom Rate (included)</option>
-        </select>
-        <div v-if="taxMode === 'CUSTOM'" class="form-group" style="margin-top:8px;">
-          <label for="custom_tax">Custom Tax Rate (%)</label>
+      <!-- Banking Transaction Link -->
+      <div v-if="editingId && (bankingMatches.length > 0 || bankingSearchPerformed)" class="banking-section">
+        <h4><span class="icon">🏬</span> Banking Transaction</h4>
+        
+        <!-- Show matches found -->
+        <div v-if="bankingMatches.length > 0">
+          <div 
+            v-for="match in bankingMatches" 
+            :key="match.transaction_id" 
+            class="banking-match-compact clickable"
+            @dblclick="!match.already_matched && linkToBanking(match.transaction_id)"
+            :title="match.already_matched ? 'Already linked' : 'Double-click to link'"
+          >
+            <div class="match-info">
+              <strong>{{ match.account_number }}</strong> - {{ formatDate(match.transaction_date) }} -
+              ${{ (match.debit_amount || match.credit_amount).toFixed(2) }}
+              <span v-if="match.already_matched" class="badge matched">✓ Linked</span>
+            </div>
+            <button 
+              v-if="!match.already_matched" 
+              type="button"
+              @click="linkToBanking(match.transaction_id)"
+              class="btn btn-link-small"
+            >
+              Link
+            </button>
+          </div>
+        </div>
+        
+        <!-- Banking search results -->
+        <div v-if="bankingSearchResults.length > 0">
+          <div 
+            v-for="result in bankingSearchResults.slice(0, 5)" 
+            :key="result.transaction_id" 
+            class="banking-match-compact clickable"
+            @dblclick="!result.receipt_id && linkToBanking(result.transaction_id)"
+            :title="result.receipt_id ? 'Already linked' : 'Double-click to link'"
+          >
+            <div class="match-info">
+              <strong>{{ result.account_number }}</strong> - {{ formatDate(result.transaction_date) }} -
+              ${{ (result.debit_amount || result.credit_amount || 0).toFixed(2) }}
+              <span v-if="result.receipt_id" class="badge matched">✓ Linked</span>
+              <span v-else-if="isExactMatch(result)" class="badge exact">💰</span>
+            </div>
+            <button
+              v-if="!result.receipt_id"
+              type="button"
+              @click="linkToBanking(result.transaction_id)"
+              class="btn btn-link-small"
+            >
+              Link
+            </button>
+          </div>
+          <p v-if="bankingSearchResults.length > 5" class="more-results">+ {{ bankingSearchResults.length - 5 }} more</p>
+        </div>
+      </div>
+
+      <!-- Row 6: Tax Mode and GST -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="tax_mode">Tax Treatment</label>
+          <select id="tax_mode" v-model="taxMode" @change="autoCalculateGST">
+            <option value="GST_INCL_5">GST 5% Included (AB)</option>
+            <option value="GST_PST_INCL_12">GST+PST 12% Included (BC)</option>
+            <option value="NO_TAX">No Tax / US / Exempt</option>
+            <option value="CUSTOM">Custom Rate</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="max-width: 150px;">
+          <label for="gst_amount">GST/Tax Amount</label>
+          <input 
+            type="number" 
+            id="gst_amount" 
+            v-model.number="form.gst_amount" 
+            step="0.01" 
+            placeholder="0.00"
+            readonly
+            class="readonly-input"
+          />
+        </div>
+
+        <div v-if="taxMode === 'CUSTOM'" class="form-group" style="max-width: 120px;">
+          <label for="custom_tax">Rate (%)</label>
           <input 
             type="number"
             id="custom_tax"
@@ -146,47 +284,17 @@
         </div>
       </div>
 
-      <!-- GST (Auto-calculated) -->
-      <div class="form-group">
-        <label for="gst_amount">GST Amount</label>
-        <input 
-          type="number" 
-          id="gst_amount" 
-          v-model.number="form.gst_amount" 
-          step="0.01" 
-          placeholder="Auto-calculated (5%)"
-          readonly
-          class="readonly-input"
-        />
-        <small class="hint">Calculated as 5% GST included in total</small>
-      </div>
-
-      <!-- Description -->
-      <div class="form-group">
-        <label for="description">Description</label>
-        <textarea 
-          id="description" 
-          v-model="form.description" 
-          rows="3"
-          placeholder="Additional notes..."
-        ></textarea>
-      </div>
-
-      <!-- Personal / business toggle -->
-      <div class="form-group inline">
-        <label>
-          <input type="checkbox" v-model="form.is_personal" />
-          Mark as personal / reimburse driver
-        </label>
-        <small class="hint">If checked, owner_personal_amount is set to full amount.</small>
-      </div>
-
-      <div class="form-group inline" v-if="form.is_personal">
-        <label>
-          <input type="checkbox" v-model="form.is_driver_personal" />
-          Driver personal (exclude from books)
-        </label>
-        <small class="hint">Marks with DRIVER_PERSONAL code and zero owner draw.</small>
+      <!-- Paper Verification Status -->
+      <div class="form-row verification-row">
+        <div class="form-group inline-checkbox">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="form.is_paper_verified" />
+            <span class="checkbox-text">
+              ✅ Physical receipt verified
+            </span>
+          </label>
+          <small class="hint">Check this box when you've physically verified the paper receipt</small>
+        </div>
       </div>
 
       <!-- Action Buttons -->
@@ -196,6 +304,17 @@
         </button>
         <button type="button" @click="resetForm" class="btn btn-secondary">
           Clear
+        </button>
+        <button type="button" @click="refreshData" class="btn btn-info">
+          Refresh
+        </button>
+        <button 
+          v-if="editingId" 
+          type="button" 
+          @click="toggleBankingSearch" 
+          class="btn btn-info"
+        >
+          {{ showBankingSearch ? 'Hide' : 'Search' }} Banking
         </button>
       </div>
 
@@ -219,37 +338,128 @@
       </div>
 
       <!-- Banking Transaction Matches -->
-      <div v-if="bankingMatches.length > 0" class="message info">
-        <h4><span class="icon">🏦</span> Matching Banking Transactions Found</h4>
-        <div v-for="match in bankingMatches" :key="match.transaction_id" class="banking-match">
-          <div class="match-header">
-            <strong>Account {{ match.account_number }}</strong> - {{ formatDate(match.transaction_date) }}
-            <span v-if="match.already_matched" class="badge matched">
-              ✓ Already Linked (Receipt #{{ match.existing_receipt_id }})
-            </span>
-            <span v-else class="badge available">○ Available</span>
-          </div>
-          <div class="match-details">
-            {{ match.description }} - 
-            <span class="amount">${{ (match.debit_amount || match.credit_amount).toFixed(2) }}</span>
+      <div v-if="bankingMatches.length > 0" class="banking-section compact">
+        <h4><span class="icon">🏦</span> Banking Matches</h4>
+        <div v-for="match in bankingMatches" :key="match.transaction_id" class="banking-match-compact">
+          <div class="match-info">
+            <strong>{{ match.account_number }}</strong> - {{ formatDate(match.transaction_date) }} -
+            ${{ (match.debit_amount || match.credit_amount).toFixed(2) }}
+            <span v-if="match.already_matched" class="badge matched">✓ Linked</span>
           </div>
           <button 
             v-if="!match.already_matched && editingId" 
             type="button"
             @click="linkToBanking(match.transaction_id)"
-            class="btn btn-link"
+            class="btn btn-link-small"
           >
-            Link to This Receipt
+            Link
           </button>
+        </div>
+      </div>
+
+      <!-- Collapsible Banking Search -->
+      <div v-if="showBankingSearch" class="banking-search">
+        <h4><span class="icon">🏦</span> Search Banking Transactions</h4>
+        <div class="banking-search-controls">
+          <input
+            v-model.number="bankingSearchAmount"
+            type="number"
+            step="0.01"
+            placeholder="Amount (optional)"
+          />
+          <input
+            v-model="bankingSearchVendor"
+            type="text"
+            placeholder="Vendor or description (optional)"
+          />
+          <input
+            v-model="bankingSearchStartDate"
+            type="date"
+            placeholder="Start Date"
+            title="Start Date"
+          />
+          <input
+            v-model="bankingSearchEndDate"
+            type="date"
+            placeholder="End Date"
+            title="End Date"
+          />
+          <select v-model="bankingSearchAccountFilter" class="account-filter">
+            <option value="">All Accounts</option>
+            <option v-for="account in bankingAccounts" :key="account" :value="account">
+              {{ account }}
+            </option>
+          </select>
+          <button type="button" class="btn btn-secondary" @click="searchBankingTransactions">
+            Search
+          </button>
+          <button type="button" class="btn btn-link" @click="clearBankingSearch">
+            Clear
+          </button>
+        </div>
+        <small class="hint">Search by amount, vendor, date range, and/or account. Results show exact amount matches highlighted.</small>
+
+        <div v-if="bankingSearchError" class="message error">
+          <span class="icon">✗</span> {{ bankingSearchError }}
+        </div>
+        <div v-else-if="bankingSearchLoading" class="loading">Searching...</div>
+        <div v-else-if="bankingSearchPerformed && bankingSearchResults.length === 0" class="message warning">
+          No banking transactions found.
+        </div>
+
+        <div v-if="bankingSearchResults.length > 0" class="banking-search-results">
+          <p class="results-count">{{ bankingSearchResults.length }} transaction(s) found</p>
+          <div 
+            v-for="result in bankingSearchResults" 
+            :key="result.transaction_id" 
+            class="banking-match clickable"
+            @dblclick="!result.receipt_id && editingId && linkToBanking(result.transaction_id)"
+            :title="result.receipt_id ? 'Already linked' : 'Double-click to link'"
+          >
+            <div class="match-header">
+              <strong>Account {{ result.account_number }}</strong> - {{ formatDate(result.transaction_date) }}
+              <span v-if="result.receipt_id" class="badge matched">
+                ✓ Linked (Receipt #{{ result.receipt_id }})
+              </span>
+              <span v-else-if="isExactMatch(result)" class="badge exact-match">
+                💰 Exact Match
+              </span>
+              <span v-else class="badge available">○ Available</span>
+            </div>
+            <div class="match-details">
+              {{ result.description || result.vendor_extracted || '(no description)' }} -
+              <span class="amount" :class="{ 'exact-amount': isExactMatch(result) }">
+                ${{ (result.debit_amount || result.credit_amount || 0).toFixed(2) }}
+              </span>
+            </div>
+            <button
+              v-if="!result.receipt_id && editingId"
+              type="button"
+              @click="linkToBanking(result.transaction_id)"
+              class="btn btn-link"
+            >
+              Link to This Receipt
+            </button>
+          </div>
         </div>
       </div>
     </form>
 
     <!-- Recent Receipts List -->
     <div class="recent-receipts">
-      <h3>Recent Receipts</h3>
+      <div class="receipts-header">
+        <h3>Recent Receipts (Last 40)</h3>
+        <div class="verification-filter">
+          <label for="verificationFilter">Filter:</label>
+          <select id="verificationFilter" v-model="verificationFilter" class="filter-select">
+            <option value="all">All Receipts</option>
+            <option value="verified">✅ Verified Only</option>
+            <option value="unverified">❌ Unverified Only</option>
+          </select>
+        </div>
+      </div>
       <div v-if="loading" class="loading">Loading...</div>
-      <table v-else-if="recentReceipts.length > 0">
+      <table v-else-if="filteredRecentReceipts.length > 0">
         <thead>
           <tr>
             <th>Date</th>
@@ -258,10 +468,17 @@
             <th>Amount</th>
             <th>GST</th>
             <th>Flags</th>
+            <th>Verified</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="receipt in recentReceipts" :key="receipt.receipt_id">
+          <tr 
+            v-for="receipt in filteredRecentReceipts" 
+            :key="receipt.receipt_id"
+            @click="loadReceiptForEdit(receipt.receipt_id)"
+            class="clickable-row"
+            :class="{ 'active-row': editingId === receipt.receipt_id }"
+          >
             <td>{{ formatDate(receipt.receipt_date) }}</td>
             <td>{{ receipt.vendor_name }}</td>
             <td>{{ receipt.category || '-' }}</td>
@@ -272,15 +489,47 @@
               <span v-else-if="receipt.is_personal" class="badge personal">Personal</span>
               <span v-else class="badge neutral">Business</span>
             </td>
+            <td class="verification-cell">
+              <span v-if="receipt.is_paper_verified" class="verified-badge" :title="'Verified: ' + (receipt.paper_verification_date || 'N/A')">✅</span>
+              <span v-else class="unverified-badge">❌</span>
+            </td>
+          </tr>
+          <!-- Placeholder rows to maintain consistent height -->
+          <tr v-for="i in Math.max(0, 40 - filteredRecentReceipts.length)" :key="'placeholder-' + i" class="placeholder-row">
+            <td colspan="7" class="placeholder-cell">—</td>
           </tr>
         </tbody>
       </table>
-      <p v-else class="no-data">No recent receipts</p>
+      <table v-else class="empty-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Vendor</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>GST</th>
+            <th>Flags</th>
+            <th>Verified</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="i in 40" :key="'empty-' + i" class="placeholder-row">
+            <td colspan="7" class="placeholder-cell">— No receipts yet —</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
 
 <script>
+// GL accounts that should NEVER have GST calculated
+// Includes: Liability accounts (loans), bank charges, interest, financial services
+const GST_EXEMPT_GL_CODES = new Set([
+  '2795', '2800', '2802', '2804', '2806', '2807', '2808', '2810', '2910',
+  '6100', '6101', '6280', '5450', '1135', '1099'
+]);
+
 export default {
   name: 'ReceiptForm',
   data() {
@@ -288,21 +537,29 @@ export default {
       form: {
         receipt_date: new Date().toISOString().split('T')[0],
         vendor_name: '',
+        invoice_number: '',
         gross_amount: null,
         gst_amount: null,
         gst_code: null,
         category: '',
         description: '',
         vehicle_id: null,
-        liters: null,
+        charter_id: null,
         charter_number: '',
+        employee_id: null,
+        liters: null,
         is_personal: false,
-        is_driver_personal: false
+        is_driver_personal: false,
+        gl_account_code: null,
+        banking_transaction_id: null,
+        is_paper_verified: false  // Track if physical paper receipt has been checked
       },
       allVendors: [],
       vendorSuggestions: [],
       showSuggestions: false,
+      showBankingSearch: false,
       vehicles: [],
+      drivers: [],
       recentReceipts: [],
       loading: false,
       editMode: false,
@@ -311,12 +568,23 @@ export default {
       errorMessage: '',
       duplicateReceipts: [],
       bankingMatches: [],
+      bankingSearchAmount: null,
+      bankingSearchVendor: '',
+      bankingSearchStartDate: '',
+      bankingSearchEndDate: '',
+      bankingSearchAccountFilter: '',
+      bankingSearchResults: [],
+      bankingSearchLoading: false,
+      bankingSearchError: '',
+      bankingSearchPerformed: false,
+      bankingAccounts: [],
       showDuplicateWarning: false,
       showBankingMatches: false,
       checkingMatches: false,
       taxMode: 'GST_INCL_5',
       customTaxRate: null,
-      vendorProfile: null
+      vendorProfile: null,
+      verificationFilter: 'all'  // For filtering verified/unverified receipts
     };
   },
   computed: {
@@ -329,6 +597,16 @@ export default {
     pricePerLiter() {
       if (!this.form.liters || !this.form.gross_amount) return '0.00';
       return (this.form.gross_amount / this.form.liters).toFixed(2);
+    },
+    filteredRecentReceipts() {
+      if (this.verificationFilter === 'all') {
+        return this.recentReceipts;
+      } else if (this.verificationFilter === 'verified') {
+        return this.recentReceipts.filter(r => r.is_paper_verified === true);
+      } else if (this.verificationFilter === 'unverified') {
+        return this.recentReceipts.filter(r => r.is_paper_verified !== true);
+      }
+      return this.recentReceipts;
     }
   },
   watch: {
@@ -348,6 +626,7 @@ export default {
   mounted() {
     this.loadVendors();
     this.loadVehicles();
+    this.loadDrivers();
     this.loadRecentReceipts();
     
     // Click outside to close suggestions
@@ -413,10 +692,21 @@ export default {
       }
     },
     
+    async loadDrivers() {
+      try {
+        const response = await fetch('http://127.0.0.1:8001/api/employees?role=driver');
+        if (response.ok) {
+          this.drivers = await response.json();
+        }
+      } catch (error) {
+        console.error('Failed to load drivers:', error);
+      }
+    },
+    
     async loadRecentReceipts() {
       this.loading = true;
       try {
-        const response = await fetch('http://127.0.0.1:8001/api/receipts-simple/?limit=20');
+        const response = await fetch('http://127.0.0.1:8001/api/receipts-simple/?limit=40');
         if (response.ok) {
           this.recentReceipts = await response.json();
         }
@@ -425,6 +715,13 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    
+    refreshData() {
+      this.loadRecentReceipts();
+      this.loadVendors();
+      this.successMessage = 'Data refreshed';
+      setTimeout(() => { this.successMessage = ''; }, 2000);
     },
     
     searchVendors() {
@@ -471,38 +768,92 @@ export default {
       // Reset fuel-specific fields when category changes
       if (this.form.category !== 'fuel') {
         this.form.vehicle_id = null;
-        this.form.liters = null;
+        this.form.charter_id = null;
         this.form.charter_number = '';
+        this.form.employee_id = null;
+        this.form.liters = null;
+        this.charterLookupResult = null;
       }
     },
     
-    autoCalculateGST() {
-      if (this.form.is_driver_personal) {
-        this.form.gst_amount = 0;
-        this.form.gst_code = 'DRIVER_PERSONAL';
-        return;
-      }
-      if (this.form.gross_amount) {
-        let rate = 0.05;
-        if (this.taxMode === 'NO_TAX') {
-          rate = 0;
-        } else if (this.taxMode === 'GST_PST_INCL_12') {
-          rate = 0.12;
-        } else if (this.taxMode === 'CUSTOM' && this.customTaxRate !== null) {
-          rate = Number(this.customTaxRate) / 100;
-        }
-
-        if (rate === 0) {
-          this.form.gst_amount = 0;
-          this.form.gst_code = 'NO_TAX';
-        } else {
-          this.form.gst_amount = parseFloat(
-            (this.form.gross_amount * rate / (1 + rate)).toFixed(2)
-          );
-          this.form.gst_code = this.taxMode;
+    async loadReceiptForEdit(receiptId) {
+      try {
+        const response = await fetch(`http://127.0.0.1:8001/api/receipts-simple/${receiptId}`);
+        if (!response.ok) {
+          throw new Error('Failed to load receipt');
         }
         
-        // Check for duplicates and banking matches after amount is entered
+        const receipt = await response.json();
+        
+        // Populate form with receipt data - use explicit boolean conversion
+        this.form = {
+          receipt_date: receipt.receipt_date,
+          vendor_name: receipt.vendor_name,
+          invoice_number: receipt.invoice_number || '',
+          gross_amount: receipt.gross_amount,
+          gst_amount: receipt.gst_amount,
+          gst_code: receipt.gst_code,
+          category: receipt.category || '',
+          description: receipt.description || '',
+          vehicle_id: receipt.vehicle_id || null,
+          charter_id: receipt.charter_id || null,
+          charter_number: receipt.reserve_number || '',
+          employee_id: receipt.employee_id || null,
+          liters: receipt.fuel_amount || null,
+          is_personal: receipt.is_personal === true,
+          is_driver_personal: receipt.is_driver_personal === true,
+          banking_transaction_id: receipt.banking_transaction_id || null,
+          gl_account_code: receipt.gl_account_code || null,
+          is_paper_verified: receipt.is_paper_verified === true
+        };
+        
+        // Set edit mode
+        this.editMode = true;
+        this.editingId = receiptId;
+        
+      } catch (error) {
+        console.error('Failed to load receipt for editing:', error);
+        this.errorMessage = 'Failed to load receipt: ' + error.message;
+      }
+    },
+    
+    // Helper: Check if tax should be skipped
+    shouldSkipTax() {
+      if (this.form.is_driver_personal) return true;
+      if (this.form.gl_account_code && GST_EXEMPT_GL_CODES.has(this.form.gl_account_code)) return true;
+      return false;
+    },
+    
+    // Helper: Get tax rate from current mode
+    getTaxRate() {
+      if (this.taxMode === 'NO_TAX') return 0;
+      if (this.taxMode === 'GST_PST_INCL_12') return 0.12;
+      if (this.taxMode === 'CUSTOM' && this.customTaxRate !== null) {
+        return Number(this.customTaxRate) / 100;
+      }
+      return 0.05; // Default AB GST
+    },
+    
+    // Helper: Calculate tax from gross amount
+    calculateTaxFromGross(grossAmount, rate) {
+      if (rate === 0) return 0;
+      return Number.parseFloat((grossAmount * rate / (1 + rate)).toFixed(2));
+    },
+    
+    // Simplified GST calculation
+    autoCalculateGST() {
+      if (this.shouldSkipTax()) {
+        this.form.gst_amount = 0;
+        this.form.gst_code = this.form.is_driver_personal ? 'DRIVER_PERSONAL' : 'GST_EXEMPT';
+        return;
+      }
+      
+      if (this.form.gross_amount) {
+        const rate = this.getTaxRate();
+        this.form.gst_amount = this.calculateTaxFromGross(this.form.gross_amount, rate);
+        this.form.gst_code = rate === 0 ? 'NO_TAX' : this.taxMode;
+        
+        // Check for duplicates and banking matches
         if (this.form.vendor_name && this.form.receipt_date) {
           this.checkForMatches();
         }
@@ -574,74 +925,164 @@ export default {
         this.errorMessage = 'Error linking to banking: ' + error.message;
       }
     },
+
+    async searchBankingTransactions() {
+      const vendor = (this.bankingSearchVendor || '').trim();
+      const hasAmount = this.bankingSearchAmount !== null && this.bankingSearchAmount !== '';
+
+      this.bankingSearchError = '';
+      this.bankingSearchPerformed = true;
+      this.bankingSearchResults = [];
+
+      if (!hasAmount && !vendor) {
+        this.bankingSearchError = 'Enter an amount or vendor to search.';
+        return;
+      }
+
+      const params = new URLSearchParams();
+      if (hasAmount) {
+        params.set('amount', this.bankingSearchAmount);
+      }
+      if (vendor) {
+        params.set('vendor', vendor);
+      }
+      if (this.bankingSearchStartDate) {
+        params.set('start_date', this.bankingSearchStartDate);
+      }
+      if (this.bankingSearchEndDate) {
+        params.set('end_date', this.bankingSearchEndDate);
+      }
+      params.set('limit', '1000');
+
+      this.bankingSearchLoading = true;
+      try {
+        const response = await fetch(
+          `http://127.0.0.1:8001/api/banking/search?${params.toString()}`
+        );
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to search banking transactions');
+        }
+        let results = await response.json();
+        
+        // Filter by account if selected
+        if (this.bankingSearchAccountFilter) {
+          results = results.filter(r => r.account_number === this.bankingSearchAccountFilter);
+        }
+        
+        // Extract unique accounts for the account filter
+        this.bankingAccounts = [...new Set(results.map(r => r.account_number).filter(Boolean))];
+        
+        this.bankingSearchResults = results;
+      } catch (error) {
+        this.bankingSearchError = error.message || 'Failed to search banking transactions';
+      } finally {
+        this.bankingSearchLoading = false;
+      }
+    },
+
+    clearBankingSearch() {
+      this.bankingSearchAmount = null;
+      this.bankingSearchVendor = '';
+      this.bankingSearchStartDate = '';
+      this.bankingSearchEndDate = '';
+      this.bankingSearchAccountFilter = '';
+      this.bankingSearchResults = [];
+      this.bankingSearchError = '';
+      this.bankingSearchPerformed = false;
+      this.bankingAccounts = [];
+    },
+
+    isExactMatch(result) {
+      // Check if the banking transaction amount exactly matches the receipt amount
+      if (!this.bankingSearchAmount) return false;
+      const transactionAmount = result.debit_amount || result.credit_amount || 0;
+      return Math.abs(transactionAmount - this.bankingSearchAmount) < 0.01;
+    },
     
+    // Helper: Build fuel-specific description
+    buildFuelDescription() {
+      let description = this.form.description || '';
+      if (this.form.category !== 'fuel') return description;
+      
+      const fuelDetails = [];
+      if (this.form.liters) {
+        fuelDetails.push(`${this.form.liters}L @ $${this.pricePerLiter}/L`);
+      }
+      if (this.form.charter_number) {
+        fuelDetails.push(`Charter: ${this.form.charter_number}`);
+      }
+      
+      if (fuelDetails.length > 0) {
+        return description ? `${description} | ${fuelDetails.join(', ')}` : fuelDetails.join(', ');
+      }
+      return description;
+    },
+    
+    // Helper: Build receipt payload for API
+    buildReceiptPayload() {
+      return {
+        receipt_date: this.form.receipt_date,
+        vendor_name: this.form.vendor_name,
+        invoice_number: this.form.invoice_number || null,
+        gross_amount: Number.parseFloat(this.form.gross_amount),
+        gst_amount: this.form.is_driver_personal ? 0 : this.form.gst_amount,
+        gst_code: this.form.is_driver_personal ? 'DRIVER_PERSONAL' : this.form.gst_code,
+        category: this.form.category,
+        description: this.buildFuelDescription(),
+        vehicle_id: this.form.vehicle_id || null,
+        charter_id: this.form.charter_id || null,
+        reserve_number: this.form.charter_number || null,
+        employee_id: this.form.employee_id || null,
+        fuel_amount: this.form.liters || null,
+        is_personal: !!this.form.is_personal,
+        is_driver_personal: !!this.form.is_driver_personal,
+        is_paper_verified: this.form.is_paper_verified || false
+      };
+    },
+    
+    // Helper: API call to save/update receipt
+    async saveReceiptAPI(payload, isUpdate) {
+      const url = isUpdate 
+        ? `http://127.0.0.1:8001/api/receipts-simple/${this.editingId}` 
+        : 'http://127.0.0.1:8001/api/receipts-simple/';
+      const method = isUpdate ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || `Failed to ${isUpdate ? 'update' : 'save'} receipt`);
+      }
+      
+      return await response.json();
+    },
+    
+    // Simplified submit function
     async submitReceipt() {
       this.successMessage = '';
       this.errorMessage = '';
       
       try {
-        // Build fuel description if applicable
-        let description = this.form.description || '';
-        if (this.form.category === 'fuel') {
-          const fuelDetails = [];
-          if (this.form.liters) {
-            fuelDetails.push(`${this.form.liters}L @ $${this.pricePerLiter}/L`);
-          }
-          if (this.form.charter_number) {
-            fuelDetails.push(`Charter: ${this.form.charter_number}`);
-          }
-          if (fuelDetails.length > 0) {
-            description = description 
-              ? `${description} | ${fuelDetails.join(', ')}`
-              : fuelDetails.join(', ');
-          }
-        }
+        const isUpdate = this.editMode && this.editingId;
+        const payload = this.buildReceiptPayload();
+        const savedReceipt = await this.saveReceiptAPI(payload, isUpdate);
         
-        const payload = {
-          receipt_date: this.form.receipt_date,
-          vendor_name: this.form.vendor_name,
-          gross_amount: parseFloat(this.form.gross_amount),
-          gst_amount: this.form.is_driver_personal ? 0 : this.form.gst_amount,
-          gst_code: this.form.is_driver_personal ? 'DRIVER_PERSONAL' : this.form.gst_code,
-          category: this.form.category,
-          description: description,
-          vehicle_id: this.form.vehicle_id || null,
-          is_personal: !!this.form.is_personal,
-          is_driver_personal: !!this.form.is_driver_personal
-        };
-        
-        const response = await fetch('http://127.0.0.1:8001/api/receipts-simple/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-        
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.detail || 'Failed to save receipt');
-        }
-        
-        const savedReceipt = await response.json();
-        this.successMessage = `Receipt #${savedReceipt.receipt_id} saved successfully!`;
-        
-        // Set editing mode to enable banking linkage
+        this.successMessage = `Receipt #${savedReceipt.receipt_id} ${isUpdate ? 'updated' : 'saved'} successfully!`;
         this.editingId = savedReceipt.receipt_id;
         this.editMode = true;
         
-        // Reload vendors and receipts
+        // Reload data
+        await this.loadReceiptForEdit(savedReceipt.receipt_id);
         this.loadVendors();
         this.loadRecentReceipts();
-        
-        // Check for banking matches now that receipt is saved
         this.checkForMatches();
         
-        // Clear message after 5 seconds
-        setTimeout(() => {
-          this.successMessage = '';
-        }, 5000);
-        
+        setTimeout(() => { this.successMessage = ''; }, 5000);
       } catch (error) {
         this.errorMessage = error.message || 'An error occurred while saving the receipt';
         console.error('Submit error:', error);
@@ -652,25 +1093,42 @@ export default {
       this.form = {
         receipt_date: new Date().toISOString().split('T')[0],
         vendor_name: '',
+        invoice_number: '',
         gross_amount: null,
         gst_amount: null,
         gst_code: null,
         category: '',
         description: '',
         vehicle_id: null,
-        liters: null,
+        charter_id: null,
         charter_number: '',
+        employee_id: null,
+        liters: null,
         is_personal: false,
-        is_driver_personal: false
+        is_driver_personal: false,
+        is_paper_verified: false
       };
       this.editMode = false;
       this.editingId = null;
       this.showSuggestions = false;
+      this.showBankingSearch = false;
       this.vendorSuggestions = [];
       this.duplicateReceipts = [];
       this.bankingMatches = [];
+      this.clearBankingSearch();
+      this.charterLookupResult = null;
       this.successMessage = '';
       this.errorMessage = '';
+    },
+    
+    toggleBankingSearch() {
+      this.showBankingSearch = !this.showBankingSearch;
+      if (this.showBankingSearch) {
+        // Pre-populate search with receipt values
+        this.bankingSearchAmount = this.form.gross_amount;
+        this.bankingSearchVendor = this.form.vendor_name;
+        this.bankingSearchStartDate = this.form.receipt_date;
+      }
     },
     
     formatDate(dateStr) {
@@ -684,32 +1142,45 @@ export default {
 
 <style scoped>
 .receipt-form-container {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 10px;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 h2 {
   color: #2c3e50;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+  font-size: 1.3rem;
 }
 
 h3 {
   color: #34495e;
-  margin-top: 20px;
-  margin-bottom: 15px;
+  margin-top: 10px;
+  margin-bottom: 8px;
+  font-size: 1.1rem;
 }
 
 .receipt-form {
   background: #fff;
-  padding: 30px;
+  padding: 15px;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   position: relative;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .form-group.inline {
@@ -718,19 +1189,60 @@ h3 {
   gap: 10px;
 }
 
+/* Paper Verification Checkbox */
+.verification-row {
+  background: #f0f9ff;
+  border: 2px solid #0891b2;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 16px 0;
+}
+
+.form-group.inline-checkbox {
+  margin-bottom: 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #0e7490;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+  transform: scale(1.3);
+}
+
+.checkbox-text {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.verification-row .hint {
+  margin-left: 32px;
+  margin-top: 5px;
+  font-style: italic;
+  color: #0e7490;
+}
+
 label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 3px;
   font-weight: 600;
   color: #34495e;
+  font-size: 0.85rem;
 }
 
 input, select, textarea {
   width: 100%;
-  padding: 10px;
+  padding: 6px 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
   box-sizing: border-box;
 }
 
@@ -790,70 +1302,142 @@ input:focus, select:focus, textarea:focus {
 
 /* Fuel Section */
 .fuel-section {
-  margin: 25px 0;
-  padding: 20px;
   background: #fff8e1;
-  border: 2px solid #ffc107;
-  border-radius: 8px;
-}
-
-.fuel-section h3 {
-  margin-top: 0;
-  color: #f57c00;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  padding: 4px 8px;
 }
 
 .price-per-liter {
-  display: inline-block;
-  margin-left: 10px;
-  padding: 4px 8px;
-  background: #e3f2fd;
-  border-radius: 4px;
-  font-size: 12px;
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
   color: #1976d2;
   font-weight: 600;
+}
+
+/* Banking Section */
+.banking-section {
+  margin: 12px 0;
+  padding: 10px;
+  background: #e8f5e9;
+  border: 1px solid #4caf50;
+  border-radius: 4px;
+}
+
+.banking-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #2e7d32;
+}
+
+.banking-match-compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px;
+  margin: 4px 0;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.banking-match-compact.clickable {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.banking-match-compact.clickable:hover {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.banking-match.clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.banking-match.clickable:hover {
+  background: #f0f7ff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.match-info {
+  flex: 1;
+}
+
+.more-results {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
 }
 
 /* Buttons */
 .form-actions {
   display: flex;
-  gap: 10px;
-  margin-top: 25px;
+  gap: 8px;
+  margin-top: 15px;
 }
 
 .btn {
-  padding: 12px 24px;
+  padding: 8px 16px;
   border: none;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.3s;
 }
 
 .btn-primary {
-  background: #3498db;
-  color: white;
+  background: #1a5a7f;
+  color: #ffffff;
 }
 
 .btn-primary:hover {
-  background: #2980b9;
+  background: #144a6b;
 }
 
 .btn-secondary {
-  background: #95a5a6;
-  color: white;
+  background: #5a6769;
+  color: #ffffff;
 }
 
 .btn-secondary:hover {
-  background: #7f8c8d;
+  background: #4a5557;
+}
+
+.btn-info {
+  background: #0e6574;
+  color: #ffffff;
+}
+
+.btn-info:hover {
+  background: #0b5461;
+}
+
+.btn-link-small {
+  padding: 3px 10px;
+  font-size: 11px;
+  background: #0e6574;
+  color: #ffffff;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-link-small:hover {
+  background: #0b5461;
 }
 
 /* Messages */
 .message {
-  margin-top: 20px;
-  padding: 12px 16px;
+  margin-top: 10px;
+  padding: 8px 12px;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .message.success {
@@ -884,6 +1468,25 @@ input:focus, select:focus, textarea:focus {
   margin: 0 0 10px 0;
   font-size: 14px;
   font-weight: 600;
+}
+
+.banking-search {
+  margin-top: 12px;
+  padding: 10px;
+  background: #f7f9fc;
+  border: 1px solid #e1e5ee;
+  border-radius: 6px;
+}
+
+.banking-search-controls {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr 1fr 1.2fr auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.banking-search-results {
+  margin-top: 8px;
 }
 
 .duplicate-item, .banking-match {
@@ -930,9 +1533,15 @@ input:focus, select:focus, textarea:focus {
   color: #0c5460;
 }
 
+.badge.exact-match {
+  background: #d4f1d4;
+  color: #155724;
+  font-weight: 700;
+}
+
 .badge.personal {
   background: #ffeaa7;
-  color: #8a6d3b;
+  color: #6d5a2e;
 }
 
 .badge.driver {
@@ -949,12 +1558,31 @@ input:focus, select:focus, textarea:focus {
   padding: 4px 12px;
   margin-top: 4px;
   font-size: 12px;
-  background: #17a2b8;
-  color: white;
+  background: #0e6574;
+  color: #ffffff;
 }
 
 .btn-link:hover {
-  background: #138496;
+  background: #0b5461;
+}
+
+.exact-amount {
+  font-weight: 700;
+  color: #155724;
+}
+
+.results-count {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.account-filter {
+  padding: 4px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
 }
 
 .vendor-main {
@@ -972,13 +1600,28 @@ input:focus, select:focus, textarea:focus {
   margin-right: 8px;
 }
 
+@media (max-width: 768px) {
+  .banking-search-controls {
+    grid-template-columns: 1fr;
+  }
+  
+  .account-filter {
+    width: 100%;
+  }
+}
+
 /* Recent Receipts */
 .recent-receipts {
-  margin-top: 40px;
-  padding: 20px;
+  margin-top: 15px;
+  padding: 12px;
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  max-height: 600px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
 }
 
 .loading {
@@ -987,38 +1630,71 @@ input:focus, select:focus, textarea:focus {
   color: #7f8c8d;
 }
 
-.no-data {
-  text-align: center;
-  padding: 20px;
-  color: #95a5a6;
-  font-style: italic;
+.empty-table tbody {
+  max-height: 550px;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 15px;
+  margin-top: 8px;
+  display: block;
+  overflow-x: auto;
+  font-size: 12px;
 }
 
 thead {
   background: #34495e;
   color: white;
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+tbody {
+  display: block;
+  max-height: 550px;
+  overflow-y: auto;
+  width: 100%;
+}
+
+tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+tbody tr.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+tbody tr.clickable-row:hover {
+  background-color: #f0f8ff;
+}
+
+tbody tr.active-row {
+  background-color: #e3f2fd;
+  border-left: 4px solid #2196f3;
 }
 
 th, td {
-  padding: 12px;
+  padding: 6px 8px;
   text-align: left;
   border-bottom: 1px solid #ecf0f1;
 }
 
 th {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 11px;
   text-transform: uppercase;
 }
 
 td {
-  font-size: 14px;
+  font-size: 12px;
   color: #2c3e50;
 }
 
@@ -1031,5 +1707,79 @@ td.amount {
 tbody tr:hover {
   background: #f8f9fa;
   cursor: pointer;
+}
+
+.placeholder-row {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.placeholder-row:hover {
+  background: transparent;
+  cursor: default;
+}
+
+.placeholder-cell {
+  text-align: center;
+  color: #bdc3c7;
+  font-style: italic;
+  padding: 8px;
+}
+
+/* Verification Filter Styles */
+.receipts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.receipts-header h3 {
+  margin: 0;
+}
+
+.verification-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.verification-filter label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #34495e;
+}
+
+.filter-select {
+  padding: 6px 10px;
+  border: 1px solid #dfe6e9;
+  border-radius: 4px;
+  font-size: 13px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-select:hover {
+  border-color: #74b9ff;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #0984e3;
+  box-shadow: 0 0 0 3px rgba(9, 132, 227, 0.1);
+}
+
+.verification-cell {
+  text-align: center;
+  font-size: 16px;
+}
+
+.verified-badge {
+  cursor: help;
+}
+
+.unverified-badge {
+  opacity: 0.5;
 }
 </style>

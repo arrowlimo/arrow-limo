@@ -3,7 +3,6 @@ FastAPI Router for Table Management
 Provides CRUD endpoints for master data tables
 """
 
-from typing import List
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -99,7 +98,7 @@ def get_chart_of_accounts():
 
 
 @router.post("/chart-of-accounts")
-def save_chart_of_accounts(data: List[ChartOfAccountRow]):
+def save_chart_of_accounts(data: list[ChartOfAccountRow]):
     """Save chart of accounts (upsert)"""
     conn = get_connection()
     try:
@@ -182,7 +181,7 @@ def get_receipt_categories():
 
 
 @router.post("/receipt-categories")
-def save_receipt_categories(data: List[ReceiptCategoryRow]):
+def save_receipt_categories(data: list[ReceiptCategoryRow]):
     """Save receipt categories (upsert)"""
     conn = get_connection()
     try:
@@ -254,7 +253,7 @@ def get_charter_types():
 
 
 @router.post("/charter-types")
-def save_charter_types(data: List[CharterTypeRow]):
+def save_charter_types(data: list[CharterTypeRow]):
     """Save charter types (upsert)"""
     conn = get_connection()
     try:
@@ -322,7 +321,7 @@ def get_vehicle_pricing():
 
 
 @router.post("/vehicle-pricing")
-def save_vehicle_pricing(data: List[VehiclePricingRow]):
+def save_vehicle_pricing(data: list[VehiclePricingRow]):
     """Save vehicle pricing defaults (upsert)"""
     conn = get_connection()
     try:
@@ -399,7 +398,7 @@ def get_beverages():
 
 
 @router.post("/beverages")
-def save_beverages(data: List[BeverageRow]):
+def save_beverages(data: list[BeverageRow]):
     """Save beverages (upsert)"""
     conn = get_connection()
     try:

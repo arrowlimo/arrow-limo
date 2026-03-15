@@ -1,4 +1,3 @@
-from typing import Optional
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -9,8 +8,8 @@ router = APIRouter(prefix="/receipts", tags=["receipts-split"])
 
 
 class SplitRequest(BaseModel):
-    base_amount: Optional[float] = None
-    note: Optional[str] = None
+    base_amount: float | None = None
+    note: str | None = None
 
 
 def _choose_amount_and_column(row: dict) -> tuple[float, str]:

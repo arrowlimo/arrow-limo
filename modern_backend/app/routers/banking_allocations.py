@@ -1,4 +1,3 @@
-from typing import List
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -14,7 +13,7 @@ class Allocation(BaseModel):
 
 
 class AllocationRequest(BaseModel):
-    allocations: List[Allocation]
+    allocations: list[Allocation]
     created_by: str = "desktop-app"
 
 

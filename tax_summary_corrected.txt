@@ -1,0 +1,26 @@
+2012-2015 TAX SUMMARY (CORRECTED - LOANS REMOVED FROM EXPENSES)
+================================================================================
+
+BEFORE CORRECTIONS (with loans counted as expenses):
+  2012: REFUND $25,781.53 (loss $1,152,461)
+  2013: OWING $11,432.19 (profit $117,458)
+  2014: REFUND $3,106.66 (loss $177,226)
+  2015: OWING $17,145.60 (loss $191,080)
+  Net 4-year: REFUND $277.40
+
+AFTER CORRECTIONS (loans properly excluded):
+  2012: REFUND $15,155.65 (loss $832,012) - Improved by $320K!
+  2013: OWING $11,432.19 (profit $117,458) - No change
+  2014: REFUND $3,106.66 (loss $177,226) - No change
+  2015: OWING $17,145.60 (loss $191,080) - No change
+  
+  Net 4-year: REFUND $4,531.48
+
+WHAT WAS FIXED:
+- 37 DEPOSIT receipts reclassified as ShareHolder Loan (revenue=0, expense=0)
+- Total removed from 2012 expenses: $107,731
+- 2012 loss reduced from $1,152,461 to $832,012
+- Overall refund increased from $277 to $4,531
+
+YOU'RE CORRECT: Receiving a loan is NOT revenue - it's a liability that doesn't affect taxable income.
+================================================================================

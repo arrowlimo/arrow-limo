@@ -1,0 +1,119 @@
+﻿
+================================================================================
+CHARTERS TABLE SCHEMA - LOCAL DATABASE
+Total Columns: 106
+================================================================================
+
+  1. charter_id                               integer              NOT NULL
+  2. reserve_number                           character varying(50) NOT NULL
+  3. client_id                                integer              NULL
+  4. charter_date                             date                 NULL
+  5. pickup_time                              time without time zone NULL
+  6. pickup_address                           text                 NULL
+  7. dropoff_address                          text                 NULL
+  8. passenger_count                          integer              NULL
+  9. rate                                     numeric              NULL
+ 10. balance                                  numeric              NULL
+ 11. payment_totals                           numeric              NULL
+ 12. status                                   character varying(50) NULL
+ 13. created_at                               timestamp without time zone NULL
+ 14. updated_at                               timestamp without time zone NULL
+ 15. driver_notes                             text                 NULL
+ 16. client_notes                             text                 NULL
+ 17. booking_notes                            text                 NULL
+ 18. total_amount_due                         numeric              NULL
+ 19. dispatcher_approved                      boolean              NULL
+ 20. driver_base_pay                          numeric              NULL
+ 21. driver_gratuity                          numeric              NULL
+ 22. driver_total_expense                     numeric              NULL
+ 23. expense_calculated_at                    timestamp without time zone NULL
+ 24. odometer_start                           numeric              NULL
+ 25. odometer_end                             numeric              NULL
+ 26. total_kms                                numeric              NULL
+ 27. vehicle_notes                            text                 NULL
+ 28. is_placeholder                           boolean              NOT NULL
+ 29. default_hourly_price                     numeric              NULL
+ 30. package_rate                             numeric              NULL
+ 31. extra_time_rate                          numeric              NULL
+ 32. daily_rate                               numeric              NULL
+ 33. airport_pickup_price                     numeric              NULL
+ 34. employee_id                              integer              NULL
+ 35. vehicle_id                               integer              NULL
+ 36. client_display_name                      text                 NULL
+ 37. nrd_received                             boolean              NULL
+ 38. nrd_amount                               numeric              NULL
+ 39. nrd_method                               character varying    NULL
+ 40. is_out_of_town                           boolean              NULL
+ 41. float_received                           numeric              NULL
+ 42. float_reimbursement_needed               numeric              NULL
+ 43. calendar_color                           character varying(20) NULL
+ 44. separate_customer_printout               boolean              NULL
+ 45. charter_type                             character varying    NULL
+ 46. quoted_hours                             numeric              NULL
+ 47. standby_rate                             numeric              NULL
+ 48. calendar_sync_status                     character varying    NULL
+ 49. outlook_entry_id                         character varying    NULL
+ 50. calendar_notes                           text                 NULL
+ 51. record_type                              USER-DEFINED         NULL
+ 52. version                                  integer              NULL
+ 53. do_time                                  time without time zone NULL
+ 54. locked                                   boolean              NOT NULL
+ 55. account_number                           character varying(50) NULL
+ 56. accounting_entry_id                      bigint               NULL
+ 57. actual_hours                             numeric              NULL
+ 58. approved_at                              timestamp without time zone NULL
+ 59. arrived_at_event_at                      timestamp with time zone NULL
+ 60. assigned_driver_id                       integer              NULL
+ 61. banking_transaction_id                   bigint               NULL
+ 62. beverage_service_required                boolean              NULL
+ 63. calculated_hours                         numeric              NULL
+ 64. cancelled                                boolean              NULL
+ 65. completion_timestamp                     timestamp with time zone NULL
+ 66. driver                                   character varying(50) NULL
+ 67. driver_hourly_rate                       numeric              NULL
+ 68. driver_hours_worked                      numeric              NULL
+ 69. driver_paid                              boolean              NULL
+ 70. duty_log                                 jsonb                NULL
+ 71. en_route_to_event_at                     timestamp with time zone NULL
+ 72. fuel_added                               numeric              NULL
+ 73. fuel_added_liters                        numeric              NULL
+ 74. income_ledger_id                         bigint               NULL
+ 75. notes                                    text                 NULL
+ 76. nrd_received_at                          timestamp with time zone NULL
+ 77. nrr_amount                               numeric              NULL
+ 78. nrr_received                             boolean              NULL
+ 79. off_duty_at                              timestamp with time zone NULL
+ 80. on_duty_started_at                       timestamp with time zone NULL
+ 81. on_location_at                           timestamp with time zone NULL
+ 82. paid_amount                              numeric              NULL
+ 83. passengers_loaded_at                     timestamp with time zone NULL
+ 84. payment_id                               bigint               NULL
+ 85. payment_status                           character varying(20) NULL
+ 86. receipt_id                               bigint               NULL
+ 87. red_deer_bylaw_exempt                    boolean              NULL
+ 88. reservation_time                         timestamp without time zone NULL
+ 89. return_journey_started_at                timestamp with time zone NULL
+ 90. split_run_after_hours                    numeric              NULL
+ 91. split_run_before_hours                   numeric              NULL
+ 92. vehicle                                  character varying(50) NULL
+ 93. workshift_end                            timestamp without time zone NULL
+ 94. workshift_start                          timestamp without time zone NULL
+ 95. routing_type                             character varying    NULL
+ 96. split_run_enabled                        boolean              NULL
+ 97. split_time_before                        numeric              NULL
+ 98. split_time_after                         numeric              NULL
+ 99. split_run_start_time                     numeric              NULL
+100. split_run_time                           numeric              NULL
+101. split_run_pickup_time                    time without time zone NULL
+102. wait_time_rate                           numeric              NULL
+103. cart_order_list                          text                 NULL
+104. fuel_gst                                 numeric              NULL
+105. fuel_litres                              numeric              NULL
+106. fuel_price                               numeric              NULL
+
+================================================================================
+COLUMN CATEGORIES
+================================================================================
+
+
+Identity:

@@ -1,0 +1,167 @@
+================================================================================
+PERRON VENTURES LIMITED - CHARTER AUDIT SUMMARY
+================================================================================
+Generated: February 16, 2026
+Report File: perron_ventures_audit_20260216_171933.json
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+
+Client: Perron Ventures Ltd.
+Total Charters: 64
+
+FINANCIAL OVERVIEW:
+-------------------
+Total Charter Value:    $59,397.75
+Total Paid:             $0.00
+Outstanding Balance:    $59,397.75
+
+STATUS BREAKDOWN:
+-----------------
+✅ Fully Paid:           1 charter
+⚠️  Outstanding Balance: 63 charters
+🔴 Overpaid:             0 charters
+
+================================================================================
+CRITICAL FINDINGS
+================================================================================
+
+⚠️  **NO PAYMENTS RECORDED IN DATABASE**
+   - 63 charters show $0.00 paid amount
+   - All payments may be in backup files or missing entirely
+   - User mentioned having "several checks to cover their charters"
+   - These checks may need to be entered into the system
+
+📅 **DATE RANGE:**
+   - Oldest charter: 2012-01-08 (Reserve #005748)
+   - Newest charter: 2025-07-13 (Reserve #019480)
+   - Most charters from early 2012 (Jan-Apr)
+   - 2 recent charters from July 2025
+
+💰 **TYPICAL CHARTER AMOUNTS:**
+   - Most 2012 charters: $997.50 each
+   - Some 2012 charters: $1,045.00 each
+   - March 2012 charters: $173.25 - $300.00
+   - July 2025 charters: $258.00 and $369.00
+
+================================================================================
+OUTSTANDING CHARTERS REQUIRING PAYMENT
+================================================================================
+
+RECENT CHARTERS (2025):
+-----------------------
+1. Reserve #019479 - July 13, 2025 - $369.00
+2. Reserve #019480 - July 13, 2025 - $258.00
+   SUBTOTAL: $627.00
+
+2012 CHARTERS (AGED RECEIVABLES):
+----------------------------------
+61 charters from January - April 2012
+   SUBTOTAL: $58,770.75
+
+BREAKDOWN BY MONTH:
+- January 2012:  30 charters @ $997.50 each = $29,925.00
+- February 2012: 27 charters @ $997.50-$1,045.00 = $27,022.50
+- March 2012:    2 charters @ $300.00 each = $600.00
+- April 2012:    2 charters @ $173.25-$300.00 = $473.25
+
+================================================================================
+RECOMMENDED ACTIONS
+================================================================================
+
+IMMEDIATE (HIGH PRIORITY):
+---------------------------
+1. **Verify 2025 Charters:**
+   - Check if the two July 2025 charters ($369 + $258) have been paid
+   - If user has checks for these, enter them into the system
+   - Reserve numbers: 019479, 019480
+
+2. **Review 2012 Aged Receivables:**
+   - 61 charters from 14 years ago totaling $58,770.75
+   - These may be:
+     a) Already paid in old system but not migrated
+     b) Written off as bad debt
+     c) Part of a bulk payment arrangement
+   - Need to determine if these should be:
+     * Marked as paid (if payments are in backup files)
+     * Written off (if uncollectible after 14 years)
+     * Kept as active receivables (if still pursuing collection)
+
+SHORT TERM:
+-----------
+3. **Import Payment Data:**
+   - Search charter_payments backup files for Perron Ventures payments
+   - Found 50+ payment records in backup file:
+     database_backups/schema_sync_20260211_181228/charter_payments_backup_20260211_181231.json
+   - Import these payments to reconcile the accounts
+
+4. **Verify Banking Links:**
+   - No banking transaction links found for any charter
+   - Check if deposits were made under different client names
+   - Search banking records for "Perron" to find unlinked payments
+
+LONG TERM:
+----------
+5. **Collection/Write-off Decision:**
+   - Charters from 2012 are beyond typical statute of limitations
+   - Recommend consulting accountant about:
+     * Writing off aged receivables
+     * Adjusting financial statements
+     * Tax implications of bad debt write-off
+
+6. **Update Payment Records:**
+   - If checks are being provided now, enter them properly with:
+     * Check numbers
+     * Payment dates
+     * Amounts
+     * Link to correct charter reserves
+
+================================================================================
+NEXT STEPS FOR USER
+================================================================================
+
+✅ **If you have checks for RECENT charters (2025):**
+   - Enter payment details for Reserve #019479 ($369.00)
+   - Enter payment details for Reserve #019480 ($258.00)
+   - Verify both are properly closed
+
+⚠️  **If you have checks for OLDER charters (2012):**
+   - Verify which specific reserves the checks cover
+   - Check if payments are in backup files first (to avoid duplicates)
+   - Consult accountant about handling 14-year-old receivables
+
+📋 **For complete audit details:**
+   - Open: l:\limo\perron_ventures_audit_20260216_171933.json
+   - Contains full charter and payment details
+   - Can be imported into spreadsheet for analysis
+
+================================================================================
+CONTACT INFORMATION NEEDED
+================================================================================
+
+To complete this audit, please provide:
+
+1. Which specific charters do your checks cover?
+   (Provide reserve numbers from the list above)
+
+2. What are the check details?
+   - Check numbers
+   - Check amounts  
+   - Check dates
+   - Which charter each check applies to
+
+3. Should the 2012 charters be written off or kept as receivables?
+
+================================================================================
+TECHNICAL NOTES
+================================================================================
+
+- Database query found 64 charters where client_display_name contains "Perron"
+- charter_payments table shows no linked payments
+- Backup file shows 50+ payment records that may need importing
+- Banking_transactions table shows no reconciled_charter_id links
+- All charters marked as "Closed" status
+
+Report generated by: audit_perron_ventures_charters.py
+Database: almsdata (localhost)

@@ -1,7 +1,6 @@
 """Locked charter enforcement utilities."""
 
 from fastapi import HTTPException, status
-from psycopg2.extras import RealDictCursor
 
 
 def check_charter_locked(charter_id: int, db_cursor) -> bool:
@@ -34,7 +33,7 @@ def lock_charter(charter_id: int, db_cursor) -> None:
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to lock charter: {str(e)}",
+            detail=f"Failed to lock charter: {e!s}",
         )
 
 
@@ -48,5 +47,5 @@ def unlock_charter(charter_id: int, db_cursor) -> None:
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to unlock charter: {str(e)}",
+            detail=f"Failed to unlock charter: {e!s}",
         )
