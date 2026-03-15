@@ -2811,6 +2811,80 @@ class CharterFormWidget(QWidget):
         # === ACCOUNTING ROW ===
         ops_layout.addWidget(accounting_group)
 
+        # === DRIVER PAY ===
+        driver_pay_group = QGroupBox("Driver Pay (Approved Hours & Gratuity)")
+        driver_pay_group.setStyleSheet(
+            "QGroupBox { border: 2px solid #1a6b3a; border-radius: 4px; "
+            "margin-top: 8px; font-weight: bold; color: #1a6b3a; }"
+            "QGroupBox::title { subcontrol-origin: margin; padding: 0 4px; }")
+        dp_layout = QVBoxLayout()
+        dp_layout.setSpacing(6)
+        dp_layout.setContentsMargins(10, 12, 10, 10)
+
+        # Row 1: Calculated Hours (read-only) + Approved Hours (editable)
+        hours_row = QHBoxLayout()
+        hours_row.addWidget(QLabel("Charter Hours (start→end):"))
+        self.dp_calculated_hours = QLineEdit()
+        self.dp_calculated_hours.setReadOnly(True)
+        self.dp_calculated_hours.setMaximumWidth(60)
+        self.dp_calculated_hours.setStyleSheet("background: #f0f0f0;")
+        self.dp_calculated_hours.setToolTip("Auto-calculated: dropoff_time minus pickup_time")
+        hours_row.addWidget(self.dp_calculated_hours)
+
+        hours_row.addWidget(QLabel("  Approved Hours (for pay):"))
+        self.dp_approved_hours = QDoubleSpinBox()
+        self.dp_approved_hours.setRange(0, 24)
+        self.dp_approved_hours.setSingleStep(0.25)
+        self.dp_approved_hours.setDecimals(2)
+        self.dp_approved_hours.setSuffix(" hrs")
+        self.dp_approved_hours.setMaximumWidth(100)
+        self.dp_approved_hours.setToolTip(
+            "Hours approved for driver pay. Defaults from actual/minimum hours. "
+            "Edit to override (e.g., split runs, overtime).")
+        hours_row.addWidget(self.dp_approved_hours)
+        hours_row.addStretch()
+        dp_layout.addLayout(hours_row)
+
+        # Row 2: Hourly Rate + Gratuity (from billing)
+        rate_row = QHBoxLayout()
+        rate_row.addWidget(QLabel("Hourly Rate:"))
+        self.dp_hourly_rate = QDoubleSpinBox()
+        self.dp_hourly_rate.setRange(0, 999)
+        self.dp_hourly_rate.setDecimals(2)
+        self.dp_hourly_rate.setPrefix("$")
+        self.dp_hourly_rate.setMaximumWidth(100)
+        rate_row.addWidget(self.dp_hourly_rate)
+
+        rate_row.addWidget(QLabel("  Gratuity (from billing):"))
+        self.dp_gratuity = QLineEdit()
+        self.dp_gratuity.setReadOnly(True)
+        self.dp_gratuity.setMaximumWidth(80)
+        self.dp_gratuity.setStyleSheet("background: #f0f0f0;")
+        self.dp_gratuity.setToolTip("Auto-synced from charter billing charge line. Edit gratuity in the Billing tab.")
+        rate_row.addWidget(self.dp_gratuity)
+        rate_row.addStretch()
+        dp_layout.addLayout(rate_row)
+
+        # Row 3: Total Driver Pay (read-only, calculated)
+        total_row = QHBoxLayout()
+        total_row.addWidget(QLabel("<b>Total Driver Pay:</b>"))
+        self.dp_total_pay = QLineEdit()
+        self.dp_total_pay.setReadOnly(True)
+        self.dp_total_pay.setMaximumWidth(100)
+        self.dp_total_pay.setStyleSheet(
+            "background: #e8f5e9; font-weight: bold; color: #1a6b3a; font-size: 11pt;")
+        total_row.addWidget(self.dp_total_pay)
+        total_row.addWidget(QLabel("  = approved_hours × hourly_rate + gratuity"))
+        total_row.addStretch()
+        dp_layout.addLayout(total_row)
+
+        driver_pay_group.setLayout(dp_layout)
+        ops_layout.addWidget(driver_pay_group)
+
+        # Wire up auto-recalculate on change
+        self.dp_approved_hours.valueChanged.connect(self._recalculate_driver_pay)
+        self.dp_hourly_rate.valueChanged.connect(self._recalculate_driver_pay)
+
         ops_layout.addStretch()
         ops_container.setLayout(ops_layout)
         scroll.setWidget(ops_container)
@@ -6145,6 +6219,26 @@ class CharterFormWidget(QWidget):
                 # Store reserve_number for use in save_charter_charges
                 self._current_reserve_number = reserve_number
 
+                # Load driver pay panel
+                try:
+                    cur_dp = self.db.get_cursor()
+                    cur_dp.execute("""
+                        SELECT calculated_hours, approved_hours,
+                               driver_hourly_rate, driver_gratuity
+                        FROM charters WHERE charter_id = %s
+                    """, (charter_id,))
+                    dp_row = cur_dp.fetchone()
+                    cur_dp.close()
+                    if dp_row:
+                        self._load_driver_pay({
+                            'calculated_hours': dp_row[0],
+                            'approved_hours':   dp_row[1],
+                            'driver_hourly_rate': dp_row[2],
+                            'driver_gratuity':  dp_row[3],
+                        })
+                except Exception as e:
+                    print(f"❌ Error loading driver pay: {e}")
+
                 # Load payments from charter_payments table
                 try:
                     self._load_charter_payments(reserve_number)
@@ -7923,13 +8017,55 @@ class CharterFormWidget(QWidget):
                     SELECT COALESCE(SUM(amount), 0)
                     FROM charter_payments WHERE charter_id = %s
                 ),
+                driver_gratuity = (
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM charter_charges WHERE charter_id = %s AND charge_type = 'gratuity'
+                ),
+                approved_hours = %s,
+                driver_hourly_rate = %s,
+                driver_total_expense = (
+                    %s * %s
+                    + (SELECT COALESCE(SUM(amount), 0)
+                       FROM charter_charges WHERE charter_id = %s AND charge_type = 'gratuity')
+                ),
                 updated_at = NOW()
                 WHERE charter_id = %s
-            """, (self.charter_id, self.charter_id, reserve_number,
-                  self.charter_id, reserve_number, self.charter_id))
+            """, (
+                self.charter_id,  # grand_total
+                self.charter_id,  # gst_amount
+                reserve_number,   # amount_paid
+                self.charter_id,  # balance_owing numerator
+                reserve_number,   # balance_owing denominator
+                self.charter_id,  # driver_gratuity
+                getattr(self.dp_approved_hours, 'value', lambda: None)() if hasattr(self, 'dp_approved_hours') else None,
+                getattr(self.dp_hourly_rate, 'value', lambda: None)() if hasattr(self, 'dp_hourly_rate') else None,
+                getattr(self.dp_approved_hours, 'value', lambda: None)() if hasattr(self, 'dp_approved_hours') else 0,
+                getattr(self.dp_hourly_rate, 'value', lambda: None)() if hasattr(self, 'dp_hourly_rate') else 0,
+                self.charter_id,  # driver_total_expense gratuity subquery
+                self.charter_id,  # WHERE
+            ))
 
             print(
                 f"✅ Saved {self.charges_table.rowCount()} charges for charter {self.charter_id}")
+
+            # Refresh gratuity display in Driver Pay panel
+            try:
+                grat_row = None
+                for row_idx in range(self.charges_table.rowCount()):
+                    type_item = self.charges_table.item(row_idx, 1)
+                    if type_item:
+                        meta = self.charges_table.item(row_idx, 0)
+                        m = meta.data(Qt.ItemDataRole.UserRole) if meta else {}
+                        if isinstance(m, dict) and m.get('charge_type') == 'gratuity':
+                            try:
+                                grat_row = float(self.charges_table.item(row_idx, 2).text().replace('$', '').replace(',', ''))
+                            except Exception:
+                                pass
+                if grat_row is not None and hasattr(self, 'dp_gratuity'):
+                    self.dp_gratuity.setText(f"${grat_row:.2f}")
+                    self._recalculate_driver_pay()
+            except Exception:
+                pass
         except Exception as e:
             try:
                 self.db.rollback()
@@ -8124,6 +8260,50 @@ class CharterFormWidget(QWidget):
                 pass
             print(f"❌ Error loading routes: {e}")
 
+    def _recalculate_driver_pay(self):
+        """Recalculate and display total driver pay = approved_hours × hourly_rate + gratuity."""
+        try:
+            approved = self.dp_approved_hours.value() if hasattr(self, 'dp_approved_hours') else 0.0
+            rate = self.dp_hourly_rate.value() if hasattr(self, 'dp_hourly_rate') else 0.0
+            grat_text = self.dp_gratuity.text().replace('$', '').replace(',', '') if hasattr(self, 'dp_gratuity') else '0'
+            try:
+                gratuity = float(grat_text) if grat_text else 0.0
+            except ValueError:
+                gratuity = 0.0
+            total = round(approved * rate + gratuity, 2)
+            if hasattr(self, 'dp_total_pay'):
+                self.dp_total_pay.setText(f"${total:,.2f}")
+        except Exception:
+            pass
+
+    def _load_driver_pay(self, charter_data: dict):
+        """Populate Driver Pay panel from a dict of charter DB columns."""
+        try:
+            calc_h = charter_data.get('calculated_hours')
+            appr_h = charter_data.get('approved_hours')
+            hourly = charter_data.get('driver_hourly_rate')
+            grat   = charter_data.get('driver_gratuity')
+
+            if hasattr(self, 'dp_calculated_hours'):
+                self.dp_calculated_hours.setText(f"{float(calc_h):.2f}" if calc_h else "")
+
+            if hasattr(self, 'dp_approved_hours'):
+                self.dp_approved_hours.blockSignals(True)
+                self.dp_approved_hours.setValue(float(appr_h) if appr_h else 0.0)
+                self.dp_approved_hours.blockSignals(False)
+
+            if hasattr(self, 'dp_hourly_rate'):
+                self.dp_hourly_rate.blockSignals(True)
+                self.dp_hourly_rate.setValue(float(hourly) if hourly else 0.0)
+                self.dp_hourly_rate.blockSignals(False)
+
+            if hasattr(self, 'dp_gratuity'):
+                self.dp_gratuity.setText(f"${float(grat):.2f}" if grat else "$0.00")
+
+            self._recalculate_driver_pay()
+        except Exception as e:
+            print(f"❌ Error loading driver pay panel: {e}")
+
     def _load_charter_payments(self, reserve_number: str):
         """Populate the payments_table from charter_payments for this charter.
         Cols: Type(0) | Date Paid(1) | Amount(2) | Method(3) | Notes(4)
@@ -8145,6 +8325,7 @@ class CharterFormWidget(QWidget):
             for amount, method, pay_date, client_name in rows:
                 r = self.payments_table.rowCount()
                 self.payments_table.insertRow(r)
+                # Classify type
                 m = (method or "").lower()
                 if m in ("retainer", "nrr"):
                     pay_type = "NRR Retainer"
@@ -8188,6 +8369,7 @@ class CharterFormWidget(QWidget):
                 base_desc, meta_type, meta_value = self._parse_description_metadata(
                     description or "")
                 calc_type = meta_type or "Fixed"
+                # Use embedded metadata value if present, else use amount
                 value = meta_value if meta_value is not None else (float(amount) if amount is not None else 0.0)
                 self.add_charge_line(
                     description=base_desc,
