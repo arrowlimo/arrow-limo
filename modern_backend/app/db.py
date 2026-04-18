@@ -30,6 +30,11 @@ def _get_pool():
     global _connection_pool
     if _connection_pool is None:
         _log_db_target_once()
+        _ssl_kwargs = {}
+        if os.environ.get("DB_SSLMODE"):
+            _ssl_kwargs["sslmode"] = os.environ["DB_SSLMODE"]
+        if os.environ.get("DB_CHANNEL_BINDING"):
+            _ssl_kwargs["channel_binding"] = os.environ["DB_CHANNEL_BINDING"]
         _connection_pool = pool.SimpleConnectionPool(
             minconn=1,
             maxconn=20,
@@ -37,7 +42,8 @@ def _get_pool():
             port=int(os.environ.get("DB_PORT", "5432")),
             database=os.environ.get("DB_NAME", "almsdata"),
             user=os.environ.get("DB_USER", "postgres"),
-            password=os.environ.get("DB_PASSWORD", "***REDACTED***"),
+            password=os.environ.get("DB_PASSWORD", ""),
+            **_ssl_kwargs,
         )
     return _connection_pool
 
@@ -72,12 +78,18 @@ def get_connection():
             if attempt == max_retries - 1:
                 # Last attempt failed, try direct connection
                 try:
+                    _ssl_kwargs2 = {}
+                    if os.environ.get("DB_SSLMODE"):
+                        _ssl_kwargs2["sslmode"] = os.environ["DB_SSLMODE"]
+                    if os.environ.get("DB_CHANNEL_BINDING"):
+                        _ssl_kwargs2["channel_binding"] = os.environ["DB_CHANNEL_BINDING"]
                     conn = psycopg2.connect(
                         host=os.environ.get("DB_HOST", "localhost"),
                         port=int(os.environ.get("DB_PORT", "5432")),
                         database=os.environ.get("DB_NAME", "almsdata"),
                         user=os.environ.get("DB_USER", "postgres"),
-                        password=os.environ.get("DB_PASSWORD", "***REDACTED***"),
+                        password=os.environ.get("DB_PASSWORD", ""),
+                        **_ssl_kwargs2,
                     )
                     with conn.cursor() as cur:
                         cur.execute("SET search_path TO public")

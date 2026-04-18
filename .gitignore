@@ -45,6 +45,10 @@ data dump/
 staging/
 backups/
 
+# Generated T4 output artifacts with employee/test data
+T4_2012_Forms/T4_2025_*.pdf
+T4_2012_Forms/*_EMPLOYEE*.pdf
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

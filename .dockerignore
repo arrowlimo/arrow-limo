@@ -34,6 +34,11 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Secrets / environment files - NEVER bake into Docker image
+.env
+.env.*
+!.env.example
+
 # Local files
 node_modules/
 .ruff_cache/

@@ -13,11 +13,17 @@ router = APIRouter(prefix="/api/receipts/verification", tags=["receipt_verificat
 
 def get_db_connection():
     """Get database connection."""
+    kwargs = {}
+    if os.environ.get("DB_SSLMODE"):
+        kwargs["sslmode"] = os.environ["DB_SSLMODE"]
+    if os.environ.get("DB_CHANNEL_BINDING"):
+        kwargs["channel_binding"] = os.environ["DB_CHANNEL_BINDING"]
     return psycopg2.connect(
         host=os.environ.get("DB_HOST", "localhost"),
         database=os.environ.get("DB_NAME", "almsdata"),
         user=os.environ.get("DB_USER", "postgres"),
-        password=os.environ.get("DB_PASSWORD", "***REDACTED***"),
+        password=os.environ.get("DB_PASSWORD", ""),
+        **kwargs,
     )
 
 
