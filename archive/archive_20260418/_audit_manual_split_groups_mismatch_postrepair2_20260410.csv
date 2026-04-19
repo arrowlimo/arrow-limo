@@ -1,0 +1,6 @@
+split_group_id,receipt_date,vendor_name,split_group_total,group_sum,variance,row_count,receipt_ids
+943,2019-01-09,FAS GAS,85.76,80.00,-5.76,1,943
+1222,2019-05-11,FAS GAS,77.66,67.66,-10.00,2,"1222,1223"
+1238,2019-05-16,RUN'N ON EMPTY,48.35,41.61,-6.74,1,1238
+1353,2019-06-22,FAS GAS,36.66,20.00,-16.66,1,1353
+1579,2019-09-22,FAS GAS,59.25,19.25,-40.00,1,1580

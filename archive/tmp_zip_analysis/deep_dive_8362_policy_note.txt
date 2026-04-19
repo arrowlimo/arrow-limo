@@ -1,0 +1,9 @@
+8362 Policy Note (2012-2013)
+======================================================================
+User rule applied: account 8362 treated as personal until 2014;
+Global Systems auto-settlement flows remain in 8362 and should not be
+auto-reassigned to 1615/6011 by matching heuristics.
+
+Total unmatched evaluated: 60
+Keep in 8362: 49
+Manual review only: 11

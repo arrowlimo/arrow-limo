@@ -155,8 +155,8 @@ echo.
 echo ========================================================
 echo.
 
-REM Launch the Python launcher
-python launcher.py
+REM Launch the packaged app entrypoint
+start "Arrow Limousine Dispatch" /wait "Y:\ArrowLimo\app\START_DISPATCH.bat"
 
 REM If the application exits, show this message
 echo.

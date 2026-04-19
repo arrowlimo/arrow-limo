@@ -1,0 +1,4 @@
+High-Confidence 8362->1615 Lag Matches
+=======================================================
+Total source rows: 40
+High-confidence rows (unique 120d candidate + future lag): 4

@@ -1,0 +1,22 @@
+gl_date,gl_chq,gl_vendor,gl_amount,gl_account,verification,bank_txn_id,bank_txn_date,bank_debit,bank_desc,bank_check,receipt_id,receipt_date,receipt_vendor,receipt_amount,receipt_source,notes
+2013-10-07,252,Royal Refrigeration Ltd,1109.26,1010 Scotia Bank Main,DIRECT_MATCH,79136,2013-11-01,1109.26,CHQ 252,252,139945,2013-11-01,REFRIGERATOR BEER FRIDGE REPAIR,1109.26,,status=reconciled
+2013-10-17,255,Action Pages Canada,857.50,1010 Scotia Bank Main,DIRECT_MATCH,79130,2013-10-31,857.50,CHQ 255,255,139943,2013-10-31,CHQ 255 ANGEL ESCOBAR,857.50,,status=reconciled
+2013-11-01,270,Fibrenew,451.77,1010 Scotia Bank Main,DIRECT_MATCH,79210,2013-11-19,451.77,CHQ 270,270,139961,2013-11-19,CHQ 270 MARK LINTON,451.77,,status=reconciled
+2013-11-21,271,Full Spectrum,646.96,1010 Scotia Bank Main,DIRECT_MATCH,79256,2013-11-29,646.96,CHQ 271,271,139974,2013-11-29,CHQ 271 JEANNIE SHILLINGTON,646.96,,status=reconciled
+2013-01-18,cash,Vibe Car Auto,246.74,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-02-21,Vi2450,Korax Inc.,314.37,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-02-26,dd,Telus Communications,3958.50,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-03-05,cash,Fibrenew,1403.27,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-03-09,dd,Rogers,976.81,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-03-19,cash,Indy Signs Inc.,243.59,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-03-26,cash,Fibrenew,8.21,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-07-02,cash,Kirk's Tire (Red Deer) Ltd.,55.57,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-07-08,cash,Erles Auto Repair,525.53,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-07-08,cash,Erles Auto Repair,285.00,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-07-10,cash,Erles Auto Repair,423.68,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-07-10,cash,Erles Auto Repair,623.49,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-07-15,cash,Erles Auto Repair,907.63,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-07-23,cash,Erles Auto Repair,165.00,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-10-14,cash,Royal Refrigeration Ltd,899.85,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-12-06,cash,Carriage Auto Upholstery,3500.00,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
+2013-12-09,cash,Choice Auto Electric Ltd.,9.87,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,

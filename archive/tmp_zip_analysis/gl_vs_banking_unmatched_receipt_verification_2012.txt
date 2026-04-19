@@ -1,0 +1,11 @@
+Unmatched GL->Bank Verification (with receipt evidence)
+==========================================================================================
+Rows verified: 40
+- DIRECT_MATCH: 5
+- MERGED_MATCH: 2
+- NO_BANK_EVIDENCE: 21
+- RECEIPT_ONLY: 12
+
+Detailed rows
+------------------------------------------------------------------------------------------
+2012-05-23 | CFIB | CHQ:262 | 460.00 | DIRECT_MATCH | bank:82081 460.00 CHQ 262 CFIB | receipt:217721 460.00 CHEQUE PAYMENT REVIEW

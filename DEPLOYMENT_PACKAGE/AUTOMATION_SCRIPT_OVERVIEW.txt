@@ -134,7 +134,7 @@ STEP 8: Create Launcher
   → Handles errors gracefully
 
 STEP 9: Create Desktop Shortcut
-  → Creates "Arrow Limo DISPATCH1.lnk"
+  → Creates "Arrow Limo Dispatch.lnk"
   → Points to START_DISPATCH1.bat
   → Sets car icon from shell32.dll
 
@@ -180,7 +180,7 @@ FILES ON Y: DRIVE:
     └── app_errors.log             (Error log, created on first run)
 
 DESKTOP:
-  Arrow Limo DISPATCH1.lnk         (Shortcut to START_DISPATCH1.bat)
+  Arrow Limo Dispatch.lnk          (Shortcut to START_DISPATCH1.bat)
 
 VIRTUAL DISK FILE:
   C:\Users\[Username]\ArrowLimoY.vhdx (Y: drive storage)
@@ -291,7 +291,7 @@ The script displays a comprehensive summary showing:
 ✓ Network drive mappings
 
 Next steps:
-1. Double-click "Arrow Limo DISPATCH1" on desktop
+1. Double-click "Arrow Limo Dispatch" on desktop
 2. Application launches and connects to DISPATCHMAIN database
 3. Both dispatchers share same data in real-time
 4. Code changes on DISPATCHMAIN auto-sync on next launch

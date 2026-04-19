@@ -45,7 +45,7 @@ WHAT THE SCRIPT DOES AUTOMATICALLY
 ✓ Creates .env configuration with database connection
 ✓ Creates auto-update script (syncs from L: on launch)
 ✓ Creates launcher script
-✓ Creates desktop shortcut "Arrow Limo DISPATCH1"
+✓ Creates desktop shortcut "Arrow Limo Dispatch"
 ✓ Tests database connectivity to DISPATCHMAIN
 ✓ Removes old installations (C:\ArrowLimo if exists)
 ✓ Verifies everything works
@@ -177,11 +177,11 @@ You should see:
 ✓ Y: drive in File Explorer (ArrowLimo)
 ✓ L: drive mapped to \\DISPATCHMAIN\limo
 ✓ Z: drive mapped to \\DISPATCHMAIN\limo_files
-✓ Desktop shortcut: "Arrow Limo DISPATCH1"
+✓ Desktop shortcut: "Arrow Limo Dispatch"
 ✓ Application folder: Y:\ArrowLimo\
 
 To launch:
-• Double-click desktop shortcut "Arrow Limo DISPATCH1"
+• Double-click desktop shortcut "Arrow Limo Dispatch"
 • App automatically checks for updates from L: drive on each launch
 • Both DISPATCHMAIN and DISPATCH1 share same database in real-time
 
@@ -206,9 +206,9 @@ After setup completes, verify:
 □ Y: drive exists and shows "ArrowLimo" label
 □ L: drive shows DISPATCHMAIN code files
 □ Z: drive shows shared documents
-□ Desktop has "Arrow Limo DISPATCH1" shortcut
-□ File Y:\ArrowLimo\.env exists
-□ File Y:\ArrowLimo\desktop_app\launcher.py exists
+□ Desktop has "Arrow Limo Dispatch" shortcut
+□ File Y:\ArrowLimo\app\.env exists
+□ File Y:\ArrowLimo\app\launcher.py exists
 □ Can launch app from desktop shortcut
 □ App connects to database successfully
 □ No old C:\ArrowLimo folder remains
@@ -219,8 +219,8 @@ FILE LOCATIONS AFTER SETUP
 ═══════════════════════════════════════════════════════════════════════════
 
 Application:
-  Y:\ArrowLimo\desktop_app\        (main application)
-  Y:\ArrowLimo\.env                (database configuration)
+  Y:\ArrowLimo\app\desktop_app\    (main application)
+  Y:\ArrowLimo\app\.env            (database configuration)
   Y:\ArrowLimo\START_DISPATCH1.bat (launcher)
   Y:\ArrowLimo\auto_update.ps1     (update script)
 
@@ -229,7 +229,7 @@ Network Drives:
   Z:\limo_files\                   (shared documents)
 
 Desktop:
-  Arrow Limo DISPATCH1.lnk         (shortcut to launcher)
+  Arrow Limo Dispatch.lnk          (shortcut to launcher)
 
 Logs:
   Y:\ArrowLimo\app_errors.log      (error log if app crashes)
@@ -254,7 +254,7 @@ To completely remove DISPATCH1 setup:
    Remove-Item "$env:USERPROFILE\ArrowLimoY.vhdx"
 
 4. Delete desktop shortcut:
-   Remove-Item "$env:USERPROFILE\Desktop\Arrow Limo DISPATCH1.lnk"
+  Remove-Item "$env:USERPROFILE\Desktop\Arrow Limo Dispatch.lnk"
 
 5. (Optional) Uninstall Python from Control Panel
 

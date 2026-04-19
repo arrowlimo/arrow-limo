@@ -1,0 +1,8 @@
+receipt_id,receipt_date,vendor_name,amount,split_group_id,split_group_total,description,source_reference,receipt_source,is_split_receipt
+940,2019-01-09,FAS GAS,40.20,940,45.96,SPLIT/45.96,excel_row_27_d08a3729,MANUAL,t
+941,2019-01-09,FAS GAS,5.76,940,45.96,SPLIT/45.96,excel_row_28_52a4af83,MANUAL,t
+943,2019-01-09,FAS GAS,80.00,940,,SPLIT/85.76,excel_row_30_8addacb1,MANUAL,f
+1365,2019-06-25,RUN'N ON EMPTY,87.00,1365,102.54,SPLIT/102.54,excel_row_452_4505a18d,MANUAL,t
+1366,2019-06-25,RUN'N ON EMPTY,15.54,1365,102.54,SPLIT/102.54,excel_row_453_60b349b7,MANUAL,t
+1367,2019-06-25,RUN'N ON EMPTY,62.01,1365,71.90,SPLIT/71.9,excel_row_454_903299ec,MANUAL,t
+1368,2019-06-25,RUN'N ON EMPTY,9.89,1365,71.90,SPLIT/71.9,excel_row_455_64a7e4c7,MANUAL,t

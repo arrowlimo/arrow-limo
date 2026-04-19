@@ -1,0 +1,41 @@
+GL CSV vs ALMS unified_general_ledger audit
+
+Schema/profile by file:
+- Copy of General_ledger2.csv: raw_rows=396, comparable_rows=180, date_range=2025-08-26..2025-08-26
+  headers=['', 'Date', 'Transaction Type', '#', 'Name', 'Memo/Description', 'Account', 'Debit', 'Credit', 'Balance']
+  amount_columns_detected=['Debit', 'Credit', 'Balance']
+- Copy of General_ledger.csv: raw_rows=46320, comparable_rows=45952, date_range=2011-12-31..2021-12-04
+  headers=['', 'Date', 'Transaction Type', '#', 'Name', 'Memo/Description', 'Account', 'Debit', 'Credit', 'Balance']
+  amount_columns_detected=['Debit', 'Credit', 'Balance']
+
+Per-file class totals:
+- Copy of General_ledger2.csv: PRESENT_STRONG=0, PRESENT_WEAK=0, MISSING_IN_ALMS=180, MISMATCH_IN_ALMS=0
+- Copy of General_ledger.csv: PRESENT_STRONG=43328, PRESENT_WEAK=0, MISSING_IN_ALMS=1493, MISMATCH_IN_ALMS=1131
+
+Combined class totals:
+PRESENT_STRONG=43328
+PRESENT_WEAK=0
+MISSING_IN_ALMS=1673
+MISMATCH_IN_ALMS=1131
+
+Top 20 high-amount missing/mismatch rows:
+Copy of General_ledger2.csv line=234 class=MISSING_IN_ALMS date=2025-08-26 acct=4000 Limousine Service Income net=-3359784.10 debit= credit=3359784.10 key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger2.csv line=314 class=MISSING_IN_ALMS date=2025-08-26 acct=6600 Wages and Salaries net=798213.26 debit=798213.26 credit= key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=13750 class=MISSING_IN_ALMS date=2014-12-31 acct=1095 Deposit Clearing net=693450.51 debit=693450.51 credit= key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=13713 class=MISSING_IN_ALMS date=2012-12-31 acct=1095 Deposit Clearing net=657226.87 debit=657226.87 credit= key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger2.csv line=12 class=MISSING_IN_ALMS date=2025-08-26 acct=1020 Personal CIBC 8362 net=647987.75 debit=647987.75 credit= key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=13765 class=MISSING_IN_ALMS date=2015-12-31 acct=1095 Deposit Clearing net=638967.20 debit=638967.20 credit= key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=13730 class=MISSING_IN_ALMS date=2013-12-31 acct=1095 Deposit Clearing net=628815.74 debit=628815.74 credit= key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=25195 class=MISSING_IN_ALMS date=2014-12-31 acct=2200 GST/HST Payable net=610602.80 debit=610602.80 credit= key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=25209 class=MISSING_IN_ALMS date=2014-12-31 acct=2200 GST/HST Payable net=-610602.80 debit= credit=610602.80 key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=27681 class=MISSING_IN_ALMS date=2015-12-31 acct=2200 GST/HST Payable net=563406.20 debit=563406.20 credit= key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=27686 class=MISSING_IN_ALMS date=2015-12-31 acct=2200 GST/HST Payable net=-563406.20 debit= credit=563406.20 key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=19790 class=MISSING_IN_ALMS date=2012-12-31 acct=2200 GST/HST Payable net=547157.20 debit=547157.20 credit= key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=19802 class=MISSING_IN_ALMS date=2012-12-31 acct=2200 GST/HST Payable net=-547157.20 debit= credit=547157.20 key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=32204 class=MISSING_IN_ALMS date=2012-12-31 acct=4000 Limousine Service Income net=-539657.88 debit= credit=539657.88 key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=22348 class=MISSING_IN_ALMS date=2013-12-31 acct=2200 GST/HST Payable net=-537793.80 debit= credit=537793.80 key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=22371 class=MISSING_IN_ALMS date=2013-12-31 acct=2200 GST/HST Payable net=537793.80 debit=537793.80 credit= key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger2.csv line=225 class=MISSING_IN_ALMS date=2025-08-26 acct=2900 Shareholder Loan net=-528694.07 debit= credit=528694.07 key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=32209 class=MISSING_IN_ALMS date=2014-12-31 acct=4000 Limousine Service Income net=-527126.48 debit= credit=527126.48 key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=32213 class=MISSING_IN_ALMS date=2015-12-31 acct=4000 Limousine Service Income net=-495682.38 debit= credit=495682.38 key= reason=no candidate found by key/date/account/amount
+Copy of General_ledger.csv line=32207 class=MISSING_IN_ALMS date=2013-12-31 acct=4000 Limousine Service Income net=-487709.92 debit= credit=487709.92 key= reason=no candidate found by key/date/account/amount

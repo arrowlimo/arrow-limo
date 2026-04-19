@@ -17,14 +17,14 @@ Write-Host "[1/3] Desktop location: $DesktopPath" -ForegroundColor Green
 
 # Define shortcut details
 $ShortcutPath = Join-Path $DesktopPath "Arrow Limo Dispatch.lnk"
-$TargetPath = "Y:\ArrowLimo\app\START_DISPATCH.bat"
+$TargetPath = "Y:\ArrowLimo\START_DISPATCH1.bat"
 $IconPath = "Y:\ArrowLimo\app\desktop_app\main.py"  # Uses Python icon by default
 
 # Verify target exists
 Write-Host ""
 Write-Host "[2/3] Checking installation..." -ForegroundColor Yellow
 
-if (-not (Test-Path "Y:\ArrowLimo\app\START_DISPATCH.bat")) {
+if (-not (Test-Path "Y:\ArrowLimo\START_DISPATCH1.bat")) {
     Write-Host ""
     Write-Host "ERROR: Application not installed at Y:\ArrowLimo\app" -ForegroundColor Red
     Write-Host ""
@@ -45,7 +45,7 @@ try {
     $WshShell = New-Object -ComObject WScript.Shell
     $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
     $Shortcut.TargetPath = $TargetPath
-    $Shortcut.WorkingDirectory = "Y:\ArrowLimo\app"
+    $Shortcut.WorkingDirectory = "Y:\ArrowLimo"
     $Shortcut.Description = "Arrow Limousine Dispatch - DISPATCH1 Workstation"
     $Shortcut.WindowStyle = 1  # Normal window
     
@@ -76,7 +76,7 @@ try {
     Write-Host ""
     Write-Host "You can manually create a shortcut:" -ForegroundColor Yellow
     Write-Host "  1. Right-click Desktop > New > Shortcut" -ForegroundColor White
-    Write-Host "  2. Location: Y:\ArrowLimo\app\START_DISPATCH.bat" -ForegroundColor White
+    Write-Host "  2. Location: Y:\ArrowLimo\START_DISPATCH1.bat" -ForegroundColor White
     Write-Host "  3. Name: Arrow Limo Dispatch" -ForegroundColor White
     Write-Host ""
 }

@@ -1,0 +1,22 @@
+source_file=L:\limo\Copy of General_ledger.csv
+total_csv_rows=46320
+headers= | Date | Transaction Type | # | Name | Memo/Description | Account | Debit | Credit | Balance
+chosen_columns:
+  date=Date
+  debit=Debit
+  credit=Credit
+  amount=None
+  description=Memo/Description
+  account_columns=Account
+rows_referencing_8362=2210
+rows_with_parseable_date_side_amount=2210
+target_accounts_like_1615_or_6011_count=2
+target_accounts=1615, 903990106011
+matches_exact_same_date=1
+matches_within_7_days=4
+matches_within_30_days=6
+matches_future_lag_0_120_days=4
+unmatched_within_30_days=2204
+account_hit_counts_within_30d:
+  903990106011	5
+  1615	1

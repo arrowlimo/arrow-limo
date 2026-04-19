@@ -1,0 +1,35 @@
+Asset Reconciliation Summary
+============================
+Total CRA assets (summed rows by code): 24
+Total reconciliation codes: 157
+Total matched: 46
+Total mismatched: 8
+
+Counts by status:
+- MATCH: 46
+- MISSING_IN_ALMS: 2
+- EXTRA_IN_ALMS: 101
+- MISMATCH: 8
+
+Top 20 absolute deltas:
+code | account_name | cra_balance | alms_balance | delta | status
+4000 |  | 0.00 | -3367219.81 | 3367219.81 | EXTRA_IN_ALMS
+6600 |  | 0.00 | 796313.06 | -796313.06 | EXTRA_IN_ALMS
+4150 |  | 0.00 | -707452.44 | 707452.44 | EXTRA_IN_ALMS
+1700 |  | 665257.82 | 0.00 | 665257.82 | MISSING_IN_ALMS
+2900 |  | 0.00 | -531198.07 | 531198.07 | EXTRA_IN_ALMS
+6900 |  | 0.00 | 364345.39 | -364345.39 | EXTRA_IN_ALMS
+3600 |  | 0.00 | 331995.48 | -331995.48 | EXTRA_IN_ALMS
+6925 |  | 0.00 | 330504.27 | -330504.27 | EXTRA_IN_ALMS
+1701 |  | -307004.33 | 0.00 | -307004.33 | MISSING_IN_ALMS
+6400 |  | 0.00 | 255909.63 | -255909.63 | EXTRA_IN_ALMS
+4300 |  | 0.00 | -235881.85 | 235881.85 | EXTRA_IN_ALMS
+6751 |  | 0.00 | 230546.78 | -230546.78 | EXTRA_IN_ALMS
+6000 |  | 0.00 | 196329.82 | -196329.82 | EXTRA_IN_ALMS
+6650 |  | 0.00 | 172874.08 | -172874.08 | EXTRA_IN_ALMS
+6605 |  | 0.00 | 149081.37 | -149081.37 | EXTRA_IN_ALMS
+Limousines & Busses:L10 2009 Ford E450 Bus A87480 |  | 0.00 | 146055.00 | -146055.00 | EXTRA_IN_ALMS
+Limousines & Busses:L-7 2003 Ford Excursion B96175 |  | 0.00 | 130000.00 | -130000.00 | EXTRA_IN_ALMS
+2100 |  | 0.00 | -122087.88 | 122087.88 | EXTRA_IN_ALMS
+Limousines & Busses:L11 2008 Ford E-450 Bus B55665 |  | 0.00 | 118055.00 | -118055.00 | EXTRA_IN_ALMS
+Limousines & Busses - Amort:Amort - L-7 |  | 0.00 | -111250.00 | 111250.00 | EXTRA_IN_ALMS

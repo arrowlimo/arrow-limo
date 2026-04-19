@@ -45,7 +45,7 @@ DISPATCH1:
 ═══════════════════════════════════════════════════════════════════════════
 
 **OPTION 1: Desktop Shortcut (Easy)**
-  Double-click: "Arrow Limo DISPATCH1" (or "Arrow Limo" on DISPATCHMAIN)
+  Double-click: "Arrow Limo Dispatch" (or "Arrow Limo" on DISPATCHMAIN)
   → Smart launcher runs automatically
   → Detects location
   → Launches with correct database
@@ -180,10 +180,10 @@ DISPATCHMAIN:
   L:\limo\START_HYBRID.bat  ← Hybrid launcher
 
 DISPATCH1:
-  Y:\ArrowLimo\.env              ← Active config (auto-switched)
-  Y:\ArrowLimo\.env.local        ← Local network config
-  Y:\ArrowLimo\.env.cloud        ← Neon cloud config
-  Y:\ArrowLimo\smart_launcher.py ← Auto-detection script
+  Y:\ArrowLimo\app\.env              ← Active config (auto-switched)
+  Y:\ArrowLimo\app\.env.local        ← Local network config
+  Y:\ArrowLimo\app\.env.cloud        ← Neon cloud config
+  Y:\ArrowLimo\smart_launcher.py      ← Auto-detection script
   Y:\ArrowLimo\START_HYBRID.bat  ← Hybrid launcher
 
 ═══════════════════════════════════════════════════════════════════════════

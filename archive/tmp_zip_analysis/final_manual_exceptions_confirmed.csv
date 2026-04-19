@@ -1,0 +1,1 @@
+final_action,final_reason,source,verification,gl_date,gl_chq,gl_vendor,gl_amount,gl_account,bank_txn_id,bank_txn_date,bank_debit,bank_desc,bank_check,receipt_id,receipt_exists,receipt_date,receipt_vendor,receipt_amount,receipt_payment_method,bank_links_via_banking_table,notes

@@ -31,6 +31,61 @@ GST_EXEMPT_GL_CODES = {
 }
 
 
+def _linked_group_key(
+    receipt_id: int,
+    banking_transaction_id: int | None,
+    parent_receipt_id: int | None,
+    split_group_id: int | None,
+    split_key: str | None,
+) -> str:
+    if split_group_id is not None:
+        return f"group:{split_group_id}"
+    if split_key and str(split_key).strip():
+        return f"key:{split_key}"
+    if parent_receipt_id is not None:
+        return f"parent:{parent_receipt_id}"
+    if banking_transaction_id is not None:
+        return f"bank:{banking_transaction_id}"
+    return f"receipt:{receipt_id}"
+
+
+def _split_marker(is_split: bool) -> str | None:
+    return "✂" if is_split else None
+
+
+def _expand_linked_split_receipt_ids(cur, seed_ids: list[int]) -> set[int]:
+    linked_ids: set[int] = set(seed_ids)
+    for seed_id in seed_ids:
+        cur.execute(
+            """
+            WITH base AS (
+                SELECT receipt_id, banking_transaction_id, parent_receipt_id,
+                       split_group_id, split_key
+                FROM receipts
+                WHERE receipt_id = %s
+            )
+            SELECT DISTINCT r.receipt_id
+            FROM receipts r
+            CROSS JOIN base b
+            WHERE r.receipt_id = b.receipt_id
+               OR (b.banking_transaction_id IS NOT NULL
+                   AND r.banking_transaction_id = b.banking_transaction_id)
+               OR (b.split_group_id IS NOT NULL
+                   AND r.split_group_id = b.split_group_id)
+               OR (COALESCE(b.split_key, '') <> ''
+                   AND r.split_key = b.split_key)
+               OR (b.parent_receipt_id IS NOT NULL
+                   AND (r.parent_receipt_id = b.parent_receipt_id
+                        OR r.receipt_id = b.parent_receipt_id))
+               OR (b.parent_receipt_id IS NULL
+                   AND r.parent_receipt_id = b.receipt_id)
+            """,
+            (seed_id,),
+        )
+        linked_ids.update(r[0] for r in cur.fetchall())
+    return linked_ids
+
+
 def determine_receipt_type(desc: str, trans_type: str) -> tuple[str, str]:
     """Determine receipt_type and notes from banking description and transaction type
     
@@ -195,29 +250,78 @@ def get_vendor_profile(vendor: str):
 def check_duplicate_receipts(
     vendor: str, amount: float, date: date, days_window: int = 7
 ):
-    """Check for existing receipts matching vendor, amount, and date range"""
+    """Check for existing receipts matching vendor, amount, and date range.
+
+    Split siblings are included even when they are not linked by banking_transaction_id,
+    by following split_group_id, split_key, and parent/child relationships.
+    """
     conn = get_connection()
     cur = conn.cursor()
 
     cur.execute(
         """
         SELECT receipt_id, receipt_date, vendor_name, gross_amount,
-               gst_amount, category, description, banking_transaction_id
+               gst_amount, category, description, banking_transaction_id,
+               parent_receipt_id, split_group_id, split_key,
+               COALESCE(is_split_receipt, FALSE) AS is_split_receipt
         FROM receipts
         WHERE vendor_name ILIKE %s
           AND ABS(gross_amount - %s) < 0.01
           AND receipt_date BETWEEN %s - INTERVAL '%s days' AND %s + INTERVAL '%s days'
           AND is_voided IS NOT TRUE
           AND exclude_from_reports IS NOT TRUE
-          AND is_split_receipt IS NOT TRUE
         ORDER BY receipt_date DESC
         LIMIT 10
     """,
         (f"%{vendor}%", amount, date, days_window, date, days_window),
     )
 
+    seed_rows = cur.fetchall()
+    if not seed_rows:
+        cur.close()
+        conn.close()
+        return []
+
+    seed_ids = [row[0] for row in seed_rows]
+    linked_ids = _expand_linked_split_receipt_ids(cur, seed_ids)
+
+    placeholders = ", ".join(["%s"] * len(linked_ids))
+    cur.execute(
+        f"""
+        SELECT receipt_id, receipt_date, vendor_name, gross_amount,
+               gst_amount, category, description, banking_transaction_id,
+               parent_receipt_id, split_group_id, split_key,
+               COALESCE(is_split_receipt, FALSE) AS is_split_receipt
+        FROM receipts
+        WHERE receipt_id IN ({placeholders})
+          AND is_voided IS NOT TRUE
+          AND exclude_from_reports IS NOT TRUE
+        ORDER BY receipt_date DESC, gross_amount DESC, receipt_id DESC
+        """,
+        tuple(linked_ids),
+    )
+
     duplicates = []
     for row in cur.fetchall():
+        parent_receipt_id = row[8]
+        split_group_id = row[9]
+        split_key = row[10]
+        is_split_receipt = bool(row[11])
+        is_split = bool(
+            is_split_receipt
+            or parent_receipt_id
+            or split_group_id
+            or (split_key and str(split_key).strip())
+        )
+
+        linked_group_key = _linked_group_key(
+            receipt_id=row[0],
+            banking_transaction_id=row[7],
+            parent_receipt_id=parent_receipt_id,
+            split_group_id=split_group_id,
+            split_key=split_key,
+        )
+
         duplicates.append(
             {
                 "receipt_id": row[0],
@@ -229,8 +333,27 @@ def check_duplicate_receipts(
                 "description": row[6],
                 "banking_transaction_id": row[7],
                 "is_matched": row[7] is not None,
+                "parent_receipt_id": parent_receipt_id,
+                "split_group_id": split_group_id,
+                "split_key": split_key,
+                "is_split": is_split,
+                "split_marker": _split_marker(is_split),
+                "linked_group_key": linked_group_key,
             }
         )
+
+    grouped_totals: dict[str, dict[str, float | int]] = {}
+    for item in duplicates:
+        group_key = item["linked_group_key"]
+        if group_key not in grouped_totals:
+            grouped_totals[group_key] = {"group_total_gross": 0.0, "group_count": 0}
+        grouped_totals[group_key]["group_total_gross"] += float(item["gross_amount"] or 0)
+        grouped_totals[group_key]["group_count"] += 1
+
+    for item in duplicates:
+        meta = grouped_totals[item["linked_group_key"]]
+        item["group_total_gross"] = round(float(meta["group_total_gross"]), 2)
+        item["group_count"] = int(meta["group_count"])
 
     cur.close()
     conn.close()

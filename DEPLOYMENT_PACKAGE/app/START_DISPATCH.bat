@@ -17,11 +17,17 @@ REM Critical: Change to this directory first
 REM This ensures relative paths work correctly
 cd /d "%~dp0"
 
+set "PYTHON_EXE=python"
+if exist "%~dp0..\..\.venv\Scripts\python.exe" (
+    set "PYTHON_EXE=%~dp0..\..\.venv\Scripts\python.exe"
+)
+
 echo Current directory: %CD%
+echo Python executable: %PYTHON_EXE%
 echo.
 
 REM Check if Python is installed
-python --version >nul 2>&1
+"%PYTHON_EXE%" --version >nul 2>&1
 if errorlevel 1 (
     COLOR 0C
     echo ========================================================
@@ -55,7 +61,7 @@ if not exist "launcher.py" (
 REM Run the launcher
 echo Launching application...
 echo.
-python launcher.py
+"%PYTHON_EXE%" launcher.py
 
 REM Show exit status
 echo.

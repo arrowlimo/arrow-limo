@@ -115,7 +115,7 @@ Result: Both see same data, real-time sync, no conflicts
 L:\limo\desktop_app (DISPATCHMAIN - source code)
      ↓
      ├─→ DISPATCHMAIN: Uses directly
-     └─→ DISPATCH1: Auto-updates to Y:\ArrowLimo\desktop_app
+  └─→ DISPATCH1: Auto-updates to Y:\ArrowLimo\app\desktop_app
      
 Result: Code changes propagate automatically
 ```
@@ -144,7 +144,7 @@ Result: Both read/write same files
   - Desktop application (Python .py files)
   - Configuration file (.env) with database connection
   - Auto-update script (syncs from L: drive)
-  - Desktop shortcut "Arrow Limo DISPATCH1"
+  - Desktop shortcut "Arrow Limo Dispatch"
   - Network drive mappings (L: and Z:)
 
 ═══════════════════════════════════════════════════════════════════════════

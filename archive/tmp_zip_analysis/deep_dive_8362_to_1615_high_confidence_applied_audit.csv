@@ -1,0 +1,5 @@
+source_txn_id,matched_1615_txn_id,lag_days,old_reconciliation_status,old_category,marker_appended
+96465,81582,4,unreconciled,,[DUP_1615_LAG] matched_1615_txn=81582 lag_days=4 source=high_confidence
+96801,102195,26,unreconciled,,[DUP_1615_LAG] matched_1615_txn=102195 lag_days=26 source=high_confidence
+97010,82268,3,unreconciled,,[DUP_1615_LAG] matched_1615_txn=82268 lag_days=3 source=high_confidence
+97012,82269,2,unreconciled,,[DUP_1615_LAG] matched_1615_txn=82269 lag_days=2 source=high_confidence

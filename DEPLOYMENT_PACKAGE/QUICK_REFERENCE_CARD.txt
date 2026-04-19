@@ -12,7 +12,7 @@
   • Login with your credentials
   
   DISPATCH1 (Employee Computer):
-  • Double-click "Arrow Limo DISPATCH1" on desktop
+  • Double-click "Arrow Limo Dispatch" on desktop
   • App auto-updates first (takes 5-10 seconds)
   • Login with your credentials
 
@@ -41,8 +41,8 @@
 
   If Windows asks for network credentials:
   
-  Username: DISPATCHMAIN\ArrowDispatch
-  Password: Dispatch2026!
+  Enter the username/password created during
+  SETUP_NETWORK_SHARE_FOR_AUTOUPDATE.ps1 on DISPATCHMAIN
   
   ☑ Remember my credentials
 
@@ -93,10 +93,10 @@
   Open PowerShell or Command Prompt:
   
   Map L: drive (DISPATCH1 only):
-  net use L: \\DISPATCHMAIN\limo /user:DISPATCHMAIN\ArrowDispatch Dispatch2026! /persistent:yes
+  net use L: \\DISPATCHMAIN\limo /persistent:yes
   
   Map Z: drive (Both computers):
-  net use Z: \\DISPATCHMAIN\limo_files /user:DISPATCHMAIN\ArrowDispatch Dispatch2026! /persistent:yes
+  net use Z: \\DISPATCHMAIN\limo_files /persistent:yes
   
   Verify drives mapped:
   net use
@@ -111,8 +111,8 @@
   • Logs: app_errors.log in app directory
   
   DISPATCH1:
-  • App: Y:\ArrowLimo\desktop_app
-  • Config: Y:\ArrowLimo\.env
+  • App: Y:\ArrowLimo\app\desktop_app
+  • Config: Y:\ArrowLimo\app\.env
   • Logs: Y:\ArrowLimo\app_errors.log
   • Update Script: Y:\ArrowLimo\AUTO_UPDATE.ps1
 

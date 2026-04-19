@@ -24,8 +24,7 @@ STEP 1: PREPARE DISPATCHMAIN (Your Computer)
    .\SETUP_NETWORK_SHARE_FOR_AUTOUPDATE.ps1
 
 4. This creates:
-   - User: DISPATCHMAIN\ArrowDispatch
-   - Password: Dispatch2026!
+   - Share user: the username you choose during setup
    - Share: \\DISPATCHMAIN\limo (for auto-updates)
    - Share: \\DISPATCHMAIN\limo_files (for shared files)
 
@@ -63,8 +62,8 @@ Option B - Network Copy:
 -----------------------
 1. On DISPATCH1, open File Explorer
 2. Type in address bar: \\DISPATCHMAIN\limo
-3. Username: DISPATCHMAIN\ArrowDispatch
-4. Password: Dispatch2026!
+3. Enter the DISPATCHMAIN share username if prompted
+4. Enter the DISPATCHMAIN share password you set during share setup
 5. Copy DEPLOYMENT_PACKAGE folder to Desktop
 
 ==================================================
@@ -95,12 +94,13 @@ STEP 5: VERIFY INSTALLATION
 ==================================================
 
 1. Check desktop - you should see:
-   "Arrow Limo DISPATCH1" shortcut
+   "Arrow Limo Dispatch" shortcut
 
 2. Check Y: drive:
    - Y:\ArrowLimo should exist
-   - Should contain desktop_app folder
-   - Should have .env file
+   - Should contain app folder
+   - app should contain desktop_app folder
+   - app should have .env file
    - Should have START_DISPATCH1.bat
 
 3. Check Z: drive:
@@ -115,7 +115,7 @@ STEP 5: VERIFY INSTALLATION
 STEP 6: LAUNCH AND TEST
 ==================================================
 
-1. Double-click "Arrow Limo DISPATCH1" on desktop
+1. Double-click "Arrow Limo Dispatch" on desktop
 
 2. You should see:
    - "Checking for updates..."
@@ -136,13 +136,13 @@ How It Works:
 -------------
 1. Each time you launch from desktop shortcut
 2. Script runs AUTO_UPDATE.ps1
-3. Compares L:\limo\desktop_app vs Y:\ArrowLimo\desktop_app
+3. Compares L:\limo\desktop_app vs Y:\ArrowLimo\app\desktop_app
 4. Copies any newer/modified .py files
 5. Then starts the application
 
 What Gets Updated:
 ------------------
-✓ All Python (.py) files in desktop_app
+✓ All Python (.py) files in app\desktop_app
 ✓ Only files that changed since last update
 ✓ Automatic - no manual sync needed
 
@@ -175,7 +175,7 @@ Problem: "Cannot access L:\limo\desktop_app"
 Solution:
 - Verify DISPATCHMAIN is ON
 - Check L: drive mapped on DISPATCH1
-- Try: net use L: \\DISPATCHMAIN\limo /user:DISPATCHMAIN\ArrowDispatch Dispatch2026!
+- Try: net use L: \\DISPATCHMAIN\limo /persistent:yes
 
 Problem: "Y: drive does not exist"
 Solution:
@@ -186,7 +186,7 @@ Problem: "Cannot map Z: drive"
 Solution:
 - Check DISPATCHMAIN is on network
 - Verify network sharing enabled (Windows 11 password login required)
-- Manually map: net use Z: \\DISPATCHMAIN\limo_files /user:DISPATCHMAIN\ArrowDispatch Dispatch2026!
+- Manually map: net use Z: \\DISPATCHMAIN\limo_files /persistent:yes
 
 Problem: Database connection fails
 Solution:
@@ -204,7 +204,7 @@ Problem: Files ask for password repeatedly
 Solution:
 - Map drives with /persistent:yes flag
 - Check "Remember my credentials" when mapping
-- Verify ArrowDispatch user not locked
+- Verify the DISPATCHMAIN share user exists and the password matches what was set during share setup
 
 ==================================================
 DAILY OPERATIONS
@@ -258,9 +258,8 @@ CREDENTIALS REFERENCE
 ==================================================
 
 Network Share Access:
-- Username: DISPATCHMAIN\ArrowDispatch
-- Password: Dispatch2026!
-- Used for: L: and Z: drive mapping
+- Use the username/password entered during SETUP_NETWORK_SHARE_FOR_AUTOUPDATE.ps1
+- Used for: L: and Z: drive mapping when Windows prompts for SMB credentials
 
 Database (Neon Cloud):
 - Host: ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech

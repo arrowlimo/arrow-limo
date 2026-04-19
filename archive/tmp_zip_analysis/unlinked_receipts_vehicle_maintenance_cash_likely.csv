@@ -1,0 +1,24 @@
+receipt_id,receipt_date,vendor_name,gross_amount,payment_method,canonical_pay_method,is_driver_reimbursement,reimbursed_via,banking_transaction_id,is_matched,receipt_source,classification_bucket,classification_reason
+216950,2012-01-05,CANADIAN TIRE,7.54,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+216952,2012-01-10,CANADIAN TIRE,78.27,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+215483,2012-01-24,PARRS AUTOMOTIVE,500.00,cash,,False,,,False,manual_2012_backfill,vehicle_maintenance_cash_likely,maintenance vendor keyword
+217202,2012-03-31,CARRIAGE AUTO UPHOLSTERY,157.50,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+214964,2012-05-14,CARRIAGE AUTO UPHOLSTERY,12.86,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+217017,2012-06-19,CANADIAN TIRE,4.19,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+216936,2012-07-14,CANADIAN TIRE,29.25,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+216938,2012-07-21,CANADIAN TIRE,25.18,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+215488,2012-08-10,PARRS AUTOMOTIVE,700.00,cash,,False,,,False,manual_2012_backfill,vehicle_maintenance_cash_likely,maintenance vendor keyword
+216979,2012-08-25,CANADIAN TIRE,17.30,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+216980,2012-08-25,CANADIAN TIRE,2.49,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+216974,2012-09-17,CANADIAN TIRE,18.06,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+216973,2012-09-27,CANADIAN TIRE,11.09,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+217011,2012-10-04,CANADIAN TIRE,10.49,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+217014,2012-10-04,CANADIAN TIRE,9.84,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+217012,2012-10-05,CANADIAN TIRE,86.97,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+217013,2012-10-07,CANADIAN TIRE,5.24,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+215490,2012-10-15,FIBRENEW REPAIRS,105.00,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword
+215484,2012-12-03,PARRS AUTOMOTIVE,502.07,cash,,False,,,False,manual_2012_backfill,vehicle_maintenance_cash_likely,maintenance vendor keyword
+215485,2012-12-10,PARRS AUTOMOTIVE,355.32,cash,,False,,,False,manual_2012_backfill,vehicle_maintenance_cash_likely,maintenance vendor keyword
+215486,2012-12-10,PARRS AUTOMOTIVE,593.62,cash,,False,,,False,manual_2012_backfill,vehicle_maintenance_cash_likely,maintenance vendor keyword
+215487,2012-12-10,PARRS AUTOMOTIVE,53.06,cash,,False,,,False,manual_2012_backfill,vehicle_maintenance_cash_likely,maintenance vendor keyword
+217234,2012-12-20,CHOICE AUTO ELECTRIC LTD.,100.00,cash,,False,,,False,,vehicle_maintenance_cash_likely,maintenance vendor keyword

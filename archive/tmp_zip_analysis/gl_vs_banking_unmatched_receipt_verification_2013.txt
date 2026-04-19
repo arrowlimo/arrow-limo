@@ -1,0 +1,9 @@
+Unmatched GL->Bank Verification (with receipt evidence)
+==========================================================================================
+Rows verified: 21
+- DIRECT_MATCH: 4
+- NO_BANK_EVIDENCE: 17
+
+Detailed rows
+------------------------------------------------------------------------------------------
+2013-10-07 | Royal Refrigeration Ltd | CHQ:252 | 1109.26 | DIRECT_MATCH | bank:79136 1109.26 CHQ 252 | receipt:139945 1109.26 REFRIGERATOR BEER FRIDGE REPAIR

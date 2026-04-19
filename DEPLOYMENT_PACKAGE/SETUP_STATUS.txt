@@ -161,9 +161,9 @@ Location: L:\limo\DEPLOYMENT_PACKAGE\SETUP_STATUS.txt
       □ Y: drive exists in File Explorer
       □ L: drive mapped to \\DISPATCHMAIN\limo
       □ Z: drive mapped to \\DISPATCHMAIN\limo_files
-      □ Desktop shortcut: "Arrow Limo DISPATCH1"
-      □ File exists: Y:\ArrowLimo\.env
-      □ File exists: Y:\ArrowLimo\desktop_app\launcher.py
+      □ Desktop shortcut: "Arrow Limo Dispatch"
+      □ File exists: Y:\ArrowLimo\app\.env
+      □ File exists: Y:\ArrowLimo\app\launcher.py
     
     Who does this: DISPATCH1 user
     Estimated time: 2 minutes
@@ -206,7 +206,7 @@ Location: L:\limo\DEPLOYMENT_PACKAGE\SETUP_STATUS.txt
 
 [ ] Launch Application on DISPATCH1
     Action: On DISPATCH1 desktop, double-click:
-      "Arrow Limo DISPATCH1"
+  "Arrow Limo Dispatch"
     
     Should:
       - Check for updates from L: drive

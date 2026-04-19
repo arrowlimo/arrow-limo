@@ -1,0 +1,14 @@
+Strict Posting Order Summary
+================================================================================
+Total rows: 1567
+By bucket:
+- petty_cash_business_likely: 559
+- fuel_cash_likely: 430
+- liquor_cash_likely: 310
+- employee_reimbursement_likely: 245
+- vehicle_maintenance_cash_likely: 23
+
+Files:
+- L:\limo\archive\tmp_zip_analysis\strict_posting_order.csv
+- L:\limo\archive\tmp_zip_analysis\strict_posting_order_queue_by_bucket.csv
+- L:\limo\archive\tmp_zip_analysis\strict_posting_order_vendor_batches.csv

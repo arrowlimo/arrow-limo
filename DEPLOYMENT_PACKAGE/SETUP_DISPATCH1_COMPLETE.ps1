@@ -37,7 +37,7 @@ $Script:Config = @{
     LDrivePath = "\\DISPATCHMAIN\limo"
     ZDrivePath = "\\DISPATCHMAIN\limo_files"
     OldInstallPath = "C:\ArrowLimo"
-    DesktopShortcutName = "Arrow Limo DISPATCH1.lnk"
+    DesktopShortcutName = "Arrow Limo Dispatch.lnk"
     DBName = "almsdata"
     DBUser = "postgres"
     DBPort = 5432
@@ -431,10 +431,10 @@ function New-AutoUpdateScript {
     
     $updateScript = @'
 # Auto-Update Script for DISPATCH1
-# Syncs application files from L:\limo\desktop_app to Y:\ArrowLimo\desktop_app
+# Syncs application files from L:\limo\desktop_app to Y:\ArrowLimo\app\desktop_app
 
 $SourcePath = "L:\limo\desktop_app"
-$DestPath = "Y:\ArrowLimo\desktop_app"
+$DestPath = "Y:\ArrowLimo\app\desktop_app"
 
 Write-Host "Checking for updates from DISPATCHMAIN..." -ForegroundColor Cyan
 
@@ -488,8 +488,7 @@ if exist "Y:\ArrowLimo\auto_update.ps1" (
 
 REM Launch application
 echo Starting application...
-cd /d Y:\ArrowLimo\desktop_app
-python launcher.py
+start "Arrow Limousine Dispatch" /wait "Y:\ArrowLimo\app\START_DISPATCH.bat"
 
 if errorlevel 1 (
     echo.
@@ -519,7 +518,7 @@ function New-DesktopShortcut {
     $WshShell = New-Object -ComObject WScript.Shell
     $Shortcut = $WshShell.CreateShortcut($shortcutPath)
     $Shortcut.TargetPath = "$($Script:Config.YDrivePath)\START_DISPATCH1.bat"
-    $Shortcut.WorkingDirectory = "$($Script:Config.YDrivePath)\desktop_app"
+    $Shortcut.WorkingDirectory = "$($Script:Config.YDrivePath)"
     $Shortcut.Description = "Arrow Limousine Dispatch System (DISPATCH1)"
     $Shortcut.IconLocation = "shell32.dll,165"  # Car icon
     $Shortcut.Save()
@@ -687,7 +686,7 @@ function Test-Installation {
     }
     
     # Check application files
-    if (Test-Path "$($Script:Config.YDrivePath)\desktop_app\launcher.py") {
+    if (Test-Path "$($Script:Config.YDrivePath)\app\launcher.py") {
         Write-Success "Application files installed"
     } else {
         Write-Error-Custom "Application files not found"
@@ -778,7 +777,7 @@ function Main {
             Write-Host "  • Workstation: DISPATCH1" -ForegroundColor White
             Write-Host ""
             Write-Host "To launch the application:" -ForegroundColor Cyan
-            Write-Host "  • Double-click 'Arrow Limo DISPATCH1' on desktop" -ForegroundColor White
+            Write-Host "  • Double-click 'Arrow Limo Dispatch' on desktop" -ForegroundColor White
             Write-Host "  • Or run: $($Script:Config.YDrivePath)\START_DISPATCH1.bat" -ForegroundColor White
             Write-Host ""
             Write-Host "Auto-Update:" -ForegroundColor Cyan

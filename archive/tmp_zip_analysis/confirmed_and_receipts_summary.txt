@@ -1,0 +1,9 @@
+Confirmed Entries + Receipt Comparison Summary
+================================================================================
+Confirmed entries added: 75
+- DIRECT_MATCH: 60
+- MERGED_MATCH: 2
+- RECEIPT_ONLY: 13
+Confirmed entries missing receipt record: 0
+Confirmed entries with no bank link via banking table: 13
+Cash/reimbursed receipts not linked to banking (2012-2017): 1567

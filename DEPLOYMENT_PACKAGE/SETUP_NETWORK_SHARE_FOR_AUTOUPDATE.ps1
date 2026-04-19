@@ -2,6 +2,11 @@
 # Run this on DISPATCHMAIN (your development computer) as Administrator
 # This shares the L:\limo folder so DISPATCH1 can auto-update
 
+param(
+    [string]$Username,
+    [string]$Password
+)
+
 $ErrorActionPreference = "Stop"
 
 Write-Host "============================================" -ForegroundColor Cyan
@@ -28,26 +33,65 @@ if (-not (Test-Path "L:\limo")) {
 
 Write-Host "[1/4] Creating shared dispatch user account..." -ForegroundColor Yellow
 
-$username = "ArrowDispatch"
-$password = "Dispatch2026!"
-$description = "Shared account for Arrow Limo dispatch workstations"
-
-# Check if user already exists
-$userExists = Get-LocalUser -Name $username -ErrorAction SilentlyContinue
-
-if ($userExists) {
-    Write-Host "      User '$username' already exists, resetting password..." -ForegroundColor Gray
-    $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
-    Set-LocalUser -Name $username -Password $securePassword
-} else {
-    Write-Host "      Creating user '$username'..." -ForegroundColor Gray
-    $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
-    New-LocalUser -Name $username -Password $securePassword -Description $description -PasswordNeverExpires -UserMayNotChangePassword | Out-Null
+$username = $Username
+if (-not $username) {
+    $username = Read-Host "Enter share username [ArrowDispatch]"
+}
+if (-not $username) {
+    $username = "ArrowDispatch"
 }
 
-Write-Host "      [OK] User account ready!" -ForegroundColor Green
-Write-Host "      Username: $env:COMPUTERNAME\$username" -ForegroundColor Gray
-Write-Host "      Password: $password" -ForegroundColor Gray
+if (-not $Password) {
+    $passwordSecure = Read-Host "Enter password for $username" -AsSecureString
+    $confirmPasswordSecure = Read-Host "Confirm password for $username" -AsSecureString
+
+    $passwordBstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($passwordSecure)
+    $confirmPasswordBstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($confirmPasswordSecure)
+    $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($passwordBstr)
+    $confirmPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($confirmPasswordBstr)
+    [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordBstr)
+    [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($confirmPasswordBstr)
+
+    if (-not $password) {
+        Write-Host "[ERROR] Password cannot be blank." -ForegroundColor Red
+        pause
+        exit 1
+    }
+
+    if ($password -ne $confirmPassword) {
+        Write-Host "[ERROR] Password confirmation did not match." -ForegroundColor Red
+        pause
+        exit 1
+    }
+} else {
+    $password = $Password
+}
+
+$description = "Shared account for Arrow Limo dispatch workstations"
+$shareIdentity = "Everyone"
+
+try {
+    # Check if user already exists
+    $userExists = Get-LocalUser -Name $username -ErrorAction SilentlyContinue
+
+    if ($userExists) {
+        Write-Host "      User '$username' already exists, resetting password..." -ForegroundColor Gray
+        $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
+        Set-LocalUser -Name $username -Password $securePassword
+    } else {
+        Write-Host "      Creating user '$username'..." -ForegroundColor Gray
+        $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
+        New-LocalUser -Name $username -Password $securePassword -Description $description -PasswordNeverExpires -UserMayNotChangePassword | Out-Null
+    }
+
+    $shareIdentity = $username
+    Write-Host "      [OK] User account ready!" -ForegroundColor Green
+    Write-Host "      Username: $env:COMPUTERNAME\$username" -ForegroundColor Gray
+    Write-Host "      Password: [saved as entered]" -ForegroundColor Gray
+} catch {
+    Write-Host "      [WARNING] Could not create or update '$username': $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "      Continuing with share access based on 'Everyone' permissions." -ForegroundColor Gray
+}
 
 # Create share for L:\limo
 Write-Host ""
@@ -73,7 +117,7 @@ Write-Host "[3/4] Configuring folder permissions..." -ForegroundColor Yellow
 
 $acl = Get-Acl $sharePath
 $readPermission = New-Object System.Security.AccessControl.FileSystemAccessRule(
-    $username,
+    $shareIdentity,
     "ReadAndExecute",
     "ContainerInherit,ObjectInherit",
     "None",
@@ -82,7 +126,20 @@ $readPermission = New-Object System.Security.AccessControl.FileSystemAccessRule(
 $acl.AddAccessRule($readPermission)
 Set-Acl $sharePath $acl
 
-Write-Host "      [OK] Read access granted to $username" -ForegroundColor Green
+if ($shareIdentity -ne "Everyone") {
+    $everyonePermission = New-Object System.Security.AccessControl.FileSystemAccessRule(
+        "Everyone",
+        "ReadAndExecute",
+        "ContainerInherit,ObjectInherit",
+        "None",
+        "Allow"
+    )
+    $acl.AddAccessRule($everyonePermission)
+    Set-Acl $sharePath $acl
+}
+
+Write-Host "      [OK] Read access granted to $shareIdentity" -ForegroundColor Green
+Write-Host "      [OK] Read access granted to Everyone" -ForegroundColor Green
 
 # Create share for limo_files (if exists)
 Write-Host ""
@@ -120,7 +177,10 @@ Write-Host ""
 Write-Host "Share Details:" -ForegroundColor Cyan
 Write-Host "  Share Name: \\$env:COMPUTERNAME\limo" -ForegroundColor White
 Write-Host "  Local Path: $sharePath" -ForegroundColor Gray
-Write-Host "  Access: ReadAndExecute for ArrowDispatch" -ForegroundColor Gray
+Write-Host "  Access: ReadAndExecute for Everyone" -ForegroundColor Gray
+if ($shareIdentity -ne "Everyone") {
+    Write-Host "  Optional Share User: $env:COMPUTERNAME\$username" -ForegroundColor Gray
+}
 Write-Host ""
 Write-Host "Dispatch1 can now:" -ForegroundColor Cyan
 Write-Host "  1. Map L: to \\$env:COMPUTERNAME\limo" -ForegroundColor White

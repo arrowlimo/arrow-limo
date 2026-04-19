@@ -23,8 +23,8 @@ Date: _____________    Installer: _______________________
   - Confirm limo folder visible
 
 ☐ Note credentials created:
-  Username: DISPATCHMAIN\ArrowDispatch
-  Password: Dispatch2026!
+  Username: _________________________________
+  Password: recorded separately by admin
 
 ┌──────────────────────────────────────────────────────────────────┐
 │ PHASE 2: PREPARE DISPATCH1 COMPUTER                             │
@@ -58,8 +58,8 @@ IF USING NETWORK:
 ☐ On DISPATCH1, open File Explorer
 ☐ Type: \\DISPATCHMAIN\limo
 ☐ Enter credentials when prompted:
-  - Username: DISPATCHMAIN\ArrowDispatch
-  - Password: Dispatch2026!
+  - Username: _________________________________
+  - Password: _________________________________
   - ☑ Remember my credentials
 ☐ Copy DEPLOYMENT_PACKAGE to Desktop
 
@@ -100,7 +100,7 @@ IF USING NETWORK:
       AUTO_UPDATE.ps1 ready
   
   ☐ [8/8] Desktop shortcut - CREATED
-      "Arrow Limo DISPATCH1" on desktop
+      "Arrow Limo Dispatch" on desktop
 
 ☐ Installation completed successfully
 
@@ -109,13 +109,14 @@ IF USING NETWORK:
 └──────────────────────────────────────────────────────────────────┘
 
 ☐ Desktop shortcut exists:
-  Name: Arrow Limo DISPATCH1
+  Name: Arrow Limo Dispatch
 
 ☐ Y:\ArrowLimo folder exists
 
 ☐ Y:\ArrowLimo contains:
-  ☐ desktop_app folder
-  ☐ .env file
+  ☐ app folder
+  ☐ app\desktop_app folder
+  ☐ app\.env file
   ☐ AUTO_UPDATE.ps1
   ☐ START_DISPATCH1.bat
 
@@ -131,7 +132,7 @@ IF USING NETWORK:
 │ PHASE 6: LAUNCH AND TEST APPLICATION                            │
 └──────────────────────────────────────────────────────────────────┘
 
-☐ Double-click "Arrow Limo DISPATCH1" on desktop
+☐ Double-click "Arrow Limo Dispatch" on desktop
 
 ☐ Auto-update runs:
   Checking for updates... _____ file(s) synced
@@ -180,7 +181,7 @@ IF USING NETWORK:
   ☐ "Starting application..." appears
 
 ☐ Verify change applied:
-  - Check Y:\ArrowLimo\desktop_app\main.py
+  - Check Y:\ArrowLimo\app\desktop_app\main.py
   - Test comment should be present
 
 ☐ Auto-update system working correctly

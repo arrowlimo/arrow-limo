@@ -96,7 +96,13 @@ class CharterFormWidget(QWidget):
 
         # ===== HEADER WITH ACTION BUTTONS =====
         header_layout = QHBoxLayout()
-        header_layout.addWidget(QLabel("<h2>Charter/Booking Form</h2>"))
+        self.form_title_label = QLabel("<h2>Charter/Booking Form</h2>")
+        header_layout.addWidget(self.form_title_label)
+
+        self.active_charter_label = QLabel("No charter selected")
+        self.active_charter_label.setStyleSheet("color: #555; font-weight: 600;")
+        header_layout.addWidget(self.active_charter_label)
+
         header_layout.addStretch()
 
         self.save_btn = QPushButton("💾 Save (Ctrl+S)")
@@ -6008,7 +6014,44 @@ class CharterFormWidget(QWidget):
     def load_charter_by_id(self, charter_id: int):
         """Convenience method for loading charter from lookup widgets"""
         self.charter_id = charter_id
+        if hasattr(self, "booking_tab_widget"):
+            self.booking_tab_widget.setCurrentIndex(1)
         self.load_charter(charter_id)
+
+    def load_charter_by_reserve(self, reserve_number: str):
+        """Load charter by reserve number (used by dispatch drill-down)."""
+        try:
+            if not reserve_number:
+                return
+
+            cur = self.db.get_cursor()
+            cur.execute(
+                """
+                SELECT charter_id
+                FROM charters
+                WHERE reserve_number = %s
+                ORDER BY charter_id DESC
+                LIMIT 1
+                """,
+                (str(reserve_number),),
+            )
+            row = cur.fetchone()
+            cur.close()
+
+            if row and row[0]:
+                self.load_charter_by_id(int(row[0]))
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Charter Not Found",
+                    f"No charter found for reserve #{reserve_number}.",
+                )
+        except Exception as e:
+            try:
+                self.db.rollback()
+            except Exception:
+                pass
+            QMessageBox.warning(self, "Error", f"Failed to load charter: {e}")
 
     def prefill_from_dispatch_row(self, booking_row):
         """Fast prefill from Dispatch Board row before canonical DB load.
@@ -6237,6 +6280,14 @@ class CharterFormWidget(QWidget):
                 # Store reserve_number for use in save_charter_charges
                 self._current_reserve_number = reserve_number
 
+                if hasattr(self, "active_charter_label"):
+                    self.active_charter_label.setText(
+                        f"Viewing Reserve #{reserve_number} (ID {charter_id})"
+                    )
+
+                if hasattr(self, "quick_lookup") and hasattr(self.quick_lookup, "charter_input"):
+                    self.quick_lookup.charter_input.setText(str(reserve_number))
+
                 # Load driver pay panel
                 try:
                     cur_dp = self.db.get_cursor()
@@ -6403,6 +6454,8 @@ class CharterFormWidget(QWidget):
 
         if response == QMessageBox.StandardButton.Yes:
             self.charter_id = None
+            if hasattr(self, "active_charter_label"):
+                self.active_charter_label.setText("New charter (unsaved)")
             # Reset customer widget
             self.customer_widget.reserve_input.setText("")
             self.customer_widget.client_combo.setCurrentIndex(0)
@@ -8026,15 +8079,43 @@ class CharterFormWidget(QWidget):
                     FROM charter_charges WHERE charter_id = %s AND charge_type = 'tax'
                 ),
                 amount_paid = (
-                    SELECT COALESCE(SUM(amount), 0)
-                    FROM charter_payments WHERE charter_id = %s
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM charter_payments
+                            WHERE charter_id = %s OR charter_id = %s
+                        ) THEN (
+                            SELECT COALESCE(SUM(amount), 0)
+                            FROM charter_payments
+                            WHERE charter_id = %s OR charter_id = %s
+                        )
+                        ELSE (
+                            SELECT COALESCE(SUM(amount), 0)
+                            FROM payments
+                            WHERE reserve_number = %s OR charter_id = %s
+                        )
+                    END
                 ),
                 balance_owing = (
                     SELECT COALESCE(SUM(amount), 0)
                     FROM charter_charges WHERE charter_id = %s
                 ) - (
-                    SELECT COALESCE(SUM(amount), 0)
-                    FROM charter_payments WHERE charter_id = %s
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM charter_payments
+                            WHERE charter_id = %s OR charter_id = %s
+                        ) THEN (
+                            SELECT COALESCE(SUM(amount), 0)
+                            FROM charter_payments
+                            WHERE charter_id = %s OR charter_id = %s
+                        )
+                        ELSE (
+                            SELECT COALESCE(SUM(amount), 0)
+                            FROM payments
+                            WHERE reserve_number = %s OR charter_id = %s
+                        )
+                    END
                 ),
                 driver_gratuity = (
                     SELECT COALESCE(SUM(amount), 0)
@@ -8053,9 +8134,19 @@ class CharterFormWidget(QWidget):
             """, (
                 self.charter_id,  # grand_total
                 self.charter_id,  # gst_amount
-                reserve_number,   # amount_paid
+                reserve_number,   # amount_paid cp reserve_number
+                str(self.charter_id),  # amount_paid cp charter_id text
+                reserve_number,   # amount_paid cp reserve_number sum
+                str(self.charter_id),  # amount_paid cp charter_id text sum
+                reserve_number,   # amount_paid payments reserve_number
+                self.charter_id,  # amount_paid payments charter_id int
                 self.charter_id,  # balance_owing numerator
-                reserve_number,   # balance_owing denominator
+                reserve_number,   # balance cp exists reserve_number
+                str(self.charter_id),  # balance cp exists charter_id text
+                reserve_number,   # balance cp sum reserve_number
+                str(self.charter_id),  # balance cp sum charter_id text
+                reserve_number,   # balance payments reserve_number
+                self.charter_id,  # balance payments charter_id int
                 self.charter_id,  # driver_gratuity
                 getattr(self.dp_approved_hours, 'value', lambda: None)() if hasattr(self, 'dp_approved_hours') else None,
                 getattr(self.dp_approved_gratuity, 'value', lambda: None)() if hasattr(self, 'dp_approved_gratuity') else None,
@@ -8340,24 +8431,41 @@ class CharterFormWidget(QWidget):
             print(f"❌ Error loading driver pay panel: {e}")
 
     def _load_charter_payments(self, reserve_number: str):
-        """Populate the payments_table from charter_payments for this charter.
+        """Populate the payments_table from charter_payments (fallback: payments).
         Cols: Type(0) | Date Paid(1) | Amount(2) | Method(3) | Notes(4)
         """
         try:
             self.payments_table.setRowCount(0)
             if not reserve_number:
                 return
+
+            charter_id = None
+            if getattr(self, 'charter_id', None):
+                charter_id = str(self.charter_id)
+
             cur = self.db.get_cursor()
             cur.execute("""
-                SELECT amount, payment_method, payment_date, client_name
+                SELECT amount, payment_method, payment_date, COALESCE(client_name, '')
                 FROM charter_payments
-                WHERE charter_id = %s
+                WHERE charter_id = %s OR charter_id = %s
                 ORDER BY payment_date NULLS LAST, payment_id
-            """, (reserve_number,))
+            """, (reserve_number, charter_id or ''))
             rows = cur.fetchall()
+
+            # Legacy fallback for records stored only in payments
+            if not rows:
+                cur.execute("""
+                    SELECT amount, payment_method, payment_date,
+                           COALESCE(reference_number, notes, '')
+                    FROM payments
+                    WHERE reserve_number = %s OR charter_id = %s
+                    ORDER BY payment_date NULLS LAST, payment_id
+                """, (reserve_number, self.charter_id))
+                rows = cur.fetchall()
+
             cur.close()
 
-            for amount, method, pay_date, client_name in rows:
+            for amount, method, pay_date, payment_note in rows:
                 r = self.payments_table.rowCount()
                 self.payments_table.insertRow(r)
                 # Classify type
@@ -8381,7 +8489,7 @@ class CharterFormWidget(QWidget):
                 self.payments_table.setItem(r, 1, QTableWidgetItem(date_str))
                 self.payments_table.setItem(r, 2, QTableWidgetItem(f"${float(amount):.2f}"))
                 self.payments_table.setItem(r, 3, QTableWidgetItem(method or "unknown"))
-                self.payments_table.setItem(r, 4, QTableWidgetItem(client_name or ""))
+                self.payments_table.setItem(r, 4, QTableWidgetItem(payment_note or ""))
 
             print(f"✅ Loaded {len(rows)} payments for reserve #{reserve_number}")
         except Exception as e:
@@ -8399,8 +8507,14 @@ class CharterFormWidget(QWidget):
                 """,
                 (charter_id,))
 
+            rows = cur.fetchall()
+
             self.charges_table.setRowCount(0)
-            for description, amount, rate, _sequence, charge_type in cur.fetchall():
+            charter_base_amount = None
+            gratuity_amount = None
+            gratuity_percent = None
+
+            for description, amount, rate, _sequence, charge_type in rows:
                 base_desc, meta_type, meta_value = self._parse_description_metadata(
                     description or "")
                 calc_type = meta_type or "Fixed"
@@ -8411,6 +8525,35 @@ class CharterFormWidget(QWidget):
                     calc_type=calc_type,
                     value=value,
                     charge_type=charge_type or "service")
+
+                desc_lower = (base_desc or "").lower()
+                amount_value = float(amount or 0.0)
+                if charter_base_amount is None and (
+                    charge_type == "service" or "service fee" in desc_lower or "charter charge" in desc_lower
+                ):
+                    charter_base_amount = amount_value
+
+                if charge_type == "gratuity" or "gratuity" in desc_lower:
+                    gratuity_amount = amount_value
+                    if meta_type == "Percent" and meta_value is not None:
+                        gratuity_percent = float(meta_value)
+                    else:
+                        percent_match = re.search(r"(\d+(?:\.\d+)?)%", base_desc or "")
+                        if percent_match:
+                            gratuity_percent = float(percent_match.group(1))
+
+            if gratuity_amount is not None and gratuity_percent is None and charter_base_amount not in (None, 0):
+                gratuity_percent = round((gratuity_amount / charter_base_amount) * 100.0, 1)
+
+            if hasattr(self, 'gratuity_checkbox'):
+                self.gratuity_checkbox.blockSignals(True)
+                self.gratuity_checkbox.setChecked(gratuity_amount is not None)
+                self.gratuity_checkbox.blockSignals(False)
+
+            if gratuity_percent is not None and hasattr(self, 'gratuity_percent_input'):
+                self.gratuity_percent_input.blockSignals(True)
+                self.gratuity_percent_input.setValue(gratuity_percent)
+                self.gratuity_percent_input.blockSignals(False)
 
             self.recalculate_totals()
             print(f"✅ Loaded {self.charges_table.rowCount()} charges")

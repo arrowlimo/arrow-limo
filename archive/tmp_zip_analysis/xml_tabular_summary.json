@@ -1,0 +1,666 @@
+{
+  "CRAauditexport__2002-01-01_2025-12-31__20251019T204151.zip": {
+    "Accounts.xml": {
+      "row_count": 179,
+      "column_count": 6,
+      "column_names": [
+        "account_name",
+        "acct_num_with_extn",
+        "account_type",
+        "detail_acc_type",
+        "account_desc",
+        "account_bal"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "account_name": 0.0,
+        "acct_num_with_extn": 40.78,
+        "account_type": 0.0
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "account_name",
+        "acct_num_with_extn",
+        "account_type"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Customers.xml": {
+      "row_count": 3,
+      "column_count": 3,
+      "column_names": [
+        "cust_name",
+        "cont_name",
+        "comp_name"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "cust_name": 0.0,
+        "cont_name": 66.67,
+        "comp_name": 66.67
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "cust_name",
+        "cont_name",
+        "comp_name"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Employees.xml": {
+      "row_count": 64,
+      "column_count": 5,
+      "column_names": [
+        "emp_name",
+        "cont_name",
+        "cont_prim_addr",
+        "hire_date",
+        "released_date"
+      ],
+      "date_ranges": {
+        "hire_date": {
+          "min": "2005-01-01 00:00:00",
+          "max": "2015-11-20 00:00:00",
+          "parsed_rows": 31
+        },
+        "released_date": {
+          "min": "2015-04-05 00:00:00",
+          "max": "2015-04-05 00:00:00",
+          "parsed_rows": 1
+        }
+      },
+      "amount_stats": {},
+      "key_null_pct": {
+        "emp_name": 0.0,
+        "cont_name": 0.0,
+        "cont_prim_addr": 6.25
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "emp_name",
+        "cont_name",
+        "cont_prim_addr"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Transactions.xml": {
+      "row_count": 49770,
+      "column_count": 17,
+      "column_names": [
+        "txn_id",
+        "Sequence",
+        "create_date",
+        "tx_date",
+        "txn_type",
+        "account_name",
+        "doc_num",
+        "amount",
+        "memo",
+        "name",
+        "vend_name",
+        "tax_code",
+        "tax_code_name",
+        "rate",
+        "emp_name",
+        "quantity",
+        "cust_name"
+      ],
+      "date_ranges": {
+        "create_date": {
+          "min": "2011-12-31 00:00:00",
+          "max": "2025-08-20 22:51:16",
+          "parsed_rows": 15946
+        },
+        "tx_date": {
+          "min": "2011-12-31 00:00:00",
+          "max": "2025-08-20 00:00:00",
+          "parsed_rows": 15946
+        }
+      },
+      "amount_stats": {
+        "amount": {
+          "sum": 0.0,
+          "min": -610602.8,
+          "max": 693450.51,
+          "parsed_rows": 49624
+        }
+      },
+      "key_null_pct": {
+        "txn_id": 0.0,
+        "txn_type": 67.96,
+        "doc_num": 71.74
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "txn_id",
+        "txn_type",
+        "doc_num"
+      ],
+      "row_tag": "DataRow"
+    },
+    "TrialBalance.xml": {
+      "row_count": 78,
+      "column_count": 2,
+      "column_names": [
+        "account_name",
+        "account_bal"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "account_name": 0.0,
+        "account_bal": 0.0
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "account_name",
+        "account_bal"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Vendors.xml": {
+      "row_count": 780,
+      "column_count": 4,
+      "column_names": [
+        "vend_name",
+        "cont_prim_addr",
+        "comp_name",
+        "cont_name"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "vend_name": 0.0,
+        "cont_prim_addr": 88.46,
+        "comp_name": 95.51
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "vend_name",
+        "cont_prim_addr",
+        "comp_name"
+      ],
+      "row_tag": "DataRow"
+    }
+  },
+  "CRAauditexport__2002-01-01_2025-12-31__20251019T204759.zip": {
+    "Accounts.xml": {
+      "row_count": 66,
+      "column_count": 5,
+      "column_names": [
+        "account_name",
+        "account_type",
+        "detail_acc_type",
+        "account_bal",
+        "account_desc"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "account_name": 0.0,
+        "account_type": 0.0,
+        "detail_acc_type": 0.0
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "account_name",
+        "account_type",
+        "detail_acc_type"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Customers.xml": {
+      "row_count": 0,
+      "column_count": 0,
+      "column_names": [],
+      "row_tag": null
+    },
+    "Employees.xml": {
+      "row_count": 0,
+      "column_count": 0,
+      "column_names": [],
+      "row_tag": null
+    },
+    "Transactions.xml": {
+      "row_count": 54,
+      "column_count": 14,
+      "column_names": [
+        "txn_id",
+        "Sequence",
+        "create_date",
+        "tx_date",
+        "txn_type",
+        "account_name",
+        "amount",
+        "name",
+        "vend_name",
+        "memo",
+        "tax_code",
+        "tax_code_name",
+        "rate",
+        "doc_num"
+      ],
+      "date_ranges": {
+        "create_date": {
+          "min": "2022-01-05 12:15:02",
+          "max": "2023-11-18 11:27:55",
+          "parsed_rows": 18
+        },
+        "tx_date": {
+          "min": "2018-01-16 00:00:00",
+          "max": "2023-11-18 00:00:00",
+          "parsed_rows": 18
+        }
+      },
+      "amount_stats": {
+        "amount": {
+          "sum": 0.0,
+          "min": -977.63,
+          "max": 750.0,
+          "parsed_rows": 54
+        }
+      },
+      "key_null_pct": {
+        "txn_id": 0.0,
+        "txn_type": 66.67,
+        "doc_num": 75.93
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "txn_id",
+        "txn_type",
+        "doc_num"
+      ],
+      "row_tag": "DataRow"
+    },
+    "TrialBalance.xml": {
+      "row_count": 5,
+      "column_count": 2,
+      "column_names": [
+        "account_name",
+        "account_bal"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "account_name": 0.0,
+        "account_bal": 0.0
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "account_name",
+        "account_bal"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Vendors.xml": {
+      "row_count": 20,
+      "column_count": 2,
+      "column_names": [
+        "vend_name",
+        "comp_name"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "vend_name": 0.0,
+        "comp_name": 15.0
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "vend_name",
+        "comp_name"
+      ],
+      "row_tag": "DataRow"
+    }
+  },
+  "CRAauditexport__2002-01-01_2025-12-31__20251019T204924.zip": {
+    "Accounts.xml": {
+      "row_count": 149,
+      "column_count": 6,
+      "column_names": [
+        "account_name",
+        "acct_num_with_extn",
+        "account_type",
+        "detail_acc_type",
+        "account_desc",
+        "account_bal"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "account_name": 0.0,
+        "acct_num_with_extn": 32.21,
+        "account_type": 0.0
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "account_name",
+        "acct_num_with_extn",
+        "account_type"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Customers.xml": {
+      "row_count": 1,
+      "column_count": 1,
+      "column_names": [
+        "cust_name"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "cust_name": 0.0
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "cust_name"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Employees.xml": {
+      "row_count": 60,
+      "column_count": 5,
+      "column_names": [
+        "emp_name",
+        "cont_name",
+        "cont_prim_addr",
+        "hire_date",
+        "released_date"
+      ],
+      "date_ranges": {
+        "hire_date": {
+          "min": "2005-01-01 00:00:00",
+          "max": "2015-11-20 00:00:00",
+          "parsed_rows": 31
+        },
+        "released_date": {
+          "min": "2015-04-05 00:00:00",
+          "max": "2015-04-05 00:00:00",
+          "parsed_rows": 1
+        }
+      },
+      "amount_stats": {},
+      "key_null_pct": {
+        "emp_name": 0.0,
+        "cont_name": 0.0,
+        "cont_prim_addr": 0.0
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "emp_name",
+        "cont_name",
+        "cont_prim_addr"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Transactions.xml": {
+      "row_count": 180,
+      "column_count": 8,
+      "column_names": [
+        "txn_id",
+        "Sequence",
+        "create_date",
+        "tx_date",
+        "txn_type",
+        "account_name",
+        "amount",
+        "vend_name"
+      ],
+      "date_ranges": {
+        "create_date": {
+          "min": "2025-08-26 00:00:00",
+          "max": "2025-08-26 00:00:00",
+          "parsed_rows": 2
+        },
+        "tx_date": {
+          "min": "2025-08-26 00:00:00",
+          "max": "2025-08-26 00:00:00",
+          "parsed_rows": 2
+        }
+      },
+      "amount_stats": {
+        "amount": {
+          "sum": 0.0,
+          "min": -3359784.1,
+          "max": 798213.26,
+          "parsed_rows": 180
+        }
+      },
+      "key_null_pct": {
+        "txn_id": 0.0,
+        "txn_type": 98.89
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "txn_id",
+        "txn_type"
+      ],
+      "row_tag": "DataRow"
+    },
+    "TrialBalance.xml": {
+      "row_count": 103,
+      "column_count": 2,
+      "column_names": [
+        "account_name",
+        "account_bal"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "account_name": 0.0,
+        "account_bal": 0.0
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "account_name",
+        "account_bal"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Vendors.xml": {
+      "row_count": 763,
+      "column_count": 4,
+      "column_names": [
+        "vend_name",
+        "cont_prim_addr",
+        "comp_name",
+        "cont_name"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "vend_name": 0.0,
+        "cont_prim_addr": 88.2,
+        "comp_name": 96.72
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "vend_name",
+        "cont_prim_addr",
+        "comp_name"
+      ],
+      "row_tag": "DataRow"
+    }
+  },
+  "CRAauditexport__2002-01-01_2025-12-31__20251019T205042.zip": {
+    "Accounts.xml": {
+      "row_count": 150,
+      "column_count": 6,
+      "column_names": [
+        "account_name",
+        "acct_num_with_extn",
+        "account_type",
+        "detail_acc_type",
+        "account_desc",
+        "account_bal"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "account_name": 0.0,
+        "acct_num_with_extn": 32.0,
+        "account_type": 0.0
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "account_name",
+        "acct_num_with_extn",
+        "account_type"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Customers.xml": {
+      "row_count": 1,
+      "column_count": 1,
+      "column_names": [
+        "cust_name"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "cust_name": 0.0
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "cust_name"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Employees.xml": {
+      "row_count": 60,
+      "column_count": 5,
+      "column_names": [
+        "emp_name",
+        "cont_name",
+        "cont_prim_addr",
+        "hire_date",
+        "released_date"
+      ],
+      "date_ranges": {
+        "hire_date": {
+          "min": "2005-01-01 00:00:00",
+          "max": "2015-11-20 00:00:00",
+          "parsed_rows": 31
+        },
+        "released_date": {
+          "min": "2015-04-05 00:00:00",
+          "max": "2015-04-05 00:00:00",
+          "parsed_rows": 1
+        }
+      },
+      "amount_stats": {},
+      "key_null_pct": {
+        "emp_name": 0.0,
+        "cont_name": 0.0,
+        "cont_prim_addr": 0.0
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "emp_name",
+        "cont_name",
+        "cont_prim_addr"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Transactions.xml": {
+      "row_count": 46098,
+      "column_count": 15,
+      "column_names": [
+        "txn_id",
+        "Sequence",
+        "create_date",
+        "tx_date",
+        "txn_type",
+        "account_name",
+        "doc_num",
+        "amount",
+        "memo",
+        "name",
+        "vend_name",
+        "tax_code",
+        "tax_code_name",
+        "rate",
+        "emp_name"
+      ],
+      "date_ranges": {
+        "create_date": {
+          "min": "2011-12-31 00:00:00",
+          "max": "2021-12-04 00:00:00",
+          "parsed_rows": 14654
+        },
+        "tx_date": {
+          "min": "2011-12-31 00:00:00",
+          "max": "2021-12-04 00:00:00",
+          "parsed_rows": 14654
+        }
+      },
+      "amount_stats": {
+        "amount": {
+          "sum": 0.0,
+          "min": -610602.8,
+          "max": 693450.51,
+          "parsed_rows": 45952
+        }
+      },
+      "key_null_pct": {
+        "txn_id": 0.0,
+        "txn_type": 68.21,
+        "doc_num": 69.49
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "txn_id",
+        "txn_type",
+        "doc_num"
+      ],
+      "row_tag": "DataRow"
+    },
+    "TrialBalance.xml": {
+      "row_count": 58,
+      "column_count": 2,
+      "column_names": [
+        "account_name",
+        "account_bal"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "account_name": 0.0,
+        "account_bal": 0.0
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "account_name",
+        "account_bal"
+      ],
+      "row_tag": "DataRow"
+    },
+    "Vendors.xml": {
+      "row_count": 763,
+      "column_count": 4,
+      "column_names": [
+        "vend_name",
+        "cont_prim_addr",
+        "comp_name",
+        "cont_name"
+      ],
+      "date_ranges": {},
+      "amount_stats": {},
+      "key_null_pct": {
+        "vend_name": 0.0,
+        "cont_prim_addr": 88.2,
+        "comp_name": 96.72
+      },
+      "duplicate_rows": 0,
+      "stable_key_columns": [
+        "vend_name",
+        "cont_prim_addr",
+        "comp_name"
+      ],
+      "row_tag": "DataRow"
+    }
+  }
+}

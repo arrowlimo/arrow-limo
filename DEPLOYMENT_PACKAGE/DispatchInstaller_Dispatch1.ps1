@@ -1,5 +1,5 @@
 # Arrow Limousine Dispatch1 Workstation Installer
-# Installs to X: drive with auto-update from dev machine
+# Installs the packaged app layout to Y: drive with auto-update from dev machine
 # Run this script as Administrator on DISPATCH1 computer
 
 param(
@@ -9,6 +9,92 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+$script:ShareCredentialUser = $null
+$script:ShareCredentialPassword = $null
+
+function Invoke-NetUse {
+    param(
+        [string[]]$Arguments
+    )
+
+    & net use @Arguments | Out-Null
+    return $LASTEXITCODE
+}
+
+function Get-ShareCredentials {
+    param(
+        [string]$ServerName
+    )
+
+    if ($script:ShareCredentialUser -and $script:ShareCredentialPassword) {
+        return $true
+    }
+
+    Write-Host "      Share requires credentials." -ForegroundColor Yellow
+    Write-Host "      Leave username blank to skip credentialed mapping and use UNC fallback only." -ForegroundColor Gray
+
+    $usernameInput = Read-Host "      Enter share username [$ServerName\ArrowDispatch]"
+    if (-not $usernameInput) {
+        $usernameInput = "$ServerName\ArrowDispatch"
+    }
+
+    if (-not $usernameInput) {
+        return $false
+    }
+
+    $passwordSecure = Read-Host "      Enter share password for $usernameInput" -AsSecureString
+    $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($passwordSecure)
+    $passwordPlain = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+    [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+
+    if (-not $passwordPlain) {
+        return $false
+    }
+
+    $script:ShareCredentialUser = $usernameInput
+    $script:ShareCredentialPassword = $passwordPlain
+    return $true
+}
+
+function Map-NetworkDrive {
+    param(
+        [string]$DriveLetter,
+        [string]$RemotePath,
+        [string]$SuccessMessage,
+        [string]$FailureMessage,
+        [string]$ServerName
+    )
+
+    try {
+        Invoke-NetUse -Arguments @($DriveLetter, "/delete", "/yes") | Out-Null
+    } catch {}
+
+    Write-Host "      Connecting to: $RemotePath" -ForegroundColor Gray
+
+    $exitCode = Invoke-NetUse -Arguments @($DriveLetter, $RemotePath, "/persistent:yes")
+    if ($exitCode -eq 0) {
+        Write-Host "      [OK] $SuccessMessage" -ForegroundColor Green
+        return $true
+    }
+
+    if (Get-ShareCredentials -ServerName $ServerName) {
+        $exitCode = Invoke-NetUse -Arguments @(
+            $DriveLetter,
+            $RemotePath,
+            "/user:$script:ShareCredentialUser",
+            $script:ShareCredentialPassword,
+            "/persistent:yes"
+        )
+        if ($exitCode -eq 0) {
+            Write-Host "      [OK] $SuccessMessage" -ForegroundColor Green
+            return $true
+        }
+    }
+
+    Write-Host "      [WARNING] $FailureMessage" -ForegroundColor Yellow
+    return $false
+}
 
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "  Arrow Limousine Dispatch1 Installer" -ForegroundColor Cyan
@@ -40,52 +126,33 @@ Write-Host ""
 Write-Host "[2/8] Mapping $SharedDrive drive to network file storage..." -ForegroundColor Yellow
 
 # Remove existing Z: mapping if present
-try {
-    net use $SharedDrive /delete /yes 2>$null
-} catch {}
-
 # Map Z: drive to shared limo_files folder
 $networkPath = "\\$ServerName\limo_files"
-$sharedUser = "DISPATCHMAIN\ArrowDispatch"
-$sharedPassword = "Dispatch2026!"
+$zDriveMapped = Map-NetworkDrive `
+    -DriveLetter $SharedDrive `
+    -RemotePath $networkPath `
+    -SuccessMessage "$SharedDrive drive mapped successfully!" `
+    -FailureMessage "Could not map $SharedDrive drive" `
+    -ServerName $ServerName
 
-Write-Host "      Connecting to: $networkPath" -ForegroundColor Gray
-
-try {
-    net use $SharedDrive $networkPath /user:$sharedUser $sharedPassword /persistent:yes
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "      [OK] $SharedDrive drive mapped successfully!" -ForegroundColor Green
-        $zDriveMapped = $true
-    } else {
-        throw "Failed to map drive"
-    }
-} catch {
-    Write-Host "      [WARNING] Could not map $SharedDrive drive" -ForegroundColor Yellow
+if (-not $zDriveMapped) {
     Write-Host "      The app will use network path instead: $networkPath" -ForegroundColor Gray
-    $zDriveMapped = $false
 }
 
 # Map L: drive to development source (for auto-updates)
 Write-Host ""
 Write-Host "[3/8] Mapping L: drive to development source..." -ForegroundColor Yellow
 
-try {
-    net use L: /delete /yes 2>$null
-} catch {}
-
 $devPath = "\\$ServerName\limo"
-try {
-    net use L: $devPath /user:$sharedUser $sharedPassword /persistent:yes
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "      [OK] L: drive mapped for auto-updates!" -ForegroundColor Green
-        $lDriveMapped = $true
-    } else {
-        throw "Failed to map drive"
-    }
-} catch {
-    Write-Host "      [WARNING] Could not map L: drive" -ForegroundColor Yellow
+$lDriveMapped = Map-NetworkDrive `
+    -DriveLetter "L:" `
+    -RemotePath $devPath `
+    -SuccessMessage "L: drive mapped for auto-updates!" `
+    -FailureMessage "Could not map L: drive" `
+    -ServerName $ServerName
+
+if (-not $lDriveMapped) {
     Write-Host "      Auto-update will be disabled" -ForegroundColor Gray
-    $lDriveMapped = $false
 }
 
 # Create installation directory
@@ -93,9 +160,14 @@ Write-Host ""
 Write-Host "[4/8] Creating installation directory..." -ForegroundColor Yellow
 
 $installPath = "$InstallDrive\ArrowLimo"
+$appInstallPath = Join-Path $installPath "app"
 if (-not (Test-Path $installPath)) {
     New-Item -ItemType Directory -Path $installPath -Force | Out-Null
     Write-Host "      Created: $installPath" -ForegroundColor Gray
+}
+if (-not (Test-Path $appInstallPath)) {
+    New-Item -ItemType Directory -Path $appInstallPath -Force | Out-Null
+    Write-Host "      Created: $appInstallPath" -ForegroundColor Gray
 }
 
 # Copy app files from DEPLOYMENT_PACKAGE
@@ -106,17 +178,17 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $appSource = Join-Path $scriptDir "app"
 
 if (Test-Path $appSource) {
-    Write-Host "      Copying desktop_app directory..." -ForegroundColor Gray
-    $desktopAppDest = Join-Path $installPath "desktop_app"
+    Write-Host "      Copying packaged application layout..." -ForegroundColor Gray
+    $desktopAppDest = Join-Path $appInstallPath "desktop_app"
     if (-not (Test-Path $desktopAppDest)) {
         New-Item -ItemType Directory -Path $desktopAppDest -Force | Out-Null
     }
     
-    # Copy all .py files from source
+    # Copy the packaged app so DISPATCH1 launches the same entrypoint as the full desktop app.
     Write-Host "      Copying Python application files..." -ForegroundColor Gray
-    Copy-Item -Path "$appSource\*" -Destination $installPath -Recurse -Force
+    Copy-Item -Path "$appSource\*" -Destination $appInstallPath -Recurse -Force
     
-    Write-Host "      [OK] Application installed to $installPath" -ForegroundColor Green
+    Write-Host "      [OK] Application installed to $appInstallPath" -ForegroundColor Green
 } else {
     Write-Host "      [ERROR] App files not found in deployment package!" -ForegroundColor Red
     Write-Host "      Expected: $appSource" -ForegroundColor Yellow
@@ -241,7 +313,7 @@ MAX_LOGIN_ATTEMPTS=5
 LOGIN_LOCKOUT_MINUTES=15
 "@
 
-$envPath = Join-Path $installPath ".env"
+$envPath = Join-Path $appInstallPath ".env"
 $envContent | Out-File -FilePath $envPath -Encoding UTF8
 Write-Host "      [OK] Configuration saved to .env" -ForegroundColor Green
 Write-Host "      Database: $dbHost (Network PostgreSQL)" -ForegroundColor Gray
@@ -254,11 +326,11 @@ Write-Host "[7/8] Creating auto-update script..." -ForegroundColor Yellow
 
 $autoUpdateScript = @"
 # Auto-Update Script for DISPATCH1
-# Syncs latest desktop_app code from L:\limo\desktop_app to X:\ArrowLimo\desktop_app
+# Syncs latest desktop_app code from L:\limo\desktop_app to Y:\ArrowLimo\app\desktop_app
 # Run this before starting the app to get latest updates
 
 `$SourcePath = "L:\limo\desktop_app"
-`$DestPath = "$installPath\desktop_app"
+`$DestPath = "$appInstallPath\desktop_app"
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Arrow Limo Auto-Update (DISPATCH1)" -ForegroundColor Cyan
@@ -350,16 +422,15 @@ echo.
 echo Starting application...
 echo.
 
-REM Start the Python application
-cd /d "$installPath\desktop_app"
-python main.py
+REM Start the packaged application entrypoint
+start "Arrow Limousine Dispatch" /wait "$appInstallPath\START_DISPATCH.bat"
 
 pause
 "@
 
 $launcherPath = Join-Path $installPath "START_DISPATCH1.bat"
 $launcherScript | Out-File -FilePath $launcherPath -Encoding ASCII
-Write-Host "      [OK] Launcher created: START_DISPATCH1.bat" -ForegroundColor Green
+Write-Host "      [OK] Compatibility launcher created: START_DISPATCH1.bat" -ForegroundColor Green
 
 # Create desktop shortcuts
 Write-Host ""
@@ -369,7 +440,7 @@ $WshShell = New-Object -ComObject WScript.Shell
 $desktopPath = [Environment]::GetFolderPath("Desktop")
 
 # Shortcut to launcher
-$shortcut = $WshShell.CreateShortcut("$desktopPath\Arrow Limo DISPATCH1.lnk")
+$shortcut = $WshShell.CreateShortcut("$desktopPath\Arrow Limo Dispatch.lnk")
 $shortcut.TargetPath = $launcherPath
 $shortcut.WorkingDirectory = $installPath
 $shortcut.Description = "Arrow Limousine Management System - DISPATCH1"
@@ -386,6 +457,7 @@ Write-Host "============================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Installation Details:" -ForegroundColor Cyan
 Write-Host "  - Install Location: $installPath" -ForegroundColor Gray
+Write-Host "  - App Entry Point: $appInstallPath\START_DISPATCH.bat" -ForegroundColor Gray
 Write-Host "  - Shared Files: $SharedDrive\limo_files" -ForegroundColor Gray
 if ($lDriveMapped) {
     Write-Host "  - Auto-Update: Enabled (from L:\limo)" -ForegroundColor Gray
@@ -393,11 +465,12 @@ if ($lDriveMapped) {
     Write-Host "  - Auto-Update: Disabled (L: not mapped)" -ForegroundColor Yellow
 }
 Write-Host "  - Workstation ID: DISPATCH1" -ForegroundColor Gray
-Write-Host "  - Database: Neon Cloud (Shared)" -ForegroundColor Gray
+Write-Host "  - Database Host: $dbHost" -ForegroundColor Gray
 Write-Host ""
 Write-Host "To Start:" -ForegroundColor Cyan
-Write-Host "  Double-click 'Arrow Limo DISPATCH1' on desktop" -ForegroundColor White
-Write-Host "  OR run: $launcherPath" -ForegroundColor Gray
+Write-Host "  Double-click 'Arrow Limo Dispatch' on desktop" -ForegroundColor White
+Write-Host "  OR run: $appInstallPath\START_DISPATCH.bat" -ForegroundColor Gray
+Write-Host "  Legacy wrapper remains at: $launcherPath" -ForegroundColor Gray
 Write-Host ""
 Write-Host "The app will auto-update from the development" -ForegroundColor Yellow
 Write-Host "computer each time it launches." -ForegroundColor Yellow

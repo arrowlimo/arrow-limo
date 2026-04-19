@@ -1,0 +1,36 @@
+asset_id,asset_name,asset_category,asset_type,make,model,year,vin,vehicle_number,acquisition_cost,current_book_value,ownership_status,match_method,matched_vehicle_id,matched_vehicle_number,matched_vehicle_vin
+1,1996 Lincoln Town Car,vehicle,,Lincoln,Town Car,1996,1LNLM81WXTV729062,,,,owned,vin,18,L-05,1LNLM81WXTV729062
+2,2017 KIA K900,vehicle,,KIA,K900,2017,KNALW4D4XH6036302,,,,owned,vin,1,L-3,KNALW4D4XH6036302
+3,2006 Lincoln Town Car,vehicle,,Lincoln,Town Car,2006,1LNHM84W66Y614688,,,,owned,vin,20,L-2,1LNHM84W66Y614688
+4,2007 Mercedes Benz S 550V,vehicle,,Mercedes Benz,S 550V,2007,WDDNG86X27A099158,,,,owned,vin,19,L-1,WDDNG86X27A099158
+5,2008 Navigator Lincoln,vehicle,,Navigator,Lincoln,2008,5L1FL27558LJ02456,,,,owned,vin,12,L-19,5L1FL27558LJ02456
+6,1990 Prevost Tlemir,vehicle,,Prevost,Tlemir,1990,2P9L33405L1001529,,,,owned,vin,25,L-17,2P9L33405L1001529
+7,1995 International 3000 Series,vehicle,,International,3000 Series,1995,1HVBBAAN8SH621679,,,,owned,vin,22,L-12,1HVBBAAN8SH621679
+8,2007 Town Car Limo Lincoln,vehicle,,Town Car Limo,Lincoln,2007,1L1FM88W87Y624935,,,,owned,vin,7,L-9,1L1FM88W87Y624935
+9,2012 Ford E450 Tiffany,vehicle,,Ford,E450 Tiffany,2012,1FDXE4FSXBDA40559,,,,owned,vin,15,L-23,1FDXE4FSXBDA40559
+10,2018 Unknown Camry,vehicle,,Unknown,Camry,2018,4T1B61HK4JU014606,,,,owned,vin,53,R-2,4T1B61HK4JU014606
+11,2012 Ford E350,vehicle,,Ford,E350,2012,1FDWE3FL8CDA32525,,,,owned,vin,23,L-15,1FDWE3FL8CDA32525
+12,2015 Escalade Cadillac,vehicle,,Escalade,Cadillac,2015,1GYS4TKJXFR585284,,,,owned,vin,3,L-5,1GYS4TKJXFR585284
+13,2017 Ford F550 Gretch,vehicle,,Ford,F550 Gretch,2017,1FDAF5GT1HEC69540,,,,owned,vin,17,L-25,1FDAF5GT1HEC69540
+14,2014 Ford E350,vehicle,,Ford,E350,2014,1FDWE3FL7EDA29120,,,,owned,vin,52,R-1,1FDWE3FL7EDA29120
+15,2014 Cadillac XTS stetch,vehicle,,Cadillac,XTS stetch,2014,2GEXG6U31E9298435,,,,owned,vin,13,L-20,2GEXG6U31E9298435
+16,2003 Ford Excursion,vehicle,,Ford,Excursion,2003,1FMNU40S63EB96175,,,,owned,vin,5,L-7,1FMNU40S63EB96175
+17,2002 Gulfstream 16 Party Bus,vehicle,,Gulfstream,16 Party Bus,2002,4UZAAHAK12CJ85611,,,,owned,vin,24,L-16,4UZAAHAK12CJ85611
+18,2024 Ford Transit,vehicle,,Ford,Transit,2024,1FBAX9CG4RKB30138,,,,owned,vin,10,L-14,1FBAX9CG4RKB30138
+19,2011 Ford E450 Tiffany,vehicle,,Ford,E450 Tiffany,2011,1FDXE4FS9BDA40553,,,,owned,vin,14,L-22,1FDXE4FS9BDA40553
+20,2003 Excursion Ford,vehicle,,Excursion,Ford,2003,1FMNU40S23ED67617,,,,owned,vin,11,L-18,1FMNU40S23ED67617
+21,2008 Ford Expedition,vehicle,,Ford,Expedition,2008,1F1FK15588LA13564,,,,owned,vin,6,L-8,1F1FK15588LA13564
+22,2023 LINCOLN NAVIGATOR,vehicle,,LINCOLN,NAVIGATOR,2023,5LMJJ3LG0PEL04060,,,,owned,vin,2,L-4,5LMJJ3LG0PEL04060
+23,2018 S550V Mercedes S550V,vehicle,,S550V,Mercedes S550V,2018,1L1FM81W61Y659569,,,,owned,vin,4,L-6,1L1FM81W61Y659569
+24,2008 Ford E450 Shuttle Limo Bus,vehicle,,Ford,E450 Shuttle Limo Bus,2008,1FDXE45P68DB55665,,,,owned,vin,9,L-11,1FDXE45P68DB55665
+25,2009 Ford E450 Limo Bus,vehicle,,Ford,E450 Limo Bus,2009,1FDXE45S79DA87480,,,,owned,vin,8,L-10,1FDXE45S79DA87480
+26,2013 Ford F550 Crystal,vehicle,,Ford,F550 Crystal,2013,1FDGF5GY6DEA94363,,,,owned,vin,16,L-24,1FDGF5GY6DEA94363
+36,Upright AC Unit (Loaned),equipment,,Unknown,Air Conditioning Unit,,,,,,loaned_in,,,,
+27,2015 Cadillac (Stolen/Repossessed),vehicle,,Cadillac,Unknown Model,2015,UNKNOWN,,130000.00,0.00,loaned_in,,,,
+29,Mercedes L-1 (Written Off - Total Loss),vehicle,,Mercedes-Benz,L-1,,,,,,loaned_in,,,,
+30,L-4 Lincoln Navigator (Personal - Leased to Business),vehicle,,Lincoln,Navigator,,,,,,loaned_in,,,,
+31,Computer Desktop 1 (Loaned),electronics,,Unknown,Desktop Computer,,,,,,loaned_in,,,,
+32,Computer Desktop 2 (Loaned),electronics,,Unknown,Desktop Computer,,,,,,loaned_in,,,,
+33,Computer Desktop 3 (Loaned),electronics,,Unknown,Desktop Computer,,,,,,loaned_in,,,,
+34,Computer Desktop 4 (Loaned),electronics,,Unknown,Desktop Computer,,,,,,loaned_in,,,,
+35,Computer Desktop 5 (Loaned),electronics,,Unknown,Desktop Computer,,,,,,loaned_in,,,,

@@ -1,0 +1,9 @@
+Unmatched GL->Bank Verification (with receipt evidence)
+==========================================================================================
+Rows verified: 40
+- NO_BANK_EVIDENCE: 38
+- RECEIPT_ONLY: 2
+
+Detailed rows
+------------------------------------------------------------------------------------------
+2015-01-25 | Telus Communications | CHQ:dd | 358.62 | NO_BANK_EVIDENCE | bank:   | receipt:  

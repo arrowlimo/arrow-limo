@@ -1,0 +1,1 @@
+-- Safe add execution SQL for public.chart_of_accounts

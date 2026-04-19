@@ -1,0 +1,53 @@
+1) Core table existence and row counts
+- public.vehicles: exists=True, row_count=26
+- public.assets: exists=True, row_count=35
+
+2) Likely loan/lease/financing/liability tables in public schema
+- public.backup_easyfix_lease_links_20260407: row_count=3
+- public.david_richard_vehicle_loans: row_count=96
+- public.financing_sources: row_count=4
+- public.loan_transactions: row_count=25
+- public.payday_loan_payments: row_count=8
+- public.payday_loans: row_count=2
+- public.square_capital_loans: row_count=0
+- public.square_loan_payments: row_count=16
+- public.vehicle_financing: row_count=7
+- public.vehicle_financing_complete: row_count=0
+- public.vehicle_lease_documents: row_count=0
+- public.vehicle_lease_profiles: row_count=0
+- public.vehicle_loan_payments: row_count=7
+- public.vehicle_loan_reconciliation_allocations: row_count=12
+- public.vehicle_loans: row_count=44
+
+3) public.vehicles non-null coverage
+- vehicle_id: column_used=vehicle_id, non_null_count=26
+- vehicle_number: column_used=vehicle_number, non_null_count=26
+- vin_number/vin: column_used=vin_number, non_null_count=26
+- year: column_used=year, non_null_count=26
+- make: column_used=make, non_null_count=26
+- model: column_used=model, non_null_count=26
+- ownership_status: column_missing
+
+4) public.assets non-null coverage
+- asset_id: non_null_count=35
+- asset_name: non_null_count=35
+- asset_category: non_null_count=35
+- vin: non_null_count=27
+- make: non_null_count=35
+- model: non_null_count=35
+- year: non_null_count=27
+- acquisition_cost: non_null_count=1
+- current_book_value: non_null_count=1
+- ownership_status: non_null_count=35
+
+5) public.unified_general_ledger vehicle/loan code rows
+- matching_rows_total=329
+  - 2506: 25
+  - 2507: 124
+  - 2508: 23
+  - 2509: 5
+  - 2800: 22
+  - 2801: 24
+  - 2802: 31
+  - 2803: 59
+  - 2813: 16
