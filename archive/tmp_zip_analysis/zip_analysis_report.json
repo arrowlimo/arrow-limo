@@ -1,0 +1,394 @@
+{
+  "results": [
+    {
+      "zip_path": "L:\\CRAauditexport__2002-01-01_2025-12-31__20251019T204151.zip",
+      "exists": true,
+      "size_bytes": 721797,
+      "modified": "2025-10-19 20:42:00.023282",
+      "internal_files": [
+        {
+          "name": "Accounts.xml",
+          "uncompressed_size": 44897,
+          "compressed_size": 5091,
+          "crc": 905946094,
+          "format": "xml"
+        },
+        {
+          "name": "Customers.xml",
+          "uncompressed_size": 280,
+          "compressed_size": 129,
+          "crc": 547582333,
+          "format": "xml"
+        },
+        {
+          "name": "Employees.xml",
+          "uncompressed_size": 11003,
+          "compressed_size": 1829,
+          "crc": 4000337568,
+          "format": "xml"
+        },
+        {
+          "name": "Transactions.xml",
+          "uncompressed_size": 14212363,
+          "compressed_size": 703952,
+          "crc": 232389826,
+          "format": "xml"
+        },
+        {
+          "name": "TrialBalance.xml",
+          "uncompressed_size": 9246,
+          "compressed_size": 1692,
+          "crc": 332835193,
+          "format": "xml"
+        },
+        {
+          "name": "Vendors.xml",
+          "uncompressed_size": 54909,
+          "compressed_size": 8368,
+          "crc": 901791516,
+          "format": "xml"
+        }
+      ],
+      "formats": {
+        "xml": 6
+      },
+      "tabular": {},
+      "fingerprint": {
+        "Accounts.xml": [
+          44897,
+          905946094
+        ],
+        "Customers.xml": [
+          280,
+          547582333
+        ],
+        "Employees.xml": [
+          11003,
+          4000337568
+        ],
+        "Transactions.xml": [
+          14212363,
+          232389826
+        ],
+        "TrialBalance.xml": [
+          9246,
+          332835193
+        ],
+        "Vendors.xml": [
+          54909,
+          901791516
+        ]
+      }
+    },
+    {
+      "zip_path": "L:\\CRAauditexport__2002-01-01_2025-12-31__20251019T204759.zip",
+      "exists": true,
+      "size_bytes": 5442,
+      "modified": "2025-10-19 20:48:12.991840",
+      "internal_files": [
+        {
+          "name": "Accounts.xml",
+          "uncompressed_size": 16303,
+          "compressed_size": 2584,
+          "crc": 4079306796,
+          "format": "xml"
+        },
+        {
+          "name": "Customers.xml",
+          "uncompressed_size": 19,
+          "compressed_size": 14,
+          "crc": 2081001204,
+          "format": "xml"
+        },
+        {
+          "name": "Employees.xml",
+          "uncompressed_size": 19,
+          "compressed_size": 14,
+          "crc": 2081001204,
+          "format": "xml"
+        },
+        {
+          "name": "Transactions.xml",
+          "uncompressed_size": 15956,
+          "compressed_size": 1549,
+          "crc": 2533977126,
+          "format": "xml"
+        },
+        {
+          "name": "TrialBalance.xml",
+          "uncompressed_size": 537,
+          "compressed_size": 178,
+          "crc": 855164662,
+          "format": "xml"
+        },
+        {
+          "name": "Vendors.xml",
+          "uncompressed_size": 1897,
+          "compressed_size": 367,
+          "crc": 762252430,
+          "format": "xml"
+        }
+      ],
+      "formats": {
+        "xml": 6
+      },
+      "tabular": {},
+      "fingerprint": {
+        "Accounts.xml": [
+          16303,
+          4079306796
+        ],
+        "Customers.xml": [
+          19,
+          2081001204
+        ],
+        "Employees.xml": [
+          19,
+          2081001204
+        ],
+        "Transactions.xml": [
+          15956,
+          2533977126
+        ],
+        "TrialBalance.xml": [
+          537,
+          855164662
+        ],
+        "Vendors.xml": [
+          1897,
+          762252430
+        ]
+      }
+    },
+    {
+      "zip_path": "L:\\CRAauditexport__2002-01-01_2025-12-31__20251019T204924.zip",
+      "exists": true,
+      "size_bytes": 21259,
+      "modified": "2025-10-19 20:49:31.085469",
+      "internal_files": [
+        {
+          "name": "Accounts.xml",
+          "uncompressed_size": 39023,
+          "compressed_size": 4554,
+          "crc": 3247269780,
+          "format": "xml"
+        },
+        {
+          "name": "Customers.xml",
+          "uncompressed_size": 101,
+          "compressed_size": 72,
+          "crc": 2562665468,
+          "format": "xml"
+        },
+        {
+          "name": "Employees.xml",
+          "uncompressed_size": 10625,
+          "compressed_size": 1760,
+          "crc": 802661642,
+          "format": "xml"
+        },
+        {
+          "name": "Transactions.xml",
+          "uncompressed_size": 28365,
+          "compressed_size": 3862,
+          "crc": 48702815,
+          "format": "xml"
+        },
+        {
+          "name": "TrialBalance.xml",
+          "uncompressed_size": 11924,
+          "compressed_size": 2132,
+          "crc": 1776823944,
+          "format": "xml"
+        },
+        {
+          "name": "Vendors.xml",
+          "uncompressed_size": 53263,
+          "compressed_size": 8143,
+          "crc": 513824109,
+          "format": "xml"
+        }
+      ],
+      "formats": {
+        "xml": 6
+      },
+      "tabular": {},
+      "fingerprint": {
+        "Accounts.xml": [
+          39023,
+          3247269780
+        ],
+        "Customers.xml": [
+          101,
+          2562665468
+        ],
+        "Employees.xml": [
+          10625,
+          802661642
+        ],
+        "Transactions.xml": [
+          28365,
+          48702815
+        ],
+        "TrialBalance.xml": [
+          11924,
+          1776823944
+        ],
+        "Vendors.xml": [
+          53263,
+          513824109
+        ]
+      }
+    },
+    {
+      "zip_path": "L:\\CRAauditexport__2002-01-01_2025-12-31__20251019T205042.zip",
+      "exists": true,
+      "size_bytes": 670751,
+      "modified": "2025-10-19 20:50:48.062000",
+      "internal_files": [
+        {
+          "name": "Accounts.xml",
+          "uncompressed_size": 39247,
+          "compressed_size": 4585,
+          "crc": 2494790466,
+          "format": "xml"
+        },
+        {
+          "name": "Customers.xml",
+          "uncompressed_size": 101,
+          "compressed_size": 72,
+          "crc": 2562665468,
+          "format": "xml"
+        },
+        {
+          "name": "Employees.xml",
+          "uncompressed_size": 10625,
+          "compressed_size": 1760,
+          "crc": 802661642,
+          "format": "xml"
+        },
+        {
+          "name": "Transactions.xml",
+          "uncompressed_size": 13084299,
+          "compressed_size": 654168,
+          "crc": 3720692862,
+          "format": "xml"
+        },
+        {
+          "name": "TrialBalance.xml",
+          "uncompressed_size": 7078,
+          "compressed_size": 1287,
+          "crc": 3246633847,
+          "format": "xml"
+        },
+        {
+          "name": "Vendors.xml",
+          "uncompressed_size": 53263,
+          "compressed_size": 8143,
+          "crc": 513824109,
+          "format": "xml"
+        }
+      ],
+      "formats": {
+        "xml": 6
+      },
+      "tabular": {},
+      "fingerprint": {
+        "Accounts.xml": [
+          39247,
+          2494790466
+        ],
+        "Customers.xml": [
+          101,
+          2562665468
+        ],
+        "Employees.xml": [
+          10625,
+          802661642
+        ],
+        "Transactions.xml": [
+          13084299,
+          3720692862
+        ],
+        "TrialBalance.xml": [
+          7078,
+          3246633847
+        ],
+        "Vendors.xml": [
+          53263,
+          513824109
+        ]
+      }
+    }
+  ],
+  "archive_comparison": [
+    {
+      "a": "CRAauditexport__2002-01-01_2025-12-31__20251019T204151.zip",
+      "b": "CRAauditexport__2002-01-01_2025-12-31__20251019T204759.zip",
+      "relation": "different",
+      "common_files": 6,
+      "common_identical_files": 0,
+      "a_only_count": 0,
+      "b_only_count": 0,
+      "a_only_sample": [],
+      "b_only_sample": []
+    },
+    {
+      "a": "CRAauditexport__2002-01-01_2025-12-31__20251019T204151.zip",
+      "b": "CRAauditexport__2002-01-01_2025-12-31__20251019T204924.zip",
+      "relation": "different",
+      "common_files": 6,
+      "common_identical_files": 0,
+      "a_only_count": 0,
+      "b_only_count": 0,
+      "a_only_sample": [],
+      "b_only_sample": []
+    },
+    {
+      "a": "CRAauditexport__2002-01-01_2025-12-31__20251019T204151.zip",
+      "b": "CRAauditexport__2002-01-01_2025-12-31__20251019T205042.zip",
+      "relation": "different",
+      "common_files": 6,
+      "common_identical_files": 0,
+      "a_only_count": 0,
+      "b_only_count": 0,
+      "a_only_sample": [],
+      "b_only_sample": []
+    },
+    {
+      "a": "CRAauditexport__2002-01-01_2025-12-31__20251019T204759.zip",
+      "b": "CRAauditexport__2002-01-01_2025-12-31__20251019T204924.zip",
+      "relation": "different",
+      "common_files": 6,
+      "common_identical_files": 0,
+      "a_only_count": 0,
+      "b_only_count": 0,
+      "a_only_sample": [],
+      "b_only_sample": []
+    },
+    {
+      "a": "CRAauditexport__2002-01-01_2025-12-31__20251019T204759.zip",
+      "b": "CRAauditexport__2002-01-01_2025-12-31__20251019T205042.zip",
+      "relation": "different",
+      "common_files": 6,
+      "common_identical_files": 0,
+      "a_only_count": 0,
+      "b_only_count": 0,
+      "a_only_sample": [],
+      "b_only_sample": []
+    },
+    {
+      "a": "CRAauditexport__2002-01-01_2025-12-31__20251019T204924.zip",
+      "b": "CRAauditexport__2002-01-01_2025-12-31__20251019T205042.zip",
+      "relation": "different",
+      "common_files": 6,
+      "common_identical_files": 3,
+      "a_only_count": 0,
+      "b_only_count": 0,
+      "a_only_sample": [],
+      "b_only_sample": []
+    }
+  ],
+  "record_overlap": [],
+  "anomalies": []
+}

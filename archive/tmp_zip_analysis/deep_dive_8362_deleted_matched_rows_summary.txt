@@ -1,0 +1,7 @@
+8362 Matched Row Deletion Summary
+=======================================================
+Rule: delete 8362 rows with future lag-match to 1615 (QBB receipt-entry lag).
+Matched rows identified: 14
+Rows deleted from banking_transactions: 14
+Backup file: deep_dive_8362_deleted_matched_rows_backup.csv
+Audit file: deep_dive_8362_deleted_matched_rows_audit.csv

@@ -1,0 +1,76 @@
+source,verification,gl_date,gl_chq,gl_vendor,gl_amount,gl_account,bank_txn_id,bank_txn_date,bank_debit,bank_desc,bank_check,receipt_id,notes
+gl_vs_banking_unmatched_receipt_verification_2012.csv,RECEIPT_ONLY,2012-01-03,cash,Erles Auto Repair,453.34,1090 Bank Shareholder,,,,,,173547,"no bank match in window, but receipt candidate exists"
+direct_completed,DIRECT_MATCH,2012-01-24,cash,Fibrenew,1050.00,1090 Bank Shareholder,81849,2012-04-12,1050.00,CHQ 240 FIBRENEW,240,217694,vendor_overlap+date_delay +RECEIPT_ONLY@gl_vs_banking_unmatched_receipt_verification_2012.csv
+gl_vs_banking_unmatched_receipt_verification_2012.csv,DIRECT_MATCH,2012-01-24,cash,Parr's Automotive,500.00,1090 Bank Shareholder,81617,2012-02-24,500.00,PARRS AUTOMOTIVE,,217871,status=reconciled
+direct_completed,DIRECT_MATCH,2012-02-02,209,106.7 The Drive,550.00,1000 CIBC Bank 1615,81527,2012-02-08,550.00,CHQ 209 106.7 THE DRIVE,209,217679,check_exact+vendor_overlap
+direct_completed,DIRECT_MATCH,2012-02-28,cash,Fibrenew,1050.00,1090 Bank Shareholder,82095,2012-06-13,1050.00,CHQ 274 FIBRENEW,274,217724,vendor_overlap+date_delay +RECEIPT_ONLY@gl_vs_banking_unmatched_receipt_verification_2012.csv
+gl_vs_banking_unmatched_receipt_verification_2012.csv,RECEIPT_ONLY,2012-03-08,cash,Red Deer Advocate,108.57,1090 Bank Shareholder,,,,,,217214,"no bank match in window, but receipt candidate exists"
+direct_completed,DIRECT_MATCH,2012-03-14,215,Welcome Wagon,150.00,1000 CIBC Bank 1615,81728,2012-03-19,150.00,CHQ 215 WELCOME WAGON,215,141634,check_exact+vendor_overlap
+direct_completed,DIRECT_MATCH,2012-05-01,cash,Fibrenew,1050.00,1090 Bank Shareholder,82188,2012-07-10,1050.00,CHQ 276 FIBRENEW,276,217732,vendor_overlap+date_delay +DIRECT_MATCH@gl_vs_banking_unmatched_receipt_verification_2012.csv
+direct_completed,DIRECT_MATCH,2012-05-23,262,CFIB,460.00,1000 CIBC Bank 1615,82081,2012-06-11,460.00,CHQ 262 CFIB,262,217721,check_exact+vendor_overlap+date_delay +DIRECT_MATCH@gl_vs_banking_unmatched_receipt_verification_2012.csv
+direct_completed,DIRECT_MATCH,2012-07-10,3,Parr's Automotive,2000.00,1010 Scotia Bank Main,69093,2012-07-13,2000.00,CHQ 3 PARRS AUTOMOTIVE,3,140419,check_exact
+direct_completed,DIRECT_MATCH,2012-07-13,4,Erles Auto Repair,840.95,1010 Scotia Bank Main,69092,2012-07-13,840.95,CHQ 4 EARLS AUTO,4,140418,check_exact
+direct_completed,DIRECT_MATCH,2012-07-23,11,Kirk's Tire (Red Deer) Ltd.,3000.00,1010 Scotia Bank Main,69142,2012-07-23,3000.00,CHQ 11 KIRKS TIRE,11,140468,check_exact
+direct_completed,DIRECT_MATCH,2012-08-04,18,Fibrenew,1207.50,1010 Scotia Bank Main,69203,2012-08-09,1207.50,CHQ 18 FIBRENEW,18,140529,check_exact+vendor_overlap
+direct_completed,DIRECT_MATCH,2012-08-10,21,Parr's Automotive,1000.00,1010 Scotia Bank Main,69205,2012-08-10,1000.00,CHQ 21 PARRS AUTOMOTIVE,21,140531,check_exact
+direct_completed,DIRECT_MATCH,2012-08-10,278,Parr's Automotive,300.00,1000 CIBC Bank 1615,82240,2012-08-10,300.00,CHQ 278 PARRS AUTOMOTIVE,278,217745,check_exact
+gl_vs_banking_unmatched_receipt_verification_2012.csv,RECEIPT_ONLY,2012-08-10,cash,Parr's Automotive,700.00,1090 Bank Shareholder,,,,,,215488,"no bank match in window, but receipt candidate exists"
+direct_completed,DIRECT_MATCH,2012-09-10,50,Fibrenew,1163.75,1010 Scotia Bank Main,69396,2012-10-01,1163.75,CHQ 50 FIBRENEW,50,139342,check_exact+vendor_overlap+date_delay +DIRECT_MATCH@gl_vs_banking_unmatched_receipt_verification_2012.csv
+direct_completed,DIRECT_MATCH,2012-09-10,51,Fibrenew,170.43,1010 Scotia Bank Main,69395,2012-10-01,170.43,CHQ 51 FIBRENEW (UTILITIES),51,139341,check_exact+vendor_overlap+date_delay +DIRECT_MATCH@gl_vs_banking_unmatched_receipt_verification_2012.csv
+direct_completed,DIRECT_MATCH,2012-09-17,54,Telus Communications,3007.97,1010 Scotia Bank Main,69340,2012-09-17,3007.97,CHQ 54 TELUS,54,140666,check_exact
+direct_completed,DIRECT_MATCH,2012-09-18,55,Telus Communications,166.19,1010 Scotia Bank Main,69347,2012-09-18,166.19,CHQ 55 TELUS,55,140673,check_exact
+direct_completed,DIRECT_MATCH,2012-09-26,59,AGLC,200.00,1010 Scotia Bank Main,69397,2012-10-01,200.00,CHQ 59 AGLC (LICENSE RENEWAL),59,139343,check_exact+vendor_overlap
+direct_completed,DIRECT_MATCH,2012-10-09,75,Parr's Automotive,2000.00,1010 Scotia Bank Main,69442,2012-10-12,2000.00,CHQ 75 PARRS AUTO,75,139388,check_exact
+direct_completed,DIRECT_MATCH,2012-10-12,76,Parr's Automotive,1500.00,1010 Scotia Bank Main,69457,2012-10-16,1500.00,CHQ 76 PARRS AUTO,76,139403,check_exact
+gl_vs_banking_unmatched_receipt_verification_2012.csv,RECEIPT_ONLY,2012-10-18,cash,Fibrenew,105.00,1090 Bank Shareholder,,,,,,215490,"no bank match in window, but receipt candidate exists"
+direct_completed,DIRECT_MATCH,2012-10-20,78,Fibrenew,1445.62,1010 Scotia Bank Main,69487,2012-10-24,1445.62,CHQ 78 FIBRENEW,78,139433,check_exact+vendor_overlap
+gl_vs_banking_unmatched_receipt_verification_2012.csv,RECEIPT_ONLY,2012-10-31,cash,Fibrenew,183.84,1090 Bank Shareholder,,,,,,215469,"no bank match in window, but receipt candidate exists"
+direct_completed,DIRECT_MATCH,2012-12-03,101,Parr's Automotive,2000.00,1010 Scotia Bank Main,102510,2012-12-03,2000.00,Parr's Automotive,101,,check_exact+vendor_overlap
+gl_vs_banking_unmatched_receipt_verification_2012.csv,RECEIPT_ONLY,2012-12-03,cash,Parr's Automotive,502.07,1090 Bank Shareholder,,,,,,215484,"no bank match in window, but receipt candidate exists"
+direct_completed,DIRECT_MATCH,2012-12-06,97,Welcome Wagon,100.00,1010 Scotia Bank Main,69646,2012-12-06,100.00,CHQ 97 WELCOME WAGON,97,140863,check_exact+vendor_overlap
+gl_vs_banking_unmatched_receipt_verification_2012.csv,RECEIPT_ONLY,2012-12-10,cash,Parr's Automotive,355.32,1090 Bank Shareholder,,,,,,215485,"no bank match in window, but receipt candidate exists"
+gl_vs_banking_unmatched_receipt_verification_2012.csv,RECEIPT_ONLY,2012-12-10,cash,Parr's Automotive,53.06,1090 Bank Shareholder,,,,,,215487,"no bank match in window, but receipt candidate exists"
+gl_vs_banking_unmatched_receipt_verification_2012.csv,RECEIPT_ONLY,2012-12-10,cash,Parr's Automotive,593.62,1090 Bank Shareholder,,,,,,215486,"no bank match in window, but receipt candidate exists"
+gl_vs_banking_unmatched_receipt_verification_2012.csv,MERGED_MATCH,2012-12-19,dd,Parr's Automotive,487.73,1000 CIBC Bank 1615,82433,2012-12-19,1000.00,PARRS AUTOMOTIVE,,143130,paired_with=512.27 same vendor/date/chq; status=reconciled
+gl_vs_banking_unmatched_receipt_verification_2012.csv,MERGED_MATCH,2012-12-19,dd,Parr's Automotive,512.27,1000 CIBC Bank 1615,82433,2012-12-19,1000.00,PARRS AUTOMOTIVE,,143130,paired_with=487.73 same vendor/date/chq; status=reconciled
+gl_vs_banking_unmatched_receipt_verification_2012.csv,RECEIPT_ONLY,2012-12-20,cash,Choice Auto Electric Ltd.,100.00,1090 Bank Shareholder,,,,,,217234,"no bank match in window, but receipt candidate exists"
+direct_completed,DIRECT_MATCH,2013-01-28,129,Fibrenew,1268.48,1010 Scotia Bank Main,77808,2013-01-30,1268.48,chq 129,129,139496,check_exact
+direct_completed,DIRECT_MATCH,2013-02-03,133,With This Ring Bridal Gala,1050.00,1010 Scotia Bank Main,77839,2013-02-05,1050.00,chq 133,133,139501,check_exact
+direct_completed,DIRECT_MATCH,2013-02-08,146,Cal Red Consulting Ltd.,1865.36,1010 Scotia Bank Main,77856,2013-02-11,1865.36,chq 146,146,139508,check_exact
+direct_completed,DIRECT_MATCH,2013-02-08,147,Cal Red Consulting Ltd.,273.00,1010 Scotia Bank Main,77857,2013-02-11,273.00,chq 147,147,139509,check_exact
+direct_completed,DIRECT_MATCH,2013-03-26,156,Fibrenew,2000.00,1010 Scotia Bank Main,78067,2013-03-27,2000.00,CHQ 156,156,139570,check_exact
+direct_completed,DIRECT_MATCH,2013-06-11,195,Fibrenew,1575.00,1010 Scotia Bank Main,78456,2013-06-11,1575.00,CHQ 195,195,139700,check_exact
+direct_completed,DIRECT_MATCH,2013-07-02,206,Kirk's Tire (Red Deer) Ltd.,1000.00,1010 Scotia Bank Main,78572,2013-07-03,1000.00,chq 206,206,139737,check_exact
+direct_completed,DIRECT_MATCH,2013-07-08,217,Fibrenew,2427.74,1010 Scotia Bank Main,78613,2013-07-09,2427.74,CHQ 217,217,139757,check_exact
+direct_completed,DIRECT_MATCH,2013-08-16,224,Fibrenew,1575.00,1010 Scotia Bank Main,78800,2013-08-20,1575.00,CHQ 224,224,139806,check_exact
+direct_completed,DIRECT_MATCH,2013-09-03,228,Fibrenew,1575.00,1010 Scotia Bank Main,78842,2013-09-03,1575.00,CHQ 228,228,139821,check_exact
+direct_completed,DIRECT_MATCH,2013-09-10,232,Erles Auto Repair,782.99,1010 Scotia Bank Main,78884,2013-09-11,782.99,CHQ 232,232,139834,check_exact
+direct_completed,DIRECT_MATCH,2013-09-25,239,AGLC,200.00,1010 Scotia Bank Main,78975,2013-09-27,200.00,CHQ 239,239,139869,check_exact
+direct_completed,DIRECT_MATCH,2013-09-26,243,With This Ring Bridal Gala,1050.00,1010 Scotia Bank Main,78974,2013-09-27,1050.00,CHQ 243,243,139868,check_exact
+direct_completed,DIRECT_MATCH,2013-10-07,245,Fibrenew,1575.00,1010 Scotia Bank Main,79006,2013-10-07,1575.00,CHQ 245,245,139887,check_exact
+direct_completed,DIRECT_MATCH,2013-10-07,246,Fibrenew,232.90,1010 Scotia Bank Main,79005,2013-10-07,232.90,CHQ 246,246,139886,check_exact
+direct_completed,DIRECT_MATCH,2013-10-07,252,Royal Refrigeration Ltd,1109.26,1010 Scotia Bank Main,79136,2013-11-01,1109.26,CHQ 252,252,139945,check_exact+date_delay +DIRECT_MATCH@gl_vs_banking_unmatched_receipt_verification_2013.csv
+direct_completed,DIRECT_MATCH,2013-10-17,255,Action Pages Canada,857.50,1010 Scotia Bank Main,79130,2013-10-31,857.50,CHQ 255,255,139943,check_exact+date_delay +DIRECT_MATCH@gl_vs_banking_unmatched_receipt_verification_2013.csv
+direct_completed,DIRECT_MATCH,2013-11-01,270,Fibrenew,451.77,1010 Scotia Bank Main,79210,2013-11-19,451.77,CHQ 270,270,139961,check_exact+date_delay +DIRECT_MATCH@gl_vs_banking_unmatched_receipt_verification_2013.csv
+direct_completed,DIRECT_MATCH,2013-11-19,269,Fibrenew,1706.25,1010 Scotia Bank Main,79209,2013-11-19,1706.25,CHQ 269,269,139960,check_exact
+direct_completed,DIRECT_MATCH,2013-11-21,271,Full Spectrum,646.96,1010 Scotia Bank Main,79256,2013-11-29,646.96,CHQ 271,271,139974,check_exact+date_delay +DIRECT_MATCH@gl_vs_banking_unmatched_receipt_verification_2013.csv
+direct_completed,DIRECT_MATCH,2013-11-29,273,Community Networking Solutions,1359.75,1010 Scotia Bank Main,79278,2013-12-03,1359.75,CHQ 273,273,139978,check_exact
+direct_completed,DIRECT_MATCH,2013-11-29,272,Full Spectrum,3805.23,1010 Scotia Bank Main,79254,2013-11-29,3805.23,CHQ 272,272,139972,check_exact
+direct_completed,DIRECT_MATCH,2013-12-18,283,Big 105,1260.00,1010 Scotia Bank Main,79386,2013-12-24,1260.00,CHQ 283,283,140022,check_exact
+direct_completed,DIRECT_MATCH,2013-12-27,288,Fibrenew,1706.25,1010 Scotia Bank Main,79416,2013-12-31,1706.25,CHQ 288,288,140035,check_exact
+direct_completed,DIRECT_MATCH,2013-12-27,289,Fibrenew,492.26,1010 Scotia Bank Main,79417,2013-12-31,492.26,CHQ 289,289,140036,check_exact
+direct_completed,DIRECT_MATCH,2014-01-02,292,Carriage Auto Upholstery,1540.00,1010 Scotia Bank Main,79444,2014-01-06,1540.00,CHQ 292 CARRIAGE UPHOLSTERY,292,140048,check_exact
+direct_completed,DIRECT_MATCH,2014-01-25,308,With This Ring Bridal Gala,997.50,1010 Scotia Bank Main,79524,2014-01-27,997.50,CHQ 308 WITH THIS RING (WEDDING SHOW AD),308,140078,check_exact
+direct_completed,DIRECT_MATCH,2014-03-06,325,Big 105,630.00,1010 Scotia Bank Main,79715,2014-03-07,630.00,CHQ 325 106.7 THE DRIVE,325,140139,check_exact+vendor_overlap
+direct_completed,DIRECT_MATCH,2014-03-07,327,IP Fabrications Ltd.,892.50,1010 Scotia Bank Main,79732,2014-03-10,892.50,CHQ 327 IP FABRICATION LTD (BUS SEAT FRAME),327,140142,check_exact
+direct_completed,DIRECT_MATCH,2014-03-24,335,Fibrenew,2179.34,1010 Scotia Bank Main,79797,2014-03-24,2179.34,CHQ 335 FIBRENEW (INV 5386 AND 5365),335,140163,check_exact+vendor_overlap
+direct_completed,DIRECT_MATCH,2014-04-07,337,CFIB,500.00,1010 Scotia Bank Main,79896,2014-04-11,500.00,CHQ 337 CFIB,337,140201,check_exact+vendor_overlap
+direct_completed,DIRECT_MATCH,2014-04-24,348,Fibrenew,1706.25,1010 Scotia Bank Main,80013,2014-05-01,1706.25,CHQ 348 FIBRENEW (INV 5327),348,215476,check_exact+vendor_overlap
+direct_completed,DIRECT_MATCH,2014-04-24,347,Fibrenew,252.83,1010 Scotia Bank Main,80014,2014-05-01,252.83,CHQ 347 FIBRENEW (UTILITIES - INV 5293),347,140227,check_exact+vendor_overlap
+direct_completed,DIRECT_MATCH,2014-04-27,349,Fibrenew,382.80,1010 Scotia Bank Main,80012,2014-05-01,382.80,"CHQ 349 FIBRENEW (UTILITIES - INV 5328, 5387)",349,140225,check_exact+vendor_overlap
+direct_completed,DIRECT_MATCH,2014-05-08,357,Big 105,672.00,1010 Scotia Bank Main,80060,2014-05-09,672.00,CHQ 357 106.7 THE DRIVE,357,140245,check_exact+vendor_overlap
+direct_completed,DIRECT_MATCH,2014-05-13,359,Fibrenew,1706.25,1010 Scotia Bank Main,80149,2014-05-22,1706.25,CHQ 359 FIBRENEW,359,140269,check_exact+vendor_overlap+date_delay +DIRECT_MATCH@gl_vs_banking_unmatched_receipt_verification_2014.csv
+direct_completed,DIRECT_MATCH,2014-05-29,367,106.7 The Drive,672.00,1010 Scotia Bank Main,80216,2014-06-02,672.00,CHQ 367 106.7 THE DRIVE,367,140289,check_exact+vendor_overlap
+gl_vs_banking_unmatched_receipt_verification_2014.csv,RECEIPT_ONLY,2014-09-03,cash,Fibrenew,2000.00,1090 Bank Shareholder,,,,,,215480,"no bank match in window, but receipt candidate exists"
+gl_vs_banking_unmatched_receipt_verification_2015.csv,RECEIPT_ONLY,2015-01-27,cash,Fibrenew,1700.00,1090 Bank Shareholder,,,,,,216830,"no bank match in window, but receipt candidate exists"
+gl_vs_banking_unmatched_receipt_verification_2015.csv,RECEIPT_ONLY,2015-09-08,cash,Fibrenew,3000.00,1090 Bank Shareholder,,,,,,216832,"no bank match in window, but receipt candidate exists"

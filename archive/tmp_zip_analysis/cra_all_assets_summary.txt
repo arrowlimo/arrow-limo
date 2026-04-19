@@ -1,0 +1,5 @@
+source_zip: L:\CRAauditexport__2002-01-01_2025-12-31__20251019T204151.zip
+output_csv: L:\limo\archive\tmp_zip_analysis\cra_all_assets.csv
+total_asset_accounts: 51
+balance_matched_from_trial_balance: 35
+balance_match_rate: 68.6%

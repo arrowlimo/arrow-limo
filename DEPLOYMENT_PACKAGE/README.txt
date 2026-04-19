@@ -118,7 +118,7 @@ DISPATCHMAIN:
 
 DISPATCH1:
   - Application installed to Y:\ArrowLimo\
-  - Desktop shortcut: "Arrow Limo DISPATCH1"
+  - Desktop shortcut: "Arrow Limo Dispatch"
   - Network drives mapped: L: and Z:
   - Auto-update configured
 
@@ -169,10 +169,10 @@ TROUBLESHOOTING
   • Check antivirus not scanning database files
 
 App won't start:
-  • Check .env file exists (Y:\ArrowLimo\.env on DISPATCH1)
+  • Check .env file exists (Y:\ArrowLimo\app\.env on DISPATCH1)
   • Verify Python installed (python --version)
   • Check error log (Y:\ArrowLimo\app_errors.log)
-  • Try launching manually: python Y:\ArrowLimo\desktop_app\launcher.py
+  • Try launching manually: Y:\ArrowLimo\app\START_DISPATCH.bat
 
 Network drives won't map:
   • Verify DISPATCHMAIN shares exist
@@ -220,9 +220,9 @@ DISPATCHMAIN:
   - Logs: L:\limo\app_errors.log
 
 DISPATCH1:
-  - App: Y:\ArrowLimo\desktop_app\ (synced from L: drive)
-  - Config: Y:\ArrowLimo\.env (contains DISPATCHMAIN IP)
-  - Desktop: Arrow Limo DISPATCH1.lnk
+  - App: Y:\ArrowLimo\app\desktop_app\ (synced from L: drive)
+  - Config: Y:\ArrowLimo\app\.env (contains DISPATCHMAIN IP)
+  - Desktop: Arrow Limo Dispatch.lnk
   - Logs: Y:\ArrowLimo\app_errors.log
 
 Shared Files:

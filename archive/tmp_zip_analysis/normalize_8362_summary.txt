@@ -1,0 +1,20 @@
+8362 Label Normalization Summary (2012-2013)
+================================================================================
+Account: 0228362
+Date range: 2012-01-01 to 2013-12-31
+Rows updated: 40
+
+Before:
+- OTHER | cnt=177 | credit=46708.32 | debit=19595.76
+- VCARD_DEPOSIT | cnt=16 | credit=12973.38 | debit=0.00
+- MCARD_DEPOSIT | cnt=15 | credit=7779.35 | debit=0.00
+- CARD_DEPOSIT | cnt=6 | credit=2443.19 | debit=0.00
+- AMEX_OR_ACARD | cnt=3 | credit=0.00 | debit=1076.10
+
+After:
+- OTHER | cnt=177 | credit=46708.32 | debit=19595.76
+- GLOBAL_SYSTEM_DEPOSIT | cnt=37 | credit=23195.92 | debit=0.00
+- GLOBAL_SYSTEM_WITHDRAW | cnt=3 | credit=0.00 | debit=1076.10
+
+Files:
+- L:\limo\archive\tmp_zip_analysis\normalize_8362_changed_rows.csv

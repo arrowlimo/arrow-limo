@@ -60,9 +60,25 @@ async def get_banking_receipt_reconciliation(
     """
     try:
         cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'receipts'
+            """
+        )
+        receipt_cols = {row[0] for row in cur.fetchall()}
+        receipt_total_expr = "r.gross_amount" if "gross_amount" in receipt_cols else "r.amount"
+        if "gl_account_code" in receipt_cols and "gl_code" in receipt_cols:
+            receipt_gl_expr = "COALESCE(r.gl_account_code, r.gl_code)"
+        elif "gl_account_code" in receipt_cols:
+            receipt_gl_expr = "r.gl_account_code"
+        else:
+            receipt_gl_expr = "r.gl_code"
         
         # Get unified view: banking left-joined to receipts
-        query = """
+        query = f"""
             SELECT 
                 bt.transaction_id,
                 bt.transaction_date,
@@ -71,15 +87,15 @@ async def get_banking_receipt_reconciliation(
                 bt.description,
                 r.receipt_id,
                 r.vendor_name,
-                r.amount as receipt_total,
+                {receipt_total_expr} as receipt_total,
                 r.gst_amount,
                 r.pst_amount,
                 r.category,
-                r.gl_code,
+                {receipt_gl_expr} as gl_code,
                 r.receipt_type,
                 CASE WHEN r.receipt_id IS NOT NULL THEN 1 ELSE 0 END as linked,
                 CASE WHEN r.receipt_id IS NOT NULL 
-                     THEN ABS((COALESCE(bt.debit_amount, 0) + COALESCE(bt.credit_amount, 0)) - COALESCE(r.amount, 0))
+                     THEN ABS((COALESCE(bt.debit_amount, 0) + COALESCE(bt.credit_amount, 0)) - COALESCE({receipt_total_expr}, 0))
                      ELSE NULL END as discrepancy
             FROM banking_transactions bt
             LEFT JOIN receipts r ON bt.transaction_id = r.banking_transaction_id

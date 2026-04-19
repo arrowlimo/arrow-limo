@@ -35,8 +35,8 @@ Write-Host "  L: and Z: drives mapped!" -ForegroundColor Green
 
 Write-Host "STEP 3: Installing application..." -ForegroundColor Cyan
 if (-not (Test-Path "Y:\ArrowLimo")) { New-Item -ItemType Directory -Path "Y:\ArrowLimo" -Force | Out-Null }
-robocopy L:\limo\desktop_app Y:\ArrowLimo\desktop_app /E /NFL /NDL /NJH /NJS /nc /ns
-Copy-Item L:\limo\requirements.txt Y:\ArrowLimo\ -Force 2>$null
+if (-not (Test-Path "Y:\ArrowLimo\app")) { New-Item -ItemType Directory -Path "Y:\ArrowLimo\app" -Force | Out-Null }
+robocopy L:\limo\DEPLOYMENT_PACKAGE\app Y:\ArrowLimo\app /E /NFL /NDL /NJH /NJS /nc /ns
 Write-Host "  Application files copied!" -ForegroundColor Green
 
 Write-Host "STEP 4: Creating configuration..." -ForegroundColor Cyan
@@ -50,29 +50,29 @@ WORKSTATION_ID=DISPATCH1
 RECEIPT_WIDGET_WRITE_ENABLED=true
 SHARED_FILES_PATH=Z:\\limo_files
 "@
-$envContent | Out-File "Y:\ArrowLimo\.env" -Encoding UTF8 -Force
+$envContent | Out-File "Y:\ArrowLimo\app\.env" -Encoding UTF8 -Force
 Write-Host "  Configuration created!" -ForegroundColor Green
 
 Write-Host "STEP 5: Installing Python packages..." -ForegroundColor Cyan
 python -m pip install --upgrade pip --quiet
-python -m pip install -r Y:\ArrowLimo\requirements.txt --quiet
+python -m pip install psycopg2-binary python-dotenv PyQt6 --quiet
 Write-Host "  Python packages installed!" -ForegroundColor Green
 
 Write-Host "STEP 6: Creating launcher..." -ForegroundColor Cyan
 $launcherContent = @'
 @echo off
-cd /d Y:\ArrowLimo\desktop_app
-python launcher.py
+cd /d Y:\ArrowLimo
+start "Arrow Limousine Dispatch" /wait "Y:\ArrowLimo\app\START_DISPATCH.bat"
 if errorlevel 1 pause
 '@
-$launcherContent | Out-File "Y:\ArrowLimo\START.bat" -Encoding ASCII -Force
+$launcherContent | Out-File "Y:\ArrowLimo\START_DISPATCH1.bat" -Encoding ASCII -Force
 Write-Host "  Launcher created!" -ForegroundColor Green
 
 Write-Host "STEP 7: Creating desktop shortcut..." -ForegroundColor Cyan
 $WshShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Arrow Limo DISPATCH1.lnk")
-$Shortcut.TargetPath = "Y:\ArrowLimo\START.bat"
-$Shortcut.WorkingDirectory = "Y:\ArrowLimo\desktop_app"
+$Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Arrow Limo Dispatch.lnk")
+$Shortcut.TargetPath = "Y:\ArrowLimo\START_DISPATCH1.bat"
+$Shortcut.WorkingDirectory = "Y:\ArrowLimo"
 $Shortcut.Save()
 Write-Host "  Desktop shortcut created!" -ForegroundColor Green
 

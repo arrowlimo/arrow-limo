@@ -5,9 +5,9 @@
 STEP 1: ON DISPATCHMAIN (Main Computer)
 ----------------------------------------
 1. Open PowerShell AS ADMINISTRATOR
-2. Run: cd L:\limo
-3. Run: .\unlock_shared_user.ps1
-4. This creates the shared user account
+2. Run: cd L:\limo\DEPLOYMENT_PACKAGE
+3. Run: .\SETUP_NETWORK_SHARE_FOR_AUTOUPDATE.ps1
+4. This creates or resets the shared user account and share permissions
 
 STEP 2: COPY FILES TO DISPATCH1
 --------------------------------
@@ -27,9 +27,9 @@ STEP 3: ON DISPATCH1 (Employee Computer)
 
 CREDENTIALS (Automatic)
 -----------------------
-Username: DISPATCHMAIN\ArrowDispatch
-Password: Dispatch2026!
-(These are embedded in the installer)
+Use the username/password created during
+SETUP_NETWORK_SHARE_FOR_AUTOUPDATE.ps1 on DISPATCHMAIN.
+The installer prompts if credentials are required.
 
 VERIFY Z: DRIVE ACCESS
 ----------------------
@@ -46,10 +46,10 @@ TROUBLESHOOTING
 ---------------
 If Z: drive asks for credentials:
 1. Make sure DISPATCHMAIN computer is ON
-2. Make sure you ran unlock_shared_user.ps1 on DISPATCHMAIN
+2. Make sure you ran SETUP_NETWORK_SHARE_FOR_AUTOUPDATE.ps1 on DISPATCHMAIN
 3. Verify both computers are on same network
 4. Try manually: 
-   net use Z: \\DISPATCHMAIN\limo_files /user:DISPATCHMAIN\ArrowDispatch Dispatch2026! /persistent:yes
+   net use Z: \\DISPATCHMAIN\limo_files /persistent:yes
 
 If it still doesn't work:
 - Check Windows Firewall on DISPATCHMAIN

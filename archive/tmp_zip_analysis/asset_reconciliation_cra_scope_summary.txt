@@ -1,0 +1,25 @@
+CRA-Scope Asset Reconciliation Summary
+=====================================
+Total CRA codes (distinct normalized from CRA file): 24
+Total CRA-scope reconciliation rows: 24
+
+Counts by status:
+- MATCH: 14
+- MISSING_IN_ALMS: 2
+- EXTRA_IN_ALMS: 0
+- MISMATCH: 8
+
+Actionable (non-NO_ACTION) count: 10
+
+Actionable codes (sorted by |delta| desc):
+code | account_name | delta | status | recommended_action
+1700 |  | 665257.82 | MISSING_IN_ALMS | ADD_OPENING_BALANCE_REVIEW
+1701 |  | -307004.33 | MISSING_IN_ALMS | ADD_OPENING_BALANCE_REVIEW
+1090 | 1090 Bank Shareholder | -8068.33 | MISMATCH | MAJOR_RECON_REVIEW
+1020 | Savings Account | -5415.18 | MISMATCH | MAJOR_RECON_REVIEW
+0228362 |  | -4059.36 | MISMATCH | MAJOR_RECON_REVIEW
+1080 | 1080 Petty Cash | 3819.04 | MISMATCH | MAJOR_RECON_REVIEW
+1010 | Cash & Bank Accounts | -3198.50 | MISMATCH | MAJOR_RECON_REVIEW
+1399 | 1399 Suspense | 1000.00 | MISMATCH | MINOR_ADJUSTMENT_REVIEW
+1000 | Assets | -845.00 | MISMATCH | MINOR_ADJUSTMENT_REVIEW
+1375 | 1375 Driver Advances | 300.00 | MISMATCH | MINOR_ADJUSTMENT_REVIEW

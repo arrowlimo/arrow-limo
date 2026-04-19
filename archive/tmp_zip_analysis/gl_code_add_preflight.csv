@@ -1,0 +1,17 @@
+code,cra_account_name,exact_exists,similar_codes_found,similar_names_found,safe_to_insert,reason
+1080,1080 Petty Cash,true,1000; 1010; 1011; 1012; 1013; 1015; 1016; 1018; 1020; 1040; 1080; 1085,1000 CIBC Bank 1615; 1010 Scotia Bank Main; 1020 Personal CIBC 8362; 1080 Petty Cash; 1085 Payroll Clearing Account; 1090 Bank Shareholder,false,exact code already exists
+1085,1085 Payroll Clearing Account,true,1000; 1010; 1011; 1012; 1013; 1015; 1016; 1018; 1020; 1040; 1080; 1085,1000 CIBC Bank 1615; 1010 Scotia Bank Main; 1020 Personal CIBC 8362; 1080 Petty Cash; 1085 Payroll Clearing Account; 1090 Bank Shareholder,false,exact code already exists
+1090,1090 Bank Shareholder,true,1000; 1010; 1011; 1012; 1013; 1015; 1016; 1018; 1020; 1040; 1080; 1085,1000 CIBC Bank 1615; 1010 Scotia Bank Main; 1020 Personal CIBC 8362; 1080 Petty Cash; 1085 Payroll Clearing Account; 1090 Bank Shareholder,false,exact code already exists
+1095,1095 Deposit Clearing,true,1000; 1010; 1011; 1012; 1013; 1015; 1016; 1018; 1020; 1040; 1080; 1085,1000 CIBC Bank 1615; 1010 Scotia Bank Main; 1020 Personal CIBC 8362; 1080 Petty Cash; 1085 Payroll Clearing Account; 1090 Bank Shareholder,false,exact code already exists
+1310,1310 Deposits Paid,true,1310; 1325; 1375; 1398; 1399,1300 Prepaid Lease Charges; 1310 Deposits Paid; 1325 Prepaid Insurance; 1375 Driver Advances; 1398 Clearing; 1399 Suspense,false,exact code already exists
+1325,1325 Prepaid Insurance,true,1310; 1325; 1375; 1398; 1399,1300 Prepaid Lease Charges; 1310 Deposits Paid; 1325 Prepaid Insurance; 1375 Driver Advances; 1398 Clearing; 1399 Suspense,false,exact code already exists
+1375,1375 Driver Advances,true,1310; 1325; 1375; 1398; 1399,1300 Prepaid Lease Charges; 1310 Deposits Paid; 1325 Prepaid Insurance; 1375 Driver Advances; 1398 Clearing; 1399 Suspense,false,exact code already exists
+1398,1398 Clearing,true,1310; 1325; 1375; 1398; 1399; 1400; 1410,1300 Prepaid Lease Charges; 1310 Deposits Paid; 1325 Prepaid Insurance; 1375 Driver Advances; 1398 Clearing; 1399 Suspense,false,exact code already exists
+1399,1399 Suspense,true,1310; 1325; 1375; 1398; 1399; 1400; 1410,1300 Prepaid Lease Charges; 1310 Deposits Paid; 1325 Prepaid Insurance; 1375 Driver Advances; 1398 Clearing; 1399 Suspense,false,exact code already exists
+16400,16400 Vehicles (deleted),true,16400; 16410; 16420; 16430; 16440; 16450; 16460,16400 Vehicles (deleted),false,exact code already exists
+16410,Imported CRA Asset 16410,true,16400; 16410; 16420; 16430; 16440; 16450; 16460,16400 Vehicles (deleted),false,exact code already exists
+16420,Imported CRA Asset 16420,true,16400; 16410; 16420; 16430; 16440; 16450; 16460,16400 Vehicles (deleted),false,exact code already exists
+16430,Imported CRA Asset 16430,true,16400; 16410; 16420; 16430; 16440; 16450; 16460,16400 Vehicles (deleted),false,exact code already exists
+16440,Imported CRA Asset 16440,true,16400; 16410; 16420; 16430; 16440; 16450; 16460,16400 Vehicles (deleted),false,exact code already exists
+16450,Imported CRA Asset 16450,true,16400; 16410; 16420; 16430; 16440; 16450; 16460,16400 Vehicles (deleted),false,exact code already exists
+16460,Imported CRA Asset 16460,true,16400; 16410; 16420; 16430; 16440; 16450; 16460,16400 Vehicles (deleted),false,exact code already exists

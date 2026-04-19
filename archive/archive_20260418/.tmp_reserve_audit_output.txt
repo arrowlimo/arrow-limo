@@ -1,0 +1,34 @@
+=== DISCOVERED BACKUP TABLES ===
+- public.backup_charter_payments_2015_2026_pre_lms_rebuild_20260410
+
+================ RESERVE 012154 ================
+--- charters ---
+  charter_id=10965 reserve_number=012154 charter_date=2017-01-14 total_amount_due=1646.59 amount_paid=500.00 balance_owing=1146.59 status=closed cancelled=False
+--- current public.charter_payments (joined) ---
+  id=52954 charter_id=10965 payment_date=2017-01-10 amount=500.00 payment_method=credit_card payment_id=13762 payment_key=0012539 source=PAYMENTS_TABLE_REBUILD_20260417
+--- public.payments ---
+  payment_date=2017-01-10 amount=500.00 payment_method=credit_card payment_id=13762 payment_key=0012539 source=None
+--- public.backup_charter_payments_2015_2026_pre_lms_rebuild_20260410 ---
+  <none>
+
+================ RESERVE 012574 ================
+--- charters ---
+  charter_id=11481 reserve_number=012574 charter_date=2016-07-23 total_amount_due=723.13 amount_paid=21.00 balance_owing=702.13 status=closed cancelled=False
+--- current public.charter_payments (joined) ---
+  id=55192 charter_id=11481 payment_date=2025-07-24 amount=21.00 payment_method=bank_transfer payment_id=45879 payment_key=0013125 source=PAYMENTS_TABLE_REBUILD_20260417
+--- public.payments ---
+  payment_date=2025-07-24 amount=21.00 payment_method=bank_transfer payment_id=45879 payment_key=0013125 source=None
+--- public.backup_charter_payments_2015_2026_pre_lms_rebuild_20260410 ---
+  <none>
+
+================ RESERVE 013357 ================
+--- charters ---
+  charter_id=12254 reserve_number=013357 charter_date=2017-10-06 total_amount_due=1231.50 amount_paid=631.50 balance_owing=600.00 status=closed cancelled=False
+--- current public.charter_payments (joined) ---
+  id=54409 charter_id=12254 payment_date=2017-10-05 amount=600.00 payment_method=credit_card payment_id=15273 payment_key=0014238 source=PAYMENTS_TABLE_REBUILD_20260417
+  id=54417 charter_id=12254 payment_date=2017-10-06 amount=31.50 payment_method=credit_card payment_id=15284 payment_key=0014249 source=PAYMENTS_TABLE_REBUILD_20260417
+--- public.payments ---
+  payment_date=2017-10-05 amount=600.00 payment_method=credit_card payment_id=15273 payment_key=0014238 source=None
+  payment_date=2017-10-06 amount=31.50 payment_method=credit_card payment_id=15284 payment_key=0014249 source=None
+--- public.backup_charter_payments_2015_2026_pre_lms_rebuild_20260410 ---
+  <none>

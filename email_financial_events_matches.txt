@@ -1,0 +1,165 @@
+MATCH_LINE [701363] 78463	EMAIL_IMPORT	BANKING_IMPORT	2019-03-29	TD INSURANCE	Policy #770562319 - Automobile Proof of Loss	CAD	8220.00	0.00	BANKING	cash	4980cebb57f9cc57e6a633d9b19a2014	2025-10-20 17:01:10.591506-06	\N	\N	\N	\N	\N	Insurance claim - Nordic/Drayden | RIFCO; Her Majesty the Queen in Right of Canada; Drayden Insurance	\N	\N	\N	Insurance - Claim Recovery	8220.00	\N	\N	\N	f	0	\N	\N	\N	\N	\N	business	email_financial_events.id_27738	5130	Insurance	\N	f	8220.00	f	f	0.00	f	\N	MANUAL	BLUE	\N	f	Manual entry - auto-verified	t	f	\N	f	f	f	\N	2019	2019-03-29	f	\N	AUTO_SYSTEM	\N	\N	\N	f	single	\N	f	2026-01-20 20:03:48.303948	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-03-12 23:09:32.349713	\N	PENDING	1	f	\N	\N
+LAST_COMMENTS:
+[675581] -- Data for Name: receipt_gst_adjustment_audit; Type: TABLE DATA; Schema: public; Owner: postgres
+[675582] --
+[679894] --
+[679895] -- Data for Name: receipt_line_items; Type: TABLE DATA; Schema: public; Owner: postgres
+[679896] --
+[679902] --
+[679903] -- Data for Name: receipts; Type: TABLE DATA; Schema: public; Owner: postgres
+[679904] --
+---
+MATCH_LINE [701714] 78464	EMAIL_IMPORT	BANKING_IMPORT	2019-10-07	CMB INSURANCE BROKERS	Arrow Limousine & Sedan Services Ltd. - November 3/19 Renewal - #770562319	CAD	37424.00	0.00	BANKING	cash	9b694551f6ac8102c71998f15923a60f	2025-10-20 17:01:10.591506-06	\N	\N	\N	\N	\N	Email ID 14936	\N	\N	\N	Insurance - Vehicle Liability	37424.00	\N	\N	\N	f	0	\N	\N	\N	\N	\N	business	email_financial_events.id_14936	5300	Insurance	\N	f	37424.00	f	f	0.00	f	\N	MANUAL	BLUE	CMB INSURANCE BROKERS	f	Manual entry - auto-verified	t	f	\N	f	f	f	\N	2019	2019-10-07	f	\N	AUTO_SYSTEM	\N	\N	\N	f	single	\N	f	2026-01-20 20:03:48.303948	f	\N	\N	5300	Insurance	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-03-12 23:09:32.349713	\N	PENDING	1	f	\N	\N
+LAST_COMMENTS:
+[675581] -- Data for Name: receipt_gst_adjustment_audit; Type: TABLE DATA; Schema: public; Owner: postgres
+[675582] --
+[679894] --
+[679895] -- Data for Name: receipt_line_items; Type: TABLE DATA; Schema: public; Owner: postgres
+[679896] --
+[679902] --
+[679903] -- Data for Name: receipts; Type: TABLE DATA; Schema: public; Owner: postgres
+[679904] --
+---
+MATCH_LINE [767145] 8	3	Escalade Cadillac (ARROW 5)	Heffner	Arrow Limousine	\N	0.00	0.00	0.00	0.00	\N	\N	\N	\N	Created from email_financial_events
+LAST_COMMENTS:
+[767106] -- Data for Name: vehicle_loan_payments; Type: TABLE DATA; Schema: public; Owner: postgres
+[767107] --
+[767120] --
+[767121] -- Data for Name: vehicle_loan_reconciliation_allocations; Type: TABLE DATA; Schema: public; Owner: postgres
+[767122] --
+[767140] --
+[767141] -- Data for Name: vehicle_loans; Type: TABLE DATA; Schema: public; Owner: postgres
+[767142] --
+---
+MATCH_LINE [767146] 9	10	Ford Transit (0BD213)	Heffner	Arrow Limousine	\N	0.00	0.00	0.00	0.00	\N	\N	\N	\N	Created from email_financial_events
+LAST_COMMENTS:
+[767106] -- Data for Name: vehicle_loan_payments; Type: TABLE DATA; Schema: public; Owner: postgres
+[767107] --
+[767120] --
+[767121] -- Data for Name: vehicle_loan_reconciliation_allocations; Type: TABLE DATA; Schema: public; Owner: postgres
+[767122] --
+[767140] --
+[767141] -- Data for Name: vehicle_loans; Type: TABLE DATA; Schema: public; Owner: postgres
+[767142] --
+---
+MATCH_LINE [767147] 10	11	Excursion Ford (J29297)	CMB Insurance	Arrow Limousine	\N	0.00	0.00	0.00	0.00	\N	\N	\N	\N	Created from email_financial_events
+LAST_COMMENTS:
+[767106] -- Data for Name: vehicle_loan_payments; Type: TABLE DATA; Schema: public; Owner: postgres
+[767107] --
+[767120] --
+[767121] -- Data for Name: vehicle_loan_reconciliation_allocations; Type: TABLE DATA; Schema: public; Owner: postgres
+[767122] --
+[767140] --
+[767141] -- Data for Name: vehicle_loans; Type: TABLE DATA; Schema: public; Owner: postgres
+[767142] --
+---
+MATCH_LINE [767148] 11	3	Escalade Cadillac (ARROW 5)	CMB Insurance	Arrow Limousine	\N	0.00	0.00	0.00	0.00	\N	\N	\N	\N	Created from email_financial_events
+LAST_COMMENTS:
+[767106] -- Data for Name: vehicle_loan_payments; Type: TABLE DATA; Schema: public; Owner: postgres
+[767107] --
+[767120] --
+[767121] -- Data for Name: vehicle_loan_reconciliation_allocations; Type: TABLE DATA; Schema: public; Owner: postgres
+[767122] --
+[767140] --
+[767141] -- Data for Name: vehicle_loans; Type: TABLE DATA; Schema: public; Owner: postgres
+[767142] --
+---
+MATCH_LINE [767149] 12	14	Ford E450 Tiffany (E18368)	Heffner	Arrow Limousine	\N	0.00	0.00	0.00	0.00	\N	\N	\N	\N	Created from email_financial_events
+LAST_COMMENTS:
+[767106] -- Data for Name: vehicle_loan_payments; Type: TABLE DATA; Schema: public; Owner: postgres
+[767107] --
+[767120] --
+[767121] -- Data for Name: vehicle_loan_reconciliation_allocations; Type: TABLE DATA; Schema: public; Owner: postgres
+[767122] --
+[767140] --
+[767141] -- Data for Name: vehicle_loans; Type: TABLE DATA; Schema: public; Owner: postgres
+[767142] --
+---
+MATCH_LINE [767150] 13	9	Ford E450 Shuttle Limo Bus (H-81736)	Heffner	Arrow Limousine	\N	0.00	0.00	0.00	0.00	\N	\N	\N	\N	Created from email_financial_events
+LAST_COMMENTS:
+[767106] -- Data for Name: vehicle_loan_payments; Type: TABLE DATA; Schema: public; Owner: postgres
+[767107] --
+[767120] --
+[767121] -- Data for Name: vehicle_loan_reconciliation_allocations; Type: TABLE DATA; Schema: public; Owner: postgres
+[767122] --
+[767140] --
+[767141] -- Data for Name: vehicle_loans; Type: TABLE DATA; Schema: public; Owner: postgres
+[767142] --
+---
+MATCH_LINE [767151] 14	8	Ford E450 Limo Bus (H-81707)	Heffner	Arrow Limousine	\N	0.00	0.00	0.00	0.00	\N	\N	\N	\N	Created from email_financial_events
+LAST_COMMENTS:
+[767106] -- Data for Name: vehicle_loan_payments; Type: TABLE DATA; Schema: public; Owner: postgres
+[767107] --
+[767120] --
+[767121] -- Data for Name: vehicle_loan_reconciliation_allocations; Type: TABLE DATA; Schema: public; Owner: postgres
+[767122] --
+[767140] --
+[767141] -- Data for Name: vehicle_loans; Type: TABLE DATA; Schema: public; Owner: postgres
+[767142] --
+---
+MATCH_LINE [767152] 15	6	Ford Expedition (ARROW 8)	Heffner	Arrow Limousine	\N	0.00	0.00	0.00	0.00	\N	\N	\N	\N	Created from email_financial_events
+LAST_COMMENTS:
+[767106] -- Data for Name: vehicle_loan_payments; Type: TABLE DATA; Schema: public; Owner: postgres
+[767107] --
+[767120] --
+[767121] -- Data for Name: vehicle_loan_reconciliation_allocations; Type: TABLE DATA; Schema: public; Owner: postgres
+[767122] --
+[767140] --
+[767141] -- Data for Name: vehicle_loans; Type: TABLE DATA; Schema: public; Owner: postgres
+[767142] --
+---
+MATCH_LINE [767153] 16	6	Ford Expedition (ARROW 8)	CMB Insurance	Arrow Limousine	\N	0.00	0.00	0.00	0.00	\N	\N	\N	\N	Created from email_financial_events
+LAST_COMMENTS:
+[767106] -- Data for Name: vehicle_loan_payments; Type: TABLE DATA; Schema: public; Owner: postgres
+[767107] --
+[767120] --
+[767121] -- Data for Name: vehicle_loan_reconciliation_allocations; Type: TABLE DATA; Schema: public; Owner: postgres
+[767122] --
+[767140] --
+[767141] -- Data for Name: vehicle_loans; Type: TABLE DATA; Schema: public; Owner: postgres
+[767142] --
+---
+MATCH_LINE [767154] 17	5	Ford Excursion (ARROW 7)	CMB Insurance	Arrow Limousine	\N	0.00	0.00	0.00	0.00	\N	\N	\N	\N	Created from email_financial_events
+LAST_COMMENTS:
+[767106] -- Data for Name: vehicle_loan_payments; Type: TABLE DATA; Schema: public; Owner: postgres
+[767107] --
+[767120] --
+[767121] -- Data for Name: vehicle_loan_reconciliation_allocations; Type: TABLE DATA; Schema: public; Owner: postgres
+[767122] --
+[767140] --
+[767141] -- Data for Name: vehicle_loans; Type: TABLE DATA; Schema: public; Owner: postgres
+[767142] --
+---
+MATCH_LINE [767155] 18	19	Mercedes Benz S 550V	CMB Insurance	Arrow Limousine	\N	0.00	0.00	0.00	0.00	\N	\N	\N	\N	Created from email_financial_events
+LAST_COMMENTS:
+[767106] -- Data for Name: vehicle_loan_payments; Type: TABLE DATA; Schema: public; Owner: postgres
+[767107] --
+[767120] --
+[767121] -- Data for Name: vehicle_loan_reconciliation_allocations; Type: TABLE DATA; Schema: public; Owner: postgres
+[767122] --
+[767140] --
+[767141] -- Data for Name: vehicle_loans; Type: TABLE DATA; Schema: public; Owner: postgres
+[767142] --
+---
+MATCH_LINE [767156] 19	13	Cadillac XTS stetch (E18367D)	Heffner	Arrow Limousine	\N	0.00	0.00	0.00	0.00	\N	\N	\N	\N	Created from email_financial_events
+LAST_COMMENTS:
+[767106] -- Data for Name: vehicle_loan_payments; Type: TABLE DATA; Schema: public; Owner: postgres
+[767107] --
+[767120] --
+[767121] -- Data for Name: vehicle_loan_reconciliation_allocations; Type: TABLE DATA; Schema: public; Owner: postgres
+[767122] --
+[767140] --
+[767141] -- Data for Name: vehicle_loans; Type: TABLE DATA; Schema: public; Owner: postgres
+[767142] --
+---
+MATCH_LINE [838592]     ADD CONSTRAINT etransfer_transactions_email_event_id_fkey FOREIGN KEY (email_event_id) REFERENCES public.email_financial_events(id);
+LAST_COMMENTS:
+[838572] -- Name: etransfer_banking_reconciliation etransfer_banking_reconciliation_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+[838573] --
+[838579] --
+[838580] -- Name: etransfer_transactions etransfer_transactions_banking_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+[838581] --
+[838587] --
+[838588] -- Name: etransfer_transactions etransfer_transactions_email_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+[838589] --
+---

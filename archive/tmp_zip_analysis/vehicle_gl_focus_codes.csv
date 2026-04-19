@@ -1,0 +1,330 @@
+id,transaction_date,account_code,account_name,description,debit_amount,credit_amount,net_amount,transaction_type,transaction_number,source_system,source_transaction_id,entity_name,row_hash
+34502,2011-12-31,2800 L-8 2008 Ford Expedition,,"",0.00,42325.38,-42325.38,Journal Entry,Opening,QuickBooks,Opening,,b037c09cb849dc96f6d77e1004edfce14ccf54f78a49369adb109aed55b7baa1
+34524,2011-12-31,2801 L-9 2007 LIncoln Town Car,,"",0.00,51300.06,-51300.06,Journal Entry,Opening,QuickBooks,Opening,,ee67e6da5726c2d91e26121243220004753d6007dba22f19571b7b8d3d2e6477
+34548,2011-12-31,2802 L-10 2010 Ford E450 Bus,,"",0.00,122567.33,-122567.33,Journal Entry,Opening,QuickBooks,Opening,,1b4ca19489e034d7d9908920e7e6e42d9f5047d222c5e3ce0649f95729cf3371
+34579,2011-12-31,2803 L-11 2009 Ford E-450 Shuttle,,"",0.00,111507.70,-111507.70,Journal Entry,Opening,QuickBooks,Opening,,c7c384d73b2f558b640d9c41a03be75d64e16bef36f352a1c5bd883b7d10b5bd
+34525,2012-01-06,2801 L-9 2007 LIncoln Town Car,,"",1475.25,0.00,1475.25,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,48a1dcadb3044210cdc2044970cc16d8d349f6d4fb8fad03c54bcacf713cc1f4
+34549,2012-01-06,2802 L-10 2010 Ford E450 Bus,,"",2525.25,0.00,2525.25,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,91ed331f6d60129ca8c9d265ce3c4154d79849aeef2917102d0caceeef865c55
+34550,2012-01-26,2802 L-10 2010 Ford E450 Bus,,"",2525.25,0.00,2525.25,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,64b19e027b4c49e1332fb6fe1cb7c044858d34e9ed09834b408511b3ec322566
+34503,2012-03-15,2800 L-8 2008 Ford Expedition,,"",1885.65,0.00,1885.65,Cheque Expense,dd,QuickBooks,dd,Jack Carter,f91b58647f293eabcf03d57d1fd0811738c365ae17ec4ddaeb61713e5c6f8ba9
+34551,2012-04-11,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,223,QuickBooks,223,Heffner Lexus Toyota,7273f56deec37dc97f0c3ae3b4daa220f34db5e7b27d12c5b2b9a1f72f7dccc8
+34526,2012-04-12,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,218,QuickBooks,218,Heffner Lexus Toyota,ae19e14902f2ce614f78b9b855c2e5189dd419355fd2bea672809dba37e8ac6c
+34580,2012-04-12,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,229,QuickBooks,229,Heffner Lexus Toyota,38bbeccec341467823c8ed8372796079e7c67f1790c70387120149326ab9eec1
+34504,2012-04-16,2800 L-8 2008 Ford Expedition,,"",1885.65,0.00,1885.65,Cheque Expense,dd,QuickBooks,dd,Jack Carter,1633b80c45ce4ee55b0bd2fa7dec4d0faaf9e3653f4e7881b995f7a1970a5e8c
+34552,2012-04-27,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,224,QuickBooks,224,Heffner Lexus Toyota,47961bf1feec9d99314a8617d37b6c1433d0b94382756152e99a8df39203fd0b
+34180,2012-05-01,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2571.43,0.00,2571.43,Cheque Expense,261,QuickBooks,261,Ace Truck,e092392a4ad4374ce663153a0e12fd11d30966fb6a5de1d70d2333fe011b487d
+34527,2012-05-08,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,217,QuickBooks,217,Heffner Lexus Toyota,a502d0361d8ec2da5d0ce73a6b3479d2b651b1e030302c70788238147aa8cfa0
+34581,2012-05-08,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,231,QuickBooks,231,Heffner Lexus Toyota,dc8c1d5783a4c527bbaebe88233b097e659db54d2129df397951dd68e81fad53
+34505,2012-05-15,2800 L-8 2008 Ford Expedition,,"",1885.65,0.00,1885.65,Cheque Expense,dd,QuickBooks,dd,Jack Carter,7bace5611c159a4dd95cc202bdbcf3ab0e366e46ed1eb4bae796305c61430c43
+34528,2012-05-16,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,219,QuickBooks,219,Heffner Lexus Toyota,3174cbddc7ee5efbf6a840f28e7758464a4180cc4c955b21a350755db1d3abcb
+34553,2012-05-16,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,225,QuickBooks,225,Heffner Lexus Toyota,e12995c503a8e97dbf7183cd053bf82a1f41e2eb5c4293f6ce9700d3f75b6e7f
+34582,2012-05-16,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,232,QuickBooks,232,Heffner Lexus Toyota,97a1ffae08809f4376f99f1f1a40ffa048ef09fde80e4f40691fc31e175c151a
+34506,2012-06-15,2800 L-8 2008 Ford Expedition,,"",1885.65,0.00,1885.65,Cheque Expense,dd,QuickBooks,dd,Jack Carter,f89c187b6e6ca202d12c47d6d3d2ad82022244f190e99384d2af47c5dc12fc18
+34529,2012-06-19,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,220,QuickBooks,220,Heffner Lexus Toyota,a2d9168b7edc040952090a48cb3c9b9e09b6819ce5a47794a2b60aa59f779c21
+34554,2012-06-19,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,226,QuickBooks,226,Heffner Lexus Toyota,eda7a0fc71721213c026cda7772dea4f7778c42e0282275d9b27ba389590d66b
+34583,2012-06-19,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,233,QuickBooks,233,Heffner Lexus Toyota,4819d0a4659c087613bf43f79915f522fce956532cf6066fe438022155209bf5
+34507,2012-07-16,2800 L-8 2008 Ford Expedition,,"",1885.65,0.00,1885.65,Cheque Expense,dd,QuickBooks,dd,Jack Carter,5a4c3e4392b1b9f6cac11f35f707b85da2eed883cf81b8bd9aad1a56e2c75bd1
+34530,2012-07-18,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,221,QuickBooks,221,Heffner Lexus Toyota,b806791debf40aed72855eef4391306b9f683e70a2578e136a411cc3ac1189e8
+34555,2012-07-18,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,228,QuickBooks,228,Heffner Lexus Toyota,68c5ee8422c871025decc3aed284b2836f25dbb6d4eed01c7150bb9931e6d959
+34584,2012-07-18,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,234,QuickBooks,234,Heffner Lexus Toyota,ea2883067c0ecade10cc24aa64fa9fb73feffdb300cc1a973f4dd8bcaa84124c
+34508,2012-07-23,2800 L-8 2008 Ford Expedition,,"",1885.65,0.00,1885.65,Cheque Expense,9,QuickBooks,9,Jack Carter,2ffbd90842be9b618afcae799b3eec3bd53a72637f37f52ab10770343df303e8
+34585,2012-08-21,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,43,QuickBooks,43,Heffner Lexus Toyota,2b4b21ffc566cdd38bc137591575af4897d3242ffbfd14ed3920fe589d15a519
+34509,2012-08-22,2800 L-8 2008 Ford Expedition,,"",1885.65,0.00,1885.65,Cheque Expense,dd,QuickBooks,dd,Jack Carter,f9d2142eba79b2e6a24217dd1f9cb7a15cc436720cabc10cc2029e00a110b696
+34531,2012-08-22,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,222,QuickBooks,222,Heffner Lexus Toyota,10f8ac496c817586e87038e8ebc7c1e57fad7e5a2d1ccb181bd82ec9624b89d8
+34556,2012-08-22,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,227,QuickBooks,227,Heffner Lexus Toyota,382e04da907db9fac90ebb7b7c72925cb004b0af8c21f102ce6407efdb72498b
+34181,2012-08-23,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.06,0.00,2567.06,Cheque Expense,dd,QuickBooks,dd,Ace Truck,13a02f6db46fddb86b0f1704acfb3d9239062785c941ff4933738a7716a041d8
+34182,2012-09-04,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,0c2eb8275023c7d7dfcd032902a3948f0dc0c0f2dea9af8e03ec3bd789b5e60d
+34205,2012-09-21,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,L15 Payment as per chq stub,1925.00,0.00,1925.00,Cheque Expense,53,QuickBooks,53,"Pfeifer, Vic",7d81c4f5fc2ecb8604f236c759ffb226ce386ddcdf9b63af9915ffc13040884d
+34532,2012-09-25,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,23,QuickBooks,23,Heffner Lexus Toyota,1651a36812ac4a0217f4dd7c338dffc0e6b181a3d425bffaedc61adb59e4dfb5
+34557,2012-09-25,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,29,QuickBooks,29,Heffner Lexus Toyota,a9901f9906f38d0a86137a77e0f264217c3dd2b0c1ba2c8dfaa9f517b698f405
+34586,2012-09-25,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,35,QuickBooks,35,Heffner Lexus Toyota,09e64060e60442e822e3619b6738eb1b0a8aeef4b47dd08d40a29e478748c673
+34206,2012-10-01,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,acca039b01407020e9ef32f91f2165c8a538c38163213938a34c0802704e3a31
+34533,2012-10-15,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,b19ded9c6f693ce39a33f5499a50feb0aebfd8c8efb192327c5691812097d5aa
+34558,2012-10-23,2802 L-10 2010 Ford E450 Bus,,"",0.00,0.00,0.00,Cheque Expense,30,QuickBooks,30,Heffner Lexus Toyota,4055bcf4d38437c6eab7e4a441be881f46cb81962a836850e2bb28d0ce7873d1
+34587,2012-10-23,2803 L-11 2009 Ford E-450 Shuttle,,"",0.00,0.00,0.00,Cheque Expense,36,QuickBooks,36,Heffner Lexus Toyota,123adf3e51c0da8d93ea045f9de24de7afc7cfacea04012480fbcd342a86aeab
+34331,2012-10-30,2508 Leases and Loans:L4 2007 Lincon Town Car,,L4 Down Payment,1458.65,0.00,1458.65,Cheque Expense,80,QuickBooks,80,Heffner Lexus Toyota,f4ae4f308c058907f304796e4fe333925393112d9cad2fb540f572ba7f778f49
+34183,2012-11-01,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,ad4e4cc6b4452236d0a942c121d687eadbb474a3e91b1539ef9d371063e05479
+34207,2012-11-01,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,375887def9f2a880bb8df4eeef24a4779c760573567f3b9886a8e6c5c14b6b2b
+34332,2012-11-01,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",471.98,0.00,471.98,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,b3f3e998eb2261db3dfce8863cf6833589e578970419da61bcdd408d11c5d277
+34510,2012-11-13,2800 L-8 2008 Ford Expedition,,"",1795.86,0.00,1795.86,Cheque Expense,dd,QuickBooks,dd,Jack Carter,26b144cec8593c1e8579efe2079ec42bca0eae1c51b35102db2fbd58c1ac6285
+34208,2012-11-15,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,256a8f75f66a9fae46ce2041adf764b2b943fec35290ba1b6459e53355b6b7f0
+34333,2012-11-15,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",471.97,0.00,471.97,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,e3d83bed6fc1a7d3c81d41d060f062cb6cfb7a789317af86c447aed2fcd02269
+34534,2012-11-15,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,bf4324f407670a0216e7fffb4503883ed961c16a901bd617335685bf9dd2601a
+34559,2012-11-15,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,262fea4c464b062f8f89b0817be89a1c2daf7273a2716e4ffea7519f2f9b79a4
+34588,2012-11-15,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,a9287160ca5e2e1f00660d86339fad1db27454890222d1ff6255e8bc7bb41e14
+34184,2012-12-03,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,da3bc9d81f86376dcc4f6ac82e94d053558f1d6efb2b601d34050285f72775fb
+34209,2012-12-03,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,c9383a9a405d6240d2c2cfca6e105e92bdaef67754a87b8024485b1a0782fc86
+34334,2012-12-03,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",449.50,0.00,449.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,3e4a74ef34418acfccd15bb52fe22cf7707db62893c7b82b251ad6fc811f727a
+34511,2012-12-05,2800 L-8 2008 Ford Expedition,,"",1795.86,0.00,1795.86,Cheque Expense,95,QuickBooks,95,Jack Carter,80e312d1743d18d1d334be3372bb10bb829d8e0a78df39090f4483a65de20d18
+34560,2012-12-08,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,32,QuickBooks,32,Heffner Lexus Toyota,013ed02e583113da66b4b6b8ff3651ee8c7404acc79788c7725b55fe8d56dc72
+34210,2012-12-17,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,04887792ee8cf6182a0f65d1f7ae2eb1598b50c47787bda454403ef8a907440a
+34335,2012-12-17,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",449.50,0.00,449.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,68dea1ec9f750cf13d70a5c5c2d6ad9e37991ff08bd9f717c65f65f7af73794c
+34512,2012-12-17,2800 L-8 2008 Ford Expedition,,"",1795.86,0.00,1795.86,Cheque Expense,dd,QuickBooks,dd,Jack Carter,cc43de202436f8cb0f3764d8e5633c95f5fc3bdab8c96583329f29d5fa4c2941
+34535,2012-12-17,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,eda7876274834ed8e0911c4d9a22d95d9f21381080b9388ccf32d9819ef89dd0
+34561,2012-12-17,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,9dc18ed073ae62eb075ce32ce3c42048a1dd6b82431b6be2395350922800e2d4
+34589,2012-12-17,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,0f2aded230a52e522caa39a4673ece6bd422665508c08c507546b7b310a77b0c
+34590,2012-12-24,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,39,QuickBooks,39,Heffner Lexus Toyota,d70514ebeb479a537a8d5ab1f74cb6890ab1a228e36d1c49c98cd4cea7c89d1d
+34185,2013-01-02,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,9609d220c43b0aeeecaa824599d1cfcad116e1b962af96c91f73a3de54208f2b
+34211,2013-01-02,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,c12fb15a34a3d7d4352a1c712af4642c8e40f4220bc8578bf9250cd7f8c87bd1
+34336,2013-01-02,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",449.50,0.00,449.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,15f0a4edda269a04ddee540b6a1e596233324b03209f3008c0421c7acb859ba0
+34562,2013-01-15,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,956325030e71fb41f08be974406049fa3243c0b28e2247ebda2734a4d06941b7
+34513,2013-01-21,2800 L-8 2008 Ford Expedition,,"",1829.19,0.00,1829.19,Cheque Expense,dd,QuickBooks,dd,Jack Carter,f05ddfafddfe2be253e9a23c6a9c5a8d27906ed47e4cf6b98ef037e8c7753005
+34591,2013-01-21,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,37,QuickBooks,37,Heffner Lexus Toyota,557fd825a8ba330535f60d1569dee461f14c14f1019b79ff37e22debd827153e
+34212,2013-02-01,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,a26aac2c22a6d2ea1f7a180f35222d57b22507ac7ccdceccf702b2a6d750bc65
+34337,2013-02-01,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",449.50,0.00,449.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,6ef05cae13a253cf18dc59588898f06719ed0c409e202b9a69cb6a8244957546
+34186,2013-02-13,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",770.40,0.00,770.40,Cheque Expense,130,QuickBooks,130,Ace Truck,7874e6f0f6d584feeaf29bc8192044a9e74fa283787f396442f9b36258060d08
+34213,2013-02-15,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,e42c416585a2793300bea53108108a95a612371f5fbc86f77b5e3c28f6eee838
+34338,2013-02-15,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",449.50,0.00,449.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,201138175324c6f6cd84689e30ed57f51768a19d2c26418aea687c5530bb8efb
+34514,2013-02-15,2800 L-8 2008 Ford Expedition,,"",1795.86,0.00,1795.86,Cheque Expense,dd,QuickBooks,dd,Jack Carter,27bcf5aaa9807714e3afa74423615359e2a2da60779c711172793983493f0134
+34536,2013-02-15,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,7cf2a2645a0bed3eed2ddd3fdce256d676e5884f79ef75322ab5787602b46d92
+34563,2013-02-15,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,098bf600677f042ba1f9d95dbe119d71e85e512f9cb57738c4a14b30b5343a9a
+34187,2013-03-01,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,a0d71dcd5f7808859d984bad3dad997a006cfcbc33c41bfb278ea848b4faf851
+34214,2013-03-01,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,b9535182eaf237c9f75de861f2b3fa3b8c427638b65d607684ba6ea87a6c2c22
+34339,2013-03-01,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",471.98,0.00,471.98,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,f0d98a3fdb61820fedea8bebce77a853a763848526fee67d2c7963b7efcdda4b
+34592,2013-03-11,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,38,QuickBooks,38,Heffner Lexus Toyota,cf83c63841e448f3e863528e123b923876114b97056df2df101416f289068d02
+34340,2013-03-15,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",471.97,0.00,471.97,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,90914b264f21da7bb8e2372b4743132326a33d100016095f20b2b2a2a1ef2e2a
+34537,2013-03-15,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,d68d1c0d73b923a95596cf76f3c7156ab157518356064f11e1eac2efdcafd040
+34593,2013-03-15,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,0f84f3fe044c60068a81d6b62694e62f2febeef171bcddfeab4587750192e7eb
+34564,2013-03-20,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,31,QuickBooks,31,Heffner Lexus Toyota,7eba921ba8f6e57fb8c3593daf56c9508757c4593e491b0cd5c5b95e0a571bef
+34594,2013-03-21,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,40,QuickBooks,40,Heffner Lexus Toyota,6dbfe3c34d3c06cd97e40c67c3b80b24f7d06575765f2ba7b12141aa0d295a44
+34188,2013-04-01,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,2715f6b346bcb1384144207cd1223fdc418987368ca889713cd0cd20f00100ef
+34215,2013-04-01,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,1b066f2c929a31d33bced536248c73dccfa27ac9055507b4a3110c12a881c6de
+34341,2013-04-01,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",471.98,0.00,471.98,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,abf1f6076c95aa368c42b5964aabacf225563351343a044fd271026fe4f84852
+34515,2013-04-11,2800 L-8 2008 Ford Expedition,,"",952.38,0.00,952.38,Cheque Expense,w/d,QuickBooks,w/d,Jack Carter,d50887b6b80da4b645197e4ac1cf32a5d042d29c10a287579f7f4d5456161971
+34342,2013-04-15,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",471.97,0.00,471.97,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,433384802143ae9cb7f6974c31b0e6474150e98be39c40e5e358e0b3d04291b0
+34516,2013-04-15,2800 L-8 2008 Ford Expedition,,"",1795.86,0.00,1795.86,Cheque Expense,dd,QuickBooks,dd,Jack Carter,9ca38d2a7a50eef7101439d63068ac345e288c720d3e054be4d7c054fbaa3cd0
+34216,2013-04-23,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,38d6b01d3fb68e78976004b527edfb0408da82e34e58e34d1b7e2e3840e15370
+34565,2013-04-23,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,01cf839d4dd5286c3066be1fe334e63773e3472df305609eaffa7f622311699a
+34595,2013-04-23,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,46a9fe2c0b446ff66d216c0db68049476314eee57810f4bd084fc846a17ee186
+34538,2013-04-29,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,24,QuickBooks,24,Heffner Lexus Toyota,97c7be8f757ad9916df3e816c408ca68479269452fd1baa8a934b1b8f9322988
+34189,2013-05-01,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,b24b53bda69c9f66193953e7d62be3a3c230b8b3bc7861f641f4605d563312e6
+34217,2013-05-01,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,033535c6ef1d555a72b9f184db4464b7a7720a9dc8731b3e5e9e512883a35c45
+34343,2013-05-01,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",471.98,0.00,471.98,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,d0756edd7d92faa37b991f93d50cf10aa44f57cd745e0f96c4fc0a919d05bcf8
+34517,2013-05-21,2800 L-8 2008 Ford Expedition,,"",1795.86,0.00,1795.86,Cheque Expense,183,QuickBooks,183,Jack Carter,e75d8ec6e99a73dbd2a828e89915eacb5f93626f882331b20507ede0aa0a71e7
+34518,2013-05-22,2800 L-8 2008 Ford Expedition,,"",843.48,0.00,843.48,Cheque Expense,184,QuickBooks,184,Jack Carter,e4bf571c26f1c0166545da3b9d648db023a661c56c2b4466eccc0916a01e828a
+34218,2013-05-27,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,2c93b01767bf14fa1abec39e7f32c1832fb41447b733ac286e35bd7d3f9f9690
+34344,2013-05-27,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",449.50,0.00,449.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,b3a2ea9ab6438696e645582b4f8dc398798f12ed3ea4f55eeb87dfd7f735816a
+34539,2013-05-27,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,bbf26e550933c78a71efa5052ac3332bb944fd66132182764f4276d1b7d85cc5
+34566,2013-05-27,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,0d97a459b2f3e39cdc98bc32ed50f143bec03d5a71d32bd7c2f357fe6e24b3dc
+34596,2013-05-27,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,f2169778f1e7b061393efa21c0c58d856cc7592842bee69350b2c6af7754c4c8
+34190,2013-06-03,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,30c9c9d5541c439887d61f4080a15367e898ce6128754439cd4877aced779f32
+34219,2013-06-03,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,3701197803d06a4a254fc905c4b2e5a6baff89f6f033a3b107657780f9c0aafd
+34345,2013-06-03,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",449.50,0.00,449.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,0d906a50c9140eb421971f52098984b17a530feb558f7ca1a733168b79fe01f0
+34220,2013-06-17,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,9082de7720973dbea95faba7f009a872ad52f0b4a4292f9ac7874f7de794823f
+34346,2013-06-17,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",449.50,0.00,449.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,0a4e5ee77886ae4ee5f5cfcc17fc14f116757a93419919002613429ebf147394
+34519,2013-06-17,2800 L-8 2008 Ford Expedition,,"",1795.86,0.00,1795.86,Cheque Expense,dd,QuickBooks,dd,Jack Carter,a869ce7b0c4aba63379996b3cb3423df800c7d2ee8f5ec3df47ce3c459edb6c7
+34540,2013-06-17,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,9031ea76efd7e1cb38b9fcce59e641e35216ec895d9f46e6ed0695a8d7fc49da
+34567,2013-06-17,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,7f4e7b45485bef4a071c7df9e2e335e09ea08a81d4c992910d749de09fd9ae75
+34597,2013-06-17,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,a80dab82a92484e222614cf4935c6fba2ec99896bd917a72e6e6c872af46b51d
+34191,2013-07-02,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,fa34ab71a2fdddc6a8f2edcee2355ed9a3e3aaa66a577be09f0d66cfc9c1ea70
+34221,2013-07-02,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,20f49d7e67df36d78009758bdac712a723f47eb2638267925faf76c6cb2ca0a0
+34347,2013-07-02,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",449.50,0.00,449.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,d82d416873c64f34c5bd896d55465a4d1ee88cfc102afae6b63bb2cad0621327
+34222,2013-07-15,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,07b9a565896924c35a470c8cbd189206e69edf9f28bd107298143e03703fab0e
+34348,2013-07-15,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",449.50,0.00,449.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,569581df952a227b201e6053477eeebb49abeb67172db93c897be3bed9738d46
+34568,2013-07-19,2802 L-10 2010 Ford E450 Bus,,"",2525.25,0.00,2525.25,Cheque Expense,34,QuickBooks,34,Heffner Lexus Toyota,8bc7ab449119201dde8c6fe61b933ef6c2e5d7eeef63590494b2cb3500e415c6
+34520,2013-07-21,2800 L-8 2008 Ford Expedition,,"",1904.76,0.00,1904.76,Cheque Expense,dd,QuickBooks,dd,Jack Carter,d0f2f56df733b2a7ff8efdc0274d2646fe8f8cf61aaf6d1a92953bb037f213d2
+34192,2013-08-01,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,4aa82d7cccb52b8674c21b6166fafd39b7353f5fad16514db2271f7372e00389
+34223,2013-08-01,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,7472fc793090f444287ce9e7a3bf53796f5efe03437593aa15f102943315f740
+34349,2013-08-01,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",449.50,0.00,449.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,816c6d6d5a2ca905d276e6c2d09f67ebe0d270c44b22d377f031201250684798
+34521,2013-08-12,2800 L-8 2008 Ford Expedition,,"",1904.76,0.00,1904.76,Cheque Expense,dd,QuickBooks,dd,Jack Carter,647bf818fb8457ad6a6f666963344f1f47e304d97371178b69d711709eb3a073
+34224,2013-08-15,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,db74969364953c93d8ef052813e0384d3b49cd4b470b8708da1a8817fbff1c35
+34350,2013-08-15,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",449.50,0.00,449.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,d989a66a8fd494ba1b10a86d79f87930e166736449359357faafe866da73db94
+34522,2013-08-15,2800 L-8 2008 Ford Expedition,,"",1795.86,0.00,1795.86,Cheque Expense,dd,QuickBooks,dd,Jack Carter,8fd9afa0000e02b6234b8edce41fee52900c2a54855d91949dcb7d00eb17f508
+34541,2013-08-15,2801 L-9 2007 LIncoln Town Car,,"",1405.00,0.00,1405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,03bbd91b300fc5d266561d33dfcf4a9f84eb7b68fe6b5e78e52fd15c23d099ea
+34569,2013-08-15,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,7f5c754f44eeaebcbf0bfb44927612e1fd522ee207d50a6f2152e4836525449e
+34598,2013-08-15,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,73fb3f8baf15c293b643334657340c4dc628c807e2fa18509c9537e2c23f8bba
+34193,2013-09-03,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,809ca456f1d828ad1a23d1f3a2423328b33192e2cc1648907607cd015060d15b
+34225,2013-09-03,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,5b7fecf77a356edb6fd7dafb0ad3c03692e3d3036cbaaf25f7179bdfd8d69562
+34351,2013-09-03,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",449.50,0.00,449.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,90c16f5782a6cc11922f3e6918e2e2d7986397f6cd2c7d03fb80a3798224d027
+34226,2013-09-16,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,9f834474cc77bcc36348a9ebaedc87afe5823dc0ac64fe67ffb1d118c6e16ca1
+34523,2013-09-16,2800 L-8 2008 Ford Expedition,,"",1405.00,0.00,1405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,dc77c9fd315702c1abf5b2bb8e0cbc663dfc3242296e52a14f7c8495c7d4d5af
+34570,2013-09-23,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,3974f37d4928c70c83b057a2dc448336e3ee12235172005cc13121a933546b61
+34599,2013-09-23,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,47100071922ae36b6d5643c5a969a600a31b94a995e2e475c4209e5f1b507112
+34227,2013-10-01,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,df6bda0698f3bf93ad4323d2231300f8380366ce69901501deffb503ba47a786
+34194,2013-10-15,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2590.86,0.00,2590.86,Cheque Expense,dd,QuickBooks,dd,Ace Truck,cf2a38d4a511ff01a4054f709dc96792bf2125ff700824f77e3fb12fa1856841
+34542,2013-10-15,2801 L-9 2007 LIncoln Town Car,,"",703.25,0.00,703.25,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,180eb91babbddc4ddb9948a9876e398d847e950683dac533bd002f4b2d7c9135
+34571,2013-10-15,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,ac959f38b6851ea893b9ab668c1f39c257b42c51bf3128e6ffb78be3bc5169b6
+34352,2013-10-25,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",871.31,0.00,871.31,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,295ae8e4e74d2e9f5e1e35000e8831929c6f6fa1faa32bbd98e92fc3f03b2700
+34600,2013-10-25,2803 L-11 2009 Ford E-450 Shuttle,,"",1833.81,0.00,1833.81,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,72e68e0f16155698588d5519f03f2e1b30b6a15aa9da5113fa21f3c8e37c245d
+34195,2013-11-01,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,788cbe63f222d1bfc1f9cd64be8af03fae049816ae96125ba5124b45ba100962
+34228,2013-11-01,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,931538cc755a276bf92f4204183a890708b4e8d235e8175dbca33e89424c929a
+34543,2013-11-15,2801 L-9 2007 LIncoln Town Car,,"",703.25,0.00,703.25,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,5e2edc9fc50f5b1245aa70ceadcbff1c9a3d016feb998231654ee0486efd0fdf
+34353,2013-11-27,2508 Leases and Loans:L4 2007 Lincon Town Car,,"",871.31,0.00,871.31,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,69f3ddb54cc7fcff9d21344cf5cbd1b3f3e5407d8a8185758fe8c4a380b71d58
+34572,2013-11-27,2802 L-10 2010 Ford E450 Bus,,"",2428.81,0.00,2428.81,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,fcb2f6c2609a2fecbadb1e8bd15efac1901817d874c5957667b7dfc9d145ad14
+34601,2013-11-27,2803 L-11 2009 Ford E-450 Shuttle,,"",1833.81,0.00,1833.81,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,fb2a77d75fe6eb1db84c273141c2306281a6f7d3bd87a00afa44dfddab263199
+34229,2013-12-09,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,4e65b72a739ffaf1680c7782c7df475d9e3a086fb2aa62afd6f347c550ba08dd
+34196,2013-12-10,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2590.51,0.00,2590.51,Cheque Expense,dd,QuickBooks,dd,Ace Truck,d129f8beffd486bbcd8dd5b4f160d4f3fe148b6b1ba4238c1509fcadbdf51ef3
+34230,2013-12-16,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,95bfae4f59938cb7cc417d100c3b8473fc0df6ed3077b936aad0ce25e443c17f
+34544,2013-12-16,2801 L-9 2007 LIncoln Town Car,,"",703.25,0.00,703.25,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,dabbec114451333128d03453f1c1ae2646fcf011dd0ad32c2759f14035081755
+34573,2013-12-16,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,47d44d91b2966888f5986189154fe8ab37f406249383fa6d3205bb84af1ebf8a
+34602,2013-12-16,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,68bda83f920afcd34b3b6252bf0a198b7bb4d30144cca702492b2820bbc7de76
+34197,2014-01-02,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,014c792e7fbf10372bf8be894b92703643fb4b11e776ec45fb20b78b7cd143b4
+34231,2014-01-02,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,3b7422787209db60d8f3feaef4d3806699d3699ba338aa130b58f25d0a7643fd
+34574,2014-01-23,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,f55731058877597d42073b79ef7f8e7a91782fa241f7b82a883e1239a8236d82
+34232,2014-01-27,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,299f4b9fc021f4df8b7afac07d24db1c2d02a84c4d30362737b6117842c80552
+34545,2014-01-27,2801 L-9 2007 LIncoln Town Car,,"",703.25,0.00,703.25,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,2a12eedcb9b87f0dcd508c989efcecae0bbb9f06edef01e0d856b3f77c86a5be
+34233,2014-02-03,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,32810dcb8e2a35b18806a847f11580fdbb8181bac6de90ee28e46d7735f21f19
+34198,2014-02-06,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2590.86,0.00,2590.86,Cheque Expense,dd,QuickBooks,dd,Ace Truck,4d384bb650a90b060ca0b03cb60ebfe2c83f78ecc2a75b0a111dcb558c4c4039
+34234,2014-02-18,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,f67ef1fb7684859cf6f1bffed1273cbef19a8da7cfdbe8fa979965db5b14e389
+34546,2014-02-18,2801 L-9 2007 LIncoln Town Car,,"",703.25,0.00,703.25,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,d2d45e1d65426f659e7c7c03f571796c81f11c8d5323f42c1566bfa84d45f2af
+34603,2014-02-18,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,95dc9dc301574bba3c7733b9cf82db88b859593a885665b11c2089d943220b88
+34575,2014-02-24,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,EMT,QuickBooks,EMT,Heffner Lexus Toyota,a56e656f1371baf0bad3e4694e2c07832faa015b59ae7645fcb13af5dcfd4073
+34199,2014-03-19,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2590.86,0.00,2590.86,Cheque Expense,dd,QuickBooks,dd,Ace Truck,b984c4e42ec3d921819d19c60af7ef2c82ebe30535ff0eb470fbdadf8eaa299c
+34576,2014-03-21,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,EMT,QuickBooks,EMT,Heffner Lexus Toyota,b1026b387bc6399848a4db22cd14fa525ee37abe292ad9dc88c57916774afbbf
+34604,2014-03-24,2803 L-11 2009 Ford E-450 Shuttle,,"",1810.00,0.00,1810.00,Cheque Expense,EMT,QuickBooks,EMT,Heffner Lexus Toyota,fb71fb7e51ff2e2934c7e3773c9974274966886dbc7f568e5f212ff1f2e93732
+34235,2014-04-01,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,298c0a44d8ddf04bb08412795916120ddd691b167b35dafcf26ed9f1bb8ffd78
+34200,2014-04-08,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",1142.86,0.00,1142.86,Cheque Expense,dd,QuickBooks,dd,Ace Truck,bd4075e461f9b8b413b09baeef7296f7eaf307155516ecafd0aa445faa65ca25
+34236,2014-04-15,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,2b6211d69b93859f44f0bbf86cca3a1fed6c1a39f24784f55d438c98ff030ebe
+34547,2014-04-15,2801 L-9 2007 LIncoln Town Car,,"",703.25,0.00,703.25,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,41f210173041ae9db3e5112dbf3a015e539511c7851253c304c04ca381f2f010
+34577,2014-04-17,2802 L-10 2010 Ford E450 Bus,,"",2405.00,0.00,2405.00,Cheque Expense,EMT,QuickBooks,EMT,Heffner Lexus Toyota,e09656facca70ff24cc5ac5a030c13a11f091c98fd551fd2dfc2af98d4ceae57
+34237,2014-05-01,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,5a773c60216a5733af40fa85da6c32d4f883d91b1907c5b877e21f9e032a4e21
+34201,2014-06-02,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2567.05,0.00,2567.05,Cheque Expense,dd,QuickBooks,dd,Ace Truck,d69a8fd0763deb464171b1fe9bb76dc963a8b14304f8f0cc446373f42287f832
+34238,2014-06-02,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",847.50,0.00,847.50,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,fb3c268e2de7757ec5fef0fe3b7491498564e7981a239558946a2a938e2b9588
+34202,2014-06-27,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",1520.00,0.00,1520.00,Cheque Expense,cash,QuickBooks,cash,Ace Truck,79bb0db93ac290d4e1184e4452bed7a30164e0f9aaf8bf23a28686c233555bca
+34203,2014-08-20,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",5205.52,0.00,5205.52,Cheque Expense,dd,QuickBooks,dd,Ace Truck,55d334e499fdf1f8c00799fe39cc2d9588aa9474feb8587477d4c5152e9bdfd4
+34204,2014-10-07,2506 Leases and Loans:L-14 2010 Ford E450 Limo Bus,,"",2019.43,0.00,2019.43,Cheque Expense,dd,QuickBooks,dd,Ace Truck,ab06cbbd39eed99465373ecbd595b8da0973dc2f4c365277744a9e25b3ec3676
+34638,2014-10-31,2813 Cap Lease 03 Ford Excurs 799.03,,Purchase 2003 Ford Excursion,0.00,24000.00,-24000.00,Journal Entry,,QuickBooks,,,f0de91178aec56a7b436ce78297484c4a52514727894c354a496a63ea778b63d
+34639,2014-12-17,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,3cd018dd4baf551a7c43fb3c1076e37742f7db1b23800b64136142373e725742
+34640,2015-01-19,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,76f89f6f385d51d536e96bdbf6eaa14b358bf8101a075442896d46bc39701f01
+34354,2015-01-27,2509 Leases and Loans:L17 - Bus,,"",306.00,0.00,306.00,Cheque Expense,EMT,QuickBooks,EMT,Keith Dixon,dd85b3a6aad76fdd6788b1b64d7b58a12f6cdf0968719bc39441004c869a5231
+34641,2015-02-17,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,eebdb9c5537f72e095476d5ac333fd78b12bf17532b63ce6172efee83f400d50
+34642,2015-03-17,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,81587a1db62b0d1a2e3aee3ba440ac2885ac1eb859669fd75916e6f6c570f968
+34355,2015-04-30,2509 Leases and Loans:L17 - Bus,,"",306.00,0.00,306.00,Cheque Expense,EMT,QuickBooks,EMT,"Dixon, Keith.",ec0e070199ba8024624b7fedcfdd4528aa5e33faf12a6fd3d48fdf4773ce7e1f
+34643,2015-06-17,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,a6517626e4c4d2e2af619bff76be41cc974d532bd7a0b38fd69d3dfcefb07e25
+34356,2015-06-25,2509 Leases and Loans:L17 - Bus,,"",612.00,0.00,612.00,Cheque Expense,EMT,QuickBooks,EMT,"Dixon, Keith.",3474f7f2b52e712becd12629c3c17df6a33a1a68ab39e37b2efacd9ad609d4e7
+34357,2015-07-16,2509 Leases and Loans:L17 - Bus,,"",960.00,0.00,960.00,Cheque Expense,EMT,QuickBooks,EMT,"Dixon, Keith.",b6fadcd6e611f59edb2b25a68591a4b382c8ed27bddf171db580755e415dac84
+34644,2015-07-17,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,c5a9f18a79655640d508b2477fd002875141a03fc1d145258972cde569b94269
+34645,2015-09-17,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,92928d9cc45121b0bcd530c258f60d9c619b10e36ba37abc841fa0720bf995dc
+34646,2015-10-19,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,12ad3366ef84bfa78e117520232500859952c7fe241240fc6ac86f9b7712fd56
+34358,2015-10-26,2509 Leases and Loans:L17 - Bus,,"",306.00,0.00,306.00,Cheque Expense,EMT,QuickBooks,EMT,"Dixon, Keith.",1c8c0c40621357606994f9794af24cbd50091c7ca78b3c0716c91e0e374a0b34
+34578,2015-11-17,2802 L-10 2010 Ford E450 Bus,,"",362.58,0.00,362.58,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,d8bca49b79cedf85df72ac41d61eaa71c88c5b41a82a57e4ffe9fc544747a382
+34605,2015-11-20,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,ac6f3a7e4f9a6d27d0f3f105bae5b8e761a49e49ba7e28edf3d7e2a59faa69aa
+34239,2015-11-27,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,1692c4f15835dcbfca2ece8345eb25f8a826c70ac6ed8357d353348f06afc12d
+34606,2015-11-27,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,1753286b01bfcbd8736f88f1e646ca761db12d37d08a253b73cb81b88b64556c
+34240,2015-12-04,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,385e9bb8f98c2c2c5acf042c14351825bb6fd9bcaa88b00342335dfa10914430
+34607,2015-12-04,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,0e3f9f91406490ccee08e7ce66058c50f001914ca4fb462fc69ccaab03a34e6e
+34241,2015-12-11,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,02367b9db45c0bf0c0328c69bdc2a401a7bce78b449b32aca920d20867e67d01
+34608,2015-12-11,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,a8a73a2293a48cc4f0333d9171e9057029f45c77c07b5b3303dcc70ed841e393
+34647,2015-12-17,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,b334747ee0b5e4dfa9e84a905f0b647a74bd7865bd9174abcb3c5eda5aa71731
+34242,2015-12-18,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,2d21f1e83906071856df6e60ffb7b19453d03a02f41d26fb2f9db1546702c88b
+34609,2015-12-18,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,7c4e714acfe5631c0de04157766e436c2e7f6339a1e8f211a8c0f0aef9aae7bd
+34243,2016-01-04,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,65119dd598439f4329e52b0e8e0efdc735b29ac615dc4837c35b7a7b8f6f58c8
+34244,2016-01-08,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,aa5dc0681ec394e1f7fd6c69522fbb566108f57a98ddfb3570b591d0f9af5bd8
+34610,2016-01-08,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,b8bee28cbc6d6ee8dfaa521406af2f948789eb8ed3511fa34aabdfe93ec0761a
+34245,2016-01-15,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,624b20fc1e7f4a6ad588dab8fb36375d58d188d5f1a85dbccdf26fa400dd5c21
+34611,2016-01-15,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,7dbe69af09133ee34650d2896adff9823bfea1715225b4b67b129f30c8c5cf98
+34648,2016-01-18,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,2a8e8c3b532e99477ca09ee5e305f3423d12406507a515c5c810c6adb35d732e
+34246,2016-01-22,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,a02f1f8e5b6e0525b542bb5e97987d468afe2cb3d701b7426d5b2ba5bb60cf2a
+34612,2016-01-22,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,ee2ff41a227ab0ddea0c5043181b43982dbee792fd74d4768a3d8142213b6d1d
+34247,2016-02-05,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,93b01960e9f660f6d8f53b30ed06bb2003a984583253ebfe255b4b645afee8ba
+34613,2016-02-05,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,366238a509b993dcfc539c028ba9a9f1042c53dfe148299ba6532fae4536d75e
+34248,2016-02-12,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,6da130a4cc78fa3fcbfb00effdeb0b535bc2f0b004331dbc6b52a9fffc827ed7
+34614,2016-02-12,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,2f02cd54cf826cfc2f44f2b4d8149e6edc479d8a1d54c50a41575094a6c8e916
+34649,2016-02-17,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,fe51299159a6a3286385ec42651f82a99904d7bf3026f4ef0e6f53487f242ac7
+34249,2016-02-19,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,9e75ea92aac3be85a1e67273fc7e5815bfd915ae9d2f7da56a7d7e8ddf66d8a1
+34615,2016-02-19,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,a99ba6890f75e7e01afcefcb990e2059404286a309f39884321555f311912117
+34250,2016-02-26,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,1267365bda60974f2d1e7cdf059b47eb5c48d2ed0f7b7132a49a7c70f40c7293
+34616,2016-02-26,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,48a8c17af486f4cad7e9af23c0b35afb87f1a9c7d0d1c06a7c271b300fced709
+34251,2016-03-04,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,3fc438bf4f45412e0c3c7e787db243d5bad3d57f4a6513fc77bf92c5f1b01d41
+34617,2016-03-04,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,08142be8a5aaf9b862fe31790006636655c080ebc22b59904269d43bb2ea7787
+34252,2016-03-11,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,c0e4fb214fe96015ed9b3a562a57f5c9ec5711095faab31d0d03050282160b13
+34618,2016-03-11,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,af08d2f2ee4e8c3a8ca0322477602b481f30dffea9067e47f6619705b5fb65a6
+34650,2016-03-17,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,37551dfcb2bfea6722e8fea37de2b4fb09ff86c255493be7cf7d483a9191908c
+34253,2016-03-18,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,3893a973373f06087e844d835dadebd82c727c15b2c6204c06875e72bd959521
+34619,2016-03-18,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,7e867b72545271a29099ffa2eab6cff18f617793131f4d6c60a3b82e34b69e97
+34254,2016-03-28,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,a85e4b66880f0294223425513903c2572b63d26e0ae3a8438da46ab122b001f5
+34620,2016-03-28,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,2c46b71d5e11ef68bcb10d56ab898f1b2c9fe2a793d22eda3c00ea33364eb222
+34255,2016-04-01,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,d3fe09988639ea7e2ba9722628b6e1db4477e3da36033a8f1a2d7c394e3db472
+34621,2016-04-01,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,dcc9b5e72e6152e22811811b99b6252537f0a3d9ea21e0eba003b982d465e8ac
+34256,2016-04-08,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,ba0bca5b2f1c030810e95254858737fe1fe4625e69b52a847e250f705e6d3ec7
+34622,2016-04-08,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,4ee91a200becbfde6224a6418276e00ed5175d5b622748f3b751703dd32b61d5
+34257,2016-04-15,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,2c7532c3fa2d0e550469cb95114d6ba4be8d71a58dc759aaf3d7af928097d336
+34623,2016-04-15,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,cb08aa6e489ed4df4d7297d7bfb4eca4c6911bf0e45574c400c2fa5b42b1be6b
+34258,2016-04-22,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,c0af7b4c2ae535429a77a71ff655543665f00a7f07ea18212c2a064cdd367cfc
+34624,2016-04-22,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,01d480fa84a6617c68c6fdea6a64b88cdaab49b66238adfd711456a35023c433
+34259,2016-05-06,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,23492274ea1e78269ba85500f3c8ba0c3162e7f91cdffab275c0b2a183d4b02e
+34625,2016-05-06,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,f26f42a00d51bd6c2a8044a39aa3a10113563d3629948b86924fcd381caf927f
+34260,2016-05-13,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,49be38376043e90cf752815ca4a1a7553d7699f8bdf6c3893beca5fbaace6cc1
+34626,2016-05-13,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,f642c6e2cbd2562b3f2ad34b245394e9daaed2e027cd960e3332fe8501cacfd3
+34651,2016-05-17,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,c6b1918099785025fa3596a5c59494e60316488e43e8041069e12d36a10c7275
+34261,2016-05-20,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,e5a3156096abf30b020dd021c37bb23a95b6e341df831edf84098c141a7d5916
+34627,2016-05-20,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,60235486a850b5cdd29d9ea553b747ce659b2a8bf8805da75b0521b1ea7d6f99
+34262,2016-05-27,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,b7c1d813114f398177659af492af207aef8f87e24659c7bc3bcebd6a2540d21c
+34628,2016-05-27,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,6185311c77a5ada475cf8a954519e0be621ebcf9c36ecd759b131dc7c8304958
+34263,2016-06-03,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,a5fa8e06bf351c6ffe9e5d886ff0d0d0b96c632d629a9217c1f153fe43a4d92c
+34629,2016-06-03,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,4d4cd5b4126c3349e05dde45e34c23e9bd16b4dec6c3f3f3bae8d2c9f6be515e
+34264,2016-06-10,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,1149ad434381ce9d4953b5005578b63a535d1fc50caf17407e23946ef0fe49b6
+34630,2016-06-10,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,58fcfa3d7a0edd7cdf65b8e92bf780c38d37054350be22c317759ba6a2df0a10
+34631,2016-06-17,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,04766e88afd137b34066b0ebbaff2bb0e86538e009dcdcab042110bffd59d34c
+34652,2016-06-17,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,744b075af1634653249cac2f54d302d3da64b48be32e017e0a0a1f48ef9122dc
+34265,2016-06-24,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,88a7008a0f9042a51e99bd058999e5727354e0ffbd5519ffd51bffaff74d3c2d
+34632,2016-06-24,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,8624c0d7dff1812a76ddf95eb83c768d82ae029d6f0d5f39c62d6ec32d150648
+34267,2016-07-04,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,0be769e5fa29c6c1a8c486888a4a7ee6dd9035bb026581248c77a8bf8c8c3d15
+34268,2016-07-08,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,cbcc2529adb1efd751d8414110c837cce1b018fc50dce1e4d90f389aae7e4bcc
+34633,2016-07-08,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,c2a50ab852e58bcaeb8ddf9b1c2361b030bbf7b2891a7ce2c26f281a0cc7a4cc
+34269,2016-07-15,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,e175abbc35b3bdc23257b1b4718b17d7ccbaf836f46d381a151b88389417a1aa
+34634,2016-07-15,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,cca06a408fb665ec117267e0723faea15635c086c732acf58bc692f4b3adcb16
+34653,2016-07-18,2813 Cap Lease 03 Ford Excurs 799.03,,"",760.98,0.00,760.98,Cheque Expense,dd,QuickBooks,dd,Woodridge Ford,742b09740644b399ff4d52a83003f6bf1360ce52632d522bc2fb14ba33a30d5b
+34270,2016-07-22,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,8a54261e406cf58bb070df6a5aee3bd53b4a0b5ff90764d8077de47d75ed84f7
+34635,2016-07-22,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,1691e1c235864cea4571f5d7903c206261543829187899ffe6f786e6e81777ab
+34271,2016-07-29,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,ebcb8f2d2502f3d3777c638057fe595be93ba979434a1dc0d989a5b1c3472e51
+34636,2016-07-29,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,4de77fe63fa169a44058a7e264039cfc8eecec0525cb3bd83a5aff184679a86b
+34272,2016-08-05,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,9dadd39fe456959a0e8b4fbe9c98a0e342705891766b4b88e3dda0bfc37e44c3
+34637,2016-08-05,2803 L-11 2009 Ford E-450 Shuttle,,"",417.70,0.00,417.70,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,05d4171c0907d0822e60d92fa6c3e3ef109567e5e7badcb5ffc88a0170cbe7f2
+34273,2016-08-19,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,5f614d9e7c1fb0b6a864723a88847990b49c0aa2e8cce352a0ce8926c5f38b92
+34274,2016-08-26,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,06fe3aa2f2223e3a8ce33289636b0a5fb3ed4cf13adb2901ea1f764e0ae41ece
+34275,2016-09-02,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,a24aea66439a3d9ca4890451131af2d9366794ad5e165b3f51cc6c64a7494526
+34276,2016-09-09,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,4dc044f9105e1bedb118d68274d361d883a0503ed4b9697d193d088827d8a28f
+34277,2016-09-16,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,3d6736d81887e54a321949052ced4597415bbb2c4f01356c256ef48106867177
+34278,2016-09-23,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,32c28a7fd11bed6d55810e6084fc79f32ba6a86673d4d073df84aaeba63f4f62
+34279,2016-09-30,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,be1b72342270af31f313588c78e3f84666d58b0967bf82d6d144cd9bc2b3eff2
+34280,2016-10-14,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,b5aab7d940e1a93115b0b96f0a22c4542ebd7166cd87feea747b1c309656a583
+34281,2016-10-21,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,436816d37034edb25812b70632215ea5acddf96103dd80d0e9c4d44ef03efe7e
+34282,2016-11-04,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,0233bf35259726cca005f7baf8ebaadd8419190e5ed9aefd05c21fcdc1485dc9
+34283,2016-11-18,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,414034d7a3357610d3b351eba2a243cd90a619d2d3013247ca0c6280cae29011
+34284,2016-11-25,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,360f8860e19683466657b860c843b2009ef7e14c5f4f105c900f49aba1ee324b
+34285,2016-12-02,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,5f268049bf1ce6335c815f9426b474e0078aa1660cf5dee56c2d3c5c09e5add0
+34286,2016-12-09,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,ff76a436779913fd2732785178464918bde558e9c439231e69a2fca427ae24ae
+34287,2016-12-16,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,5b01da79562958cef53938970e6ff23e0709dc99f9591492f0462ad01de290e6
+34288,2016-12-23,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,5400e0415a2c2d8ac49fce79a12d07c032a8af9d8bf955ac220a566d497254f8
+34289,2016-12-30,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,8bd48f6c0f19243d230c60c4a3c0705d643fe3ebcee71466514085add554ef06
+34290,2017-01-06,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,eb5eda4189a0108b6bc9851442742af67f69988172c87e79690c4f36acf62c1b
+34291,2017-01-13,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,064c8ac39c4939f9551d5a991e0b136fd38752abf4b2725006a61fd6a7b6b7d9
+34292,2017-01-20,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,f0f3358be244d2d2af40b666c4c57a91f2f3d3140beff4886e4480fda1849a46
+34293,2017-01-27,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,8ef0dc0b46cf6655a1ceb1f2ebcc109eb9a6be7a195917750739f2d7fe72c980
+34294,2017-02-03,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,8c55b20baac5c03446f7661b562953391dff16393c97bba756e36ddced60e647
+34295,2017-02-10,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,dafa2028e3bde9e42bc0139e32a64a72bdfdde5ae17314075410cbea761d837d
+34296,2017-02-17,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,b730690bae75e377333bf9a9f0bf8b33d56a1be88c268693692d788ced3f775b
+34297,2017-02-24,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,3ac01a65979d4f981166cf01450f672e6cfc4506ede30d7f8c25772273252da6
+34298,2017-03-03,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,5fafc88110d7e992507c0fcb7b56b6fd86723c1faf1c4e30071ef05878bc2a6b
+34299,2017-03-10,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,5b28554681bc811dd98c71829f132bf13c6db88f2385ba3534e123ded5bb227e
+34300,2017-03-24,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,c864b233f6524f5817fcc2ab1d6b1ccaa50990e27ff50c66d225621ab43b4327
+34301,2017-03-31,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,ce00459c7866ec2479c24bc86260df58d8d6cafca121d75e779fceb844a0932a
+34303,2017-04-07,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,e94afaaccc06f8a2f9c4fa800288ed68d29d02e4f86bcf253a699b0da2496777
+34304,2017-04-21,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,da3feaee2f2155bf82cd060992ee9e40e6f0702576b0907e0efe670c7baff886
+34305,2017-04-28,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,0bd345f287e2980238145f200557d8738875ac1d8de80da7102ccca0915fa0de
+34306,2017-05-05,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,23d962f296f9af8c2540ffbb26a313a71728d79282d3fabce3ce4ea38b115981
+34307,2017-05-12,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,5472aee68d574f42b66cd0335e7ee9172c07de1095c96aafc99c6c9f1b68ff21
+34308,2017-05-26,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,9ede893c1343cf530cda2e518e8901841e5f6504b38d08439e0a0d819cbbc0bc
+34309,2017-06-02,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,5cfd05b7c1b428004ca6c5e075d7f2fde3a227534a424cb779a9d8164534b2c3
+34310,2017-06-09,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,aec2b08ef9183a03710dff4150a5837bb1f20de033b5012bb407fbd4b6132650
+34311,2017-06-16,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,f46d89f39325cf9c1b56f0c8faffe13a04aea613fb8845cfb992ac77d9a3dc1d
+34312,2017-06-23,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,83816ff7e3c154b442041ee2f14f4f03cec2bce9ac370e6563a94ce366227fee
+34313,2017-06-30,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,f9a4e2294a6a7faae32d72094b194c28026b884d6f4110949049b1b272e7de45
+34314,2017-07-07,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,f0898c2678fb4e1cc5460ed17423fee5ce84b46d58a8d26f82b0f4f302b3ae26
+34315,2017-07-14,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,91d60927cb61b0ba2c7edf2fb11863ef49be113d36fedade4f8afb5f499771d0
+34316,2017-07-28,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,7c854b8a428304b61199478217862c65848340e0c304893743b3fd0310c704e9
+34317,2017-08-04,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,609f9ffbe10f4c361e8f1abaa416029fce479a72a8bebc8070086b0d21d05c6e
+34318,2017-08-11,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,ac0b4efe47686342b9b55511476bc5d3e68591476a66776968d08478c4b6c991
+34319,2017-08-18,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,105f3aae22866ca55c04d3ccc673bdb2ef1b34d2ccc15c076f87c6f938de3eb0
+34320,2017-08-25,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,d73862a57fe1dcb2c74ea17319fbcbd2657a13790d9e56cdf24ec5c555587d25
+34321,2017-09-01,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,56fb6726cfd7c6d6f8715efebea2c2955cdedef24258316151de106d295b83cc
+34322,2017-09-08,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,04017538b812fca928c409df1880bad52b899951abbad7f08e6319f41bea496b
+34323,2017-09-15,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,7d343d5aa857420bb2da61a5f755594cfd7d1e4fffaac846ad7b25ff34a4e746
+34324,2017-09-22,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,687f1a1b0eb70581e718b2d2cdfce1dac08a6906291f0d0fde146202ba0f63c9
+34325,2017-09-29,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,5beafe1d6fc0d7005ebd5b1e90db1c79d0c4759809c4664df31984dbad35ef55
+34326,2017-10-06,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,9fd814fea8cf42efa1523d9144c54b178250ee89011657e78666d54d45d169ff
+34327,2017-10-12,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,5ed63b2631b9ccf22fdf511bd1da6f1b218035818662063cd6a813b900385a8d
+34328,2017-10-20,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,c477f1b2a601b7094be474a50717ed70161aaff5bf5e56ddf7cfcdd2b3f05ef6
+34329,2017-10-27,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,f9973b0c1c40b2aec3208e71b587b8cab3e34c3667f6febc0f3a06a09c3d4b31
+34330,2017-11-03,2507 Leases and Loans:L-15 2012 E350 Limo Bus,,"",391.15,0.00,391.15,Cheque Expense,dd,QuickBooks,dd,Heffner Lexus Toyota,14ba0c789c7a66723c3b7bffd945580bce83ffbc88478abb2655eff618863120

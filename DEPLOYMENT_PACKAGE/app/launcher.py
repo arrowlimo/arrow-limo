@@ -5,6 +5,7 @@ Simple launcher for dispatch computers
 NETWORK DEPLOYMENT: Works from UNC paths (\\\\Dispatch1\\Y\\ArrowLimo)
 """
 import os
+import runpy
 import sys
 from pathlib import Path
 
@@ -66,13 +67,13 @@ z_drive = Path("Z:/limo_files")
 network_path = Path(file_storage.replace('/', '\\'))
 
 if z_drive.exists():
-    print(f"      [OK] Z: drive accessible")
+    print("      [OK] Z: drive accessible")
 elif network_path.exists():
     print(f"      [OK] Network storage accessible: {file_storage}")
 else:
-    print(f"      [WARNING] File storage not accessible")
+    print("      [WARNING] File storage not accessible")
     print(f"      Expected: {file_storage}")
-    print(f"      App will work, but file uploads may fail")
+    print("      App will work, but file uploads may fail")
 
 # Launch main application
 print()
@@ -88,8 +89,12 @@ if main_py.exists():
     print()
     # Change to desktop_app directory so relative imports work
     os.chdir(str(desktop_app))
-    # Execute main.py in current Python process
-    exec(open(str(main_py)).read())
+    # Ensure desktop_app is importable for local modules (e.g., app_logger)
+    desktop_app_str = str(desktop_app)
+    if desktop_app_str not in sys.path:
+        sys.path.insert(0, desktop_app_str)
+    # Execute main.py in current Python process with proper source decoding
+    runpy.run_path(str(main_py), run_name="__main__")
 else:
     print("=" * 60)
     print("ERROR: Desktop application not found!")

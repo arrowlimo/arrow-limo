@@ -1,0 +1,32 @@
+Unlinked Cash/Reimbursed Receipts - Classification Summary
+================================================================================
+Total rows: 1567
+
+By bucket:
+- petty_cash_business_likely: 559
+- fuel_cash_likely: 430
+- liquor_cash_likely: 310
+- employee_reimbursement_likely: 245
+- vehicle_maintenance_cash_likely: 23
+
+Top 20 vendors:
+- CENTEX: 308
+- LIQUOR BARN: 184
+- MR SUDS INC.: 86
+- RUN'N ON EMPTY: 61
+- ESSO: 60
+- PETRO-CANADA: 42
+- FAS GAS: 42
+- MOHAWK: 40
+- SHELL: 37
+- LIQUOR DEPOT: 32
+- CANADIAN TIRE: 26
+- SUPER CLEAN: 24
+- JUMBO: 22
+- COOP LIQUOR: 22
+- COOP: 22
+- CALGARY AIRPORT AUTHORITY: 21
+- FIBRENEW: 20
+- SOBEYS: 19
+- CAPRI LIQUOR STORE: 18
+- FLYING J: 16

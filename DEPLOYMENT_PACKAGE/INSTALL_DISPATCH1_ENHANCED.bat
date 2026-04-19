@@ -247,7 +247,7 @@ echo ========================================================
 echo.
 
 REM Use PowerShell to create shortcut
-powershell -Command "$WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\Arrow Limo Dispatch.lnk'); $Shortcut.TargetPath = 'Y:\ArrowLimo\app\START_DISPATCH.bat'; $Shortcut.WorkingDirectory = 'Y:\ArrowLimo\app'; $Shortcut.Description = 'Arrow Limousine Dispatch - DISPATCH1'; $Shortcut.Save()" 2>nul
+powershell -Command "$WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\Arrow Limo Dispatch.lnk'); $Shortcut.TargetPath = 'Y:\ArrowLimo\START_DISPATCH1.bat'; $Shortcut.WorkingDirectory = 'Y:\ArrowLimo'; $Shortcut.Description = 'Arrow Limousine Dispatch - DISPATCH1'; $Shortcut.Save()" 2>nul
 
 if errorlevel 1 (
     COLOR 0E
@@ -255,7 +255,7 @@ if errorlevel 1 (
     echo.
     echo Please manually create a shortcut:
     echo   1. Right-click Desktop ^> New ^> Shortcut
-    echo   2. Location: Y:\ArrowLimo\app\START_DISPATCH.bat
+    echo   2. Location: Y:\ArrowLimo\START_DISPATCH1.bat
     echo   3. Name: Arrow Limo Dispatch
     echo.
 ) else (

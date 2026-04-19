@@ -1,0 +1,10 @@
+Unmatched GL->Bank Verification (with receipt evidence)
+==========================================================================================
+Rows verified: 40
+- DIRECT_MATCH: 1
+- NO_BANK_EVIDENCE: 38
+- RECEIPT_ONLY: 1
+
+Detailed rows
+------------------------------------------------------------------------------------------
+2014-05-13 | Fibrenew | CHQ:359 | 1706.25 | DIRECT_MATCH | bank:80149 1706.25 CHQ 359 FIBRENEW | receipt:140269 1706.25 CHQ 359 FIBRENEW

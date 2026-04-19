@@ -1,0 +1,50 @@
+{
+  "CRAauditexport__2002-01-01_2025-12-31__20251019T204151.zip": {
+    "tx_block_count": 0,
+    "id_tag_hits": 0,
+    "id_unique": 0,
+    "id_top_tags": [],
+    "date_tag_hits": 0,
+    "date_unique": 0,
+    "amount_tag_hits": 0,
+    "amount_sum": 0.0,
+    "amount_min": null,
+    "amount_max": null
+  },
+  "CRAauditexport__2002-01-01_2025-12-31__20251019T204759.zip": {
+    "tx_block_count": 0,
+    "id_tag_hits": 0,
+    "id_unique": 0,
+    "id_top_tags": [],
+    "date_tag_hits": 0,
+    "date_unique": 0,
+    "amount_tag_hits": 0,
+    "amount_sum": 0.0,
+    "amount_min": null,
+    "amount_max": null
+  },
+  "CRAauditexport__2002-01-01_2025-12-31__20251019T204924.zip": {
+    "tx_block_count": 0,
+    "id_tag_hits": 0,
+    "id_unique": 0,
+    "id_top_tags": [],
+    "date_tag_hits": 0,
+    "date_unique": 0,
+    "amount_tag_hits": 0,
+    "amount_sum": 0.0,
+    "amount_min": null,
+    "amount_max": null
+  },
+  "CRAauditexport__2002-01-01_2025-12-31__20251019T205042.zip": {
+    "tx_block_count": 0,
+    "id_tag_hits": 0,
+    "id_unique": 0,
+    "id_top_tags": [],
+    "date_tag_hits": 0,
+    "date_unique": 0,
+    "amount_tag_hits": 0,
+    "amount_sum": 0.0,
+    "amount_min": null,
+    "amount_max": null
+  }
+}

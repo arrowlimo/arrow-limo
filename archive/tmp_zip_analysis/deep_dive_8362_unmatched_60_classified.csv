@@ -1,0 +1,61 @@
+txn_id,account,txn_date,side,amount,description,check_number,receipt_id,reconciled_receipt_id,reconciliation_status,category,bucket,recommended_action
+96306,0228362,2012-01-04,credit,260.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96325,0228362,2012-01-09,credit,1600.00,DEPOSIT,,,,unreconciled,,generic_deposit,review_source_then_keep
+96465,0228362,2012-02-16,credit,627.50,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96519,0228362,2012-03-05,debit,31.00,ETRANSFER Paul Mansell,,217890,,payroll,,transfer,review_counterparty_transfer
+96535,0228362,2012-03-09,credit,25.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96604,0228362,2012-03-31,debit,36.50,BANK FEE,,217594,,unreconciled,,bank_fee_interest,keep_8362_bank_charges
+96616,0228362,2012-04-03,credit,241.26,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96769,0228362,2012-05-22,credit,317.24,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96770,0228362,2012-05-23,credit,198.23,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96771,0228362,2012-05-23,credit,175.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96772,0228362,2012-05-23,credit,2383.75,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96773,0228362,2012-05-24,credit,205.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96774,0228362,2012-05-24,credit,200.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96775,0228362,2012-05-24,credit,250.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96780,0228362,2012-05-25,credit,500.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96781,0228362,2012-05-25,credit,705.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96782,0228362,2012-05-25,credit,494.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96784,0228362,2012-05-28,credit,175.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96785,0228362,2012-05-28,credit,205.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96786,0228362,2012-05-28,credit,654.69,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96789,0228362,2012-05-29,credit,2018.25,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96790,0228362,2012-05-29,credit,235.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96791,0228362,2012-05-29,credit,580.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96792,0228362,2012-05-29,credit,678.75,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96793,0228362,2012-05-29,credit,772.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96794,0228362,2012-05-29,credit,1992.73,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96795,0228362,2012-05-29,credit,500.00,DEPOSIT,,,,unreconciled,,generic_deposit,review_source_then_keep
+96797,0228362,2012-05-29,debit,4.95,GLOBAL SYSTEM WITHDRAW,,217578,,unreconciled,,card_settlement_withdraw,keep_8362_card_settlement
+96799,0228362,2012-05-30,credit,205.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96800,0228362,2012-05-30,credit,450.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96801,0228362,2012-05-30,credit,1000.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96802,0228362,2012-05-30,credit,675.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96803,0228362,2012-05-30,credit,600.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96825,0228362,2012-06-04,debit,86.00,WAREHOUSE ONE,,218028,,unreconciled,,other,manual_review
+96850,0228362,2012-06-11,debit,9.65,GLOBAL SYSTEM WITHDRAW,,218042,,unreconciled,,card_settlement_withdraw,keep_8362_card_settlement
+96851,0228362,2012-06-12,credit,1325.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96855,0228362,2012-06-12,credit,361.85,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96856,0228362,2012-06-12,credit,2233.79,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96858,0228362,2012-06-13,credit,269.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96872,0228362,2012-06-18,debit,1061.50,GLOBAL SYSTEM WITHDRAW,,218051,,unreconciled,,card_settlement_withdraw,keep_8362_card_settlement
+96874,0228362,2012-06-19,credit,500.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+96977,0228362,2012-07-31,debit,35.48,BANK FEE,,217603,,unreconciled,,bank_fee_interest,keep_8362_bank_charges
+97018,0228362,2012-08-31,debit,35.01,BANK FEE,,217607,,unreconciled,,bank_fee_interest,keep_8362_bank_charges
+97020,0228362,2012-09-02,debit,115.18,CENTEX,,218115,,unreconciled,,other,manual_review
+97059,0228362,2012-09-24,debit,30.00,IFS PREMIUM FINANCING,,218138,,unreconciled,,other,manual_review
+97068,0228362,2012-09-30,debit,40.45,BANK FEE,,217612,,unreconciled,,bank_fee_interest,keep_8362_bank_charges
+97071,0228362,2012-10-01,credit,54.00,GLOBAL SYSTEM DEPOSIT,,,,unreconciled,,card_settlement_deposit,keep_8362_card_settlement
+97108,0228362,2012-10-31,debit,40.22,BANK FEE,,217616,,unreconciled,,bank_fee_interest,keep_8362_bank_charges
+97147,0228362,2012-11-30,debit,35.09,BANK FEE,,217620,,unreconciled,,bank_fee_interest,keep_8362_bank_charges
+97171,0228362,2012-12-24,debit,53.16,CANADIAN TIRE,,218205,,unreconciled,,other,manual_review
+97174,0228362,2012-12-24,debit,92.00,CANADIAN TIRE,,218207,,unreconciled,,other,manual_review
+97184,0228362,2012-12-31,debit,35.10,BANK FEE,,217627,,unreconciled,,bank_fee_interest,keep_8362_bank_charges
+60450,0228362,2013-01-24,debit,105.15,Cooperators Insurance,,143202,,reconciled,Correction,other,manual_review
+60451,0228362,2013-01-24,credit,105.15,CORRECTION 00339,,,,reconciled,Correction,correction_memo,keep_8362_as_system_correction
+97195,0228362,2013-01-24,credit,105.15,NSF RETURN,,,,unreconciled,,nsf_adjustment,keep_8362_nsf_flow
+60512,0228362,2013-03-08,debit,161.53,Merchant Services Fee,,143312,,reconciled,Expense - Other,bank_fee_interest,keep_8362_bank_charges
+60649,0228362,2013-07-31,debit,1415.89,Lease Finance Group,,143529,,reconciled,Correction,large_debit,manual_review_high_value
+60650,0228362,2013-07-31,debit,707.98,Lease Finance Group,,143530,,reconciled,Correction,other,manual_review
+60651,0228362,2013-07-31,credit,707.98,CORRECTION 00339,,,,reconciled,Correction,correction_memo,keep_8362_as_system_correction
+97265,0228362,2013-07-31,credit,707.98,NSF RETURN,,,,unreconciled,,nsf_adjustment,keep_8362_nsf_flow

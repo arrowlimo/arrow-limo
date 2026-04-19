@@ -1,0 +1,7 @@
+Direct + Reverse Lookup Summary
+================================================================================
+GL rows considered: 471
+Bank rows considered: 452
+Direct matches completed: 59
+Unmatched bank rows after direct pass: 393
+Likely date-delay rows (reverse): 1

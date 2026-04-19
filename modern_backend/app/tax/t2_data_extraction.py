@@ -3,9 +3,11 @@ T2 Financial Data Extraction Module
 Extracts revenue, expenses, and balance sheet data for T2 return generation.
 """
 
+import os
 import sys
 from datetime import date
 from decimal import Decimal
+import re
 
 import psycopg2
 
@@ -32,34 +34,49 @@ class T2DataExtractor:
         cur = conn.cursor()
         
         try:
-            # Charter revenue (main business revenue)
-            cur.execute("""
-                SELECT 
-                    COUNT(*) as charter_count,
-                    COALESCE(SUM(total_amount_due), 0) as charter_revenue
-                FROM charters
-                WHERE EXTRACT(YEAR FROM charter_date) = %s
-                AND status NOT IN ('cancelled', 'no-show')
-            """, (tax_year,))
-            
-            charter_data = cur.fetchone()
-            
-            # Calculate GST (5% of total, tax-inclusive)
-            if charter_data and len(charter_data) >= 2:
-                charter_revenue = charter_data[1] if charter_data[1] is not None else Decimal('0')
-                charter_gst = charter_revenue * Decimal('0.05') / Decimal('1.05')
-                charter_count = charter_data[0]
+            # Canonical T2 revenue source: income_ledger populated from charter_payments.
+            cur.execute(
+                """
+                SELECT
+                    COUNT(*) as payment_count,
+                    COALESCE(SUM(gross_amount), 0) as charter_revenue,
+                    COALESCE(SUM(gst_collected), 0) as charter_gst
+                FROM income_ledger
+                WHERE fiscal_year = %s
+                  AND source_system = 'charter_payments'
+                """,
+                (tax_year,),
+            )
+
+            ledger_data = cur.fetchone()
+
+            if ledger_data and ledger_data[0] > 0:
+                charter_count = ledger_data[0]
+                charter_revenue = ledger_data[1] if ledger_data[1] is not None else Decimal('0')
+                charter_gst = ledger_data[2] if ledger_data[2] is not None else Decimal('0')
             else:
-                charter_revenue = Decimal('0')
-                charter_gst = Decimal('0')
-                charter_count = 0
+                # Fallback for environments where income_ledger has not yet been backfilled.
+                cur.execute(
+                    """
+                    SELECT
+                        COUNT(*) as payment_count,
+                        COALESCE(SUM(amount), 0) as charter_revenue
+                    FROM charter_payments
+                    WHERE EXTRACT(YEAR FROM payment_date) = %s
+                    """,
+                    (tax_year,),
+                )
+                fallback_data = cur.fetchone()
+                charter_count = fallback_data[0] if fallback_data else 0
+                charter_revenue = fallback_data[1] if fallback_data and fallback_data[1] is not None else Decimal('0')
+                charter_gst = charter_revenue * Decimal('0.05') / Decimal('1.05')
             
             # Other income from receipts
             # Note: Skip this query for now, as most income comes from charters
             # We can add other income sources later if needed
             other_income = []
             
-            # Banking credits (may include deposits, refunds, etc.)
+            # Banking credits are informational only and are not T2 revenue.
             cur.execute("""
                 SELECT 
                     COALESCE(SUM(credit_amount), 0) as total_credits,
@@ -147,7 +164,7 @@ class T2DataExtractor:
             expense_summary = cur.fetchall()
             
             # Calculate total expenses
-            total_expenses = sum(row[6] for row in expense_details)
+            total_expenses = sum(row[5] for row in expense_details)
             total_gst_paid = sum(row[6] for row in expense_details)
             
             return {
@@ -175,6 +192,175 @@ class T2DataExtractor:
                 'total_gst_paid': total_gst_paid
             }
             
+        finally:
+            cur.close()
+            conn.close()
+
+    def extract_t2_deductibility_analysis(self, tax_year: int) -> dict:
+        """Analyze T2 deductibility and Schedule 1 add-backs from receipt-level GL data."""
+        conn = self.get_connection()
+        cur = conn.cursor()
+
+        try:
+            cur.execute(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'receipts'
+                """
+            )
+            receipt_cols = {row[0] for row in cur.fetchall()}
+
+            has_exclude = "exclude_from_reports" in receipt_cols
+            has_personal_flag = "is_personal_purchase" in receipt_cols
+            has_owner_personal_amount = "owner_personal_amount" in receipt_cols
+            has_business_personal = "business_personal" in receipt_cols
+
+            select_cols = [
+                "r.receipt_id",
+                "COALESCE(r.gl_account_code, '') AS gl_code",
+                "COALESCE(coa.account_name, 'Unassigned') AS account_name",
+                "COALESCE(coa.account_type, 'expense') AS account_type",
+                "COALESCE(r.vendor_name, '') AS vendor_name",
+                "COALESCE(r.description, '') AS description",
+                "COALESCE(r.gross_amount, 0) AS gross_amount",
+                "COALESCE(r.gst_amount, 0) AS gst_amount",
+            ]
+
+            if has_exclude:
+                select_cols.append("COALESCE(r.exclude_from_reports, FALSE) AS exclude_from_reports")
+            else:
+                select_cols.append("FALSE AS exclude_from_reports")
+
+            if has_personal_flag:
+                select_cols.append("COALESCE(r.is_personal_purchase, FALSE) AS is_personal_purchase")
+            else:
+                select_cols.append("FALSE AS is_personal_purchase")
+
+            if has_owner_personal_amount:
+                select_cols.append("COALESCE(r.owner_personal_amount, 0) AS owner_personal_amount")
+            else:
+                select_cols.append("0::numeric AS owner_personal_amount")
+
+            if has_business_personal:
+                select_cols.append("COALESCE(r.business_personal, '') AS business_personal")
+            else:
+                select_cols.append("'' AS business_personal")
+
+            cur.execute(
+                f"""
+                SELECT {', '.join(select_cols)}
+                FROM receipts r
+                LEFT JOIN chart_of_accounts coa ON r.gl_account_code = coa.account_code
+                WHERE EXTRACT(YEAR FROM r.receipt_date) = %s
+                """,
+                (tax_year,),
+            )
+            rows = cur.fetchall()
+
+            non_deductible_gl = {"3020", "5880", "2910", "2550", "2560"}
+            risky_text = re.compile(r"director|shareholder|loan|personal|owner\s*draw", re.IGNORECASE)
+
+            gl_agg = {}
+            warnings = []
+            total_book = Decimal("0")
+            total_deductible = Decimal("0")
+
+            for row in rows:
+                (
+                    receipt_id,
+                    gl_code,
+                    account_name,
+                    account_type,
+                    vendor_name,
+                    description,
+                    gross_amount,
+                    _gst_amount,
+                    exclude_from_reports,
+                    is_personal_purchase,
+                    owner_personal_amount,
+                    business_personal,
+                ) = row
+
+                amount = Decimal(str(gross_amount or 0))
+                deductible = amount
+                notes = []
+
+                personal_class = (business_personal or "").strip().lower()
+                is_personal_class = "personal" in personal_class
+
+                if exclude_from_reports or is_personal_purchase or Decimal(str(owner_personal_amount or 0)) > 0 or is_personal_class:
+                    deductible = Decimal("0")
+                    notes.append("Excluded personal/non-reportable")
+                elif gl_code in non_deductible_gl:
+                    deductible = Decimal("0")
+                    notes.append("Non-deductible GL")
+                elif (account_type or "").lower() in {"asset", "liability", "equity"}:
+                    deductible = Decimal("0")
+                    notes.append("Non-expense account type")
+                elif gl_code == "6100":
+                    deductible = (amount * Decimal("0.5")).quantize(Decimal("0.01"))
+                    notes.append("50% meals rule")
+
+                add_back = amount - deductible
+                total_book += amount
+                total_deductible += deductible
+
+                if risky_text.search(f"{vendor_name} {description}"):
+                    warnings.append(
+                        {
+                            "severity": "MEDIUM",
+                            "receipt_id": int(receipt_id),
+                            "gl_code": gl_code or "UNASSIGNED",
+                            "vendor": vendor_name,
+                            "message": "Risk keyword found in vendor/description",
+                        }
+                    )
+
+                key = gl_code or "UNASSIGNED"
+                if key not in gl_agg:
+                    gl_agg[key] = {
+                        "gl_code": key,
+                        "account_name": account_name,
+                        "count": 0,
+                        "book_amount": Decimal("0"),
+                        "deductible_amount": Decimal("0"),
+                        "add_back_amount": Decimal("0"),
+                        "notes": set(),
+                    }
+
+                gl_agg[key]["count"] += 1
+                gl_agg[key]["book_amount"] += amount
+                gl_agg[key]["deductible_amount"] += deductible
+                gl_agg[key]["add_back_amount"] += add_back
+                for n in notes:
+                    gl_agg[key]["notes"].add(n)
+
+            by_gl = []
+            for item in gl_agg.values():
+                by_gl.append(
+                    {
+                        "gl_code": item["gl_code"],
+                        "account_name": item["account_name"],
+                        "count": item["count"],
+                        "book_amount": item["book_amount"],
+                        "deductible_amount": item["deductible_amount"],
+                        "add_back_amount": item["add_back_amount"],
+                        "notes": "; ".join(sorted(item["notes"])) if item["notes"] else "",
+                    }
+                )
+
+            by_gl.sort(key=lambda r: r["add_back_amount"], reverse=True)
+
+            return {
+                "tax_year": tax_year,
+                "total_book_expense": total_book,
+                "total_deductible_expenses": total_deductible,
+                "total_add_back": total_book - total_deductible,
+                "by_gl_code": by_gl,
+                "audit_warnings": warnings,
+            }
+
         finally:
             cur.close()
             conn.close()
@@ -330,6 +516,7 @@ class T2DataExtractor:
         # Get all components
         revenue = self.extract_revenue_data(tax_year)
         expenses = self.extract_expense_data(tax_year)
+        deductibility = self.extract_t2_deductibility_analysis(tax_year)
         balance_sheet = self.extract_balance_sheet_data(fiscal_year_end)
         net_income = self.calculate_net_income(tax_year)
         tax_rates = self.get_tax_rates(tax_year)
@@ -339,6 +526,7 @@ class T2DataExtractor:
             'fiscal_year_end': fiscal_year_end,
             'revenue': revenue,
             'expenses': expenses,
+            'deductibility': deductibility,
             'balance_sheet': balance_sheet,
             'net_income': net_income,
             'tax_rates': tax_rates
@@ -359,10 +547,10 @@ def main():
     
     # Database connection
     conn_params = {
-        'dbname': 'almsdata',
-        'user': 'postgres',
-        'password': 'ArrowLimousine',
-        'host': 'localhost'
+        'dbname': os.environ.get('DB_NAME', 'almsdata'),
+        'user': os.environ.get('DB_USER', 'postgres'),
+        'password': os.environ.get('DB_PASSWORD', ''),
+        'host': os.environ.get('DB_HOST', 'localhost'),
     }
     
     extractor = T2DataExtractor(conn_params)

@@ -1,0 +1,219 @@
+cp_id,old_reserve,new_reserve,amount,old_payment_date,new_payment_date,old_payment_method,new_payment_method,payment_key,source,old_payment_client,old_charter_client,clear_payment_client,reason
+5900,005760,005718,205.0,2025-07-24,2012-01-09,bank_transfer,unknown,0005441,charter_reconciliation_report,Cambridge Hotels & Resorts,"Hildebrandt, Tammy",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6025,005741,005714,78.75,2025-07-24,2012-01-04,bank_transfer,unknown,0005426,charter_reconciliation_report,"Ralston, Lisa","Rundell, Michelle",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6140,005838,005943,175.0,2025-07-24,2012-03-23,bank_transfer,unknown,0005645,charter_reconciliation_report,"Kuzina, Lila","Ward, Ashley",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6149,007356,005958,250.0,2025-07-24,2013-02-28,bank_transfer,unknown,0007684,charter_reconciliation_report,"Wilson, Keith","Journoud, Jaren",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6219,005927,006027,205.0,2025-07-24,2012-03-30,bank_transfer,unknown,0005724,charter_reconciliation_report,"Duncan, Jessica","Dushanek, Kolton",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6221,005944,005972,250.0,2025-07-24,2012-04-01,bank_transfer,unknown,0005734,charter_reconciliation_report,"Cyr, Kevin","Cyr, Kevin",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6231,005924,006013,205.0,2025-07-24,2012-03-26,bank_transfer,unknown,0005720,charter_reconciliation_report,"Swanson, Breann","Moyes, Heather",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6484,006336,006264,205.0,2025-07-24,2012-06-28,bank_transfer,unknown,0006135,charter_reconciliation_report,"Dahl, Eric","Wade, Jared",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6486,005814,005909,205.0,2025-07-24,2012-02-27,bank_transfer,unknown,0005625,charter_reconciliation_report,Knickle Jerrica,"Bissett, Kelsey",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6734,006271,006470,0.01,2025-07-24,2012-07-11,bank_transfer,unknown,0006222,charter_reconciliation_report,Arrow Limousine & Sedan,"More, Christa",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6747,006199,006421,175.0,2025-07-24,2012-07-03,bank_transfer,unknown,0006183,charter_reconciliation_report,"Walker, Brienne",Traz Sundown Productions,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6758,006310,006080,500.0,2025-07-24,2012-04-10,bank_transfer,unknown,0005774,charter_reconciliation_report,"Ball, Brooke","Matlo, Ashley",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6806,006486,006541,0.01,2025-07-24,2012-07-31,bank_transfer,unknown,0006352,charter_reconciliation_report,"Grebinski, Angela",Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6859,006490,006547,82.5,2025-07-24,2012-08-01,bank_transfer,unknown,0006362,charter_reconciliation_report,"Donadeo, Tony","Donadeo, Tony",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6906,006562,006630,0.01,2025-07-24,2012-08-22,bank_transfer,unknown,0006491,charter_reconciliation_report,Arrow Limousine & Sedan,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6941,006540,006608,0.01,2025-07-24,2012-08-17,bank_transfer,unknown,0006454,charter_reconciliation_report,LanceScaping Ltd,VNO Exteriors,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6942,006545,006609,0.01,2025-07-24,2012-08-20,bank_transfer,unknown,0006464,charter_reconciliation_report,Arrow Limousine & Sedan,"Jarvis, Tina",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+6978,006525,006610,0.01,2025-07-24,2012-08-20,bank_transfer,unknown,0006457,charter_reconciliation_report,Cambridge Hotels & Resorts,,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7018,006555,006581,175.0,2025-07-24,2012-08-21,bank_transfer,unknown,0006481,charter_reconciliation_report,"Sanchez, Carlos","Thibedeau, Eric",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7036,006270,006076,0.01,2025-07-24,2012-09-02,bank_transfer,unknown,0006556,charter_reconciliation_report,"Deregt, Robbie","Freitas, Ashley",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7039,005982,006073,205.0,2025-07-24,2012-04-09,bank_transfer,unknown,0005765,charter_reconciliation_report,"Deregt, Robbie","Wilson, Curtis",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7052,006606,006667,0.01,2025-07-24,2012-09-02,bank_transfer,unknown,0006558,charter_reconciliation_report,"Barrett, Lacey",Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7111,006665,006735,82.5,2025-07-24,2012-09-19,bank_transfer,unknown,0006640,charter_reconciliation_report,"Donadeo, Tony","Foster, Clint",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7113,006612,006691,205.0,2025-07-24,2012-09-04,bank_transfer,unknown,0006562,charter_reconciliation_report,"Brayford, Jamie","Vamplew, Jessica",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7125,006638,006718,0.01,2025-07-24,2012-09-12,bank_transfer,unknown,0006605,charter_reconciliation_report,"Lavigne, Twila",Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7140,006671,006752,0.01,2025-07-24,2012-09-20,bank_transfer,unknown,0006646,charter_reconciliation_report,Arrow Limousine & Sedan,"Friesen, Jean",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7144,006688,006748,231.0,2025-07-24,2012-09-25,bank_transfer,unknown,0006672,charter_reconciliation_report,"Burgess, Art",Freightliner Of Red Deer,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7166,006744,006784,0.01,2025-07-24,2012-09-27,bank_transfer,unknown,0006683,charter_reconciliation_report,Arrow Limousine & Sedan,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7170,006749,006788,0.01,2025-07-24,2012-09-27,bank_transfer,unknown,0006686,charter_reconciliation_report,VNO Exteriors,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7176,006747,006795,82.5,2025-07-24,2012-09-28,bank_transfer,unknown,0006690,charter_reconciliation_report,"Donadeo, Tony","Donadeo, Tony",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7186,006752,006800,0.01,2025-07-24,2012-09-30,bank_transfer,unknown,0006695,charter_reconciliation_report,"Hanna, Erika",Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7200,006762,006763,0.01,2025-07-24,2012-10-02,bank_transfer,unknown,0006708,charter_reconciliation_report,"Dushanek, Kevin","Dushanek, Kevin",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7253,006896,006863,0.01,2025-07-24,2012-10-25,bank_transfer,unknown,0006857,charter_reconciliation_report,Arrow Limousine & Sedan,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7255,006546,006597,0.01,2025-07-24,2012-08-20,bank_transfer,unknown,0006465,charter_reconciliation_report,Arrow Limousine & Sedan,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7279,006811,006846,0.01,2025-07-24,2012-10-13,bank_transfer,unknown,0006776,charter_reconciliation_report,Pro Collision Carstar,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7306,006839,006881,500.0,2025-07-24,2012-10-18,bank_transfer,unknown,0006789,charter_reconciliation_report,"Newell, Robert",,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7354,006890,006925,0.01,2025-07-24,2012-10-24,bank_transfer,unknown,0006850,charter_reconciliation_report,Arrow Limousine & Sedan,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7379,006922,006960,0.01,2025-07-24,2012-10-29,bank_transfer,unknown,0006902,charter_reconciliation_report,Arrow Limousine & Sedan,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7380,006925,006961,0.01,2025-07-24,2012-10-29,bank_transfer,unknown,0006903,charter_reconciliation_report,Arrow Limousine & Sedan,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7413,006845,006952,0.01,2025-07-24,2012-11-02,bank_transfer,unknown,0006919,charter_reconciliation_report,Arrow Limousine & Sedan,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7414,007268,006959,0.01,2025-07-24,2012-11-03,bank_transfer,unknown,0006928,charter_reconciliation_report,Arrow Limousine & Sedan,"May, Kathryn",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7445,006938,007013,0.01,2025-07-24,2012-11-13,bank_transfer,unknown,0006975,charter_reconciliation_report,Arrow Limousine & Sedan,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7446,007286,007012,0.01,2025-07-24,2012-11-10,bank_transfer,unknown,0006961,charter_reconciliation_report,"Adams, Alyce","McGinnis, Thomas",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7457,007036,007118,0.01,2025-07-24,2012-12-01,bank_transfer,unknown,0007102,charter_reconciliation_report,Arrow Limousine & Sedan,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7459,006947,007036,0.01,2025-07-24,2012-11-15,bank_transfer,unknown,0006989,charter_reconciliation_report,Arrow Limousine & Sedan,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7581,007060,007128,0.01,2025-07-24,2012-12-01,bank_transfer,unknown,0007112,charter_reconciliation_report,Arrow Limousine & Sedan,"Adams, Corey",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7590,006939,007031,0.01,2025-07-24,2012-11-13,bank_transfer,unknown,0006976,charter_reconciliation_report,Arrow Limousine & Sedan,Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7675,007102,007195,0.01,2025-07-24,2012-12-10,bank_transfer,unknown,0007185,charter_reconciliation_report,"Amlin, Rusty",Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7778,006496,007271,0.01,2025-07-24,2012-12-20,bank_transfer,unknown,0007263,charter_reconciliation_report,Arrow Limousine & Sedan,,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7820,007296,007286,0.01,2025-07-24,2012-12-24,bank_transfer,unknown,0007285,charter_reconciliation_report,"McGinnis, Thomas",Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+7888,007121,007331,0.01,2025-07-24,2013-01-08,bank_transfer,unknown,0007372,charter_reconciliation_report,"Low, Taryn",Arrow Limousine & Sedan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+8140,007511,007593,82.5,2025-07-24,2013-02-22,bank_transfer,unknown,0007617,charter_reconciliation_report,"Donadeo, Tony","Simants, Lee A.",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+8280,007540,007611,200.0,2025-07-24,2013-02-28,bank_transfer,unknown,0007633,charter_reconciliation_report,"Bourque, Stephanie","Graham, Justin",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+8399,007694,007801,500.0,2025-07-24,2013-04-16,bank_transfer,unknown,0007878,charter_reconciliation_report,"Parkin, Hailey","Howard, Mathew",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+8414,007830,007850,82.5,2025-07-24,2013-04-23,bank_transfer,unknown,0007912,charter_reconciliation_report,"Donadeo, Tony","Donadeo, Tony",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+8525,007644,007932,500.0,2025-07-24,2013-05-21,bank_transfer,unknown,0008011,charter_reconciliation_report,Dutchman Roofing,"Prestie, Nathan",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+8839,007040,007524,500.0,2025-07-24,2013-02-12,bank_transfer,unknown,0007536,charter_reconciliation_report,"Gingras, Adam","Auger, Shaylea",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+8852,008091,008175,500.0,2025-07-24,2013-07-18,bank_transfer,unknown,0008316,charter_reconciliation_report,"Mathers, Derek","Dickie, Jenna",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+8877,007852,008047,192.5,2025-07-24,2013-06-10,bank_transfer,unknown,0008122,charter_reconciliation_report,"Mackenzie, Kristina",Unique Elevations,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+8900,007948,008050,500.0,2025-07-24,2013-06-11,bank_transfer,unknown,0008129,charter_reconciliation_report,"Waldo, Cheryl","Hartwig, Matt",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+8974,007951,008055,231.0,2025-07-24,2013-06-12,bank_transfer,unknown,0008144,charter_reconciliation_report,"Brown, Christine & Leslie","Sassaman, Frances",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+9024,008163,008266,175.0,2025-07-24,2013-08-15,bank_transfer,unknown,0008435,charter_reconciliation_report,"Cowell, Travis","Fenger, Shane",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+9185,008175,008278,500.0,2025-07-24,2013-08-20,bank_transfer,unknown,0008453,charter_reconciliation_report,"Hardie, Kristen","Mathers, Derek",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+9206,008262,008372,195.0,2025-07-24,2013-09-11,bank_transfer,unknown,0008554,charter_reconciliation_report,"Tange, Katlynn","Wolfe, Laura",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+9643,008626,008777,75.0,2025-07-24,2013-11-29,bank_transfer,unknown,0008945,charter_reconciliation_report,Belfor Property Restorations,"Whitelaw, Jerri",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+9843,008920,008950,70.0,2025-07-24,2014-01-27,bank_transfer,unknown,0009264,charter_reconciliation_report,"Chymycz, Connie","McCaffrey, Tammy",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+9854,008940,009034,50.0,2025-07-24,2014-01-30,bank_transfer,unknown,0009290,charter_reconciliation_report,Cash/Credit Card,"Mineault, Anja",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+9871,008866,008980,500.0,2025-07-24,2014-01-16,bank_transfer,unknown,0009222,charter_reconciliation_report,"Ledrew, Simeon",,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+10066,009232,009321,175.0,2025-07-24,2014-04-04,bank_transfer,unknown,0009531,charter_reconciliation_report,Unknown Client,"McHarg, Ashley",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+10163,009276,009365,175.0,2025-07-24,2014-04-15,bank_transfer,unknown,0009578,charter_reconciliation_report,"Nixey, Brett","Keast, Josh",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+10209,009391,009471,75.0,2025-07-24,2014-05-09,bank_transfer,unknown,0009690,charter_reconciliation_report,"Hyshka, Kelly","Rudkevitch, Casey",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+10443,009558,009634,250.0,2025-07-24,2014-06-11,bank_transfer,unknown,0009863,charter_reconciliation_report,"Mcneil, Cliff",,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+10810,008904,009909,205.0,2025-07-24,2014-08-21,bank_transfer,unknown,0010198,charter_reconciliation_report,Moe. Jordan,"Mcgirr, Megan",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+11017,010007,010099,100.0,2025-07-24,2014-10-06,bank_transfer,unknown,0010405,charter_reconciliation_report,"Nelson, Joel","Paul, Derek",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+11571,009680,009734,250.0,2025-07-24,2014-07-04,bank_transfer,unknown,0009986,charter_reconciliation_report,"Petrie, Barbara","Bliesner, Chris",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+11579,010634,010580,500.0,2025-07-24,2014-12-27,bank_transfer,unknown,0010865,charter_reconciliation_report,Pursuit Adventures,"Ranford, Bill",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+11698,010394,010689,75.0,2025-07-24,2015-01-20,bank_transfer,unknown,0010997,charter_reconciliation_report,"Healey, Barb","Lawrence, Stephanie",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+11783,010327,010532,205.0,2025-07-24,2014-12-16,bank_transfer,unknown,0010814,charter_reconciliation_report,"Guyett, Adam","Haggett, Kayla",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+11866,010700,010844,661.38,2025-07-24,2015-03-20,bank_transfer,unknown,0011260,charter_reconciliation_report,Waste Connections Of Canada.,,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+11926,010663,010896,189.0,2025-07-24,2015-03-09,bank_transfer,unknown,0011209,charter_reconciliation_report,"Gale, Randy","Gale, Randy",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+12024,011220,010981,500.0,2025-07-24,2015-03-31,bank_transfer,unknown,0011291,charter_reconciliation_report,"Evahnenko, Kim","Boon, Rylan",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+12168,011242,011061,75.0,2025-07-24,2015-04-13,bank_transfer,unknown,0011340,charter_reconciliation_report,"Gale, Randy","Llewellyn, Grant",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+12234,010939,011242,75.0,2025-07-24,2015-05-25,bank_transfer,unknown,0011514,charter_reconciliation_report,"Llewellyn, Grant","Elger, Julie",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+12272,010955,011255,75.0,2025-07-24,2015-05-27,bank_transfer,unknown,0011532,charter_reconciliation_report,Aspen Heights School,"Gale, Randy",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+12297,010821,010935,250.0,2025-07-24,2015-03-18,bank_transfer,unknown,0011248,charter_reconciliation_report,"Prodgers, Shawn",Golden Circle,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+12489,011016,011397,500.0,2025-07-24,2015-07-02,bank_transfer,unknown,0011695,charter_reconciliation_report,"Thompson, Jason","Gallant, Kent",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+12542,009729,009769,500.0,2025-07-24,2014-07-12,bank_transfer,unknown,0010027,charter_reconciliation_report,"McGill, Michael & Victoria",Action Automotive,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+12560,011316,011433,205.0,2025-07-24,2015-07-09,bank_transfer,unknown,0011726,charter_reconciliation_report,"Schurek, Shawn","Henderson, Neil",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+12584,011261,011294,205.0,2025-07-24,2015-06-02,bank_transfer,unknown,0011565,charter_reconciliation_report,"Bolt, Tim","Cain, Alyssa",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+13029,011969,011848,157.5,2025-07-24,2015-11-02,bank_transfer,unknown,0012227,charter_reconciliation_report,Curtis Glencross & Friends,"Mellett, Gord",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+13580,012083,012203,500.0,2025-07-24,2016-04-01,bank_transfer,unknown,0012727,charter_reconciliation_report,"Spady, Ryan","Halpin, Landon",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+13613,012306,012366,200.0,2025-07-24,2016-04-22,bank_transfer,unknown,0012805,charter_reconciliation_report,"Dhaliwal, Paul","VanNorman, Nathan",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+13811,012190,012485,400.0,2025-07-24,2016-05-30,bank_transfer,unknown,0012938,charter_reconciliation_report,"Knapp, Brittany","Prins, Brent",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+13836,012239,012511,256.0,2025-07-24,2016-06-17,bank_transfer,unknown,0013005,charter_reconciliation_report,"Sassaman, Frances","Sassaman, Frances",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+14072,012478,012613,250.0,2025-07-24,2016-07-29,bank_transfer,unknown,0013139,charter_reconciliation_report,Parkland Fuel Corporation,"Grue, Matt",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+14086,012540,012647,200.0,2025-07-24,2016-08-26,bank_transfer,unknown,0013222,charter_reconciliation_report,"Barradell, Chelsea","Neumeier, Sean",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+14189,012307,012701,300.0,2025-07-24,2016-09-28,bank_transfer,unknown,0013313,charter_reconciliation_report,"Van Eaton, Jesse","McCormack, Sean",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+14207,012079,012314,500.0,2025-07-24,2016-04-01,bank_transfer,unknown,0012724,charter_reconciliation_report,"Mechefske, Brittney","Ronnie, Teale & Michael",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+14864,012156,012819,400.0,2025-07-24,2016-12-06,bank_transfer,unknown,0013484,charter_reconciliation_report,Juiced Audio,"Rieger, Lauren",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+14883,013035,013204,300.0,2025-07-24,2017-07-21,bank_transfer,unknown,0014023,charter_reconciliation_report,"Wells, Troy","Berridge, Cole",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+14899,012911,013120,75.0,2025-07-24,2017-06-05,bank_transfer,unknown,0013872,charter_reconciliation_report,"Bruin, Herman","Taylor, Nicole",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15310,013252,013515,500.0,2025-07-24,2017-11-23,bank_transfer,unknown,0014386,charter_reconciliation_report,"Stickland, Brian","Fillinger, Katira",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15315,013261,013523,500.0,2025-07-24,2017-11-27,bank_transfer,unknown,0014396,charter_reconciliation_report,"Mcinnes, Mason","Biddles, Ryan",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15352,013220,013487,75.0,2025-07-24,2017-11-15,bank_transfer,unknown,0014360,charter_reconciliation_report,Nexus Energy,"Renwick, David",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15441,013316,013581,75.0,2025-07-24,2017-12-27,bank_transfer,unknown,0014485,charter_reconciliation_report,"Bruin, Herman","Moore, Mindy",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15491,013395,013632,75.0,2025-07-24,2018-01-30,bank_transfer,unknown,0014570,charter_reconciliation_report,"Stanchfield, Rhonda","Sheldrake, Richard",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15522,013369,013612,500.0,2025-07-24,2018-01-17,bank_transfer,unknown,0014542,charter_reconciliation_report,"Weleschuk, Ray","Hamilton, Quinn",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15634,013483,013717,500.0,2025-07-24,2018-03-14,bank_transfer,unknown,0014660,charter_reconciliation_report,"Macdonald, Joahanna","Beaudoin, Spencer",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15654,013502,013741,500.0,2025-07-24,2018-03-19,bank_transfer,unknown,0014676,charter_reconciliation_report,"Wilms, Sheila","Alford, Tyler",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15779,013519,013751,500.0,2025-07-24,2018-04-12,bank_transfer,unknown,0014690,charter_reconciliation_report,"Scheck, Brandy","Hachkowski, Aaron",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15799,013611,013912,268.0,2025-07-24,2018-06-04,bank_transfer,unknown,0014888,charter_reconciliation_report,Unknown Client,"Willert, James",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15802,013432,013684,500.0,2025-07-24,2018-02-13,bank_transfer,unknown,0014599,charter_reconciliation_report,"Davidson, Allie","Bland, Stacey",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15880,013682,013949,200.0,2025-07-24,2018-06-19,bank_transfer,unknown,0014937,charter_reconciliation_report,"Hunt, Waylon","Duley, Fiona",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15941,013723,013927,1500.0,2025-07-24,2018-07-05,bank_transfer,unknown,0015002,charter_reconciliation_report,"Orr, Lynette",Nova Chemicals,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15948,013697,013964,205.0,2025-07-24,2018-06-27,bank_transfer,unknown,0014963,charter_reconciliation_report,"Kennedy, Braydon","Bergsma, Daniel",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15950,013690,013952,500.0,2025-07-24,2018-06-20,bank_transfer,unknown,0014941,charter_reconciliation_report,"Landon, Chad",,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15955,013613,013894,500.0,2025-07-24,2018-05-29,bank_transfer,unknown,0014864,charter_reconciliation_report,"Denham, Len","Brausen, Lindsay",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+15958,013521,013753,500.0,2025-07-24,2018-03-22,bank_transfer,unknown,0014692,charter_reconciliation_report,"Sim, Kelsey",Southern Cross Industries,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+16038,013753,014002,500.0,2025-07-24,2018-07-26,bank_transfer,unknown,0015053,charter_reconciliation_report,"Hutchinson, Sherilyn","Sim, Kelsey",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+16077,013496,013768,90.0,2025-07-24,2018-03-27,bank_transfer,unknown,0014707,charter_reconciliation_report,"Miles, Ashley","Charania, Jamil & Shazma",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+16125,013612,013893,500.0,2025-07-24,2018-05-29,bank_transfer,unknown,0014863,charter_reconciliation_report,"Woelk, Kim","Weleschuk, Ray",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+16128,013786,014020,500.0,2025-07-24,2018-08-09,bank_transfer,unknown,0015098,charter_reconciliation_report,"Janko, Landsay","Huynh, Kim",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+16200,013599,013875,200.0,2025-07-24,2018-05-23,bank_transfer,unknown,0014837,charter_reconciliation_report,"Tremain, Jack","Milaney, Katie",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+16365,013983,014227,500.0,2025-07-24,2018-11-07,bank_transfer,unknown,0015373,charter_reconciliation_report,"Annable, Corey","Gammel, Amanda",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+16542,014080,014292,500.0,2025-07-24,2018-12-31,bank_transfer,unknown,0015521,charter_reconciliation_report,"Hessel, Barbara","Tanner, Stephen",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+16597,014119,014399,500.0,2025-07-24,2019-02-07,bank_transfer,unknown,0015600,charter_reconciliation_report,Perio Partners,"Hutton, Shawn",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+16671,014154,014442,277.2,2025-07-24,2019-03-04,bank_transfer,unknown,0015657,charter_reconciliation_report,FleishmanHillard HighRoad,"Sproule, Maria",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+16837,014227,014534,500.0,2025-07-24,2019-04-18,bank_transfer,unknown,0015769,charter_reconciliation_report,"McKinley, Tristen","Annable, Corey",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17109,014120,014379,500.0,2025-07-24,2019-02-04,bank_transfer,unknown,0015592,charter_reconciliation_report,"Bulmer, Megan","Lea-Wilson, Merve",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17144,014062,014302,400.0,2025-07-24,2019-09-08,bank_transfer,unknown,0015483,charter_reconciliation_report,"Stinsman, Brittany","Cota, Shelley",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17188,014308,014652,250.0,2025-07-24,2019-09-08,bank_transfer,unknown,0015908,charter_reconciliation_report,"Wegner, Alysha","Wilke, Sharon",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17209,014472,014824,277.2,2025-07-24,2019-09-11,bank_transfer,unknown,0016178,charter_reconciliation_report,Unknown Client,Auto Truck Transport,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17259,014494,014826,300.0,2025-07-24,2019-09-13,bank_transfer,unknown,0016186,charter_reconciliation_report,Willoughby And Associates,"Oberg, Jody",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17345,014587,014911,500.0,2025-07-24,2019-10-18,bank_transfer,unknown,0016290,charter_reconciliation_report,Gillespie Jordan,"Petkau, Veronica",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17364,014569,014780,500.0,2025-07-24,2019-10-09,bank_transfer,unknown,0016263,charter_reconciliation_report,Paul Davis Systems,"Wilson, Curtis",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17395,014486,014814,500.0,2025-07-24,2019-11-02,bank_transfer,unknown,0016169,charter_reconciliation_report,Heartland Feeds,"Rasberry, Megan",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17448,014427,014768,300.0,2025-07-24,2019-08-14,bank_transfer,unknown,0016087,charter_reconciliation_report,Automotive Universe,"Krause, Todd",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17489,014715,015030,437.5,2025-07-24,2019-11-29,bank_transfer,unknown,0016435,charter_reconciliation_report,NOVA Chemicals Arnel Santos,NOVA Chemicals Arnel Santos,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17543,014767,015076,300.0,2025-07-24,2019-12-12,bank_transfer,unknown,0016489,charter_reconciliation_report,"Shallani, Ali",Automotive Universe,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17702,014852,015204,200.0,2025-07-24,2020-02-07,bank_transfer,unknown,0016633,charter_reconciliation_report,"Hiller, Ethan","Archibald, Courtney",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17704,014854,015190,437.5,2025-07-24,2020-02-10,bank_transfer,unknown,0016640,charter_reconciliation_report,NOVA Chemicals Tanya Marks,NOVA Chemicals Arnel Santos,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+17843,014934,015292,300.0,2025-07-24,2020-03-05,bank_transfer,unknown,0016723,charter_reconciliation_report,"Schooler, Karly",,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18205,015173,015589,500.0,2025-07-24,2020-11-13,bank_transfer,unknown,0017111,charter_reconciliation_report,"Scott, Cole","Kamlah, Jeffery",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18211,014768,015077,300.0,2025-07-24,2019-12-12,bank_transfer,unknown,0016491,charter_reconciliation_report,"MacKenna, Mackie",Automotive Universe,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18233,015205,015606,250.0,2025-07-24,2020-12-14,bank_transfer,unknown,0017153,charter_reconciliation_report,Red Deer College,"Smith, Clint",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18281,015281,015648,774.0,2025-07-24,2021-01-20,bank_transfer,unknown,0017195,charter_reconciliation_report,Waste Connections Of Canada.,Waste Connections Of Canada.,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18340,015259,015704,277.2,2025-07-24,2021-03-26,bank_transfer,unknown,0017253,charter_reconciliation_report,"Macall, Webb",Western Canadian Dairy Seminar,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18414,015376,015779,150.0,2025-07-24,2021-06-15,bank_transfer,unknown,0017335,charter_reconciliation_report,"Wood, Brad","Briscow, Jackie",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18425,015366,015778,210.0,2025-07-24,2021-06-14,bank_transfer,unknown,0017332,charter_reconciliation_report,"Ilyas, Azwa","Sprovieri, Helena",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18434,015391,015800,500.0,2025-07-24,2021-06-24,bank_transfer,unknown,0017356,charter_reconciliation_report,Neish Jodi,"Mailer, Grant",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18501,015455,015821,240.0,2025-07-24,2021-07-19,bank_transfer,unknown,0017445,charter_reconciliation_report,Willams Brian,"Engel, Jacolynn",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18635,015480,015903,500.0,2025-07-24,2021-07-23,bank_transfer,unknown,0017471,charter_reconciliation_report,Milmine Todd,"Dawes, Julia",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18770,015582,015999,500.0,2025-07-24,2021-08-23,bank_transfer,unknown,0017616,charter_reconciliation_report,Brett Rachel,"Schuhauser, Madison",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18888,015717,016108,774.0,2025-07-24,2021-10-07,bank_transfer,unknown,0017791,charter_reconciliation_report,Waste Connections Of Canada.,Waste Connections Of Canada.,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18890,015709,016107,250.0,2025-07-24,2021-10-06,bank_transfer,unknown,0017789,charter_reconciliation_report,Beaucage Amber,Red Deer College,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18891,015705,016107,250.0,2025-07-24,2021-10-07,bank_transfer,unknown,0017790,charter_reconciliation_report,Beaucage Amber,Red Deer College,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+18907,015728,016131,774.0,2025-07-24,2021-10-14,bank_transfer,unknown,0017811,charter_reconciliation_report,Waste Connections Of Canada.,Waste Connections Of Canada.,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+19128,015887,016267,500.0,2025-07-24,2021-12-02,bank_transfer,unknown,0017964,charter_reconciliation_report,"Ogilivie, Levi",Chotowetz Todd,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+19397,016067,016435,500.0,2025-07-24,2022-02-18,bank_transfer,unknown,0018197,charter_reconciliation_report,"Herzog, Cheyenne",Smith Daryan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+19713,016339,016784,90.0,2025-07-24,2022-06-09,bank_transfer,unknown,0018613,charter_reconciliation_report,Grand Central Properties,"Dawe, Dana",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+19858,016403,016843,500.0,2025-07-24,2022-06-24,bank_transfer,unknown,0018700,charter_reconciliation_report,Eismont Viktoriia,Wolokoff Jenna,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+19891,016449,016825,500.0,2025-07-24,2022-07-05,bank_transfer,unknown,0018763,charter_reconciliation_report,Lah Kam,"Sieben, Kendra",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+19901,015996,016370,500.0,2025-07-24,2022-01-17,bank_transfer,unknown,0018117,charter_reconciliation_report,Payne Stephen,Dyer Scott,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+19971,016513,016905,500.0,2025-07-24,2022-07-19,bank_transfer,unknown,0018832,charter_reconciliation_report,"Turgeon-Kelts, Jaden Rae","Slipp, Kelly",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+20006,016382,016824,500.0,2025-07-24,2022-06-21,bank_transfer,unknown,0018674,charter_reconciliation_report,Vesta Energy Ltd,Hollingsworth Stan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+20071,016321,016746,300.0,2025-07-24,2022-06-03,bank_transfer,unknown,0018586,charter_reconciliation_report,"Robinson, Virginia","Dawe, Dana",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+20125,016650,016974,500.0,2025-07-24,2022-08-16,bank_transfer,unknown,0018946,charter_reconciliation_report,"Leyen, Peter","Freimark, Shelbe",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+20530,016876,017208,300.0,2025-07-24,2022-11-10,bank_transfer,unknown,0019264,charter_reconciliation_report,Q2 Artificail Lift Services,Petersen Chad,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+20532,016512,017145,500.0,2025-07-24,2022-10-20,bank_transfer,unknown,0019177,charter_reconciliation_report,"Loupelle, Kate, Wendy","Purcell, Rob",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+20582,016909,017254,500.0,2025-07-24,2022-11-30,bank_transfer,unknown,0019322,charter_reconciliation_report,Osy Rentals,Armstrong Elisha,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+20595,016476,016880,500.0,2025-07-24,2022-07-11,bank_transfer,unknown,0018790,charter_reconciliation_report,Mathieu Carla,Olsen Madi,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+20665,016474,017273,500.0,2025-07-24,2022-12-07,bank_transfer,unknown,0019361,charter_reconciliation_report,Red Deer Mitsubishi,Luchka Kristen,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+20710,017006,017295,200.0,2025-07-24,2022-12-16,bank_transfer,unknown,0019393,charter_reconciliation_report,The Track On 2,Partington Charles,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+20842,017125,017429,500.0,2025-07-24,2023-02-14,bank_transfer,unknown,0019551,charter_reconciliation_report,"Ogilivie, Levi",Oliinyk Nina,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+20854,017150,017440,500.0,2025-07-24,2023-02-21,bank_transfer,unknown,0019576,charter_reconciliation_report,"Hall-jarratt, Patrick",Carlson Megan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+20925,017206,017512,500.0,2025-07-24,2023-03-17,bank_transfer,unknown,0019641,charter_reconciliation_report,Desrosiers Dansen,"Moir, Garett & Rae Lynn",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+20965,017113,017409,500.0,2025-07-24,2023-02-08,bank_transfer,unknown,0019540,charter_reconciliation_report,Red Deer Iron Works Inc,Lacombe Vet,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21021,017198,017597,360.0,2025-07-24,2023-04-25,bank_transfer,unknown,0019749,charter_reconciliation_report,Lindsay Shaun,Western RV Country,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21032,017254,017556,500.0,2025-07-24,2023-04-13,bank_transfer,unknown,0019708,charter_reconciliation_report,"Slipp, Kelly",Osy Rentals,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21109,017218,017539,500.0,2025-07-24,2023-03-29,bank_transfer,unknown,0019671,charter_reconciliation_report,Avram Courtney,The Vault Sports Pub,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21122,017272,017587,500.0,2025-07-24,2023-04-21,bank_transfer,unknown,0019741,charter_reconciliation_report,Yetter Kim,Vaccher Shayla,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21141,017369,017658,300.0,2025-07-24,2023-05-23,bank_transfer,unknown,0019847,charter_reconciliation_report,Derkson  Chris,Burns Emma,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21186,016559,017689,500.0,2025-07-24,2023-06-06,bank_transfer,unknown,0019905,charter_reconciliation_report,Speirs John,Steele Reg,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21200,017407,017711,300.0,2025-07-24,2023-06-15,bank_transfer,unknown,0019934,charter_reconciliation_report,Automotive Universe,Porter Carmel,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21245,017243,017555,500.0,2025-07-24,2023-04-11,bank_transfer,unknown,0019701,charter_reconciliation_report,Robson Richard Mike,Sutherland Patrick,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21310,017453,017748,500.0,2025-07-24,2023-06-27,bank_transfer,unknown,0020001,charter_reconciliation_report,Puro Clean,Bleyaert Coralie,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21326,017061,017361,500.0,2025-07-24,2023-01-17,bank_transfer,unknown,0019477,charter_reconciliation_report,Feitsma Mackenzie,Quaile Jamie,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21335,016629,016955,500.0,2025-07-24,2022-08-10,bank_transfer,unknown,0018926,charter_reconciliation_report,"Grant, Cory","Knight, Brenda",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21356,017420,017724,75.0,2025-07-24,2023-06-20,bank_transfer,unknown,0019955,charter_reconciliation_report,Samuel Tonya,Western Canadian Dairy Seminar,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21387,017060,017360,500.0,2025-07-24,2023-01-17,bank_transfer,unknown,0019476,charter_reconciliation_report,Fuhr Tom,McMullen Kent,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21406,017331,017825,500.0,2025-07-24,2023-07-20,bank_transfer,unknown,0020121,charter_reconciliation_report,Brown Michelle,Miskew Keaton,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21458,017517,017790,400.0,2025-07-24,2023-07-12,bank_transfer,unknown,0020075,charter_reconciliation_report,Selvais Julie,Masters Peter,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21541,016633,016957,500.0,2025-07-24,2022-08-10,bank_transfer,unknown,0018929,charter_reconciliation_report,"Grant, Cory","Quellette, Stephenie",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21622,017555,017838,500.0,2025-07-24,2023-07-26,bank_transfer,unknown,0020138,charter_reconciliation_report,Piwowar Ashley,Robson Richard Mike,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21678,017659,017897,500.0,2025-07-24,2023-08-23,bank_transfer,unknown,0020273,charter_reconciliation_report,Lussier Malorie,Weisers Tristan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21683,017405,017708,500.0,2025-07-24,2023-06-14,bank_transfer,unknown,0019931,charter_reconciliation_report,Armstrong Elisha,Dionne Joe,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21687,017552,017835,500.0,2025-07-24,2023-07-25,bank_transfer,unknown,0020131,charter_reconciliation_report,Southwick  Colton,Schultz Warner,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21742,017574,017847,500.0,2025-07-24,2023-07-31,bank_transfer,unknown,0020158,charter_reconciliation_report,"Kohut, Sandra",Gunron Inspection,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21924,017699,018027,500.0,2025-07-24,2023-10-03,bank_transfer,unknown,0020424,charter_reconciliation_report,French Cayden,"Dushanek, Casey",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21935,017741,018096,500.0,2025-07-24,2023-10-24,bank_transfer,unknown,0020489,charter_reconciliation_report,Cocks Hailey,Stormoen Jessie,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+21960,017747,018099,500.0,2025-07-24,2023-10-24,bank_transfer,unknown,0020496,charter_reconciliation_report,Perio Partners,Tracy Nolan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+22121,017834,018177,500.0,2025-07-24,2023-11-21,bank_transfer,unknown,0020602,charter_reconciliation_report,Rose Alicia,Southwick  Colton,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+22127,017748,018104,500.0,2025-07-24,2023-10-25,bank_transfer,unknown,0020497,charter_reconciliation_report,Swift Insurance & Financial,Puro Clean,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+22183,017700,018028,500.0,2025-07-24,2023-10-03,bank_transfer,unknown,0020425,charter_reconciliation_report,Fernandez Zach,Vincent Steven,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+22394,017953,018360,300.0,2025-07-24,2024-02-16,bank_transfer,unknown,0020876,charter_reconciliation_report,Stecyk Teagan,Peavey Industries,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+22512,018064,018415,500.0,2025-07-24,2024-03-14,bank_transfer,unknown,0020942,charter_reconciliation_report,Rose Alicia,Rahmoun Mike,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+22543,017932,018316,500.0,2025-07-24,2024-01-31,bank_transfer,unknown,0020828,charter_reconciliation_report,Rivera Julio,Dennys,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+22670,018153,018698,300.0,2025-07-24,2024-06-03,bank_transfer,unknown,0021152,charter_reconciliation_report,"Kasa, Johnathan",Barrett Gerry,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+22723,018197,018695,500.0,2025-07-24,2024-06-17,bank_transfer,unknown,0021191,charter_reconciliation_report,Berge James,"MacDonald, Charlie",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+22892,018028,018281,500.0,2025-07-24,2024-03-04,bank_transfer,unknown,0020911,charter_reconciliation_report,Instinkt Events,Fernandez Zach,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+22897,018267,018394,500.0,2025-07-24,2024-07-22,bank_transfer,unknown,0021303,charter_reconciliation_report,Instinkt Events,Mctague Kelsey,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+23039,018363,018813,500.0,2025-07-24,2024-08-29,bank_transfer,unknown,0021426,charter_reconciliation_report,Marshall Janessa,Vercaigne Tyler,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+23093,018157,018640,500.0,2025-07-24,2024-05-29,bank_transfer,unknown,0021139,charter_reconciliation_report,"Renschier, Tammy",DeRidder Raegan,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+23187,018391,018856,300.0,2025-07-24,2024-09-06,bank_transfer,unknown,0021463,charter_reconciliation_report,Roberton Chloe,Teufel Taylor,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+23328,018552,018985,500.0,2025-07-24,2024-11-14,bank_transfer,unknown,0021645,charter_reconciliation_report,Ruud Jacquie,,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+23335,018597,018994,500.0,2025-07-24,2024-11-20,bank_transfer,unknown,0021659,charter_reconciliation_report,Lagrange Aaron,Ramsey Jared,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+23347,018465,018918,500.0,2025-07-24,2024-10-10,bank_transfer,unknown,0021559,charter_reconciliation_report,Avalanche Integrity,Lyke Trevor,True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
+23976,018245,018768,300.0,2025-07-24,2024-08-06,bank_transfer,unknown,0021333,charter_reconciliation_report,Devet Shelby,"Wiltse, Pat",True,UNIQUE_LMS_KEY_RESERVE_MISMATCH
