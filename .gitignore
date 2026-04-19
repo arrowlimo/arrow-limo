@@ -199,3 +199,9 @@ quickbooks/*.pdf
 
 # Executable installers
 *.exe
+
+# Large local files - never commit
+archive_old_scripts/old_database_files/*.sql
+database_backups/**/*.sql
+database_backups/**/*.json
+db/*.mdb
