@@ -1,0 +1,76 @@
+Reboot Handoff - 2026-04-19
+Global Payments 2012 Merchant Statement Reconciliation
+
+=======================================================================
+OPEN ON REBOOT — resume from this file
+=======================================================================
+
+## Current Focus
+Global Payments 2012 merchant statement reconciliation against almsdata.
+Working month-by-month: matching daily net deposit lines from statement OCR
+to actual banking_transactions credit rows using exact / 2-row / 3-row combos.
+
+## OCR Source File
+L:\pdf2012 merchant statement globalpayments_ocred.txt  (77 pages, all extracted)
+
+## Statement Date Map (confirmed from audit script)
+Run: L:\limo\.venv\Scripts\python.exe statement_date_audit.py
+Key findings:
+  - 09/30/2011 is in the scan (pages 20,23,25) — EXCLUDED from 2012 recon
+  - 04/30/2012 is DUPLICATED (pages 48,51,54,55,57) — use pages 48-53 only
+
+## Month Reconciliation Status
+  Nov 2012  FULLY DONE ✓
+  Oct 2012  FULLY DONE ✓
+  Aug 2012  FULLY DONE ✓
+  Jul 2012  FULLY DONE ✓
+  Sep 2012  Partial — fee confirmed, some deposit lines unresolved
+  Jun 2012  Partial — fee NSF-paired (abnormal), 6 deposit lines unresolved
+  May 2012  Partial — fee confirmed, 8 deposit lines unresolved ($20,229.63)
+  Apr 2012  Partial — fee confirmed, 5 deposit lines unresolved ($14,344.57)
+              unresolved: 04/02 $4,067.00 / 04/09 $2,893.00 / 04/19 $350.00
+                          04/23 $3,703.69 / 04/27 $3,330.88
+              note: no exact or 2/3/4-row combo found in DB for these 5
+  Jan-Mar 2012  Card totals compared only; deposit-line recon not done
+  Dec 2012  Partial — page 2 of statement missing from OCR
+
+## Scripts (in L:\limo\)
+  statement_date_audit.py           — committed, detects dupes + pre-2012 exclusion
+  _tmp_reconcile_apr2012.py         — April deposit-line matcher
+  _tmp_reconcile_may2012.py         — May deposit-line matcher
+  _tmp_june_combo_check.py          — June combination matcher
+  _tmp_extract_statement_totals_v2.py — monthly card summary parser
+  _tmp_parse_card_pages_flex.py     — card total page parser
+
+## GST / ITC — DONE (2026-04-19)
+  Updated 14 Merchant Services Fee receipts:
+    gst_amount = ROUND(gross_amount / 1.05 * 0.05, 2)
+    gst_code   = 'ITC'
+  Total ITC captured: $490.87 across 2012
+  Covers: Mar, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec 2012 fees
+
+## !! RESTART TO-DO (do these first) !!
+
+  1. REVIEW DUPLICATE FEE RECEIPTS (two dates have 2 rows each):
+       May 29, 2012 — two receipts of $567.15 (one is NSF-pair reversal of June fee)
+       Dec 01, 2012 — two receipts of $309.55 (likely one is a duplicate import)
+     Action: confirm which row to keep/delete before ITC total is finalized.
+
+  2. CONTINUE APRIL 2012 deposit-line reconciliation
+     Try wider window (up to 14 days) or check if amounts split differently.
+     5 unresolved lines = $14,344.57 still unmatched.
+
+  3. COMPLETE May / Jun / Sep 2012 deposit lines
+     Same approach — run _tmp_reconcile scripts with wider windows.
+
+  4. DO Jan / Feb / Mar 2012 deposit-line reconciliation (not started).
+
+  5. Dec 2012 — page 2 of statement missing from OCR; may need screenshot.
+
+## DB Connection
+  host=localhost  port=5432  db=almsdata  user=postgres  pw=ArrowLimousine
+
+## Key Pattern — new month reconciliation script
+  Copy _tmp_reconcile_apr2012.py, update TARGETS list and fee date window.
+  Card-type descriptions: VCARD=Visa, DCARD=Debit, MCARD=MC, ACARD=Amex
+  Fee pattern: debited first business day of FOLLOWING month.
