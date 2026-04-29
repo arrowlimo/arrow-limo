@@ -169,12 +169,18 @@ def get_booking(charter_id: int = Path(...)):
                 c.charter_date,
                 c.client_id,
                 c.reserve_number,
-                c.passenger_load,
-                c.vehicle_booked_id,
-                c.vehicle_description,
-                c.vehicle_type_requested,
-                c.driver_name,
-                c.retainer,
+                c.passenger_count AS passenger_load,
+                c.vehicle_id AS vehicle_booked_id,
+                COALESCE(
+                    v.description,
+                    TRIM(COALESCE(v.make, '') || ' ' || COALESCE(v.model, '')),
+                    ''
+                ) AS vehicle_description,
+                v.vehicle_type AS vehicle_type_requested,
+                c.driver AS driver_name,
+                c.driver,
+                c.vehicle,
+                NULL::numeric AS retainer,
                 c.odometer_start,
                 c.odometer_end,
                 c.fuel_added,
@@ -183,12 +189,39 @@ def get_booking(charter_id: int = Path(...)):
                 c.pickup_address,
                 c.dropoff_address,
                 c.status,
+                c.charter_type,
+                c.total_amount_due,
+                COALESCE(p.total_paid, c.amount_paid, c.paid_amount, 0)
+                AS total_paid,
+                COALESCE(nrr.nrr_amount, 0) AS nrr_amount,
+                CASE
+                    WHEN c.locked = true AND c.cancelled = false
+                    THEN 'Reconciled'
+                    WHEN c.cancelled = true THEN 'Cancelled'
+                    ELSE 'Not Reconciled'
+                END AS reconciliation_status,
                 cl.client_name,
+                cl.company_name,
+                cl.email,
+                COALESCE(cl.primary_phone, cl.phone) AS phone,
                 v.passenger_capacity AS vehicle_capacity
             FROM charters c
             LEFT JOIN clients cl ON c.client_id = cl.client_id
-            LEFT JOIN vehicles v ON CAST(c.vehicle_booked_id AS TEXT) =
-            CAST(v.vehicle_number AS TEXT)
+            LEFT JOIN vehicles v ON c.vehicle_id = v.vehicle_id
+            LEFT JOIN (
+                SELECT charter_id, SUM(amount) AS total_paid
+                FROM payments
+                GROUP BY charter_id
+            ) p ON c.charter_id = p.charter_id
+            LEFT JOIN (
+                SELECT charter_id, SUM(amount) AS nrr_amount
+                FROM payments
+                WHERE payment_label IN (
+                    'NRR', 'NRD', 'Non-Refundable Retainer', 'Retainer'
+                )
+                  AND payment_label NOT IN ('Deposit')
+                GROUP BY charter_id
+            ) nrr ON c.charter_id = nrr.charter_id
             WHERE c.charter_id = %s
             """,
             (charter_id,),
@@ -197,7 +230,11 @@ def get_booking(charter_id: int = Path(...)):
         cols = [d[0] for d in (cur.description or [])]
     if not row:
         raise HTTPException(status_code=404, detail="not_found")
-    return dict(zip(cols, row, strict=False))
+    result = dict(zip(cols, row, strict=False))
+    result["total_amount_due"] = float(result.get("total_amount_due") or 0.0)
+    result["total_paid"] = float(result.get("total_paid") or 0.0)
+    result["nrr_amount"] = float(result.get("nrr_amount") or 0.0)
+    return result
 
 
 @router.get("/bookings/search")
