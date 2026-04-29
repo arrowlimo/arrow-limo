@@ -17,7 +17,26 @@ def is_review_receipt(r):
     vendor=(r.get('vendor_name') or '').upper()
     return ('unlinked' in vendor) or ('review' in vendor) or src.startswith('auto_') or bool(r.get('exclude_from_reports'))
 
-def receipt_quality_score(r, canonical_tx):
+def vendor_match_score(r, canonical_tx):
+    rv = f"{r.get('canonical_vendor') or ''} {r.get('vendor_name') or ''} {r.get('description') or ''}"
+    tv = f"{canonical_tx.get('vendor_extracted') or ''} {canonical_tx.get('description') or ''}"
+    return len(norm_tokens(rv) & norm_tokens(tv))
+
+def date_gap_days(r, canonical_tx):
+    rd = r.get('receipt_date')
+    td = canonical_tx.get('transaction_date')
+    if not rd or not td:
+        return 9999
+    return abs((rd - td).days)
+
+def amount_exact_match(r, canonical_tx):
+    amt = r.get('gross_amount')
+    tx_amt = canonical_tx.get('debit_amount')
+    if amt is None or tx_amt is None:
+        return False
+    return abs(Decimal(str(amt)) - Decimal(str(tx_amt))) < Decimal('0.01')
+
+def receipt_quality_score(r, canonical_tx_id):
     s=0
     if r.get('canonical_vendor'): s += 25
     if r.get('gl_account_code') or r.get('gl_code'): s += 35
@@ -27,12 +46,23 @@ def receipt_quality_score(r, canonical_tx):
     if (r.get('description') and str(r.get('description')).strip()): s += 8
     if not r.get('exclude_from_reports'): s += 10
     if (r.get('receipt_source') or '') == 'BANKING': s += 8
-    if r.get('banking_transaction_id') == canonical_tx: s += 5
+    if r.get('banking_transaction_id') == canonical_tx_id: s += 5
     if is_review_receipt(r): s -= 120
     return s
 
 def pick_best_receipt(receipts, canonical_tx):
-    ordered=sorted(receipts, key=lambda r:(is_review_receipt(r), -receipt_quality_score(r, canonical_tx), r['receipt_id']))
+    # Priority requested: exact amount -> vendor match -> date match.
+    ordered=sorted(
+        receipts,
+        key=lambda r: (
+            is_review_receipt(r),
+            0 if amount_exact_match(r, canonical_tx) else 1,
+            -vendor_match_score(r, canonical_tx),
+            date_gap_days(r, canonical_tx),
+            -receipt_quality_score(r, canonical_tx['transaction_id']),
+            r['receipt_id'],
+        ),
+    )
     return ordered[0]
 
 conn=psycopg2.connect(dbname='almsdata', user='postgres', password='ArrowLimousine', host='localhost', port=5432)
@@ -123,7 +153,7 @@ for x,y,dd,ov,sig in safe:
     rs=cur.fetchall()
     if not rs:
         continue
-    best=pick_best_receipt(rs, y['transaction_id'])
+    best=pick_best_receipt(rs, y)
     apply_pairs.append((x,y,best,rs))
 
 print('apply_pairs_with_receipts', len(apply_pairs))

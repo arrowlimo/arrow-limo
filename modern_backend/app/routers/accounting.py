@@ -1,4 +1,5 @@
 """Accounting Dashboard and Financial Stats API Router"""
+
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -67,13 +68,11 @@ def get_accounting_stats(month: int | None = None, year: int | None = None):
     monthly_profit = monthly_revenue - monthly_expenses
 
     # Outstanding Receivables (unpaid charters = outstanding balance)
-    cur.execute(
-        """
+    cur.execute("""
         SELECT COALESCE(SUM(balance), 0)
         FROM charters
         WHERE balance > 0 AND payment_status != 'paid'
-    """
-    )
+    """)
     outstanding_receivables = cur.fetchone()[0] or 0
 
     # GST Owed (collected on revenue - paid on expenses)
@@ -82,7 +81,9 @@ def get_accounting_stats(month: int | None = None, year: int | None = None):
         monthly_revenue_f = float(monthly_revenue) if monthly_revenue else 0
         monthly_expenses_f = float(monthly_expenses) if monthly_expenses else 0
         gst_collected = monthly_revenue_f * 0.05
-        gst_paid = (monthly_expenses_f * 0.95) * 0.05 if monthly_expenses_f > 0 else 0
+        gst_paid = (
+            (monthly_expenses_f * 0.95) * 0.05 if monthly_expenses_f > 0 else 0
+        )
         gst_owed = gst_collected - gst_paid
     except Exception:
         gst_owed = 0
@@ -94,9 +95,9 @@ def get_accounting_stats(month: int | None = None, year: int | None = None):
         "monthly_revenue": float(monthly_revenue) if monthly_revenue else 0,
         "monthly_expenses": float(monthly_expenses) if monthly_expenses else 0,
         "monthly_profit": float(monthly_profit) if monthly_profit else 0,
-        "outstanding_receivables": float(outstanding_receivables)
-        if outstanding_receivables
-        else 0,
+        "outstanding_receivables": (
+            float(outstanding_receivables) if outstanding_receivables else 0
+        ),
         "gst_owed": float(gst_owed),
         "month": month,
         "year": year,
@@ -328,7 +329,8 @@ def get_cash_flow_report(
     cur.execute(
         """
         SELECT
-            COALESCE(SUM(gross_amount + COALESCE(gst_amount, 0)), 0) as total_out
+            COALESCE(SUM(gross_amount + COALESCE(gst_amount, 0)),
+            0) as total_out
         FROM receipts
         WHERE receipt_date >= %s AND receipt_date <= %s
         AND category != 'personal'
@@ -357,12 +359,15 @@ def get_ar_aging_report():
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute(
-        """
+    cur.execute("""
         SELECT
             i.invoice_id,
             i.invoice_number,
-            COALESCE(c.customer_name, cust.company_name, cust.first_name || ' ' || cust.last_name) as customer_name,
+            COALESCE(
+                c.customer_name,
+                cust.company_name,
+                cust.first_name || ' ' || cust.last_name
+            ) as customer_name,
             i.invoice_date,
             i.due_date,
             (i.amount + i.gst) as total,
@@ -372,8 +377,7 @@ def get_ar_aging_report():
         LEFT JOIN customers cust ON i.customer_id = cust.customer_id
         WHERE i.paid_date IS NULL
         ORDER BY days_overdue DESC
-    """
-    )
+    """)
 
     aging = {
         "current": [],

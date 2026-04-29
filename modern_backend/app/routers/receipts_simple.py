@@ -1,4 +1,5 @@
 """Simplified Receipts API Router - matches actual database schema"""
+
 from datetime import date
 from decimal import Decimal
 
@@ -11,23 +12,24 @@ from ..db import get_connection
 router = APIRouter(prefix="/api/receipts-simple", tags=["receipts-simple"])
 
 # GL accounts that should NEVER have GST calculated
-# Includes: Liability accounts (loans), bank charges, interest, financial services, internal transfers
+# Includes: Liability accounts (loans), bank charges, interest, financial
+# services, internal transfers
 GST_EXEMPT_GL_CODES = {
-    '2795',  # Loans & Leases
-    '2800',  # Line of Credit  
-    '2802',  # Credit Cards Payable
-    '2804',  # Vehicle Loans
-    '2806',  # Equipment Loans
-    '2807',  # Vehicle Leases
-    '2808',  # Equipment Leases
-    '2810',  # Shareholder Loan (Paul's advances to company)
-    '2910',  # ShareHolder Loan (alternate)
-    '6100',  # Bank Charges & Interest
-    '6101',  # Interest & Late Charges
-    '6280',  # Loan Interest & Finance Charges
-    '5450',  # Payment Processing Fees (financial services)
-    '1135',  # Prepaid Visa Cards (asset; loads are non-taxable)
-    '1099',  # Inter-Account Clearing (internal transfers)
+    "2795",  # Loans & Leases
+    "2800",  # Line of Credit
+    "2802",  # Credit Cards Payable
+    "2804",  # Vehicle Loans
+    "2806",  # Equipment Loans
+    "2807",  # Vehicle Leases
+    "2808",  # Equipment Leases
+    "2810",  # Shareholder Loan (Paul's advances to company)
+    "2910",  # ShareHolder Loan (alternate)
+    "6100",  # Bank Charges & Interest
+    "6101",  # Interest & Late Charges
+    "6280",  # Loan Interest & Finance Charges
+    "5450",  # Payment Processing Fees (financial services)
+    "1135",  # Prepaid Visa Cards (asset; loads are non-taxable)
+    "1099",  # Inter-Account Clearing (internal transfers)
 }
 
 
@@ -87,34 +89,52 @@ def _expand_linked_split_receipt_ids(cur, seed_ids: list[int]) -> set[int]:
 
 
 def determine_receipt_type(desc: str, trans_type: str) -> tuple[str, str]:
-    """Determine receipt_type and notes from banking description and transaction type
-    
+    """Determine receipt_type and notes from banking description and
+    transaction type
+
     Args:
         desc: Banking transaction description
         trans_type: 'DEBIT' or 'CREDIT'
-        
+
     Returns:
         tuple of (receipt_type, notes)
     """
     desc_upper = desc.upper() if desc else ""
-    
-    if trans_type == 'CREDIT':
+
+    if trans_type == "CREDIT":
         # Money coming IN - categorize reversals/refunds
-        if 'NSF RETURN' in desc_upper or 'NSF CHECK' in desc_upper or 'RETURNED ITEM' in desc_upper:
-            return ('NSF_REVERSAL', 'NSF reversal - payment bounced and returned')
-        elif 'CORRECT' in desc_upper:
-            return ('CORRECTION', 'Bank correction - transaction reversed')
-        elif any(kw in desc_upper for kw in ['REFUND', 'REVERSAL', 'STOP', 'CANCEL']):
-            return ('REFUND', 'Refund or reversal')
+        if (
+            "NSF RETURN" in desc_upper
+            or "NSF CHECK" in desc_upper
+            or "RETURNED ITEM" in desc_upper
+        ):
+            return (
+                "NSF_REVERSAL",
+                "NSF reversal - payment bounced and returned",
+            )
+        elif "CORRECT" in desc_upper:
+            return ("CORRECTION", "Bank correction - transaction reversed")
+        elif any(
+            kw in desc_upper for kw in ["REFUND", "REVERSAL", "STOP", "CANCEL"]
+        ):
+            return ("REFUND", "Refund or reversal")
         else:
-            return ('REFUND', 'Credit transaction - reducing expenses')
+            return ("REFUND", "Credit transaction - reducing expenses")
     else:
-        # Money going OUT - categorize expenses/fees  
-        if any(kw in desc_upper for kw in ['NSF CHARGE', 'NSF FEE', 'SERVICE CHARGE', 'MONTHLY FEE']):
-            return ('BANK_CHARGE', 'Bank fee or NSF charge')
+        # Money going OUT - categorize expenses/fees
+        if any(
+            kw in desc_upper
+            for kw in [
+                "NSF CHARGE",
+                "NSF FEE",
+                "SERVICE CHARGE",
+                "MONTHLY FEE",
+            ]
+        ):
+            return ("BANK_CHARGE", "Bank fee or NSF charge")
         else:
-            return ('EXPENSE', '')  # Normal expense
-    
+            return ("EXPENSE", "")  # Normal expense
+
 
 class SimpleReceiptCreate(BaseModel):
     """Receipt creation matching actual database schema"""
@@ -135,8 +155,11 @@ class SimpleReceiptCreate(BaseModel):
     gl_account_code: str | None = None
     is_personal: bool = False
     is_driver_personal: bool = False
-    is_paper_verified: bool | None = None  # Track if physical paper receipt exists
-    banking_transaction_id: int | None = None  # Link to banking transaction for audit trail
+    is_paper_verified: bool | None = (
+        None  # Track if physical paper receipt exists
+    )
+    # Link to banking transaction for audit trail
+    banking_transaction_id: int | None = None
 
 
 class SimpleReceiptResponse(BaseModel):
@@ -159,7 +182,7 @@ class SimpleReceiptResponse(BaseModel):
     is_paper_verified: bool | None = False
     paper_verification_date: date | None = None
     banking_transaction_id: int | None = None
-    receipt_type: str | None = 'EXPENSE'
+    receipt_type: str | None = "EXPENSE"
     banking_transaction_type: str | None = None
     notes: str | None = None
 
@@ -167,24 +190,24 @@ class SimpleReceiptResponse(BaseModel):
 @router.get("/vendors")
 def get_vendors():
     """Get distinct list of vendor names for autocomplete with standardization
-    
+
     Cached for 1 hour since vendor list changes infrequently
     """
     conn = get_connection()
     cur = conn.cursor()
 
     # Use materialized view for better performance
-    cur.execute(
-        """
+    cur.execute("""
         SELECT name, canonical
         FROM mv_vendor_list
         LIMIT 5000
-    """
-    )
+    """)
 
     vendors = []
     for row in cur.fetchall():
-        vendors.append({"name": row[0], "canonical": row[1] if row[1] else row[0]})
+        vendors.append(
+            {"name": row[0], "canonical": row[1] if row[1] else row[0]}
+        )
 
     cur.close()
     conn.close()
@@ -201,7 +224,9 @@ def get_vendors():
 
 @router.get("/vendor-profile")
 def get_vendor_profile(vendor: str):
-    """Return canonical vendor, most common category, and gst_code for this vendor."""
+    """Return canonical vendor, most common category, and gst_code for this"
+    "vendor."""
+
     conn = get_connection()
     cur = conn.cursor()
 
@@ -252,7 +277,8 @@ def check_duplicate_receipts(
 ):
     """Check for existing receipts matching vendor, amount, and date range.
 
-    Split siblings are included even when they are not linked by banking_transaction_id,
+    Split siblings are included even when they are not linked by
+    banking_transaction_id,
     by following split_group_id, split_key, and parent/child relationships.
     """
     conn = get_connection()
@@ -267,7 +293,8 @@ def check_duplicate_receipts(
         FROM receipts
         WHERE vendor_name ILIKE %s
           AND ABS(gross_amount - %s) < 0.01
-          AND receipt_date BETWEEN %s - INTERVAL '%s days' AND %s + INTERVAL '%s days'
+          AND receipt_date
+          BETWEEN %s - INTERVAL '%s days' AND %s + INTERVAL '%s days'
           AND is_voided IS NOT TRUE
           AND exclude_from_reports IS NOT TRUE
         ORDER BY receipt_date DESC
@@ -346,8 +373,13 @@ def check_duplicate_receipts(
     for item in duplicates:
         group_key = item["linked_group_key"]
         if group_key not in grouped_totals:
-            grouped_totals[group_key] = {"group_total_gross": 0.0, "group_count": 0}
-        grouped_totals[group_key]["group_total_gross"] += float(item["gross_amount"] or 0)
+            grouped_totals[group_key] = {
+                "group_total_gross": 0.0,
+                "group_count": 0,
+            }
+        grouped_totals[group_key]["group_total_gross"] += float(
+            item["gross_amount"] or 0
+        )
         grouped_totals[group_key]["group_count"] += 1
 
     for item in duplicates:
@@ -421,7 +453,8 @@ def match_to_banking(
             WHERE (
                 ABS(bt.debit_amount - %s) < 0.01
                 OR ABS(bt.credit_amount - %s) < 0.01)
-            AND bt.transaction_date BETWEEN %s - INTERVAL '%s days' AND %s + INTERVAL '%s days'
+            AND bt.transaction_date
+            BETWEEN %s - INTERVAL '%s days' AND %s + INTERVAL '%s days'
         """
         params = [amount, amount, date, days_window, date, days_window]
 
@@ -468,20 +501,26 @@ def link_receipt_to_banking(receipt_id: int, transaction_id: int):
             FROM banking_transactions
             WHERE transaction_id = %s
             """,
-            (transaction_id,)
+            (transaction_id,),
         )
         bank_row = cur.fetchone()
         if not bank_row:
-            raise HTTPException(status_code=404, detail="Banking transaction not found")
-        
+            raise HTTPException(
+                status_code=404, detail="Banking transaction not found"
+            )
+
         debit_amt, credit_amt, description = bank_row
-        
+
         # Determine transaction type
-        banking_trans_type = 'DEBIT' if debit_amt and debit_amt > 0 else 'CREDIT'
-        
+        banking_trans_type = (
+            "DEBIT" if debit_amt and debit_amt > 0 else "CREDIT"
+        )
+
         # Determine receipt_type and notes
-        receipt_type, notes = determine_receipt_type(description, banking_trans_type)
-        
+        receipt_type, notes = determine_receipt_type(
+            description, banking_trans_type
+        )
+
         # Update receipt with banking link and audit fields
         cur.execute(
             """
@@ -494,12 +533,18 @@ def link_receipt_to_banking(receipt_id: int, transaction_id: int):
                 modified_by = 'api_link'
             WHERE receipt_id = %s
             """,
-            (transaction_id, banking_trans_type, receipt_type, notes, receipt_id)
+            (
+                transaction_id,
+                banking_trans_type,
+                receipt_type,
+                notes,
+                receipt_id,
+            ),
         )
-        
+
         if cur.rowcount == 0:
             raise HTTPException(status_code=404, detail="Receipt not found")
-        
+
         # Also update banking_transactions.receipt_id for reverse lookup
         cur.execute(
             """
@@ -517,7 +562,7 @@ def link_receipt_to_banking(receipt_id: int, transaction_id: int):
         return {
             "message": "Receipt linked to banking transaction successfully",
             "receipt_type": receipt_type,
-            "banking_transaction_type": banking_trans_type
+            "banking_transaction_type": banking_trans_type,
         }
 
     except Exception as e:
@@ -538,12 +583,14 @@ def create_receipt(receipt: SimpleReceiptCreate):
         gl_account_code = None
         gl_account_name = None
         is_gst_exempt_account = False
-        
+
         if receipt.gl_account_code:
             gl_account_code = receipt.gl_account_code.strip()
             if gl_account_code:
                 cur.execute(
-                    "SELECT account_name FROM chart_of_accounts WHERE account_code = %s",
+                    "SELECT account_name FROM chart_of_accounts WHERE"
+                    "account_code = %s",
+
                     (gl_account_code,),
                 )
                 row = cur.fetchone()
@@ -552,11 +599,13 @@ def create_receipt(receipt: SimpleReceiptCreate):
                         status_code=400, detail="GL account code not found"
                     )
                 gl_account_name = row[0]
-                # Check if this GL account is GST-exempt (loans, bank charges, etc.)
+                # Check if this GL account is GST-exempt (loans, bank charges,
+                # etc.)
                 is_gst_exempt_account = gl_account_code in GST_EXEMPT_GL_CODES
 
         # Auto-calculate GST if not provided (5% included in gross)
-        # BUT skip GST for exempt accounts (loans, bank charges, financial services)
+        # BUT skip GST for exempt accounts (loans, bank charges, financial
+        # services)
         gst = receipt.gst_amount
         if gst is None and receipt.gross_amount:
             if is_gst_exempt_account or receipt.is_driver_personal:
@@ -565,7 +614,9 @@ def create_receipt(receipt: SimpleReceiptCreate):
                 gst = round(float(receipt.gross_amount) * 0.05 / 1.05, 2)
 
         canonical_vendor = receipt.vendor_name.strip().upper()
-        personal_amount = receipt.gross_amount if receipt.is_personal else Decimal("0")
+        personal_amount = (
+            receipt.gross_amount if receipt.is_personal else Decimal("0")
+        )
 
         # Determine GST code based on conditions
         effective_gst_code = receipt.gst_code
@@ -582,7 +633,7 @@ def create_receipt(receipt: SimpleReceiptCreate):
         if receipt.reserve_number and not charter_id:
             cur.execute(
                 "SELECT charter_id FROM charters WHERE reserve_number = %s",
-                (receipt.reserve_number,)
+                (receipt.reserve_number,),
             )
             charter_row = cur.fetchone()
             if charter_row:
@@ -591,10 +642,14 @@ def create_receipt(receipt: SimpleReceiptCreate):
         cur.execute(
             """
             INSERT INTO receipts (
-                receipt_date, vendor_name, canonical_vendor, invoice_number, gross_amount, gst_amount, gst_code,
-                category, description, vehicle_id, charter_id, employee_id, reserve_number,
-                fuel_amount, owner_personal_amount, gl_account_code, gl_account_name)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                receipt_date, vendor_name, canonical_vendor, invoice_number,
+                gross_amount, gst_amount, gst_code,
+                category, description, vehicle_id, charter_id, employee_id,
+                reserve_number,
+                fuel_amount, owner_personal_amount, gl_account_code,
+                gl_account_name)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s)
             RETURNING receipt_id
         """,
             (
@@ -624,9 +679,12 @@ def create_receipt(receipt: SimpleReceiptCreate):
         # Return the created receipt
         cur.execute(
             """
-            SELECT receipt_id, receipt_date, vendor_name, canonical_vendor, invoice_number, gross_amount,
-                   gst_amount, gst_code, category, description, vehicle_id, charter_id, 
-                   employee_id, reserve_number, fuel_amount, owner_personal_amount,
+            SELECT receipt_id, receipt_date, vendor_name, canonical_vendor,
+            invoice_number, gross_amount,
+                   gst_amount, gst_code, category, description, vehicle_id,
+                   charter_id, 
+                   employee_id, reserve_number, fuel_amount,
+                   owner_personal_amount,
                    gl_account_code, gl_account_name
             FROM receipts
             WHERE receipt_id = %s
@@ -681,8 +739,10 @@ def get_receipts(
     cur = conn.cursor()
 
     query = """
-         SELECT receipt_id, receipt_date, vendor_name, canonical_vendor, invoice_number, gross_amount,
-             gst_amount, gst_code, category, description, vehicle_id, fuel_amount,
+         SELECT receipt_id, receipt_date, vendor_name, canonical_vendor,
+         invoice_number, gross_amount,
+             gst_amount, gst_code, category, description, vehicle_id,
+             fuel_amount,
              owner_personal_amount, gl_account_code, gl_account_name
         FROM receipts
         WHERE 1=1
@@ -741,10 +801,13 @@ def get_receipt(receipt_id: int):
 
     cur.execute(
         """
-        SELECT receipt_id, receipt_date, vendor_name, canonical_vendor, invoice_number, gross_amount,
-               gst_amount, gst_code, category, description, vehicle_id, charter_id,
+        SELECT receipt_id, receipt_date, vendor_name, canonical_vendor,
+        invoice_number, gross_amount,
+               gst_amount, gst_code, category, description, vehicle_id,
+               charter_id,
                employee_id, reserve_number, fuel_amount, owner_personal_amount,
-               gl_account_code, gl_account_name, is_paper_verified, paper_verification_date
+               gl_account_code, gl_account_name, is_paper_verified,
+               paper_verification_date
         FROM receipts
         WHERE receipt_id = %s
         """,
@@ -791,7 +854,10 @@ def update_receipt(receipt_id: int, receipt: SimpleReceiptCreate):
 
     try:
         # Check if receipt exists
-        cur.execute("SELECT receipt_id FROM receipts WHERE receipt_id = %s", (receipt_id,))
+        cur.execute(
+            "SELECT receipt_id FROM receipts WHERE receipt_id = %s",
+            (receipt_id,),
+        )
         if not cur.fetchone():
             raise HTTPException(status_code=404, detail="Receipt not found")
 
@@ -799,12 +865,14 @@ def update_receipt(receipt_id: int, receipt: SimpleReceiptCreate):
         gl_account_code = None
         gl_account_name = None
         is_gst_exempt_account = False
-        
+
         if receipt.gl_account_code:
             gl_account_code = receipt.gl_account_code.strip()
             if gl_account_code:
                 cur.execute(
-                    "SELECT account_name FROM chart_of_accounts WHERE account_code = %s",
+                    "SELECT account_name FROM chart_of_accounts WHERE"
+                    "account_code = %s",
+
                     (gl_account_code,),
                 )
                 row = cur.fetchone()
@@ -817,7 +885,8 @@ def update_receipt(receipt_id: int, receipt: SimpleReceiptCreate):
                 is_gst_exempt_account = gl_account_code in GST_EXEMPT_GL_CODES
 
         # Auto-calculate GST if not provided
-        # BUT skip GST for exempt accounts (loans, bank charges, financial services)
+        # BUT skip GST for exempt accounts (loans, bank charges, financial
+        # services)
         gst = receipt.gst_amount
         if gst is None and receipt.gross_amount:
             if is_gst_exempt_account or receipt.is_driver_personal:
@@ -826,7 +895,9 @@ def update_receipt(receipt_id: int, receipt: SimpleReceiptCreate):
                 gst = round(float(receipt.gross_amount) * 0.05 / 1.05, 2)
 
         canonical_vendor = receipt.vendor_name.strip().upper()
-        personal_amount = receipt.gross_amount if receipt.is_personal else Decimal("0")
+        personal_amount = (
+            receipt.gross_amount if receipt.is_personal else Decimal("0")
+        )
 
         # Driver personal expenses handling
         effective_gst_code = receipt.gst_code
@@ -843,7 +914,7 @@ def update_receipt(receipt_id: int, receipt: SimpleReceiptCreate):
         if receipt.reserve_number and not charter_id:
             cur.execute(
                 "SELECT charter_id FROM charters WHERE reserve_number = %s",
-                (receipt.reserve_number,)
+                (receipt.reserve_number,),
             )
             charter_row = cur.fetchone()
             if charter_row:
@@ -870,7 +941,8 @@ def update_receipt(receipt_id: int, receipt: SimpleReceiptCreate):
                 gl_account_code = %s,
                 gl_account_name = %s,
                 is_paper_verified = COALESCE(%s, is_paper_verified),
-                paper_verification_date = CASE WHEN %s = TRUE THEN NOW() ELSE paper_verification_date END
+                paper_verification_date = CASE WHEN %s = TRUE THEN NOW() ELSE
+                paper_verification_date END
             WHERE receipt_id = %s
             """,
             (
@@ -902,10 +974,14 @@ def update_receipt(receipt_id: int, receipt: SimpleReceiptCreate):
         # Return the updated receipt
         cur.execute(
             """
-            SELECT receipt_id, receipt_date, vendor_name, canonical_vendor, invoice_number, gross_amount,
-                   gst_amount, gst_code, category, description, vehicle_id, charter_id,
-                   employee_id, reserve_number, fuel_amount, owner_personal_amount,
-                   gl_account_code, gl_account_name, is_paper_verified, paper_verification_date
+            SELECT receipt_id, receipt_date, vendor_name, canonical_vendor,
+            invoice_number, gross_amount,
+                   gst_amount, gst_code, category, description, vehicle_id,
+                   charter_id,
+                   employee_id, reserve_number, fuel_amount,
+                   owner_personal_amount,
+                   gl_account_code, gl_account_name, is_paper_verified,
+                   paper_verification_date
             FROM receipts
             WHERE receipt_id = %s
             """,
@@ -936,7 +1012,9 @@ def update_receipt(receipt_id: int, receipt: SimpleReceiptCreate):
             "is_driver_personal": bool(row[7] == "DRIVER_PERSONAL"),
             "gl_account_code": row[16],
             "gl_account_name": row[17],
-            "is_paper_verified": bool(row[18]) if row[18] is not None else False,
+            "is_paper_verified": (
+                bool(row[18]) if row[18] is not None else False
+            ),
             "paper_verification_date": row[19],
         }
 

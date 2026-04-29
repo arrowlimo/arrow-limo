@@ -3,9 +3,12 @@ Vehicle Pricing API Router
 
 Endpoints:
 - GET /pricing/defaults - Get all vehicle pricing defaults
-- GET /pricing/by-vehicle/{vehicle_type} - Get pricing for specific vehicle type
-- POST /pricing/calculate-quotes - Calculate 3 quote options (hourly, package, split run)
+- GET /pricing/by-vehicle/{vehicle_type} - Get pricing for specific vehicle
+type
+- POST /pricing/calculate-quotes - Calculate 3 quote options (hourly, package,
+split run)
 """
+
 from decimal import Decimal
 
 from fastapi import APIRouter, HTTPException
@@ -46,8 +49,7 @@ def get_all_pricing_defaults():
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.execute(
-            """
+        cur.execute("""
             SELECT 
                 vehicle_type, charter_type_code, hourly_rate, package_rate,
                 package_hours, minimum_hours, extra_time_rate, standby_rate,
@@ -55,8 +57,7 @@ def get_all_pricing_defaults():
             FROM vehicle_pricing_defaults
             WHERE is_active = true
             ORDER BY vehicle_type, charter_type_code
-        """
-        )
+        """)
 
         results = []
         for row in cur.fetchall():
@@ -78,7 +79,9 @@ def get_all_pricing_defaults():
 
         return {"results": results, "count": len(results)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load pricing: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to load pricing: {e}"
+        )
     finally:
         cur.close()
         conn.close()
@@ -128,7 +131,9 @@ def get_pricing_by_vehicle(vehicle_type: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load pricing: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to load pricing: {e}"
+        )
     finally:
         cur.close()
         conn.close()
@@ -140,7 +145,8 @@ def calculate_quotes(request: QuoteRequest):
     Calculate 3 quote options for a charter:
     1. Hourly rate (e.g., $195/hr × 6 hours = $1170)
     2. Package rate (e.g., 6hr package $1170 + extra time $150/hr)
-    3. Split run (e.g., 1.5hr before + 1.5hr after = 3hr free, OR 3hr standby @ $25/hr)
+    3. Split run (e.g., 1.5hr before + 1.5hr after = 3hr free,
+    OR 3hr standby @ $25/hr)
     """
     conn = get_connection()
     cur = conn.cursor()
@@ -173,7 +179,8 @@ def calculate_quotes(request: QuoteRequest):
 
         if not pricing_data:
             raise HTTPException(
-                status_code=404, detail=f"No pricing found for {request.vehicle_type}"
+                status_code=404,
+                detail=f"No pricing found for {request.vehicle_type}",
             )
 
         quotes = []
@@ -203,7 +210,9 @@ def calculate_quotes(request: QuoteRequest):
                     "total_before_gratuity": round(hourly_total, 2),
                     "gratuity_amount": gratuity_amt,
                     "total_with_gratuity": total_with_tip,
-                    "calculation_notes": f"${hourly['hourly_rate']:.2f}/hr × {quoted_hours} hours = ${hourly_total:.2f}. Extra time: ${hourly['extra_time_rate']:.2f}/hr",
+                    "calculation_notes": f"${hourly['hourly_rate']:.2f}/hr ×"
+                    "{quoted_hours} hours = ${hourly_total:.2f}. Extra time:"
+                    "${hourly['extra_time_rate']:.2f}/hr",
                 }
             )
 
@@ -222,11 +231,14 @@ def calculate_quotes(request: QuoteRequest):
                 gratuity_amt = None
                 total_with_tip = None
                 if request.include_gratuity:
-                    gratuity_amt = round(total * request.gratuity_percentage / 100, 2)
+                    gratuity_amt = round(
+                        total * request.gratuity_percentage / 100, 2
+                    )
                     total_with_tip = total + gratuity_amt
 
                 extra_note = (
-                    f" + {extra_hours}hr extra @ ${pkg['extra_time_rate']:.2f}/hr = ${extra_cost:.2f}"
+                    f" + {extra_hours}hr extra @"
+                    f"${pkg['extra_time_rate']:.2f}/hr = ${extra_cost:.2f}"
                     if extra_hours > 0
                     else ""
                 )
@@ -242,7 +254,9 @@ def calculate_quotes(request: QuoteRequest):
                         "total_before_gratuity": round(total, 2),
                         "gratuity_amount": gratuity_amt,
                         "total_with_gratuity": total_with_tip,
-                        "calculation_notes": f"{pkg_hours}hr package ${pkg['package_rate']:.2f}{extra_note}. Total: ${total:.2f}",
+                        "calculation_notes": f"{pkg_hours}hr package"
+                        "${pkg['package_rate']:.2f}{extra_note}. Total:"
+                        "${total:.2f}",
                     }
                 )
 
@@ -266,9 +280,12 @@ def calculate_quotes(request: QuoteRequest):
                 total_with_tip = standby_cost + gratuity_amt
 
             if standby_hours > 0:
-                calc_note = f"{before_hrs}hr before + {after_hrs}hr after = {free_hours}hr free. {standby_hours}hr standby @ ${split['standby_rate']:.2f}/hr = ${standby_cost:.2f}"
+                calc_note = f"{before_hrs} hr before + {after_hrs} hr after = {
+                    free_hours} hr free. {standby_hours} hr standby @ ${
+                    split['standby_rate']: .2f} /hr = ${standby_cost: .2f} "
             else:
-                calc_note = f"{before_hrs}hr before + {after_hrs}hr after = {free_hours}hr (within free time, no charge)"
+                calc_note = f"{before_hrs} hr before + {after_hrs} hr after = {
+                    free_hours} hr (within free time, no charge) "
 
             quotes.append(
                 {
@@ -289,9 +306,11 @@ def calculate_quotes(request: QuoteRequest):
             "vehicle_type": request.vehicle_type,
             "quoted_hours": quoted_hours,
             "include_gratuity": request.include_gratuity,
-            "gratuity_percentage": request.gratuity_percentage
-            if request.include_gratuity
-            else None,
+            "gratuity_percentage": (
+                request.gratuity_percentage
+                if request.include_gratuity
+                else None
+            ),
             "quotes": quotes,
             "count": len(quotes),
         }
@@ -299,7 +318,9 @@ def calculate_quotes(request: QuoteRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to calculate quotes: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to calculate quotes: {e}"
+        )
     finally:
         cur.close()
         conn.close()
@@ -311,14 +332,12 @@ def get_charter_types():
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.execute(
-            """
+        cur.execute("""
             SELECT type_code, type_name, description, requires_hours, is_active
             FROM charter_types
             WHERE is_active = true
             ORDER BY display_order
-        """
-        )
+        """)
 
         results = []
         for row in cur.fetchall():

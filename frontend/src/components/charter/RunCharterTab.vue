@@ -23,7 +23,7 @@
         <div class="results-list">
           <div 
             v-for="charter in searchResults" 
-            :key="charter.id"
+            :key="charter.charter_id || charter.id"
             @click="loadCharter(charter)"
             class="result-item"
           >
@@ -461,7 +461,8 @@ async function searchCharters(retryCount = 0) {
     // TODO: Replace with actual API call
     const response = await fetch(`/api/charters/search?q=${encodeURIComponent(searchQuery.value)}`)
     if (response.ok) {
-      searchResults.value = await response.json()
+      const data = await response.json()
+      searchResults.value = data.results || data || []
     } else if (response.status === 500 && retryCount < 2) {
       // Auto-retry on server error (likely connection issue)
       console.log(`Server error, retrying... (${retryCount + 1}/2)`)
@@ -497,12 +498,17 @@ async function searchCharters(retryCount = 0) {
   }
 }
 
+function getCurrentCharterId(charter = currentCharter.value) {
+  return charter?.charter_id || charter?.id || null
+}
+
 async function loadCharter(charter) {
   try {
     // Fetch full charter details if we only have summary
     let fullCharter = charter
-    if (!charter.routes) {
-      const response = await fetch(`/api/charters/${charter.id}`)
+    const charterId = getCurrentCharterId(charter)
+    if (!charter.routes && charterId) {
+      const response = await fetch(`/api/charters/${charterId}`)
       if (response.ok) {
         fullCharter = await response.json()
       }
@@ -720,17 +726,19 @@ async function saveCharter() {
       grand_total: charterGrandTotal.value
     }
     
+    const currentCharterId = getCurrentCharterId()
+
     // Add ID if updating existing charter
-    if (currentCharter.value?.id) {
-      completeCharterData.id = currentCharter.value.id
+    if (currentCharterId) {
+      completeCharterData.charter_id = currentCharterId
     }
     
     console.log('Saving complete charter data:', completeCharterData)
     
     // Build API URL
-    const isUpdate = currentCharter.value?.id
+    const isUpdate = Boolean(currentCharterId)
     const apiUrl = isUpdate 
-      ? `/api/charters/${currentCharter.value.id}` 
+      ? `/api/charters/${currentCharterId}` 
       : '/api/charters'
     
     // TODO: Replace with actual API call
@@ -759,6 +767,45 @@ async function saveCharter() {
   }
 }
 
+function buildRunSheetPdfPayload() {
+  const currentCharterId = getCurrentCharterId()
+  return {
+    ...currentCharter.value,
+    ...charterForm.value,
+    ...form.value,
+    charter_id: currentCharterId,
+    client_id: currentCharter.value?.client_id || null,
+    reserve_number: currentCharter.value?.reserve_number || '',
+    vehicle_id: charterForm.value.vehicle_id || currentCharter.value?.vehicle_id || null,
+    chauffeur_id: charterForm.value.chauffeur_id || currentCharter.value?.assigned_driver_id || currentCharter.value?.employee_id || null,
+    total_amount_due: charterGrandTotal.value,
+    subtotal: charterSubtotal.value,
+    gst_amount: charterGstAmount.value,
+    grand_total: charterGrandTotal.value,
+    amount_paid: form.value.amount_paid || currentCharter.value?.amount_paid || 0,
+    beverage_cart_ids: charterForm.value.beverage_cart_ids || currentCharter.value?.cart_order_list || ''
+  }
+}
+
+async function openRunSheetPdfPreview(payload) {
+  const response = await fetch('/api/charters/run-sheet-pdf-preview', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  })
+
+  if (!response.ok) {
+    throw new Error(`Print failed with status ${response.status}`)
+  }
+
+  const blob = await response.blob()
+  const url = URL.createObjectURL(blob)
+  window.open(url, '_blank', 'noopener')
+  globalThis.setTimeout(() => URL.revokeObjectURL(url), 60000)
+}
+
 async function saveAndInvoice() {
   await saveCharter()
   // TODO: Generate and download invoice
@@ -766,8 +813,12 @@ async function saveAndInvoice() {
 }
 
 async function saveAndPrint() {
-  await saveCharter()
-  window.print()
+  try {
+    await openRunSheetPdfPreview(buildRunSheetPdfPayload())
+  } catch (error) {
+    console.error('Print failed:', error)
+    alert('Failed to generate run charter PDF: ' + error.message)
+  }
 }
 
 async function deleteCharter() {

@@ -1,4 +1,5 @@
 """Invoices API Router"""
+
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -69,7 +70,11 @@ def get_invoices(
             i.invoice_id,
             i.charter_id,
             i.customer_id,
-            COALESCE(c.customer_name, cust.company_name, cust.first_name || ' ' || cust.last_name) as customer_name,
+            COALESCE(
+                c.customer_name,
+                cust.company_name,
+                cust.first_name || ' ' || cust.last_name
+            ) as customer_name,
             i.invoice_number,
             i.invoice_date,
             i.due_date,
@@ -109,7 +114,9 @@ def get_invoices(
         query += " AND i.customer_id = %s"
         params.append(customer_id)
 
-    query += " ORDER BY i.invoice_date DESC, i.invoice_id DESC LIMIT %s OFFSET %s"
+    query += (
+        " ORDER BY i.invoice_date DESC, i.invoice_id DESC LIMIT %s OFFSET %s"
+    )
     params.extend([limit, offset])
 
     cur.execute(query, params)
@@ -153,7 +160,11 @@ def get_invoice(invoice_id: int):
             i.invoice_id,
             i.charter_id,
             i.customer_id,
-            COALESCE(c.customer_name, cust.company_name, cust.first_name || ' ' || cust.last_name) as customer_name,
+            COALESCE(
+                c.customer_name,
+                cust.company_name,
+                cust.first_name || ' ' || cust.last_name
+            ) as customer_name,
             i.invoice_number,
             i.invoice_date,
             i.due_date,
@@ -287,7 +298,8 @@ def update_invoice(invoice_id: int, invoice: InvoiceUpdate):
             raise HTTPException(status_code=400, detail="No fields to update")
 
         params.append(invoice_id)
-        query = f"UPDATE invoices SET {', '.join(updates)} WHERE invoice_id = %s"
+        query = f"UPDATE invoices SET {
+            ', '.join(updates)}  WHERE invoice_id = %s"
 
         cur.execute(query, params)
 
@@ -295,7 +307,9 @@ def update_invoice(invoice_id: int, invoice: InvoiceUpdate):
             conn.rollback()
             cur.close()
             conn.close()
-            raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
+            raise HTTPException(
+                status_code=404, detail=ERROR_INVOICE_NOT_FOUND
+            )
 
         conn.commit()
         cur.close()
@@ -337,7 +351,9 @@ def mark_invoice_paid(invoice_id: int, paid_date: date | None = None):
             conn.rollback()
             cur.close()
             conn.close()
-            raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
+            raise HTTPException(
+                status_code=404, detail=ERROR_INVOICE_NOT_FOUND
+            )
 
         conn.commit()
         cur.close()
@@ -363,13 +379,17 @@ def delete_invoice(invoice_id: int):
     cur = conn.cursor()
 
     try:
-        cur.execute("DELETE FROM invoices WHERE invoice_id = %s", (invoice_id,))
+        cur.execute(
+            "DELETE FROM invoices WHERE invoice_id = %s", (invoice_id,)
+        )
 
         if cur.rowcount == 0:
             conn.rollback()
             cur.close()
             conn.close()
-            raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
+            raise HTTPException(
+                status_code=404, detail=ERROR_INVOICE_NOT_FOUND
+            )
 
         conn.commit()
         cur.close()
@@ -394,17 +414,18 @@ def get_invoice_stats():
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute(
-        """
+    cur.execute("""
         SELECT
             COUNT(*) FILTER (WHERE paid_date IS NULL) as unpaid_count,
             COUNT(*) FILTER (WHERE paid_date IS NOT NULL) as paid_count,
-            COUNT(*) FILTER (WHERE paid_date IS NULL AND due_date < CURRENT_DATE) as overdue_count,
-            SUM(amount + gst) FILTER (WHERE paid_date IS NULL) as outstanding_amount,
-            SUM(amount + gst) FILTER (WHERE paid_date IS NOT NULL) as paid_amount
+            COUNT(*) FILTER (WHERE paid_date IS NULL AND due_date <
+            CURRENT_DATE) as overdue_count,
+            SUM(amount + gst) FILTER (WHERE paid_date IS NULL) as
+            outstanding_amount,
+            SUM(amount + gst) FILTER (WHERE paid_date IS NOT NULL) as
+            paid_amount
         FROM invoices
-    """
-    )
+    """)
 
     row = cur.fetchone()
 

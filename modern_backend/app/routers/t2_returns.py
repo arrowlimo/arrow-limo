@@ -18,6 +18,7 @@ router = APIRouter(prefix="/api/t2", tags=["T2 Corporate Tax"])
 # PYDANTIC MODELS
 # ============================================================================
 
+
 class TaxRatesResponse(BaseModel):
     tax_year: int
     federal_small_business_rate: float
@@ -56,7 +57,7 @@ class T2ReturnMetadata(BaseModel):
 
 class ScheduleLineItem(BaseModel):
     line_number: str
-    line_description:str
+    line_description: str
     amount: float
 
 
@@ -116,9 +117,48 @@ class T2ReturnUpdate(BaseModel):
     notes: str | None = None
 
 
+class T2StatusTransition(BaseModel):
+    new_status: str = Field(..., description="draft|ready|filed|amended")
+    changed_by: str = "web_app"
+    reason: str | None = None
+    filed_date: date | None = None
+
+
+class T2AdjustmentCreate(BaseModel):
+    adjustment_type: str = Field(default="manual_adjustment")
+    line_reference: str | None = None
+    old_amount: float | None = None
+    new_amount: float | None = None
+    notes: str | None = None
+    changed_by: str = "web_app"
+
+
+def _ensure_t2_adjustment_table(conn):
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS t2_return_adjustments (
+                adjustment_id BIGSERIAL PRIMARY KEY,
+                return_id BIGINT NOT NULL REFERENCES
+                t2_return_metadata(return_id) ON DELETE CASCADE,
+                adjustment_type TEXT NOT NULL,
+                line_reference TEXT,
+                old_amount NUMERIC,
+                new_amount NUMERIC,
+                notes TEXT,
+                changed_by TEXT,
+                changed_at TIMESTAMP NOT NULL DEFAULT NOW()
+            )
+            """)
+        conn.commit()
+    finally:
+        cur.close()
+
+
 # ============================================================================
 # API ENDPOINTS
 # ============================================================================
+
 
 @router.get("/tax-rates", response_model=list[TaxRatesResponse])
 async def get_tax_rates(conn=Depends(get_connection)):
@@ -132,20 +172,22 @@ async def get_tax_rates(conn=Depends(get_connection)):
             FROM corporate_tax_rates
             ORDER BY tax_year DESC
         """)
-        
+
         rates = []
         for row in cur.fetchall():
-            rates.append(TaxRatesResponse(
-                tax_year=row[0],
-                federal_small_business_rate=float(row[1]),
-                federal_general_rate=float(row[2]),
-                alberta_small_business_rate=float(row[3]),
-                alberta_general_rate=float(row[4]),
-                small_business_limit=float(row[5]),
-                gst_rate=float(row[6]),
-                notes=row[7]
-            ))
-        
+            rates.append(
+                TaxRatesResponse(
+                    tax_year=row[0],
+                    federal_small_business_rate=float(row[1]),
+                    federal_general_rate=float(row[2]),
+                    alberta_small_business_rate=float(row[3]),
+                    alberta_general_rate=float(row[4]),
+                    small_business_limit=float(row[5]),
+                    gst_rate=float(row[6]),
+                    notes=row[7],
+                )
+            )
+
         return rates
     finally:
         cur.close()
@@ -156,18 +198,23 @@ async def get_tax_rate_by_year(tax_year: int, conn=Depends(get_connection)):
     """Get tax rates for a specific year"""
     cur = conn.cursor()
     try:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT tax_year, federal_small_business_rate, federal_general_rate,
                    alberta_small_business_rate, alberta_general_rate,
                    small_business_limit, gst_rate, notes
             FROM corporate_tax_rates
             WHERE tax_year = %s
-        """, (tax_year,))
-        
+        """,
+            (tax_year,),
+        )
+
         row = cur.fetchone()
         if not row:
-            raise HTTPException(status_code=404, detail=f"Tax rates not found for {tax_year}")
-        
+            raise HTTPException(
+                status_code=404, detail=f"Tax rates not found for {tax_year}"
+            )
+
         return TaxRatesResponse(
             tax_year=row[0],
             federal_small_business_rate=float(row[1]),
@@ -176,7 +223,7 @@ async def get_tax_rate_by_year(tax_year: int, conn=Depends(get_connection)):
             alberta_general_rate=float(row[4]),
             small_business_limit=float(row[5]),
             gst_rate=float(row[6]),
-            notes=row[7]
+            notes=row[7],
         )
     finally:
         cur.close()
@@ -188,25 +235,42 @@ async def create_t2_return(data: T2ReturnCreate, conn=Depends(get_connection)):
     cur = conn.cursor()
     try:
         # Check if return already exists
-        cur.execute("SELECT return_id FROM t2_return_metadata WHERE tax_year = %s", (data.tax_year,))
+        cur.execute(
+            "SELECT return_id FROM t2_return_metadata WHERE tax_year = %s",
+            (data.tax_year,),
+        )
         if cur.fetchone():
-            raise HTTPException(status_code=400, detail=f"T2 return for {data.tax_year} already exists")
-        
+            raise HTTPException(
+                status_code=400,
+                detail=f"T2 return for {data.tax_year} already exists",
+            )
+
         # Create new return
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO t2_return_metadata (
                 tax_year, corporation_name, business_number, fiscal_year_end,
                 status, created_by, created_at
             )
             VALUES (%s, %s, %s, %s, 'draft', 'web_app', NOW())
-            RETURNING return_id, tax_year, corporation_name, business_number, fiscal_year_end,
-                      status, total_revenue, total_expenses, net_income, taxable_income,
-                      federal_tax, provincial_tax, total_tax, created_at, updated_at
-        """, (data.tax_year, data.corporation_name, data.business_number, data.fiscal_year_end))
-        
+            RETURNING return_id, tax_year, corporation_name, business_number,
+            fiscal_year_end,
+                      status, total_revenue, total_expenses, net_income,
+                      taxable_income,
+                      federal_tax, provincial_tax, total_tax, created_at,
+                      updated_at
+        """,
+            (
+                data.tax_year,
+                data.corporation_name,
+                data.business_number,
+                data.fiscal_year_end,
+            ),
+        )
+
         row = cur.fetchone()
         conn.commit()
-        
+
         return T2ReturnMetadata(
             return_id=row[0],
             tax_year=row[1],
@@ -222,7 +286,7 @@ async def create_t2_return(data: T2ReturnCreate, conn=Depends(get_connection)):
             provincial_tax=float(row[11]) if row[11] else None,
             total_tax=float(row[12]) if row[12] else None,
             created_at=row[13],
-            updated_at=row[14]
+            updated_at=row[14],
         )
     except HTTPException:
         conn.rollback()
@@ -239,18 +303,24 @@ async def get_t2_return(tax_year: int, conn=Depends(get_connection)):
     """Get T2 return for a specific tax year"""
     cur = conn.cursor()
     try:
-        cur.execute("""
-            SELECT return_id, tax_year, corporation_name, business_number, fiscal_year_end,
-                   status, total_revenue, total_expenses, net_income, taxable_income,
-                   federal_tax, provincial_tax, total_tax, created_at, updated_at
+        cur.execute(
+            """
+            SELECT return_id, tax_year, corporation_name, business_number,
+            fiscal_year_end,
+                   status, total_revenue, total_expenses, net_income,
+                   taxable_income,
+                   federal_tax, provincial_tax, total_tax, created_at,
+                   updated_at
             FROM t2_return_metadata
             WHERE tax_year = %s
-        """, (tax_year,))
-        
+        """,
+            (tax_year,),
+        )
+
         row = cur.fetchone()
         if not row:
             return None
-        
+
         return T2ReturnMetadata(
             return_id=row[0],
             tax_year=row[1],
@@ -266,25 +336,39 @@ async def get_t2_return(tax_year: int, conn=Depends(get_connection)):
             provincial_tax=float(row[11]) if row[11] else None,
             total_tax=float(row[12]) if row[12] else None,
             created_at=row[13],
-            updated_at=row[14]
+            updated_at=row[14],
         )
     finally:
         cur.close()
 
 
 @router.post("/schedule125")
-async def save_schedule_125(data: Schedule125Data, conn=Depends(get_connection)):
+async def save_schedule_125(
+    data: Schedule125Data, conn=Depends(get_connection)
+):
     """Save Schedule 125 (Income Statement) data"""
     cur = conn.cursor()
     try:
         # Calculate totals
         total_revenue = data.charter_revenue + data.other_revenue
-        total_expenses = (data.cost_of_sales + data.salaries + data.benefits + 
-                         data.rent + data.repairs + data.bad_debts + data.interest +
-                         data.insurance + data.office + data.professional_fees +
-                         data.property_tax + data.travel + data.vehicle + data.other_expenses)
+        total_expenses = (
+            data.cost_of_sales
+            + data.salaries
+            + data.benefits
+            + data.rent
+            + data.repairs
+            + data.bad_debts
+            + data.interest
+            + data.insurance
+            + data.office
+            + data.professional_fees
+            + data.property_tax
+            + data.travel
+            + data.vehicle
+            + data.other_expenses
+        )
         net_income = total_revenue - total_expenses
-        
+
         # Save as schedule line items
         lines = [
             ("125", "8000", "Charter revenue", data.charter_revenue),
@@ -304,30 +388,37 @@ async def save_schedule_125(data: Schedule125Data, conn=Depends(get_connection))
             ("125", "9281", "Vehicle expenses", data.vehicle),
             ("125", "9923", "Other expenses", data.other_expenses),
         ]
-        
+
         for schedule, line_num, desc, amount in lines:
-            cur.execute("""
-                INSERT INTO t2_schedule_data (return_id, schedule_number, line_number, line_description, amount)
+            cur.execute(
+                """
+                INSERT INTO t2_schedule_data (return_id, schedule_number,
+                line_number, line_description, amount)
                 VALUES (%s, %s, %s, %s, %s)
                 ON CONFLICT (return_id, schedule_number, line_number)
                 DO UPDATE SET amount = EXCLUDED.amount, updated_at = NOW()
-            """, (data.return_id, schedule, line_num, desc, amount))
-        
+            """,
+                (data.return_id, schedule, line_num, desc, amount),
+            )
+
         # Update metadata
-        cur.execute("""
+        cur.execute(
+            """
             UPDATE t2_return_metadata
             SET total_revenue = %s, total_expenses = %s, net_income = %s,
                 updated_at = NOW()
             WHERE return_id = %s
-        """, (total_revenue, total_expenses, net_income, data.return_id))
-        
+        """,
+            (total_revenue, total_expenses, net_income, data.return_id),
+        )
+
         conn.commit()
-        
+
         return {
             "success": True,
             "total_revenue": total_revenue,
             "total_expenses": total_expenses,
-            "net_income": net_income
+            "net_income": net_income,
         }
     except Exception as e:
         conn.rollback()
@@ -341,14 +432,17 @@ async def get_schedule_125(return_id: int, conn=Depends(get_connection)):
     """Get Schedule 125 data"""
     cur = conn.cursor()
     try:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT line_number, amount
             FROM t2_schedule_data
             WHERE return_id = %s AND schedule_number = '125'
-        """, (return_id,))
-        
+        """,
+            (return_id,),
+        )
+
         data = {row[0]: float(row[1]) for row in cur.fetchall()}
-        
+
         return {
             "charter_revenue": data.get("8000", 0),
             "other_revenue": data.get("8299", 0),
@@ -365,21 +459,28 @@ async def get_schedule_125(return_id: int, conn=Depends(get_connection)):
             "property_tax": data.get("9180", 0),
             "travel": data.get("9200", 0),
             "vehicle": data.get("9281", 0),
-            "other_expenses": data.get("9923", 0)
+            "other_expenses": data.get("9923", 0),
         }
     finally:
         cur.close()
 
 
 @router.post("/schedule100")
-async def save_schedule_100(data: Schedule100Data, conn=Depends(get_connection)):
+async def save_schedule_100(
+    data: Schedule100Data, conn=Depends(get_connection)
+):
     """Save Schedule 100 (Balance Sheet) data"""
     cur = conn.cursor()
     try:
         lines = [
             ("100", "1000-B", "Cash - Beginning", data.cash_begin),
             ("100", "1000-E", "Cash - Ending", data.cash_end),
-            ("100", "1200-B", "Accounts Receivable - Beginning", data.ar_begin),
+            (
+                "100",
+                "1200-B",
+                "Accounts Receivable - Beginning",
+                data.ar_begin,
+            ),
             ("100", "1200-E", "Accounts Receivable - Ending", data.ar_end),
             ("100", "1400-B", "Inventory - Beginning", data.inventory_begin),
             ("100", "1400-E", "Inventory - Ending", data.inventory_end),
@@ -389,18 +490,32 @@ async def save_schedule_100(data: Schedule100Data, conn=Depends(get_connection))
             ("100", "3000-E", "Accounts Payable - Ending", data.ap_end),
             ("100", "3500-B", "Loans - Beginning", data.loans_begin),
             ("100", "3500-E", "Loans - Ending", data.loans_end),
-            ("100", "4000-B", "Retained Earnings - Beginning", data.retained_earnings_begin),
-            ("100", "4000-E", "Retained Earnings - Ending", data.retained_earnings_end),
+            (
+                "100",
+                "4000-B",
+                "Retained Earnings - Beginning",
+                data.retained_earnings_begin,
+            ),
+            (
+                "100",
+                "4000-E",
+                "Retained Earnings - Ending",
+                data.retained_earnings_end,
+            ),
         ]
-        
+
         for schedule, line_num, desc, amount in lines:
-            cur.execute("""
-                INSERT INTO t2_schedule_data (return_id, schedule_number, line_number, line_description, amount)
+            cur.execute(
+                """
+                INSERT INTO t2_schedule_data (return_id, schedule_number,
+                line_number, line_description, amount)
                 VALUES (%s, %s, %s, %s, %s)
                 ON CONFLICT (return_id, schedule_number, line_number)
                 DO UPDATE SET amount = EXCLUDED.amount, updated_at = NOW()
-            """, (data.return_id, schedule, line_num, desc, amount))
-        
+            """,
+                (data.return_id, schedule, line_num, desc, amount),
+            )
+
         conn.commit()
         return {"success": True}
     except Exception as e:
@@ -415,14 +530,17 @@ async def get_schedule_100(return_id: int, conn=Depends(get_connection)):
     """Get Schedule 100 data"""
     cur = conn.cursor()
     try:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT line_number, amount
             FROM t2_schedule_data
             WHERE return_id = %s AND schedule_number = '100'
-        """, (return_id,))
-        
+        """,
+            (return_id,),
+        )
+
         data = {row[0]: float(row[1]) for row in cur.fetchall()}
-        
+
         return {
             "cash_begin": data.get("1000-B", 0),
             "cash_end": data.get("1000-E", 0),
@@ -437,7 +555,7 @@ async def get_schedule_100(return_id: int, conn=Depends(get_connection)):
             "loans_begin": data.get("3500-B", 0),
             "loans_end": data.get("3500-E", 0),
             "retained_earnings_begin": data.get("4000-B", 0),
-            "retained_earnings_end": data.get("4000-E", 0)
+            "retained_earnings_end": data.get("4000-E", 0),
         }
     finally:
         cur.close()
@@ -449,43 +567,54 @@ async def calculate_tax(data: TaxCalculation, conn=Depends(get_connection)):
     cur = conn.cursor()
     try:
         # Get return to find tax year
-        cur.execute("SELECT tax_year FROM t2_return_metadata WHERE return_id = %s", (data.return_id,))
+        cur.execute(
+            "SELECT tax_year FROM t2_return_metadata WHERE return_id = %s",
+            (data.return_id,),
+        )
         row = cur.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Return not found")
-        
+
         tax_year = row[0]
-        
+
         # Get tax rates
-        cur.execute("""
+        cur.execute(
+            """
             SELECT federal_small_business_rate, federal_general_rate,
                    alberta_small_business_rate, alberta_general_rate,
                    small_business_limit
             FROM corporate_tax_rates
             WHERE tax_year = %s
-        """, (tax_year,))
-        
+        """,
+            (tax_year,),
+        )
+
         rates = cur.fetchone()
         if not rates:
-            raise HTTPException(status_code=404, detail=f"Tax rates not found for {tax_year}")
-        
+            raise HTTPException(
+                status_code=404, detail=f"Tax rates not found for {tax_year}"
+            )
+
         fed_sbd, fed_general, ab_sbd, ab_general, sbd_limit = rates
-        
+
         # Calculate general income (anything above SBD limit)
-        general_income = max(0, data.taxable_income - data.small_business_income)
-        
+        general_income = max(
+            0, data.taxable_income - data.small_business_income
+        )
+
         # Calculate taxes
         fed_tax_sbd = data.small_business_income * float(fed_sbd)
         fed_tax_general = general_income * float(fed_general)
         ab_tax_sbd = data.small_business_income * float(ab_sbd)
         ab_tax_general = general_income * float(ab_general)
-        
+
         total_federal = fed_tax_sbd + fed_tax_general
         total_provincial = ab_tax_sbd + ab_tax_general
         total_tax = total_federal + total_provincial
-        
+
         # Update return metadata
-        cur.execute("""
+        cur.execute(
+            """
             UPDATE t2_return_metadata
             SET taxable_income = %s,
                 federal_tax = %s,
@@ -494,10 +623,18 @@ async def calculate_tax(data: TaxCalculation, conn=Depends(get_connection)):
                 status = 'calculated',
                 updated_at = NOW()
             WHERE return_id = %s
-        """, (data.taxable_income, total_federal, total_provincial, total_tax, data.return_id))
-        
+        """,
+            (
+                data.taxable_income,
+                total_federal,
+                total_provincial,
+                total_tax,
+                data.return_id,
+            ),
+        )
+
         conn.commit()
-        
+
         return {
             "success": True,
             "taxable_income": data.taxable_income,
@@ -509,7 +646,7 @@ async def calculate_tax(data: TaxCalculation, conn=Depends(get_connection)):
             "provincial_tax_sbd": ab_tax_sbd,
             "provincial_tax_general": ab_tax_general,
             "total_provincial": total_provincial,
-            "total_tax": total_tax
+            "total_tax": total_tax,
         }
     except HTTPException:
         conn.rollback()
@@ -522,34 +659,238 @@ async def calculate_tax(data: TaxCalculation, conn=Depends(get_connection)):
 
 
 @router.patch("/returns/{return_id}")
-async def update_t2_return(return_id: int, data: T2ReturnUpdate, conn=Depends(get_connection)):
+async def update_t2_return(
+    return_id: int, data: T2ReturnUpdate, conn=Depends(get_connection)
+):
     """Update T2 return status or filing information"""
     cur = conn.cursor()
     try:
         updates = []
         params = []
-        
+
         if data.status:
             updates.append("status = %s")
             params.append(data.status)
-        
+
         if data.filed_date:
             updates.append("filed_date = %s")
             params.append(data.filed_date)
-        
+
+        if data.notes is not None:
+            updates.append("notes = %s")
+            params.append(data.notes)
+
         if not updates:
             return {"success": True, "message": "No updates provided"}
-        
+
         updates.append("updated_at = NOW()")
         params.append(return_id)
-        
-        query = f"UPDATE t2_return_metadata SET {', '.join(updates)} WHERE return_id = %s"
+
+        query = f"UPDATE t2_return_metadata SET {
+            ', '.join(updates)}  WHERE return_id = %s"
         cur.execute(query, params)
-        
+
         conn.commit()
         return {"success": True, "message": "T2 return updated"}
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+
+
+@router.post("/returns/{return_id}/status-transition")
+async def transition_t2_status(
+    return_id: int, data: T2StatusTransition, conn=Depends(get_connection)
+):
+    """Apply a controlled T2 status transition and write adjustment-history"
+    "audit row."""
+
+    allowed = {"draft", "ready", "filed", "amended"}
+    new_status = (data.new_status or "").strip().lower()
+    if new_status not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid status. Use draft, ready, filed, or amended",
+        )
+
+    _ensure_t2_adjustment_table(conn)
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "SELECT status FROM t2_return_metadata WHERE return_id = %s",
+            (return_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="T2 return not found")
+
+        old_status = (row[0] or "draft").lower()
+        valid_transitions = {
+            "draft": {"ready", "filed"},
+            "ready": {"filed", "amended", "draft"},
+            "filed": {"amended"},
+            "amended": {"amended", "ready"},
+        }
+        if (
+            new_status != old_status
+            and new_status not in valid_transitions.get(old_status, set())
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid transition from {old_status} to {new_status}",
+            )
+
+        updates = ["status = %s", "updated_at = NOW()"]
+        params = [new_status]
+        if new_status == "filed" or data.filed_date:
+            updates.append("filed_date = %s")
+            params.append(data.filed_date or date.today())
+        params.append(return_id)
+
+        cur.execute(
+            f"UPDATE t2_return_metadata SET {', '.join(updates)} WHERE"
+            f"return_id = %s",
+            params,
+        )
+
+        cur.execute(
+            """
+            INSERT INTO t2_return_adjustments (
+                return_id, adjustment_type, line_reference, old_amount,
+                new_amount,
+                notes, changed_by
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                return_id,
+                "status_transition",
+                f"status:{old_status}->{new_status}",
+                None,
+                None,
+                data.reason,
+                (data.changed_by or "web_app").strip(),
+            ),
+        )
+
+        conn.commit()
+        return {
+            "success": True,
+            "return_id": return_id,
+            "from_status": old_status,
+            "to_status": new_status,
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+
+
+@router.post("/returns/{return_id}/adjustments")
+async def add_t2_adjustment(
+    return_id: int, data: T2AdjustmentCreate, conn=Depends(get_connection)
+):
+    """Record an amendment/adjustment row with optional notes and line"
+    "reference."""
+
+    _ensure_t2_adjustment_table(conn)
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "SELECT return_id FROM t2_return_metadata WHERE return_id = %s",
+            (return_id,),
+        )
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="T2 return not found")
+
+        cur.execute(
+            """
+            INSERT INTO t2_return_adjustments (
+                return_id,
+                adjustment_type,
+                line_reference,
+                old_amount,
+                new_amount,
+                notes,
+                changed_by
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING adjustment_id, changed_at
+            """,
+            (
+                return_id,
+                (data.adjustment_type or "manual_adjustment").strip(),
+                (data.line_reference or "").strip() or None,
+                data.old_amount,
+                data.new_amount,
+                (data.notes or "").strip() or None,
+                (data.changed_by or "web_app").strip(),
+            ),
+        )
+        created = cur.fetchone()
+
+        cur.execute(
+            """
+            UPDATE t2_return_metadata
+            SET status = CASE WHEN status = 'filed'
+                THEN 'amended' ELSE status END,
+                updated_at = NOW()
+            WHERE return_id = %s
+            """,
+            (return_id,),
+        )
+
+        conn.commit()
+        return {
+            "success": True,
+            "adjustment_id": int(created[0]),
+            "changed_at": (
+                created[1].isoformat() if created and created[1] else None
+            ),
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+
+
+@router.get("/returns/{return_id}/adjustments")
+async def list_t2_adjustments(return_id: int, conn=Depends(get_connection)):
+    _ensure_t2_adjustment_table(conn)
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT adjustment_id, adjustment_type, line_reference, old_amount,
+            new_amount,
+                   notes, changed_by, changed_at
+            FROM t2_return_adjustments
+            WHERE return_id = %s
+            ORDER BY changed_at DESC, adjustment_id DESC
+            """,
+            (return_id,),
+        )
+        rows = cur.fetchall()
+        return [
+            {
+                "adjustment_id": int(r[0]),
+                "adjustment_type": r[1],
+                "line_reference": r[2],
+                "old_amount": float(r[3]) if r[3] is not None else None,
+                "new_amount": float(r[4]) if r[4] is not None else None,
+                "notes": r[5],
+                "changed_by": r[6],
+                "changed_at": r[7].isoformat() if r[7] else None,
+            }
+            for r in rows
+        ]
     finally:
         cur.close()

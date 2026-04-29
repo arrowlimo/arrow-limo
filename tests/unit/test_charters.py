@@ -9,7 +9,7 @@ def test_create_charter(db_cursor, sample_charter_data, cleanup_test_data):
     """Test charter creation."""
     db_cursor.execute("""
         INSERT INTO charters (reserve_number, charter_date, pickup_time, 
-                             dropoff_time, pickup_location, dropoff_location,
+                             dropoff_time, pickup_address, dropoff_address,
                              total_amount_due, status)
         VALUES (%(reserve_number)s, %(charter_date)s, %(pickup_time)s,
                 %(dropoff_time)s, %(pickup_location)s, %(dropoff_location)s,

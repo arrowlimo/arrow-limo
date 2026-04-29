@@ -28,10 +28,15 @@ def verify_jwt_token(credentials: HTTPAuthorizationCredentials) -> dict:
     if not SECRET_KEY:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="SECRET_KEY environment variable is required for inspection form authentication",
+            detail=(
+                "SECRET_KEY environment variable is required for "
+                "inspection form authentication"
+            ),
         )
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(
+            credentials.credentials, SECRET_KEY, algorithms=["HS256"]
+        )
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(
@@ -43,18 +48,25 @@ def verify_jwt_token(credentials: HTTPAuthorizationCredentials) -> dict:
         )
 
 
-def verify_signature(reserve_number: str, expires: int, signature: str) -> None:
+def verify_signature(
+    reserve_number: str, expires: int, signature: str
+) -> None:
     """Verify HMAC signature (prevents URL tampering)"""
     if not SECRET_KEY:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="SECRET_KEY environment variable is required for inspection form authentication",
+            detail=(
+                "SECRET_KEY environment variable is required for "
+                "inspection form authentication"
+            ),
         )
     current_time = int(datetime.now().timestamp())
 
     # Check expiration (30 minutes default)
     if current_time > expires:
-        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Link expired")
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE, detail="Link expired"
+        )
 
     # Verify HMAC signature
     expected_sig = hmac.new(
@@ -114,7 +126,8 @@ def audit_log_access(
 
         cur.execute(
             """
-            INSERT INTO audit_logs (user_id, action, charter_id, ip_address, timestamp)
+            INSERT INTO audit_logs (user_id, action, charter_id, ip_address,
+            timestamp)
             VALUES (%s, %s, %s, %s, NOW())
         """,
             (user_id, action, charter_id, ip_address),
@@ -138,7 +151,8 @@ async def get_signed_url(
     Generate a signed, time-limited URL for inspection form download
 
     Usage: POST /api/inspection-forms/signed-url/019123?expires_in_minutes=60
-    Returns: {"url": "http://...api/inspection-forms/019123?signature=...&expires=..."}
+    Returns:
+    {"url": "http://...api/inspection-forms/019123?signature=...&expires=..."}
     """
     try:
         # 1. Verify JWT token
@@ -157,9 +171,7 @@ async def get_signed_url(
         cur = conn.cursor()
 
         cur.execute(
-            """
-            SELECT charter_id FROM charters WHERE reserve_number = %s
-        """,
+            "SELECT charter_id FROM charters WHERE reserve_number = %s",
             (reserve_number,),
         )
 
@@ -180,7 +192,9 @@ async def get_signed_url(
 
         # 4. Generate signature
         expires = int(
-            (datetime.now() + timedelta(minutes=expires_in_minutes)).timestamp()
+            (
+                datetime.now() + timedelta(minutes=expires_in_minutes)
+            ).timestamp()
         )
         signature = hmac.new(
             SECRET_KEY.encode(),
@@ -190,7 +204,10 @@ async def get_signed_url(
 
         # 5. Build signed URL
         base_url = os.environ.get("API_BASE_URL", "http://127.0.0.1:8000")
-        signed_url = f"{base_url}/api/inspection-forms/{reserve_number}?signature={signature}&expires={expires}"
+        signed_url = (
+            f"{base_url}/api/inspection-forms/{reserve_number}"
+            f"?signature={signature}&expires={expires}"
+        )
 
         return {
             "url": signed_url,
@@ -277,10 +294,14 @@ async def download_inspection_form(
         check_authorization(user_id, user_role, charter_id)
 
         # 5. Audit log the access
-        audit_log_access(user_id, charter_id, "download_inspection_form", ip_address)
+        audit_log_access(
+            user_id, charter_id, "download_inspection_form", ip_address
+        )
 
         # 6. Find and return the file
-        inspections_dir = Path("L:/limo/data/inspections") / f"charter_{reserve_number}"
+        inspections_dir = (
+            Path("L:/limo/data/inspections") / f"charter_{reserve_number}"
+        )
 
         if not inspections_dir.exists():
             raise HTTPException(
@@ -306,7 +327,9 @@ async def download_inspection_form(
 
         # Determine media type
         media_type = (
-            "application/pd" if form_path.suffix.lower() == ".pd" else "image/jpeg"
+            "application/pd"
+            if form_path.suffix.lower() == ".pd"
+            else "image/jpeg"
         )
 
         # Return file with security headers
@@ -316,8 +339,13 @@ async def download_inspection_form(
             filename=form_path.name,
             headers={
                 "X-Content-Type-Options": "nosniff",  # Prevent MIME sniffing
-                "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",  # Prevent caching
-                "Content-Disposition": f"attachment; filename={form_path.name}",
+                "Cache-Control": (
+                    "no-store, no-cache, must-revalidate, "
+                    "max-age=0"
+                ),  # Prevent caching
+                "Content-Disposition": (
+                    f"attachment; filename={form_path.name}"
+                ),
                 "X-Charter-ID": str(charter_id),
                 "X-Reserve-Number": reserve_number,
                 "X-Downloaded-At": datetime.now().isoformat(),
@@ -376,11 +404,15 @@ async def get_form_metadata(
         check_authorization(user_id, user_role, charter_id)
 
         # 4. Get form metadata
-        inspections_dir = Path("L:/limo/data/inspections") / f"charter_{reserve_number}"
+        inspections_dir = (
+            Path("L:/limo/data/inspections") / f"charter_{reserve_number}"
+        )
 
         forms = []
         if inspections_dir.exists():
-            for form_file in sorted(inspections_dir.glob("inspection_*"), reverse=True):
+            for form_file in sorted(
+                inspections_dir.glob("inspection_*"), reverse=True
+            ):
                 stat = form_file.stat()
                 forms.append(
                     {

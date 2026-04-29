@@ -1,0 +1,285 @@
+modern_backend/app/routers/reports.py:19:80: E501 line too long (84 > 79 characters)
+modern_backend/app/routers/reports.py:43:80: E501 line too long (88 > 79 characters)
+modern_backend/app/routers/reports.py:60:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:67:80: E501 line too long (105 > 79 characters)
+modern_backend/app/routers/reports.py:100:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:126:80: E501 line too long (85 > 79 characters)
+modern_backend/app/routers/reports.py:129:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:131:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:136:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:137:80: E501 line too long (126 > 79 characters)
+modern_backend/app/routers/reports.py:138:80: E501 line too long (151 > 79 characters)
+modern_backend/app/routers/reports.py:139:80: E501 line too long (137 > 79 characters)
+modern_backend/app/routers/reports.py:140:80: E501 line too long (113 > 79 characters)
+modern_backend/app/routers/reports.py:141:80: E501 line too long (109 > 79 characters)
+modern_backend/app/routers/reports.py:142:80: E501 line too long (111 > 79 characters)
+modern_backend/app/routers/reports.py:143:80: E501 line too long (127 > 79 characters)
+modern_backend/app/routers/reports.py:144:80: E501 line too long (111 > 79 characters)
+modern_backend/app/routers/reports.py:145:80: E501 line too long (112 > 79 characters)
+modern_backend/app/routers/reports.py:146:80: E501 line too long (117 > 79 characters)
+modern_backend/app/routers/reports.py:147:80: E501 line too long (158 > 79 characters)
+modern_backend/app/routers/reports.py:148:80: E501 line too long (117 > 79 characters)
+modern_backend/app/routers/reports.py:149:80: E501 line too long (97 > 79 characters)
+modern_backend/app/routers/reports.py:150:80: E501 line too long (148 > 79 characters)
+modern_backend/app/routers/reports.py:151:80: E501 line too long (128 > 79 characters)
+modern_backend/app/routers/reports.py:152:80: E501 line too long (121 > 79 characters)
+modern_backend/app/routers/reports.py:155:80: E501 line too long (96 > 79 characters)
+modern_backend/app/routers/reports.py:191:80: E501 line too long (83 > 79 characters)
+modern_backend/app/routers/reports.py:192:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:193:80: E501 line too long (100 > 79 characters)
+modern_backend/app/routers/reports.py:236:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:312:80: E501 line too long (83 > 79 characters)
+modern_backend/app/routers/reports.py:342:80: E501 line too long (90 > 79 characters)
+modern_backend/app/routers/reports.py:347:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:370:80: E501 line too long (84 > 79 characters)
+modern_backend/app/routers/reports.py:371:45: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:371:80: E501 line too long (81 > 79 characters)
+modern_backend/app/routers/reports.py:373:41: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:374:32: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:400:80: E501 line too long (83 > 79 characters)
+modern_backend/app/routers/reports.py:413:31: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:413:45: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:413:55: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:413:67: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:413:80: E501 line too long (100 > 79 characters)
+modern_backend/app/routers/reports.py:413:84: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:428:30: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:428:33: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:428:40: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:428:42: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:428:57: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:428:61: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:428:74: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:429:32: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:429:36: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:429:48: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:439:56: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:439:80: E501 line too long (89 > 79 characters)
+modern_backend/app/routers/reports.py:443:80: E501 line too long (87 > 79 characters)
+modern_backend/app/routers/reports.py:455:80: E501 line too long (95 > 79 characters)
+modern_backend/app/routers/reports.py:471:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:500:29: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:500:38: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:513:30: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:513:33: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:513:40: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:513:42: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:513:57: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:513:61: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:513:73: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:521:56: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:521:80: E501 line too long (89 > 79 characters)
+modern_backend/app/routers/reports.py:525:80: E501 line too long (94 > 79 characters)
+modern_backend/app/routers/reports.py:537:80: E501 line too long (91 > 79 characters)
+modern_backend/app/routers/reports.py:541:80: E501 line too long (96 > 79 characters)
+modern_backend/app/routers/reports.py:570:32: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:595:44: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:595:65: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:595:80: E501 line too long (83 > 79 characters)
+modern_backend/app/routers/reports.py:596:40: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:602:80: E501 line too long (81 > 79 characters)
+modern_backend/app/routers/reports.py:603:80: E501 line too long (81 > 79 characters)
+modern_backend/app/routers/reports.py:604:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:605:80: E501 line too long (85 > 79 characters)
+modern_backend/app/routers/reports.py:611:30: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:611:33: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:611:40: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:611:42: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:611:59: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:612:33: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:612:37: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:612:49: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:612:53: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:612:67: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:622:56: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:622:80: E501 line too long (89 > 79 characters)
+modern_backend/app/routers/reports.py:626:80: E501 line too long (88 > 79 characters)
+modern_backend/app/routers/reports.py:636:80: E501 line too long (120 > 79 characters)
+modern_backend/app/routers/reports.py:668:65: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:668:68: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:668:76: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:673:52: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:673:80: E501 line too long (85 > 79 characters)
+modern_backend/app/routers/reports.py:682:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:688:80: E501 line too long (89 > 79 characters)
+modern_backend/app/routers/reports.py:702:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:703:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:713:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:717:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:718:80: E501 line too long (87 > 79 characters)
+modern_backend/app/routers/reports.py:768:30: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:768:33: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:768:48: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:768:51: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:768:58: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:769:31: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:769:35: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:769:48: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:769:52: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:769:68: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:774:60: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:779:56: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:779:80: E501 line too long (89 > 79 characters)
+modern_backend/app/routers/reports.py:783:80: E501 line too long (93 > 79 characters)
+modern_backend/app/routers/reports.py:794:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:827:80: E501 line too long (92 > 79 characters)
+modern_backend/app/routers/reports.py:830:65: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:830:68: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:830:75: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:830:77: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:830:80: E501 line too long (97 > 79 characters)
+modern_backend/app/routers/reports.py:830:92: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:837:52: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:837:80: E501 line too long (85 > 79 characters)
+modern_backend/app/routers/reports.py:841:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:842:80: E501 line too long (85 > 79 characters)
+modern_backend/app/routers/reports.py:847:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:852:80: E501 line too long (88 > 79 characters)
+modern_backend/app/routers/reports.py:887:80: E501 line too long (97 > 79 characters)
+modern_backend/app/routers/reports.py:889:80: E501 line too long (98 > 79 characters)
+modern_backend/app/routers/reports.py:890:80: E501 line too long (99 > 79 characters)
+modern_backend/app/routers/reports.py:891:80: E501 line too long (99 > 79 characters)
+modern_backend/app/routers/reports.py:924:30: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:924:33: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:924:40: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:924:42: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:924:57: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:924:61: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:924:77: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:924:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:932:56: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:932:80: E501 line too long (89 > 79 characters)
+modern_backend/app/routers/reports.py:948:80: E501 line too long (117 > 79 characters)
+modern_backend/app/routers/reports.py:996:26: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:996:29: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:996:36: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:996:38: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:996:52: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:996:56: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:996:68: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:996:72: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:996:80: E501 line too long (89 > 79 characters)
+modern_backend/app/routers/reports.py:996:84: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:1005:52: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:1005:80: E501 line too long (85 > 79 characters)
+modern_backend/app/routers/reports.py:1009:80: E501 line too long (88 > 79 characters)
+modern_backend/app/routers/reports.py:1010:80: E501 line too long (85 > 79 characters)
+modern_backend/app/routers/reports.py:1018:80: E501 line too long (94 > 79 characters)
+modern_backend/app/routers/reports.py:1064:48: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:1064:80: E501 line too long (84 > 79 characters)
+modern_backend/app/routers/reports.py:1066:35: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:1068:44: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:1069:41: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:1070:43: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:1103:30: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:1103:33: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:1103:40: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:1103:42: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:1103:57: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:1104:29: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:1104:33: E231 missing whitespace after ','
+modern_backend/app/routers/reports.py:1104:49: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:1113:56: E231 missing whitespace after ':'
+modern_backend/app/routers/reports.py:1113:80: E501 line too long (89 > 79 characters)
+modern_backend/app/routers/reports.py:1117:80: E501 line too long (88 > 79 characters)
+modern_backend/app/routers/reports.py:1163:80: E501 line too long (85 > 79 characters)
+modern_backend/app/routers/reports.py:1300:80: E501 line too long (88 > 79 characters)
+modern_backend/app/routers/reports.py:1338:80: E501 line too long (103 > 79 characters)
+modern_backend/app/routers/reports.py:1339:80: E501 line too long (108 > 79 characters)
+modern_backend/app/routers/reports.py:1340:80: E501 line too long (104 > 79 characters)
+modern_backend/app/routers/reports.py:1385:80: E501 line too long (87 > 79 characters)
+modern_backend/app/routers/reports.py:1441:80: E501 line too long (161 > 79 characters)
+modern_backend/app/routers/reports.py:1442:80: E501 line too long (156 > 79 characters)
+modern_backend/app/routers/reports.py:1488:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:1574:80: E501 line too long (95 > 79 characters)
+modern_backend/app/routers/reports.py:1575:80: E501 line too long (97 > 79 characters)
+modern_backend/app/routers/reports.py:1664:80: E501 line too long (87 > 79 characters)
+modern_backend/app/routers/reports.py:1686:80: E501 line too long (92 > 79 characters)
+modern_backend/app/routers/reports.py:1692:80: E501 line too long (81 > 79 characters)
+modern_backend/app/routers/reports.py:1695:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:1698:80: E501 line too long (87 > 79 characters)
+modern_backend/app/routers/reports.py:1706:80: E501 line too long (125 > 79 characters)
+modern_backend/app/routers/reports.py:1735:80: E501 line too long (87 > 79 characters)
+modern_backend/app/routers/reports.py:1754:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:1764:80: E501 line too long (152 > 79 characters)
+modern_backend/app/routers/reports.py:1828:80: E501 line too long (83 > 79 characters)
+modern_backend/app/routers/reports.py:1848:80: E501 line too long (83 > 79 characters)
+modern_backend/app/routers/reports.py:1864:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:1876:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:1887:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:1927:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:1947:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:1957:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:1962:80: E501 line too long (97 > 79 characters)
+modern_backend/app/routers/reports.py:2025:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:2050:80: E501 line too long (83 > 79 characters)
+modern_backend/app/routers/reports.py:2068:80: E501 line too long (97 > 79 characters)
+modern_backend/app/routers/reports.py:2075:80: E501 line too long (87 > 79 characters)
+modern_backend/app/routers/reports.py:2077:80: E501 line too long (125 > 79 characters)
+modern_backend/app/routers/reports.py:2165:80: E501 line too long (157 > 79 characters)
+modern_backend/app/routers/reports.py:2166:80: E501 line too long (120 > 79 characters)
+modern_backend/app/routers/reports.py:2167:80: E501 line too long (153 > 79 characters)
+modern_backend/app/routers/reports.py:2168:80: E501 line too long (149 > 79 characters)
+modern_backend/app/routers/reports.py:2217:80: E501 line too long (93 > 79 characters)
+modern_backend/app/routers/reports.py:2218:80: E501 line too long (87 > 79 characters)
+modern_backend/app/routers/reports.py:2219:80: E501 line too long (93 > 79 characters)
+modern_backend/app/routers/reports.py:2220:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:2274:80: E501 line too long (84 > 79 characters)
+modern_backend/app/routers/reports.py:2284:80: E501 line too long (83 > 79 characters)
+modern_backend/app/routers/reports.py:2285:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:2289:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:2303:80: E501 line too long (185 > 79 characters)
+modern_backend/app/routers/reports.py:2312:80: E501 line too long (84 > 79 characters)
+modern_backend/app/routers/reports.py:2318:80: E501 line too long (88 > 79 characters)
+modern_backend/app/routers/reports.py:2319:80: E501 line too long (88 > 79 characters)
+modern_backend/app/routers/reports.py:2320:80: E501 line too long (87 > 79 characters)
+modern_backend/app/routers/reports.py:2321:80: E501 line too long (87 > 79 characters)
+modern_backend/app/routers/reports.py:2322:80: E501 line too long (88 > 79 characters)
+modern_backend/app/routers/reports.py:2338:80: E501 line too long (185 > 79 characters)
+modern_backend/app/routers/reports.py:2347:80: E501 line too long (84 > 79 characters)
+modern_backend/app/routers/reports.py:2353:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:2354:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:2355:80: E501 line too long (81 > 79 characters)
+modern_backend/app/routers/reports.py:2356:80: E501 line too long (81 > 79 characters)
+modern_backend/app/routers/reports.py:2357:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:2359:80: E501 line too long (81 > 79 characters)
+modern_backend/app/routers/reports.py:2382:80: E501 line too long (84 > 79 characters)
+modern_backend/app/routers/reports.py:2406:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:2413:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:2418:80: E501 line too long (84 > 79 characters)
+modern_backend/app/routers/reports.py:2426:80: E501 line too long (85 > 79 characters)
+modern_backend/app/routers/reports.py:2427:80: E501 line too long (84 > 79 characters)
+modern_backend/app/routers/reports.py:2437:80: E501 line too long (84 > 79 characters)
+modern_backend/app/routers/reports.py:2456:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:2457:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:2458:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:2459:80: E501 line too long (87 > 79 characters)
+modern_backend/app/routers/reports.py:2460:80: E501 line too long (83 > 79 characters)
+modern_backend/app/routers/reports.py:2461:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:2465:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:2466:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:2467:80: E501 line too long (83 > 79 characters)
+modern_backend/app/routers/reports.py:2468:80: E501 line too long (85 > 79 characters)
+modern_backend/app/routers/reports.py:2469:80: E501 line too long (85 > 79 characters)
+modern_backend/app/routers/reports.py:2470:80: E501 line too long (85 > 79 characters)
+modern_backend/app/routers/reports.py:2474:80: E501 line too long (84 > 79 characters)
+modern_backend/app/routers/reports.py:2479:80: E501 line too long (90 > 79 characters)
+modern_backend/app/routers/reports.py:2502:80: E501 line too long (81 > 79 characters)
+modern_backend/app/routers/reports.py:2504:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:2505:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:2519:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:2561:80: E501 line too long (96 > 79 characters)
+modern_backend/app/routers/reports.py:2562:80: E501 line too long (84 > 79 characters)
+modern_backend/app/routers/reports.py:2574:80: E501 line too long (81 > 79 characters)
+modern_backend/app/routers/reports.py:2582:80: E501 line too long (84 > 79 characters)
+modern_backend/app/routers/reports.py:2637:80: E501 line too long (85 > 79 characters)
+modern_backend/app/routers/reports.py:2645:80: E501 line too long (112 > 79 characters)
+modern_backend/app/routers/reports.py:2688:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:2726:80: E501 line too long (88 > 79 characters)
+modern_backend/app/routers/reports.py:2740:80: E501 line too long (120 > 79 characters)
+modern_backend/app/routers/reports.py:2796:80: E501 line too long (81 > 79 characters)
+modern_backend/app/routers/reports.py:2798:80: E501 line too long (86 > 79 characters)
+modern_backend/app/routers/reports.py:2825:80: E501 line too long (107 > 79 characters)
+modern_backend/app/routers/reports.py:2858:80: E501 line too long (80 > 79 characters)
+modern_backend/app/routers/reports.py:2913:80: E501 line too long (82 > 79 characters)
+modern_backend/app/routers/reports.py:2918:80: E501 line too long (82 > 79 characters)

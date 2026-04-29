@@ -1,7 +1,8 @@
 """
 Pydantic models for booking/charter operations.
 
-Converts form data to validated database records with business rule enforcement.
+Converts form data to validated database records with business rule
+enforcement.
 """
 
 from datetime import date, datetime, time
@@ -59,7 +60,9 @@ class ChartRequest(BaseModel):
     client_name: str = Field(..., min_length=2, description="Customer name")
     phone: str = Field(..., min_length=10, description="Phone number")
     email: str = Field(..., description="Email address")
-    billing_address: str = Field(..., min_length=5, description="Billing address")
+    billing_address: str = Field(
+        ..., min_length=5, description="Billing address"
+    )
     city: str = Field(..., min_length=2, description="City")
     province: str = Field(default="AB", description="Province/State")
     postal_code: str = Field(..., min_length=5, description="Postal code")
@@ -67,12 +70,18 @@ class ChartRequest(BaseModel):
     # Charter Details
     charter_date: date = Field(..., description="Charter date (>= today)")
     pickup_time: str = Field(..., description="Pickup time in HH:MM format")
-    passenger_load: int = Field(..., ge=1, le=50, description="Passenger count 1-50")
+    passenger_load: int = Field(
+        ..., ge=1, le=50, description="Passenger count 1-50"
+    )
     vehicle_type_requested: str | None = Field(
         None, description="Vehicle type preference"
     )
-    vehicle_booked_id: int | None = Field(None, description="Assigned vehicle ID")
-    assigned_driver_id: int | None = Field(None, description="Assigned driver ID")
+    vehicle_booked_id: int | None = Field(
+        None, description="Assigned vehicle ID"
+    )
+    assigned_driver_id: int | None = Field(
+        None, description="Assigned driver ID"
+    )
 
     # Itinerary
     itinerary: list[RouteItem] = Field(
@@ -108,7 +117,10 @@ class ChartRequest(BaseModel):
     # Status
     status: str = Field(
         default="Quote",
-        description="Quote, Confirmed, Assigned, In Progress, Completed, Cancelled",
+        description=(
+            "Quote, Confirmed, Assigned, "
+            "In Progress, Completed, Cancelled"
+        ),
     )
     cancellation_reason: str | None = Field(
         None, description="Reason for cancellation"
@@ -152,12 +164,16 @@ class ChartRequest(BaseModel):
     def validate_itinerary(cls, v):
         """Itinerary must have at least 2 stops (pickup + dropoff)."""
         if len(v) < 2:
-            raise ValueError("itinerary must have at least 2 stops (pickup + dropoff)")
+            raise ValueError(
+                "itinerary must have at least 2 stops (pickup + dropoff)"
+            )
         return v
 
     @validator("total_amount_due")
     def validate_total_amount(cls, v):
-        """Total amount must be non-negative (allows zero for credit memos, adjustments, etc)."""
+        """Total amount must be non-negative (allows zero for credit memos,"
+        "adjustments, etc)."""
+
         if v < 0:
             raise ValueError("total_amount_due must be >= 0")
         return v

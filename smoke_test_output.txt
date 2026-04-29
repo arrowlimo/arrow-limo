@@ -1,0 +1,34 @@
+
+[1m============================================================[0m
+[1mARROW LIMOUSINE - DESKTOP APP SMOKE TEST[0m
+[1m============================================================[0m
+Timestamp: 2026-04-27 23:40:58
+
+Traceback (most recent call last):
+  File "L:\limo\desktop_app\smoke_test_all_widgets.py", line 60, in __init__
+    print(
+    ~~~~~^
+        f"{GREEN}\u2705 Database connection successful ({target}: {host}/{db_name}){RESET}"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\info\AppData\Local\Python\pythoncore-3.14-64\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 5: character maps to <undefined>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "L:\limo\desktop_app\smoke_test_all_widgets.py", line 240, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "L:\limo\desktop_app\smoke_test_all_widgets.py", line 127, in main
+    db = DatabaseConnection()
+  File "L:\limo\desktop_app\smoke_test_all_widgets.py", line 64, in __init__
+    print(f"{RED}\u274c Database connection failed: {e}{RESET}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\info\AppData\Local\Python\pythoncore-3.14-64\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u274c' in position 5: character maps to <undefined>

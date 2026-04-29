@@ -8,7 +8,7 @@
         <h2>Booking #{{ booking.reserve_number }}</h2>
         <div class="charter-actions" style="margin: 0.5rem 0 1rem;">
           <button class="secondary" @click="openCharterInvoicePrint" :disabled="!booking.charter_id">
-            Print Charter Invoice
+            Print Charter Sheet
           </button>
         </div>
         <ul>

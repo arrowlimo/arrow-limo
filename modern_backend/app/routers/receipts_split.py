@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter
 from pydantic import BaseModel
 
@@ -27,7 +26,8 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT receipt_id, vendor_name, canonical_vendor, vendor_account_id,
+            SELECT receipt_id, vendor_name, canonical_vendor,
+            vendor_account_id,
                    receipt_date, description, category,
                    COALESCE(expense, 0) AS expense,
                    COALESCE(gross_amount, 0) AS gross_amount,
@@ -64,12 +64,15 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
                 "receipt_id": receipt_id,
             }
 
-        # Base amount: override if provided, else try parse from description numbers
+        # Base amount: override if provided, else try parse from description
+        # numbers
         base = req.base_amount
         if base is None:
             import re
 
-            nums = re.findall(r"([0-9]+\.[0-9]{2})", (row["description"] or "").lower())
+            nums = re.findall(
+                r"([0-9]+\.[0-9]{2})", (row["description"] or "").lower()
+            )
             if nums:
                 # pick the largest number assumption for base
                 try:
@@ -97,7 +100,9 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
         # Idempotency: look for an existing child with signature
         signature = f"AUTO_SPLIT_FEE|parent={receipt_id}|fee={fee:.2f}"
         cur.execute(
-            "SELECT receipt_id FROM receipts WHERE description LIKE %s AND (LOWER(vendor_name)=LOWER(%s) OR LOWER(canonical_vendor)=LOWER(%s))",
+            "SELECT receipt_id FROM receipts WHERE description LIKE %s AND"
+            "(LOWER(vendor_name)=LOWER(%s) OR"
+            "LOWER(canonical_vendor)=LOWER(%s))",
             (signature + "%", row["vendor_name"], row["vendor_name"]),
         )
         existing = cur.fetchone()
@@ -107,7 +112,9 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
                 """
                 INSERT INTO receipts (
                     vendor_name, canonical_vendor, vendor_account_id,
-                    receipt_date, expense, description, parent_receipt_id, gl_account_code) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING receipt_id
+                    receipt_date, expense, description, parent_receipt_id,
+                    gl_account_code) VALUES (%s, %s, %s, %s, %s, %s, %s,
+                    %s) RETURNING receipt_id
                 """,
                 (
                     row["vendor_name"],
@@ -122,9 +129,11 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
             )
             fee_id = cur.fetchone()[0]
 
-        # Update parent amount column to base AND mark as split (parent_receipt_id points to itself)
+        # Update parent amount column to base AND mark as split
+        # (parent_receipt_id points to itself)
         cur.execute(
-            f"UPDATE receipts SET {amt_col}=%s, parent_receipt_id=%s WHERE receipt_id=%s",
+            f"UPDATE receipts SET {amt_col}=%s, parent_receipt_id=%s WHERE"
+            f"receipt_id=%s",
             (base, receipt_id, receipt_id),
         )
         conn.commit()

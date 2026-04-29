@@ -1,3 +1,62 @@
+
+2026-04-20 update - top20 manual context resolved
+- User-confirmed classification decisions applied to top20 planner:
+  - TX 102149 (E-TRANSFER DAVID RICHARD): related-party reimbursement / money lent context.
+  - TX 69560, 69489, 69781 (DEPOSIT from CIBC): internal transfer credits.
+  - TX 99922 (ERLES AUTO REPAIR): vehicle maintenance and repairs.
+- Script updated: `l:\limo\_tmp_build_top20_action_plan_2012.py` with deterministic overrides.
+- Regenerated outputs:
+  - `l:\limo\reports\audit_exceptions_2012\top20_action_plan_2012.csv`
+  - `l:\limo\reports\audit_exceptions_2012\top20_action_plan_2012.sql`
+- New counts:
+  - TOTAL 20
+  - SAFE_RELINK 12
+  - KEEP_AS_IS 8
+  - MANUAL_REVIEW 0
+- SQL remains rollback-guarded (`ROLLBACK;` at end). For apply, run inwe transaction and switch to `COMMIT` only after verification query confirms deltas.
+
+2026-04-20 follow-up - top20 safe relinks applied
+- Applied generated relink SQL in a committed transaction.
+- Updated planner to be idempotent for override rows (already-applied SAFE_RELINK rows now report KEEP_AS_IS).
+- Post-apply planner status:
+  - TOTAL 20
+  - SAFE_RELINK 0
+  - KEEP_AS_IS 20
+  - MANUAL_REVIEW 0
+- Expected non-zero delta retained for internal-transfer credit rows:
+  - TX 69560, 69489, 69781 are user-classified CIBC internal transfer deposits (not expense mismatches).
+
+2026-04-20 follow-up - actionable mismatch filter added
+- Updated script: `l:\limo\_tmp_audit_exceptions_pack_2012.py`
+  - `linked_amount_mismatch` now includes `credit_amount`.
+  - Added internal-transfer credit classifier for mismatch suppression in ranking (debit=0, credit>0, transfer/deposit-style keywords).
+  - `priority_manual_first_2012.csv` is now regenerated from actionable mismatches only.
+- New outputs:
+  - `l:\limo\reports\audit_exceptions_2012\linked_amount_mismatch_actionable_2012.csv`
+  - `l:\limo\reports\audit_exceptions_2012\linked_amount_mismatch_excluded_internal_transfer_credit_2012.csv`
+  - `l:\limo\reports\audit_exceptions_2012\priority_manual_first_2012.csv` (filtered/actionable)
+- Current counts:
+  - linked_amount_mismatch: 74
+  - linked_amount_mismatch_actionable: 66
+  - linked_amount_mismatch_excluded_internal_transfer_credit: 8
+
+2026-04-20 follow-up - actionable top20 pass applied
+- Rebuilt `top20_action_plan_2012` from filtered `priority_manual_first_2012.csv`.
+- Applied the generated SQL relinks (safe rows only) in committed transaction.
+- Current top20 status after apply:
+  - SAFE_RELINK 0
+  - KEEP_AS_IS 18
+  - MANUAL_REVIEW 2
+- Remaining manual rows in current top20:
+  - TX 69148 `MGM FORD REFUND` (credit/refund context)
+  - TX 100033 `CHQ 281 ARROW LIMO TRANSFER` (transfer context)
+
+2026-04-20 follow-up - final context classification applied
+- User confirmed:
+  - TX 69148 `MGM FORD REFUND` = purchase return flow; should be treated as refund linked against prior Ford purchase context.
+  - TX 100033 `CHQ 281 ARROW LIMO TRANSFER` = internal account transfer / NSF-era transfer-tracking behavior.
+- Added deterministic overrides in `l:\limo\_tmp_build_top20_action_plan_2012.py` for both TX IDs as KEEP_AS_IS context rows.
+- Rebuilt top20 planner: SAFE_RELINK 0, KEEP_AS_IS 20, MANUAL_REVIEW 0.
 Reboot Handoff - 2026-04-19
 Global Payments 2012 Merchant Statement Reconciliation
 
@@ -27,15 +86,62 @@ Key findings:
   Sep 2012  Partial — fee confirmed, some deposit lines unresolved
   Jun 2012  Partial — fee NSF-paired (abnormal), 6 deposit lines unresolved
   May 2012  Partial — fee confirmed, 8 deposit lines unresolved ($20,229.63)
-  Apr 2012  Partial — fee confirmed, 5 deposit lines unresolved ($14,344.57)
-              unresolved: 04/02 $4,067.00 / 04/09 $2,893.00 / 04/19 $350.00
-                          04/23 $3,703.69 / 04/27 $3,330.88
-              note: no exact or 2/3/4-row combo found in DB for these 5
-  Jan-Mar 2012  Card totals compared only; deposit-line recon not done
+  Apr 2012  Partial — rerun with same-day-sum + 5-row combos (2026-04-20)
+              statement total: $21,594.07
+              matched: $10,930.38, unresolved: $10,663.69
+              RESOLVED this session: 04/27 $3,330.88 (same-day-sum 5 rows: 102091-102095)
+              unresolved: 04/02 $4,067.00 / 04/09 $2,893.00 / 04/23 $3,703.69
+              fee check ($1,170.45):
+                found 1 row in banking_transactions
+                - 2012-05-01 DEBIT 1,170.45  GLOBAL MERCHANT FEES
+              analysis (2026-04-20):
+                - Apr 2  DB GBL credits on that date = $2,419.80 (short $1,647.20)
+                - Apr 9  DB GBL credits on that date = $1,896.10 (short $996.90)
+                - Apr 23 DB GBL credits on that date = $1,372.37 (short $2,331.32)
+                    but Apr 24 DB has surplus $2,403.69 vs stmt $256 → likely 1-day slip
+                    Apr 23 combined (own + Apr 24 slip) = $3,776.06 ≠ $3,703.69 (off +$72.37)
+                - Descriptor confirmed: CIBC shows "CREDIT MEMO / 4017775 VISA / GBL VI 4017775"
+                    DB stores these as VCARD/MCARD/ACARD/DCARD DEPOSIT
+                - No exact credit match anywhere in 2012 for any of the 3 unresolved amounts
+                - Next: check if Apr 2/9 missing credits exist in a different date range
+                    or if those net deposit amounts include non-card components not in DB
+  Jan 2012  Partial — deposit-line recon started (2026-04-20)
+            statement total: $22,474.21
+            matched: $5,860.86, unresolved: $16,613.35
+            unresolved lines:
+              01/03 $9,884.49
+              01/16 $2,662.73
+              01/17 $150.00
+              01/20 $134.38
+              01/30 $3,781.75
+            fee check ($1,244.81):
+              found 3 rows in banking_transactions
+              - 2012-02-01 CREDIT 1,244.81  NSF GBI MERCH FEES
+              - 2012-02-01 DEBIT  1,244.81  GLOBAL MERCHANT FEES
+              - 2012-02-06 DEBIT  1,244.81  GLOBAL MERCHANT FEES
+  Feb 2012  Partial — deposit-line recon started (2026-04-20)
+            statement total: $21,371.78
+            matched: $17,335.28, unresolved: $4,036.50
+            unresolved lines:
+              02/15 $661.50
+              02/27 $3,375.00
+            fee check ($1,069.62):
+              found 1 row in banking_transactions
+              - 2012-03-01 DEBIT 1,069.62  GLOBAL MERCHANT FEES
+  Mar 2012  FULLY DONE ✓ (2026-04-20)
+            statement total: $16,312.37
+            matched: $16,312.37, unresolved: $0.00
+            fee check ($791.87):
+              found 1 row in banking_transactions
+              - 2012-04-02 DEBIT 791.87  GLOBAL MERCHANT FEES
   Dec 2012  Partial — page 2 of statement missing from OCR
 
 ## Scripts (in L:\limo\)
   statement_date_audit.py           — committed, detects dupes + pre-2012 exclusion
+  _tmp_reconcile_jan2012.py         — January deposit-line matcher (7/14-day + up to 4-row combos)
+  _tmp_reconcile_feb2012.py         — February deposit-line matcher (14-day + up to 4-row combos)
+  _tmp_reconcile_mar2012.py         — March deposit-line matcher (14-day + up to 4-row combos)
+  _tmp_reconcile_apr2012_v2.py      — April deposit-line matcher (14-day + up to 4-row combos)
   _tmp_reconcile_apr2012.py         — April deposit-line matcher
   _tmp_reconcile_may2012.py         — May deposit-line matcher
   _tmp_june_combo_check.py          — June combination matcher
@@ -57,20 +163,103 @@ Key findings:
      Action: confirm which row to keep/delete before ITC total is finalized.
 
   2. CONTINUE APRIL 2012 deposit-line reconciliation
-     Try wider window (up to 14 days) or check if amounts split differently.
-     5 unresolved lines = $14,344.57 still unmatched.
-
+      Apr 27 now resolved (same-day-sum 5-row). 3 unresolved remain: $10,663.69.
+      Next: verify if Apr 2 ($4,067) and Apr 9 ($2,893) missing credits exist in a
+      wider DB date range, or if they include non-card amounts (ACH/cheque) absent from
+      GBL import. Check Apr 23 $72.37 ACARD (id=102045) provenance — may not belong there.
   3. COMPLETE May / Jun / Sep 2012 deposit lines
      Same approach — run _tmp_reconcile scripts with wider windows.
 
-  4. DO Jan / Feb / Mar 2012 deposit-line reconciliation (not started).
+    4. JAN / FEB / MAR deposit-line reconciliation status:
+      Jan partial, Feb partial, Mar complete.
+
+    4a. JAN 2012 already started; next action:
+      inspect 5 unresolved lines against description-filtered merchant deposits
+      and investigate duplicate/offset fee behavior on 2012-02-01 and 2012-02-06.
+
+    4b. FEB 2012 already started; next action:
+      inspect 2 unresolved lines ($661.50 and $3,375.00) with description-filtered
+      merchant deposit candidates and possible split/offset postings.
+
+    4c. MAR 2012 done — no remaining deposit-line work for March.
 
   5. Dec 2012 — page 2 of statement missing from OCR; may need screenshot.
 
 ## DB Connection
   host=localhost  port=5432  db=almsdata  user=postgres  pw=ArrowLimousine
+  Note: `_tmp_reconcile_jan2012.py` reads password from environment variable `DB_PASSWORD`.
 
 ## Key Pattern — new month reconciliation script
   Copy _tmp_reconcile_apr2012.py, update TARGETS list and fee date window.
   Card-type descriptions: VCARD=Visa, DCARD=Debit, MCARD=MC, ACARD=Amex
   Fee pattern: debited first business day of FOLLOWING month.
+
+## IDE Cleanup Before Reboot (2026-04-20)
+  Removed CodeQL extensions from VS Code:
+    - GitHub.vscode-codeql
+    - GeekMasher.codeql-scanner-vscode
+  Reason: noisy CodeQL extension warnings were not needed for this app work.
+  If any stale warning remains after reboot, reload VS Code once and it should clear.
+  Veracode extension may still be installed; leave it unless it also starts causing noise.
+
+=======================================================================
+SESSION UPDATE — 2026-04-20 (LOCAL DB ONLY)
+=======================================================================
+
+## Data Source Guardrail (confirmed)
+  All current matching work is against LOCAL PostgreSQL only:
+    host=localhost, port=5432, db=almsdata, user=postgres
+  Scripts verified to be DB-only (no CSV/JSON/XLSX/staging file reads):
+    - archive\archive_20260418\_tmp_dryrun_best_receipt_global.py
+    - archive\archive_20260418\_tmp_apply_best_receipt_strict_global.py
+    - archive\archive_20260418\_tmp_apply_best_receipt_strict_global_fk.py
+
+## Matching Rule Update (requested)
+  Best-receipt precedence is now:
+    1) exact amount match
+    2) vendor token match
+    3) date proximity
+  Quality score remains as later tie-break only.
+
+## June 2012 Reconciliation
+  _tmp_reconcile_jun2012.py now resolves to variance 0 via:
+    - Jun 4/5 bundled posting handling
+    - Jun 18/19 bundled posting handling
+    - Jun 28 return-aware netting (VCARD PAYMENT debit)
+  Current June total run:
+    TOTAL,29788.76,matched,29788.76,variance,-0.00
+
+## Open Deposit Reconciliation
+  May 2012 still unresolved (known gap):
+    2012-05-23, 2012-05-24, 2012-05-25, 2012-05-28, 2012-05-30, 2012-05-31
+
+## New Audit Proofing Output (2012 exception pack)
+  Script:
+    L:\limo\_tmp_audit_exceptions_pack_2012.py
+  Output folder:
+    L:\limo\reports\audit_exceptions_2012\
+  Files:
+    - audit_exceptions_2012_summary.json
+    - linked_amount_mismatch_2012.csv
+    - multi_receipts_same_banking_tx_2012.csv
+    - manual_or_reimbursement_unlinked_2012.csv
+    - transfer_cash_suspects_2012.csv
+    - meal_needs_gl6100_review_2012.csv
+    - ice_tax_review_2012.csv
+
+## 2012 Exception Counts (local DB)
+  receipts_2012: 3273
+  linked_amount_mismatch: 91
+  multi_receipts_same_banking_tx: 75
+  manual_or_reimbursement_unlinked: 78
+  transfer_cash_suspects: 160
+  meal_needs_gl6100_review: 91
+  ice_tax_review: 111
+
+## Manual Verification Priority (next actions)
+  1. linked_amount_mismatch_2012.csv (highest risk of wrong links/double-count)
+  2. multi_receipts_same_banking_tx_2012.csv (split vs duplicate validation)
+  3. manual_or_reimbursement_unlinked_2012.csv (confirm cash/reimbursement evidence)
+  4. transfer_cash_suspects_2012.csv (move transfer/cash movement off expense treatment)
+  5. meal_needs_gl6100_review_2012.csv (set GL 6100 where appropriate, 50% deductible)
+  6. ice_tax_review_2012.csv (verify zero-GST treatment where applicable)

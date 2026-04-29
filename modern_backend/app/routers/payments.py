@@ -29,7 +29,8 @@ def list_payments(charter_id: int) -> dict[str, Any]:
     with cursor() as cur:
         cur.execute(
             """
-            SELECT payment_id, charter_id, amount, payment_date, payment_method, payment_key, notes, created_at, last_updated
+            SELECT payment_id, charter_id, amount, payment_date,
+            payment_method, payment_key, notes, created_at, last_updated
             FROM payments
             WHERE charter_id = %s
             ORDER BY payment_date DESC, payment_id DESC
@@ -47,9 +48,11 @@ def create_payment(charter_id: int, body: PaymentCreate) -> dict[str, Any]:
     with cursor() as cur:
         cur.execute(
             """
-            INSERT INTO payments (charter_id, amount, payment_date, payment_method, payment_key, notes, last_updated)
+            INSERT INTO payments (charter_id, amount, payment_date,
+            payment_method, payment_key, notes, last_updated)
             VALUES (%s, %s, COALESCE(%s, CURRENT_DATE), %s, %s, %s, NOW())
-            RETURNING payment_id, charter_id, amount, payment_date, payment_method, payment_key, notes, created_at, last_updated
+            RETURNING payment_id, charter_id, amount, payment_date,
+            payment_method, payment_key, notes, created_at, last_updated
             """,
             (
                 charter_id,
@@ -77,7 +80,10 @@ def update_payment(payment_id: int, body: PaymentUpdate) -> dict[str, Any]:
     values = [*list(updates.values()), payment_id]
     with cursor() as cur:
         cur.execute(
-            f"UPDATE payments SET {sets}, last_updated = NOW() WHERE payment_id = %s RETURNING payment_id, charter_id, amount, payment_date, payment_method, payment_key, notes, created_at, last_updated",
+            f"UPDATE payments SET {sets}, last_updated = NOW() WHERE"
+            f"payment_id = %s RETURNING payment_id, charter_id, amount,"
+            f"payment_date, payment_method, payment_key, notes, created_at,"
+            f"last_updated",
             values,
         )
         row = cur.fetchone()
@@ -91,7 +97,9 @@ def update_payment(payment_id: int, body: PaymentUpdate) -> dict[str, Any]:
 @router.delete("/payments/{payment_id}")
 def delete_payment(payment_id: int) -> dict[str, Any]:
     with cursor() as cur:
-        cur.execute("DELETE FROM payments WHERE payment_id = %s", (payment_id,))
+        cur.execute(
+            "DELETE FROM payments WHERE payment_id = %s", (payment_id,)
+        )
         deleted = cur.rowcount
         if not deleted:
             raise HTTPException(status_code=404, detail="not_found")

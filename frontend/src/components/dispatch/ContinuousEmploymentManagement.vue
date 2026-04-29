@@ -135,8 +135,8 @@
       <div v-if="activeTab === 'payroll'" class="tab-content">
         <div class="payroll-controls">
           <div class="period-selector">
-            <label>Pay Period:</label>
-            <select v-model="selectedPayPeriod" @change="loadPayrollData">
+            <label for="pay-period-select">Pay Period:</label>
+            <select id="pay-period-select" v-model="selectedPayPeriod" @change="loadPayrollData">
               <option v-for="period in payPeriods" :key="period.value" :value="period.value">
                 {{ period.label }}
               </option>
@@ -234,6 +234,12 @@
                 <button @click="editROE(roe)" class="btn btn-sm btn-outline-primary">
                   <i class="fas fa-edit"></i> Edit
                 </button>
+                <button @click="checkROEReadiness(roe.roe_id)" class="btn btn-sm btn-outline-info">
+                  <i class="fas fa-list-check"></i> Validate
+                </button>
+                <button @click="downloadROESubmissionPackage(roe.roe_id)" class="btn btn-sm btn-outline-dark">
+                  <i class="fas fa-file-export"></i> Package
+                </button>
                 <button 
                   v-if="roe.roe_status === 'completed'"
                   @click="submitROE(roe.roe_id)" 
@@ -317,8 +323,8 @@
             <h4>Employee Selection</h4>
             <div class="form-row">
               <div class="form-group full-width">
-                <label>Employee (All Types: Salary, Charter Drivers, Part-time)</label>
-                <select v-model="roeForm.employee_id" required @change="loadEmployeeDetails">
+                <label for="roe-employee-id">Employee (All Types: Salary, Charter Drivers, Part-time)</label>
+                <select id="roe-employee-id" v-model="roeForm.employee_id" required @change="loadEmployeeDetails">
                   <option value="">Select Employee</option>
                   <option 
                     v-for="employee in allEmployees" 
@@ -348,13 +354,13 @@
             <h4>Termination Information</h4>
             <div class="form-row">
               <div class="form-group">
-                <label>Termination Date</label>
-                <input type="date" v-model="roeForm.termination_date" required>
+                <label for="roe-termination-date">Termination Date</label>
+                <input id="roe-termination-date" type="date" v-model="roeForm.termination_date" required>
               </div>
               
               <div class="form-group">
-                <label>Reason Code</label>
-                <select v-model="roeForm.reason_code" required>
+                <label for="roe-reason-code">Reason Code</label>
+                <select id="roe-reason-code" v-model="roeForm.reason_code" required>
                   <option value="A">A - Shortage of work (layoff)</option>
                   <option value="E">E - Quit</option>
                   <option value="M">M - Dismissal</option>
@@ -367,8 +373,8 @@
             
             <div class="form-row">
               <div class="form-group full-width">
-                <label>Reason Description</label>
-                <textarea v-model="roeForm.reason_description" rows="3" placeholder="Detailed reason for employment termination..."></textarea>
+                <label for="roe-reason-description">Reason Description</label>
+                <textarea id="roe-reason-description" v-model="roeForm.reason_description" rows="3" placeholder="Detailed reason for employment termination..."></textarea>
               </div>
             </div>
           </div>
@@ -398,8 +404,8 @@
             <h4>Employee Information</h4>
             <div class="form-row">
               <div class="form-group">
-                <label>Employee</label>
-                <select v-model="contractForm.employee_id" required>
+                <label for="contract-employee-id">Employee</label>
+                <select id="contract-employee-id" v-model="contractForm.employee_id" required>
                   <option value="">Select Employee</option>
                   <option 
                     v-for="employee in availableEmployees" 
@@ -412,8 +418,8 @@
               </div>
               
               <div class="form-group">
-                <label>Position/Classification</label>
-                <select v-model="contractForm.classification_type" required>
+                <label for="contract-classification">Position/Classification</label>
+                <select id="contract-classification" v-model="contractForm.classification_type" required>
                   <option value="accountant">Accountant</option>
                   <option value="dispatcher">Dispatcher</option>
                   <option value="bookkeeper">Bookkeeper</option>
@@ -428,18 +434,18 @@
             <h4>Employment Period</h4>
             <div class="form-row">
               <div class="form-group">
-                <label>Start Date</label>
-                <input type="date" v-model="contractForm.employment_start_date" required>
+                <label for="contract-start-date">Start Date</label>
+                <input id="contract-start-date" type="date" v-model="contractForm.employment_start_date" required>
               </div>
               
               <div class="form-group">
-                <label>End Date (Optional)</label>
-                <input type="date" v-model="contractForm.employment_end_date">
+                <label for="contract-end-date">End Date (Optional)</label>
+                <input id="contract-end-date" type="date" v-model="contractForm.employment_end_date">
               </div>
               
               <div class="form-group">
-                <label>Contract Type</label>
-                <select v-model="contractForm.contract_type" required>
+                <label for="contract-type">Contract Type</label>
+                <select id="contract-type" v-model="contractForm.contract_type" required>
                   <option value="permanent">Permanent</option>
                   <option value="contract">Contract</option>
                   <option value="probation">Probation</option>
@@ -453,8 +459,9 @@
             <h4>Salary Information</h4>
             <div class="form-row">
               <div class="form-group">
-                <label>Monthly Salary</label>
+                <label for="contract-monthly-salary">Monthly Salary</label>
                 <input 
+                  id="contract-monthly-salary"
                   type="number" 
                   step="0.01" 
                   v-model="contractForm.monthly_salary" 
@@ -464,8 +471,9 @@
               </div>
               
               <div class="form-group">
-                <label>Annual Salary</label>
+                <label for="contract-annual-salary">Annual Salary</label>
                 <input 
+                  id="contract-annual-salary"
                   type="number" 
                   step="0.01" 
                   v-model="contractForm.annual_salary" 
@@ -474,8 +482,8 @@
               </div>
               
               <div class="form-group">
-                <label>Pay Frequency</label>
-                <select v-model="contractForm.pay_frequency">
+                <label for="contract-pay-frequency">Pay Frequency</label>
+                <select id="contract-pay-frequency" v-model="contractForm.pay_frequency">
                   <option value="monthly">Monthly</option>
                   <option value="bi_weekly">Bi-Weekly</option>
                   <option value="semi_monthly">Semi-Monthly</option>
@@ -488,13 +496,13 @@
             <h4>Benefits & Time Off</h4>
             <div class="form-row">
               <div class="form-group">
-                <label>Vacation Days/Year</label>
-                <input type="number" v-model="contractForm.vacation_days_per_year" min="0" max="30">
+                <label for="contract-vacation-days">Vacation Days/Year</label>
+                <input id="contract-vacation-days" type="number" v-model="contractForm.vacation_days_per_year" min="0" max="30">
               </div>
               
               <div class="form-group">
-                <label>Sick Days/Year</label>
-                <input type="number" v-model="contractForm.sick_days_per_year" min="0" max="20">
+                <label for="contract-sick-days">Sick Days/Year</label>
+                <input id="contract-sick-days" type="number" v-model="contractForm.sick_days_per_year" min="0" max="20">
               </div>
             </div>
             
@@ -526,8 +534,9 @@
               </div>
               
               <div class="form-group">
-                <label>Booking Day of Month</label>
+                <label for="contract-booking-day">Booking Day of Month</label>
                 <input 
+                  id="contract-booking-day"
                   type="number" 
                   v-model="contractForm.booking_day_of_month" 
                   min="1" 
@@ -612,7 +621,7 @@ export default {
     
     totalMonthlySalaries() {
       return this.activeContracts.reduce((total, contract) => {
-        return total + parseFloat(contract.monthly_salary || 0)
+        return total + Number.parseFloat(contract.monthly_salary || 0)
       }, 0)
     },
     
@@ -875,7 +884,7 @@ export default {
     
     calculateAnnualSalary() {
       if (this.contractForm.monthly_salary) {
-        this.contractForm.annual_salary = (parseFloat(this.contractForm.monthly_salary) * 12).toFixed(2)
+        this.contractForm.annual_salary = (Number.parseFloat(this.contractForm.monthly_salary) * 12).toFixed(2)
       }
     },
     
@@ -1002,8 +1011,94 @@ export default {
       console.log('Edit ROE:', roe)
     },
     
-    submitROE(roeId) {
-      console.log('Submit ROE to CRA:', roeId)
+    async submitROE(roeId) {
+      try {
+        const readinessResponse = await fetch(`/api/continuous-employment/roe/${roeId}/readiness`)
+        if (!readinessResponse.ok) {
+          throw new Error('Failed to validate ROE readiness')
+        }
+
+        const readiness = await readinessResponse.json()
+        if (!readiness.is_ready) {
+          const summary = (readiness.errors || []).join('; ') || 'ROE is not ready for submission'
+          throw new Error(summary)
+        }
+
+        const response = await fetch(`/api/continuous-employment/roe/${roeId}/submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            submitted_by: 'web_ui',
+            submission_reference: '',
+            notes: 'Submitted from Continuous Employment screen'
+          })
+        })
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}))
+          if (err && err.detail && typeof err.detail === 'object') {
+            const items = err.detail.errors || []
+            throw new Error(items.join('; ') || err.detail.message || 'Failed to submit ROE')
+          }
+          throw new Error(err.detail || 'Failed to submit ROE')
+        }
+
+        this.$toast.success('ROE marked as submitted')
+        await this.loadROERecords()
+      } catch (error) {
+        console.error('Error submitting ROE:', error)
+        this.$toast.error(error.message || 'Failed to submit ROE')
+      }
+    },
+
+    async checkROEReadiness(roeId) {
+      try {
+        const response = await fetch(`/api/continuous-employment/roe/${roeId}/readiness`)
+        if (!response.ok) {
+          throw new Error('Failed to check ROE readiness')
+        }
+        const result = await response.json()
+        if (result.is_ready) {
+          const warningCount = (result.warnings || []).length
+          this.$toast.success(
+            warningCount > 0
+              ? `ROE ready with ${warningCount} warning(s)`
+              : 'ROE is ready for submission'
+          )
+        } else {
+          const summary = (result.errors || []).join('; ') || 'ROE is not submission-ready'
+          this.$toast.error(summary)
+        }
+      } catch (error) {
+        console.error('Error checking ROE readiness:', error)
+        this.$toast.error(error.message || 'Failed to check ROE readiness')
+      }
+    },
+
+    async downloadROESubmissionPackage(roeId) {
+      try {
+        const response = await fetch(`/api/continuous-employment/roe/${roeId}/submission-package`)
+        if (!response.ok) {
+          throw new Error('Failed to export submission package')
+        }
+
+        const blob = await response.blob()
+        const url = globalThis.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `roe_submission_package_${roeId}.json`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        globalThis.URL.revokeObjectURL(url)
+
+        this.$toast.success('ROE submission package downloaded')
+      } catch (error) {
+        console.error('Error downloading ROE package:', error)
+        this.$toast.error(error.message || 'Failed to download ROE package')
+      }
     },
     
     async printROE(roeId) {
@@ -1018,9 +1113,6 @@ export default {
         
         // Open ROE print template in new window
         const printWindow = window.open('', '_blank', 'width=800,height=1000')
-        
-        // Create ROE print template component dynamically
-        const roeTemplate = this.$vueApp.component('ROEPrintTemplate', () => import('./components/ROEPrintTemplate.vue'))
         
         // Generate the ROE HTML
         const roeHtml = this.generateROEHtml(roeData)
@@ -1276,7 +1368,7 @@ export default {
     
     formatSIN(sin) {
       if (!sin) return '___-___-___'
-      const digits = sin.replace(/\D/g, '')
+      const digits = sin.replaceAll(/\D/g, '')
       if (digits.length !== 9) return '___-___-___'
       return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6,9)}`
     },
@@ -1293,7 +1385,7 @@ export default {
     
     formatCurrencyForPrint(amount) {
       if (!amount) return '0.00'
-      return parseFloat(amount).toLocaleString('en-CA', {
+      return Number.parseFloat(amount).toLocaleString('en-CA', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
       })
@@ -1412,7 +1504,7 @@ export default {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: #007bff;
+  background: #0056b3;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1459,17 +1551,17 @@ export default {
 
 .tab-header:hover {
   background: #e9ecef;
-  color: #007bff;
+  color: #0056b3;
 }
 
 .tab-header.active {
   background: white;
-  color: #007bff;
-  border-bottom: 2px solid #007bff;
+  color: #0056b3;
+  border-bottom: 2px solid #0056b3;
 }
 
 .badge {
-  background: #dc3545;
+  background: #9f1c2a;
   color: white;
   border-radius: 12px;
   padding: 2px 8px;

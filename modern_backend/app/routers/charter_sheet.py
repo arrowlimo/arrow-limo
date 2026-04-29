@@ -59,35 +59,47 @@ def get_charter_sheet(reserve_number: str):
         charter_data = {
             "charter_id": charter_row[0],
             "reserve_number": charter_row[1],
-            "charter_date": charter_row[2].isoformat() if charter_row[2] else None,
-            "pickup_time": charter_row[3].isoformat() if charter_row[3] else None,
+            "charter_date": (
+                charter_row[2].isoformat() if charter_row[2] else None
+            ),
+            "pickup_time": (
+                charter_row[3].isoformat() if charter_row[3] else None
+            ),
             "pickup_address": charter_row[4],
             "dropoff_address": charter_row[5],
             "passenger_load": charter_row[6],
             "vehicle_type": charter_row[7],
             "vehicle_id": charter_row[8],
             "driver_name": charter_row[9],
-            "total_amount_due": float(charter_row[10]) if charter_row[10] else 0.0,
+            "total_amount_due": (
+                float(charter_row[10]) if charter_row[10] else 0.0
+            ),
             "status": charter_row[11],
             "charter_type": charter_row[12],
             "quoted_hours": float(charter_row[13]) if charter_row[13] else 0.0,
             "separate_customer_printout": charter_row[14],
             "driver_trip_log": {
-                "actual_pickup_time": charter_row[15].isoformat()
-                if charter_row[15]
-                else None,
-                "actual_dropoff_time": charter_row[16].isoformat()
-                if charter_row[16]
-                else None,
-                "actual_hours": float(charter_row[17]) if charter_row[17] else 0.0,
+                "actual_pickup_time": (
+                    charter_row[15].isoformat() if charter_row[15] else None
+                ),
+                "actual_dropoff_time": (
+                    charter_row[16].isoformat() if charter_row[16] else None
+                ),
+                "actual_hours": (
+                    float(charter_row[17]) if charter_row[17] else 0.0
+                ),
                 "odometer_start": charter_row[18],
                 "odometer_end": charter_row[19],
                 "total_miles": charter_row[20],
-                "fuel_gallons": float(charter_row[21]) if charter_row[21] else 0.0,
-                "fuel_price_per_gallon": float(charter_row[22])
-                if charter_row[22]
-                else 0.0,
-                "fuel_total_cost": float(charter_row[23]) if charter_row[23] else 0.0,
+                "fuel_gallons": (
+                    float(charter_row[21]) if charter_row[21] else 0.0
+                ),
+                "fuel_price_per_gallon": (
+                    float(charter_row[22]) if charter_row[22] else 0.0
+                ),
+                "fuel_total_cost": (
+                    float(charter_row[23]) if charter_row[23] else 0.0
+                ),
             },
             "customer": {
                 "client_name": charter_row[24],

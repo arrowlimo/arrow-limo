@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
@@ -23,7 +22,8 @@ def preview_allocations(transaction_id: int):
     try:
         cur = conn.cursor()
         cur.execute(
-            "SELECT transaction_id, transaction_date, debit_amount, description FROM banking_transactions WHERE transaction_id=%s",
+            "SELECT transaction_id, transaction_date, debit_amount,"
+            "description FROM banking_transactions WHERE transaction_id=%s",
             (transaction_id,),
         )
         bt = cur.fetchone()
@@ -31,7 +31,8 @@ def preview_allocations(transaction_id: int):
             return {"status": "not_found", "transaction_id": transaction_id}
 
         cur.execute(
-            "SELECT r.receipt_id, r.vendor_name, r.gross_amount, r.description FROM receipts r WHERE r.banking_transaction_id=%s",
+            "SELECT r.receipt_id, r.vendor_name, r.gross_amount,"
+            "r.description FROM receipts r WHERE r.banking_transaction_id=%s",
             (transaction_id,),
         )
         linked = cur.fetchall()
@@ -67,7 +68,8 @@ def allocate_banking_to_receipts(transaction_id: int, req: AllocationRequest):
         cur = conn.cursor()
 
         cur.execute(
-            "SELECT transaction_id, transaction_date, debit_amount, description FROM banking_transactions WHERE transaction_id=%s",
+            "SELECT transaction_id, transaction_date, debit_amount,"
+            "description FROM banking_transactions WHERE transaction_id=%s",
             (transaction_id,),
         )
         bt = cur.fetchone()
@@ -82,7 +84,8 @@ def allocate_banking_to_receipts(transaction_id: int, req: AllocationRequest):
                 "error": "total_allocation_must_be_positive",
             }
 
-        # Allow small tolerance in matching; do not exceed debit by more than $0.50
+        # Allow small tolerance in matching; do not exceed debit by more than
+        # $0.50
         if total_alloc - debit_amount > 0.50:
             return {
                 "status": "error",
@@ -95,13 +98,15 @@ def allocate_banking_to_receipts(transaction_id: int, req: AllocationRequest):
         for a in req.allocations:
             # Link receipt to banking transaction
             cur.execute(
-                "UPDATE receipts SET banking_transaction_id=%s WHERE receipt_id=%s",
+                "UPDATE receipts SET banking_transaction_id=%s WHERE"
+                "receipt_id=%s",
                 (transaction_id, a.receipt_id),
             )
 
             # Insert ledger row if not present
             cur.execute(
-                "SELECT id FROM banking_receipt_matching_ledger WHERE banking_transaction_id=%s AND receipt_id=%s",
+                "SELECT id FROM banking_receipt_matching_ledger WHERE"
+                "banking_transaction_id=%s AND receipt_id=%s",
                 (transaction_id, a.receipt_id),
             )
             existing = cur.fetchone()
@@ -109,7 +114,9 @@ def allocate_banking_to_receipts(transaction_id: int, req: AllocationRequest):
                 cur.execute(
                     """
                     INSERT INTO banking_receipt_matching_ledger (
-                        banking_transaction_id, receipt_id, match_date, match_type, match_status, match_confidence, notes, created_by) VALUES (
+                        banking_transaction_id, receipt_id, match_date,
+                        match_type, match_status, match_confidence, notes,
+                        created_by) VALUES (
                         %s, %s, NOW(), %s, %s, %s, %s, %s)
                     """,
                     (
@@ -117,7 +124,11 @@ def allocate_banking_to_receipts(transaction_id: int, req: AllocationRequest):
                         a.receipt_id,
                         "allocation",
                         "linked",
-                        "exact" if abs(a.amount - debit_amount) < 0.01 else "partial",
+                        (
+                            "exact"
+                            if abs(a.amount - debit_amount) < 0.01
+                            else "partial"
+                        ),
                         f"amount={a.amount:.2f}",
                         req.created_by,
                     ),
@@ -125,8 +136,9 @@ def allocate_banking_to_receipts(transaction_id: int, req: AllocationRequest):
             else:
                 # Update notes to reflect latest amount
                 cur.execute(
-                    "UPDATE banking_receipt_matching_ledger SET notes=%s WHERE id=%s",
-                    (f"amount={a.amount:.2f}", existing[0]),
+                    "UPDATE banking_receipt_matching_ledger SET notes=%s"
+                    "WHERE id=%s",
+                    (f"amount={a.amount: .2f} ", existing[0]),
                 )
 
         conn.commit()

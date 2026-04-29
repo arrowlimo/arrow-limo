@@ -8,15 +8,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Force rebuild: 2026-01-30 14:35:00 UTC - Login endpoint deployment
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .api import receipt_verification as receipt_verification_router
+from .auth import (
+    get_current_user,
+    is_auth_exempt_path,
+    is_protected_path,
+    require_roles,
+    resolve_authenticated_user,
+)
 from .db import close_all_connections
 from .routers import accounting as accounting_router
-from .routers import bank_audit_reconciliation as bank_audit_reconciliation_router
+from .routers import (
+    bank_audit_reconciliation as bank_audit_reconciliation_router,
+)
 from .routers import banking as banking_router
 from .routers import banking_allocations as banking_allocations_router
 from .routers import bookings as bookings_router
@@ -24,6 +33,7 @@ from .routers import charges as charges_router
 from .routers import charter_sheet as charter_sheet_router
 from .routers import charters as charters_router
 from .routers import customers as customers_router
+from .routers import continuous_employment as continuous_employment_router
 from .routers import driver_auth as driver_auth_router
 from .routers import employees as employees_router
 from .routers import file_storage as file_storage_router
@@ -34,6 +44,7 @@ from .routers import payments as payments_router
 from .routers import payroll_tax as payroll_tax_router
 from .routers import pdf as pdf_router
 from .routers import pricing as pricing_router
+from .routers import payroll_compliance as payroll_compliance_router
 from .routers import receipts as receipts_router
 from .routers import receipts_linked_display as receipts_linked_display_router
 from .routers import receipts_simple as receipts_simple_router
@@ -54,7 +65,9 @@ OTEL_EXPORTER_OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")
 if SENTRY_DSN:
     try:
         import sentry_sdk  # type: ignore
-        from sentry_sdk.integrations.fastapi import FastApiIntegration  # type: ignore
+        from sentry_sdk.integrations.fastapi import FastApiIntegration  #
+
+        type: ignore
 
         sentry_sdk.init(
             dsn=SENTRY_DSN,
@@ -69,12 +82,14 @@ if SENTRY_DSN:
 if OTEL_EXPORTER_OTLP_ENDPOINT:
     try:
         from opentelemetry import trace  # type: ignore
-        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (  # type: ignore
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
             OTLPSpanExporter,
         )
         from opentelemetry.sdk.resources import Resource  # type: ignore
         from opentelemetry.sdk.trace import TracerProvider  # type: ignore
-        from opentelemetry.sdk.trace.export import BatchSpanProcessor  # type: ignore
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor  # type: 
+
+        ignore
 
         resource = Resource.create({"service.name": settings.app_name})
         provider = TracerProvider(resource=resource)
@@ -102,8 +117,27 @@ async def add_correlation_and_timing(request: Request, call_next):
     start = time.time()
     response = await call_next(request)
     response.headers["X-Request-ID"] = rid
-    response.headers["X-Process-Time-ms"] = str(int((time.time() - start) * 1000))
+    response.headers["X-Process-Time-ms"] = str(
+        int((time.time() - start) * 1000)
+    )
     return response
+
+
+@app.middleware("http")
+async def require_authenticated_api_user(request: Request, call_next):
+    path = request.url.path
+    if is_auth_exempt_path(path) or not is_protected_path(path):
+        return await call_next(request)
+
+    user = resolve_authenticated_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Authentication required"},
+        )
+
+    request.state.current_user = user
+    return await call_next(request)
 
 
 @app.exception_handler(Exception)
@@ -137,6 +171,7 @@ async def db_ping():
     """Test database connectivity by running a simple query."""
     try:
         from .db import get_connection, return_connection
+
         conn = get_connection()
         try:
             cur = conn.cursor()
@@ -155,50 +190,94 @@ async def db_ping():
 
 
 # Routers (MUST be included BEFORE mounting static files)
+finance_roles = Depends(
+    require_roles("admin", "manager", "super_user", "accountant")
+)
+admin_roles = Depends(require_roles("admin", "manager", "super_user"))
+ops_roles = Depends(
+    require_roles("admin", "manager", "super_user", "dispatcher", "dispatch")
+)
+authenticated_user = Depends(get_current_user)
+
 app.include_router(driver_auth_router.router)
 app.include_router(inspection_forms_router.router)  # Secure inspection forms
-app.include_router(metrics_router.router)  # Dashboard metrics
+app.include_router(
+    metrics_router.router, dependencies=[authenticated_user]
+)  # Dashboard metrics
 app.include_router(pdf_router.router)  # PDF generation
-app.include_router(reports_router.router)
-app.include_router(charges_router.router)
-app.include_router(payments_router.router)
-app.include_router(charters_router.router)
-app.include_router(bookings_router.router)
-app.include_router(receipts_router.router)
+app.include_router(reports_router.router, dependencies=[finance_roles])
+app.include_router(charges_router.router, dependencies=[authenticated_user])
+app.include_router(payments_router.router, dependencies=[authenticated_user])
+app.include_router(charters_router.router, dependencies=[authenticated_user])
+app.include_router(bookings_router.router, dependencies=[authenticated_user])
+app.include_router(receipts_router.router, dependencies=[authenticated_user])
 app.include_router(
-    receipts_simple_router.router
+    receipts_simple_router.router,
+    dependencies=[authenticated_user],
 )  # Simplified receipts matching actual schema
-app.include_router(receipts_split_router.router)
-app.include_router(receipts_linked_display_router.router)  # Linked split receipts display
 app.include_router(
-    receipt_verification_router.router
+    receipts_split_router.router, dependencies=[authenticated_user]
+)
+app.include_router(
+    receipts_linked_display_router.router,
+    dependencies=[authenticated_user],
+)  # Linked split receipts display
+app.include_router(
+    receipt_verification_router.router,
+    dependencies=[authenticated_user],
 )  # Receipt verification (physical match)
-app.include_router(invoices_router.router)
-app.include_router(accounting_router.router)
-app.include_router(banking_router.router)
-app.include_router(banking_allocations_router.router)
-app.include_router(vehicles_router.router)
-app.include_router(employees_router.router)
-app.include_router(customers_router.router)
-app.include_router(pricing_router.router)
-app.include_router(table_management_router.router)
-app.include_router(t2_returns_router.router)  # T2 Corporate Tax Return entry
-app.include_router(charter_sheet_router.router)
-app.include_router(file_storage_router.router)  # File storage with role-based access
-app.include_router(payroll_tax_router.router)  # Payroll & T4 form entry
-app.include_router(reconciliation_report_router.router)  # Banking-receipt reconciliation
-app.include_router(vendor_standardization_router.router)  # Vendor name standardization
-app.include_router(bank_audit_reconciliation_router.router)  # Bank account reconciliation for auditors
+app.include_router(invoices_router.router, dependencies=[finance_roles])
+app.include_router(accounting_router.router, dependencies=[finance_roles])
+app.include_router(banking_router.router, dependencies=[finance_roles])
+app.include_router(
+    banking_allocations_router.router, dependencies=[finance_roles]
+)
+app.include_router(vehicles_router.router, dependencies=[ops_roles])
+app.include_router(employees_router.router, dependencies=[admin_roles])
+app.include_router(customers_router.router, dependencies=[authenticated_user])
+app.include_router(pricing_router.router, dependencies=[ops_roles])
+app.include_router(table_management_router.router, dependencies=[admin_roles])
+app.include_router(
+    t2_returns_router.router, dependencies=[finance_roles]
+)  # T2 Corporate Tax Return entry
+app.include_router(
+    charter_sheet_router.router, dependencies=[authenticated_user]
+)
+app.include_router(
+    file_storage_router.router, dependencies=[authenticated_user]
+)  # File storage with role-based access
+app.include_router(
+    payroll_tax_router.router, dependencies=[finance_roles]
+)  # Payroll & T4 form entry
+app.include_router(
+    continuous_employment_router.router, dependencies=[finance_roles]
+)  # ROE lifecycle + submission tracking
+app.include_router(
+    payroll_compliance_router.router, dependencies=[finance_roles]
+)  # PD7A submission audit + reporting
+app.include_router(
+    reconciliation_report_router.router, dependencies=[finance_roles]
+)  # Banking-receipt reconciliation
+app.include_router(
+    vendor_standardization_router.router, dependencies=[admin_roles]
+)  # Vendor name standardization
+app.include_router(
+    bank_audit_reconciliation_router.router, dependencies=[finance_roles]
+)  # Bank account reconciliation for auditors
 
 # Import and include cheque books router
 from .routes import cheque_books as cheque_books_router
 
-app.include_router(cheque_books_router.router)  # Cheque book management
+app.include_router(
+    cheque_books_router.router, dependencies=[finance_roles]
+)  # Cheque book management
 
 # Import and include received payments router
 from .routes import received_payments as received_payments_router
 
-app.include_router(received_payments_router.router)  # Record received payments
+app.include_router(
+    received_payments_router.router, dependencies=[finance_roles]
+)  # Record received payments
 
 # Mount Vue frontend at root LAST (after all API routes are registered)
 DIST_DIR = str(

@@ -1,23 +1,41 @@
-"""
-Pytest configuration and shared fixtures.
-"""
+"""Pytest configuration and shared fixtures."""
+
+import os
+
 import pytest
 import psycopg2
 from decimal import Decimal
-from datetime import date, datetime
+from datetime import date
 
-# Database connection parameters
-DB_CONFIG = {
-    "host": "localhost",
-    "database": "almsdata_test",  # Use separate test database
-    "user": "postgres",
-    "password": "***REDACTED***"
+DEFAULT_DB_CONFIG = {
+    "host": os.getenv("TEST_DB_HOST", os.getenv("LOCAL_DB_HOST", "localhost")),
+    "database": os.getenv("TEST_DB_NAME", "almsdata_test"),
+    "user": os.getenv("TEST_DB_USER", os.getenv("LOCAL_DB_USER", "postgres")),
+    "password": os.getenv(
+        "TEST_DB_PASSWORD",
+        os.getenv("LOCAL_DB_PASSWORD", "ArrowLimousine"),
+    ),
 }
+
+
+def _connect_test_db():
+    """Connect to the preferred test DB, falling back to local almsdata if needed."""
+    try:
+        return psycopg2.connect(**DEFAULT_DB_CONFIG)
+    except psycopg2.OperationalError as exc:
+        message = str(exc)
+        if DEFAULT_DB_CONFIG["database"] != "almsdata_test":
+            raise
+        if 'database "almsdata_test" does not exist' not in message:
+            raise
+
+        fallback_config = {**DEFAULT_DB_CONFIG, "database": "almsdata"}
+        return psycopg2.connect(**fallback_config)
 
 @pytest.fixture(scope="session")
 def db_connection():
     """Create database connection for test session."""
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = _connect_test_db()
     yield conn
     conn.close()
 
@@ -57,6 +75,7 @@ def sample_payment_data():
 def cleanup_test_data(db_cursor):
     """Cleanup test data after tests."""
     yield
+    db_cursor.connection.rollback()
     # Delete test records
     db_cursor.execute("DELETE FROM payments WHERE reserve_number = '999999'")
     db_cursor.execute("DELETE FROM charters WHERE reserve_number = '999999'")

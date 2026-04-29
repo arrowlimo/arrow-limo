@@ -115,7 +115,8 @@ async def create_charter(request: ChartRequest, db: Session = Depends(get_db)):
                     detail=f"Driver ID {request.assigned_driver_id} not found",
                 )
 
-        # ===== STEP 4: Create charter record (without reserve_number initially) =====
+        # ===== STEP 4: Create charter record (without reserve_number
+        # initially) =====
         charter = Charter(
             customer_id=customer.client_id,
             charter_date=request.charter_date,
@@ -139,18 +140,23 @@ async def create_charter(request: ChartRequest, db: Session = Depends(get_db)):
         # PostgreSQL sequence: SELECT nextval('reserve_number_seq')
         result = db.execute(text("SELECT nextval('reserve_number_seq')"))
         seq_value = result.scalar()
-        reserve_number = f"{seq_value:06d}"  # Zero-padded to 6 digits (e.g., "019233")
+        reserve_number = (
+            f"{seq_value:06d}"  # Zero-padded to 6 digits (e.g., "019233")
+        )
 
         charter.reserve_number = reserve_number
         db.add(charter)
 
-        # ===== STEP 6: Insert itinerary routes (linked by reserve_number) =====
-        # Each stop becomes a separate row in charter_routes, ordered by sequence
+        # ===== STEP 6: Insert itinerary routes (linked by reserve_number)
+        # =====
+        # Each stop becomes a separate row in charter_routes, ordered by
+        # sequence
         for idx, route in enumerate(request.itinerary, start=1):
             route_record = CharterRoute(
                 reserve_number=reserve_number,
                 route_sequence=idx,
-                event_type_code=route.type,  # Maps to route_event_types (pickup, dropoff, etc.)
+                event_type_code=route.type,
+                # Maps to route_event_types (pickup, dropoff, etc.)
                 address=route.address,
                 stop_time=route.time24,
             )
@@ -399,7 +405,9 @@ async def list_drivers(db: Session = Depends(get_db)):
             "count": len(drivers),
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to list drivers: {e!s}")
+        raise HTTPException(
+            status_code=400, detail=f"Failed to list drivers: {e!s}"
+        )
 
 
 # =============================================================================
