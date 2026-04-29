@@ -199,6 +199,7 @@
         <button @click="saveCharter" class="btn-save">💾 Save Charter</button>
         <button @click="saveAndInvoice" class="btn-invoice">📄 Save & Generate Invoice</button>
         <button @click="saveAndPrint" class="btn-print">🖨️ Save & Print</button>
+        <button @click="printConfirmation" class="btn-print">📋 Print Confirmation</button>
         <button v-if="currentCharter" @click="deleteCharter" class="btn-delete">🗑️ Delete Charter</button>
       </div>
     </div>
@@ -819,6 +820,17 @@ async function saveAndPrint() {
     console.error('Print failed:', error)
     alert('Failed to generate run charter PDF: ' + error.message)
   }
+}
+
+function printConfirmation() {
+  const currentCharterId = getCurrentCharterId()
+  if (!currentCharterId) {
+    alert('Load or save a charter first to print confirmation.')
+    return
+  }
+
+  const url = `/charter/confirmation/print?charter_id=${currentCharterId}`
+  window.open(url, '_blank', 'noopener')
 }
 
 async function deleteCharter() {

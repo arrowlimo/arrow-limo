@@ -28,6 +28,7 @@ from .routers import (
 )
 from .routers import banking as banking_router
 from .routers import banking_allocations as banking_allocations_router
+from .routers import beverage_order as beverage_order_router
 from .routers import bookings as bookings_router
 from .routers import charges as charges_router
 from .routers import charter_sheet as charter_sheet_router
@@ -210,6 +211,9 @@ app.include_router(charges_router.router, dependencies=[authenticated_user])
 app.include_router(payments_router.router, dependencies=[authenticated_user])
 app.include_router(charters_router.router, dependencies=[authenticated_user])
 app.include_router(bookings_router.router, dependencies=[authenticated_user])
+app.include_router(
+    beverage_order_router.router, dependencies=[authenticated_user]
+)
 app.include_router(receipts_router.router, dependencies=[authenticated_user])
 app.include_router(
     receipts_simple_router.router,

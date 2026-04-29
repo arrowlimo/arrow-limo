@@ -317,6 +317,9 @@
             <button @click="exportReport('vehicle-inspections')" class="btn-export" :disabled="isExporting['vehicle-inspections']">
               {{ isExporting['vehicle-inspections'] ? 'Exporting…' : 'Export CSV' }}
             </button>
+            <button @click="printPreTripBlank()" class="btn-export" style="background:#4a7c59;">
+              🖨 Print Pre-Trip Form
+            </button>
           </div>
         </div>
 
@@ -918,19 +921,107 @@ async function generateReport(reportType) {
   if (isGenerating.value[reportType]) return
   isGenerating.value = { ...isGenerating.value, [reportType]: true }
   try {
-    // Simulate backend call delay
-    await new Promise(r => setTimeout(r, 600))
-    reportOutput.value = {
-      title: `${reportType.toUpperCase().replace('-', ' ')} Report`,
-      type: 'table',
-      columns: ['Date', 'Description', 'Amount', 'Status'],
-      data: [
-        { id: 1, Date: '2025-09-20', Description: 'Charter #12345', Amount: '$450.00', Status: 'Paid' },
-        { id: 2, Date: '2025-09-19', Description: 'Charter #12346', Amount: '$280.00', Status: 'Pending' },
-        { id: 3, Date: '2025-09-18', Description: 'Charter #12347', Amount: '$520.00', Status: 'Paid' }
-      ]
+    const today = new Date()
+    const toISO = (d) => new Date(d).toISOString().slice(0, 10)
+    const yearStart = (y) => `${y}-01-01`
+    const yearEnd = (y) => `${y}-12-31`
+
+    // Map frontend report card IDs → real backend endpoint + params
+    const ENDPOINT_MAP = {
+      // Financial
+      'revenue-analysis':   () => {
+        const p = new URLSearchParams({ limit: 500 })
+        if (revenueParams.value.period === 'custom' && revenueParams.value.startDate) {
+          p.set('start_date', revenueParams.value.startDate)
+          p.set('end_date', revenueParams.value.endDate)
+        }
+        return ['/api/reports/income-summary', p]
+      },
+      'payment-analysis':   () => ['/api/reports/payment-list',       new URLSearchParams({ limit: 500 })],
+      'receipts-expenses':  () => {
+        const year = expenseParams.value.year || today.getFullYear()
+        return ['/api/reports/invoiced-charges', new URLSearchParams({ start_date: yearStart(year), end_date: yearEnd(year), limit: 500 })]
+      },
+      // Operational
+      'charter-analysis':   () => {
+        const p = new URLSearchParams({ report_family: 'manifest', limit: 500 })
+        if (charterParams.value.startDate) p.set('start_date', charterParams.value.startDate)
+        if (charterParams.value.endDate)   p.set('end_date',   charterParams.value.endDate)
+        return ['/api/reports/legacy-ops', p]
+      },
+      'driver-performance': () => {
+        const p = new URLSearchParams({ limit: 500 })
+        if (driverParams.value.period === 'monthly') {
+          const start = new Date(today); start.setDate(1)
+          p.set('start_date', toISO(start))
+          p.set('end_date', toISO(today))
+        }
+        return ['/api/reports/driver-pay', p]
+      },
+      'fleet-utilization':  () => ['/api/reports/fleet',              new URLSearchParams({ limit: 500 })],
+      'booking-trends':     () => {
+        const end = today
+        const start = new Date(end); start.setMonth(start.getMonth() - 12)
+        return ['/api/reports/legacy-ops', new URLSearchParams({ report_family: 'sales_summary', start_date: toISO(start), end_date: toISO(end), limit: 500 })]
+      },
+      // Compliance
+      'wcb-compliance':     () => ['/api/reports/driver-pay',         new URLSearchParams({ limit: 200 })],
+      'vehicle-inspections':() => ['/api/reports/fleet',              new URLSearchParams({ limit: 200 })],
+      'license-tracking':   () => ['/api/reports/fleet',              new URLSearchParams({ limit: 200 })],
+      'insurance-coverage': () => ['/api/reports/vehicle-insurance-yearly', new URLSearchParams()],
+      // Accounting / crystal
+      'aged-receivables':   () => ['/api/reports/aged-receivables',   new URLSearchParams({ limit: 500 })],
+      'income-summary':     () => ['/api/reports/income-summary',     new URLSearchParams({ limit: 500 })],
+      'long-trip':          () => ['/api/reports/long-trip',          new URLSearchParams({ limit: 500 })],
+      'short-trip':         () => ['/api/reports/short-trip',         new URLSearchParams({ limit: 500 })],
+      'driver-pay':         () => ['/api/reports/driver-pay',         new URLSearchParams({ limit: 500 })],
+      'invoiced-charges':   () => ['/api/reports/invoiced-charges',   new URLSearchParams({ limit: 500 })],
+      'client-activity':    () => ['/api/reports/client-activity',    new URLSearchParams({ limit: 500 })],
+      'pl-summary':         () => ['/api/reports/pl-summary',         new URLSearchParams()],
+      'trial-balance':      () => ['/api/reports/trial-balance',      new URLSearchParams()],
+      'bank-reconciliation':() => ['/api/reports/bank-reconciliation',new URLSearchParams({ limit: 500 })],
     }
-    toast.success(`${reportType} report generated successfully!`)
+
+    const builder = ENDPOINT_MAP[reportType]
+    if (!builder) {
+      toast.info(`"${reportType}" report coming soon`)
+      return
+    }
+
+    const [url, params] = builder()
+    const qs = params.toString() ? `?${params.toString()}` : ''
+    const resp = await fetch(`${url}${qs}`)
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => resp.statusText)
+      throw new Error(`Server error ${resp.status}: ${detail}`)
+    }
+    const json = await resp.json()
+
+    // Normalise response into { columns, data }
+    let rows = []
+    if (Array.isArray(json)) {
+      rows = json
+    } else if (Array.isArray(json.items)) {
+      rows = json.items
+    } else if (Array.isArray(json.data)) {
+      rows = json.data
+    } else if (Array.isArray(json.rows)) {
+      rows = json.rows
+    } else if (Array.isArray(json.results)) {
+      rows = json.results
+    }
+
+    const columns = rows.length > 0 ? Object.keys(rows[0]) : []
+    const title = reportType.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+
+    reportOutput.value = {
+      title: `${title} (${rows.length} rows)`,
+      type: 'table',
+      columns,
+      data: rows,
+      meta: json.totals || json.summary || null,
+    }
+    toast.success(`${title}: ${rows.length} rows loaded`)
   } catch (error) {
     console.error('Error generating report:', error)
     toast.error('Error generating report: ' + (error?.message || error))
@@ -1026,6 +1117,10 @@ async function exportReport(reportType) {
   } finally {
     isExporting.value = { ...isExporting.value, [reportType]: false }
   }
+}
+
+function printPreTripBlank() {
+  window.open('/api/inspection-forms/pre-trip-blank', '_blank')
 }
 
 // CRA Audit Export functions

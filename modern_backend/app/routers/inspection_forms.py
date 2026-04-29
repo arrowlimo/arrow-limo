@@ -11,10 +11,11 @@ from pathlib import Path
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response as FastAPIResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from ..db import get_connection
+from ..services.inspection_pdf import generate_pre_trip_pdf
 
 router = APIRouter(prefix="/api/inspection-forms", tags=["inspection-forms"])
 security = HTTPBearer()
@@ -139,6 +140,22 @@ def audit_log_access(
     except Exception as e:
         # Non-critical: log but don't fail
         print(f"Audit log error: {e}")
+
+
+@router.get("/pre-trip-blank")
+async def download_pre_trip_blank() -> FastAPIResponse:
+    """
+    Return a blank, printable Vehicle Pre-Trip Inspection PDF.
+    No authentication required — intended for printing and manual completion.
+    """
+    pdf_bytes = generate_pre_trip_pdf()
+    return FastAPIResponse(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": 'inline; filename="pre_trip_inspection.pdf"',
+        },
+    )
 
 
 @router.post("/signed-url/{reserve_number}")
@@ -327,8 +344,8 @@ async def download_inspection_form(
 
         # Determine media type
         media_type = (
-            "application/pd"
-            if form_path.suffix.lower() == ".pd"
+            "application/pdf"
+            if form_path.suffix.lower() == ".pdf"
             else "image/jpeg"
         )
 
@@ -338,11 +355,10 @@ async def download_inspection_form(
             media_type=media_type,
             filename=form_path.name,
             headers={
-                "X-Content-Type-Options": "nosniff",  # Prevent MIME sniffing
+                "X-Content-Type-Options": "nosniff",
                 "Cache-Control": (
-                    "no-store, no-cache, must-revalidate, "
-                    "max-age=0"
-                ),  # Prevent caching
+                    "no-store, no-cache, must-revalidate, max-age=0"
+                ),
                 "Content-Disposition": (
                     f"attachment; filename={form_path.name}"
                 ),
