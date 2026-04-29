@@ -3,11 +3,12 @@ PDF Generation Endpoints
 """
 
 import json
+from pathlib import Path as FilePath
 from typing import Any
 from typing import Annotated
 
 from fastapi import APIRouter, Body, HTTPException, Path
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 from ..db import cursor
 from ..services.pdf_layout_settings import (
@@ -726,6 +727,40 @@ def preview_charter_invoice_pdf(charter_id: int = Path(...)):
         pdf_bytes,
         f"Charter_{charter_data.get('reserve_number', 'Invoice')}.pdf",
         inline=True,
+    )
+
+
+@router.get("/charters/{charter_id}/confirmation-letter-pdf")
+def get_confirmation_letter_pdf(charter_id: int = Path(...)):
+    """
+    Serve the existing confirmation letter PDF made in the desktop flow.
+    Source file: L:/Confirmation/quote.pdf
+    """
+    confirmation_path = FilePath("L:/Confirmation/quote.pdf")
+    if not confirmation_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Confirmation PDF not found at L:/Confirmation/quote.pdf",
+        )
+
+    reserve_number = "quote"
+    try:
+        charter_data = _load_charter_pdf_data(charter_id)
+        reserve_number = str(
+            charter_data.get("reserve_number") or reserve_number
+        )
+    except Exception:
+        # Fall back to generic filename if charter lookup fails.
+        pass
+
+    filename = f"Confirmation_{reserve_number}.pdf"
+    return FileResponse(
+        path=str(confirmation_path),
+        media_type="application/pdf",
+        filename=filename,
+        headers={
+            "Content-Disposition": f"inline; filename={filename}",
+        },
     )
 
 

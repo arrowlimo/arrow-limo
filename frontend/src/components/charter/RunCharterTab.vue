@@ -200,6 +200,7 @@
         <button @click="saveAndInvoice" class="btn-invoice">📄 Save & Generate Invoice</button>
         <button @click="saveAndPrint" class="btn-print">🖨️ Save & Print</button>
         <button @click="printConfirmation" class="btn-print">📋 Print Confirmation</button>
+        <button @click="emailConfirmation" class="btn-print">📧 Email Confirmation</button>
         <button v-if="currentCharter" @click="deleteCharter" class="btn-delete">🗑️ Delete Charter</button>
       </div>
     </div>
@@ -829,8 +830,44 @@ function printConfirmation() {
     return
   }
 
-  const url = `/charter/confirmation/print?charter_id=${currentCharterId}`
+  const url = `/api/charters/${currentCharterId}/confirmation-letter-pdf`
   window.open(url, '_blank', 'noopener')
+}
+
+async function emailConfirmation() {
+  const currentCharterId = getCurrentCharterId()
+  if (!currentCharterId) {
+    alert('Load or save a charter first to email confirmation.')
+    return
+  }
+
+  let recipient = currentCharter.value?.email || currentCharter.value?.client_email || ''
+  let reserveNumber = currentCharter.value?.reserve_number || ''
+  try {
+    const resp = await fetch(`/api/bookings/${currentCharterId}`)
+    if (resp.ok) {
+      const booking = await resp.json()
+      recipient = recipient || booking?.email || booking?.client_email || ''
+      reserveNumber = reserveNumber || booking?.reserve_number || ''
+    }
+  } catch (_) {
+    // Non-fatal; we'll continue with what we already have.
+  }
+
+  const confirmationUrl = `${window.location.origin}/api/charters/${currentCharterId}/confirmation-letter-pdf`
+  const subject = `Charter Confirmation ${reserveNumber ? `- ${reserveNumber}` : ''}`
+  const body = [
+    'Hi,',
+    '',
+    'Please find your charter confirmation letter at the link below:',
+    confirmationUrl,
+    '',
+    'Thank you,',
+    'Arrow Limousine'
+  ].join('\n')
+
+  const mailto = `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  window.location.href = mailto
 }
 
 async function deleteCharter() {
