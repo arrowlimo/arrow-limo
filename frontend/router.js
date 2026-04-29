@@ -16,6 +16,7 @@ const Documents = () => import(/* webpackChunkName: "documents" */ './src/views/
 const Drivers = () => import(/* webpackChunkName: "drivers" */ './src/views/Drivers.vue')
 const DriverHOSLog = () => import(/* webpackChunkName: "driver-hos" */ './src/views/DriverHOSLog.vue')
 const BeverageOrderPrint = () => import(/* webpackChunkName: "bev-print" */ './src/views/BeverageOrderPrint.vue')
+const CharterConfirmationPrint = () => import(/* webpackChunkName: "charter-confirmation-print" */ './src/views/CharterConfirmationPrint.vue')
 const Login = () => import(/* webpackChunkName: "login" */ './src/views/Login.vue')
 const Main = () => import(/* webpackChunkName: "main" */ './src/views/Main.vue')
 const ReceiptsView = () => import(/* webpackChunkName: "receipts" */ './src/views/ReceiptsView.vue')
@@ -58,6 +59,7 @@ const routes = [
   { path: '/driver-hos', component: DriverHOSLog, meta: { requiresAuth: true } },
   { path: '/booking', component: BookingPage, meta: { requiresAuth: true } },
   { path: '/beverage-order/print', component: BeverageOrderPrint, meta: { requiresAuth: true } },
+  { path: '/charter/confirmation/print', component: CharterConfirmationPrint, meta: { requiresAuth: true } },
   { path: '/documents', component: Documents, meta: { requiresAuth: true } }
 ]
 
