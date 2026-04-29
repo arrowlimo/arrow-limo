@@ -10,7 +10,7 @@ load_dotenv()
 # Force rebuild: 2026-01-30 14:35:00 UTC - Login endpoint deployment
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .api import receipt_verification as receipt_verification_router
@@ -282,6 +282,38 @@ from .routes import received_payments as received_payments_router
 app.include_router(
     received_payments_router.router, dependencies=[finance_roles]
 )  # Record received payments
+
+
+@app.get("/beverage-order/print")
+async def spa_beverage_order_print():
+    """Serve SPA index for beverage print deep links opened in a new tab."""
+    dist_dir = str(
+        os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__), "..", "..", "frontend", "dist"
+            )
+        )
+    )
+    index_path = os.path.join(dist_dir, "index.html")
+    if os.path.isfile(index_path):
+        return FileResponse(index_path)
+    return JSONResponse(status_code=404, content={"detail": "Not Found"})
+
+
+@app.get("/charter/confirmation/print")
+async def spa_charter_confirmation_print():
+    """Serve SPA index for charter confirmation print deep links."""
+    dist_dir = str(
+        os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__), "..", "..", "frontend", "dist"
+            )
+        )
+    )
+    index_path = os.path.join(dist_dir, "index.html")
+    if os.path.isfile(index_path):
+        return FileResponse(index_path)
+    return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
 # Mount Vue frontend at root LAST (after all API routes are registered)
 DIST_DIR = str(
