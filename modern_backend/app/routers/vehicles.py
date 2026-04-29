@@ -1,4 +1,5 @@
 """Vehicles API Router: minimal listing for selection in receipts UI"""
+
 import os
 import shutil
 from pathlib import Path
@@ -14,7 +15,9 @@ FILE_STORAGE_ROOT = Path(os.environ.get("FILE_STORAGE_ROOT", "Z:/limo_files"))
 
 
 def create_vehicle_folder(vehicle_number: str) -> Path:
-    """Create vehicle folder structure from template when new vehicle is added."""
+    """Create vehicle folder structure from template when new vehicle is"
+    "added."""
+
     vehicle_folder = FILE_STORAGE_ROOT / "vehicles" / vehicle_number
     if vehicle_folder.exists():
         return vehicle_folder
@@ -35,7 +38,8 @@ def create_vehicle_folder(vehicle_number: str) -> Path:
 
 @router.get("/")
 def list_vehicles():
-    """Return active vehicles with all display fields for Vehicle Management view.
+    """Return active vehicles with all display fields for Vehicle Management
+    view.
 
     Fields returned:
     - vehicle_id, vehicle_number, license_plate, make, model, year, type
@@ -46,8 +50,7 @@ def list_vehicles():
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.execute(
-            """
+        cur.execute("""
             SELECT 
                 vehicle_id, 
                 vehicle_number, 
@@ -63,8 +66,7 @@ def list_vehicles():
             FROM vehicles
             WHERE is_active = true
             ORDER BY vehicle_number
-            """
-        )
+            """)
         vehicles = []
         for row in cur.fetchall():
             vehicles.append(
@@ -80,14 +82,18 @@ def list_vehicles():
                     "next_service_due": str(row[8]) if row[8] else None,
                     "passenger_capacity": row[9],
                     "is_active": row[10],
-                    "display": f"{row[1]} ({row[2]})"
-                    if row[1] and row[2]
-                    else (row[1] or row[2] or "Unknown"),
+                    "display": (
+                        f"{row[1]} ({row[2]})"
+                        if row[1] and row[2]
+                        else (row[1] or row[2] or "Unknown")
+                    ),
                 }
             )
         return vehicles
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list vehicles: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list vehicles: {e}"
+        )
     finally:
         cur.close()
         conn.close()
@@ -101,7 +107,8 @@ def create_vehicle(vehicle_data: dict):
     try:
         cur.execute(
             """
-            INSERT INTO vehicles (vehicle_number, license_plate, vehicle_type, is_active)
+            INSERT INTO vehicles (vehicle_number, license_plate, vehicle_type,
+            is_active)
             VALUES (%s, %s, %s, %s)
             RETURNING vehicle_id
             """,
@@ -119,15 +126,19 @@ def create_vehicle(vehicle_data: dict):
         vehicle_number = vehicle_data.get("vehicle_number")
         if vehicle_number:
             try:
-                folder = create_vehicle_folder(vehicle_number)
+                create_vehicle_folder(vehicle_number)
             except Exception as folder_err:
                 # Log error but don't fail the vehicle creation
-                print(f"Warning: Failed to create vehicle folder: {folder_err}")
+                print(
+                    f"Warning: Failed to create vehicle folder: {folder_err}"
+                )
 
         return {"vehicle_id": vehicle_id, "status": "created"}
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to create vehicle: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create vehicle: {e}"
+        )
     finally:
         cur.close()
         conn.close()

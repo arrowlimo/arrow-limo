@@ -1,6 +1,7 @@
 import csv
 import io
 import tempfile
+from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -15,7 +16,9 @@ router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 @router.get("/export")
 def export(
-    type: str = Query(..., regex="^(booking-trends|revenue-summary|driver-hours)$"),
+    type: str = Query(
+        ..., regex="^(booking-trends|revenue-summary|driver-hours)$"
+    ),
     format: str = "csv",
     start_date: str | None = None,
     end_date: str | None = None,
@@ -39,7 +42,8 @@ def export(
         if type == "booking-trends":
             cur.execute(
                 """
-                SELECT DATE_TRUNC('month', charter_date) AS period, COUNT(*) AS bookings
+                SELECT DATE_TRUNC('month', charter_date) AS period,
+                       COUNT(*) AS bookings
                 FROM charters
                 WHERE charter_date BETWEEN %s AND %s
                 GROUP BY 1
@@ -56,14 +60,19 @@ def export(
     w = csv.writer(buf)
     w.writerow(headers)
     for r in rows:
-        w.writerow([c.isoformat() if hasattr(c, "isoformat") else c for c in r])
+        w.writerow(
+            [c.isoformat() if hasattr(c, "isoformat") else c for c in r]
+        )
     data = buf.getvalue()
     buf.close()
     return Response(
         content=data,
         media_type="text/csv",
         headers={
-            "Content-Disposition": f'attachment; filename="{type}_{int(datetime.now().timestamp())}.csv"'
+            "Content-Disposition": (
+                f"attachment; filename="
+                f'"{type}_{int(datetime.now().timestamp())}.csv"'
+            )
         },
     )
 
@@ -94,6 +103,1312 @@ def _has_column(conn, table: str, column: str) -> bool:
             (table, column),
         )
         return cur.fetchone() is not None
+
+
+def _first_existing_column(
+    conn, table: str, candidates: list[str]
+) -> str | None:
+    """Return first existing column name from candidates, else None."""
+    for col in candidates:
+        if _has_column(conn, table, col):
+            return col
+    return None
+
+
+def _charter_text_expr(col_name: str | None, fallback: str = "") -> str:
+    if col_name:
+        return f"COALESCE(c.{col_name}::text, '')"
+    return f"'{fallback}'"
+
+
+def _charter_numeric_expr(col_name: str | None, fallback: str = "0") -> str:
+    if col_name:
+        return f"COALESCE(c.{col_name}::numeric, {fallback})"
+    return fallback
+
+
+def _build_legacy_ops_select(conn) -> tuple[str, str | None]:
+    """Build a schema-tolerant SELECT for legacy ops style report rows."""
+    reserve_col = _first_existing_column(
+        conn, "charters", ["reserve_number", "reserve_no", "order_number"]
+    )
+    date_col = _first_existing_column(
+        conn,
+        "charters",
+        ["pickup_date", "charter_date", "order_date", "created_at"],
+    )
+    amount_col = _first_existing_column(
+        conn,
+        "charters",
+        ["total_amount_due", "amount", "total", "quoted_amount"],
+    )
+    paid_col = _first_existing_column(
+        conn, "charters", ["paid_amount", "total_paid"]
+    )
+
+    destination_col = _first_existing_column(
+        conn,
+        "charters",
+        ["dropoff_address", "destination"],
+    )
+    passenger_col = _first_existing_column(
+        conn,
+        "charters",
+        ["client_display_name", "passenger_name", "client_name"],
+    )
+    bill_to_col = _first_existing_column(
+        conn,
+        "charters",
+        ["bill_to", "client_display_name", "client_name"],
+    )
+    account_number_col = _first_existing_column(
+        conn, "charters", ["account_number"]
+    )
+    account_type_col = _first_existing_column(
+        conn, "charters", ["account_type"]
+    )
+    agency_number_col = _first_existing_column(
+        conn, "charters", ["agency_number"]
+    )
+    payment_type_col = _first_existing_column(
+        conn, "charters", ["payment_type", "payment_method"]
+    )
+    profit_center_col = _first_existing_column(
+        conn, "charters", ["profit_center"]
+    )
+    driver_col = _first_existing_column(
+        conn, "charters", ["driver_name", "driver"]
+    )
+    vehicle_col = _first_existing_column(
+        conn, "charters", ["vehicle", "vehicle_number"]
+    )
+    vehicle_type_col = _first_existing_column(
+        conn,
+        "charters",
+        ["vehicle_type_requested", "vehicle_type", "vehicle_description"],
+    )
+    run_type_col = _first_existing_column(
+        conn, "charters", ["run_type", "charter_type"]
+    )
+    status_col = _first_existing_column(conn, "charters", ["status"])
+    sales_person_col = _first_existing_column(
+        conn,
+        "charters",
+        ["sales_person", "taken_by", "booked_by", "created_by"],
+    )
+    taken_by_col = _first_existing_column(
+        conn, "charters", ["taken_by", "booked_by", "created_by"]
+    )
+    group_number_col = _first_existing_column(
+        conn, "charters", ["group_number", "group_no"]
+    )
+    _date_expr = f"c.{date_col}::date" if date_col else "NULL::date"
+
+    select_sql = f"""
+        SELECT
+            {_charter_text_expr(reserve_col)} AS order_number,
+            {_date_expr} AS order_date,
+            {_charter_text_expr(destination_col)} AS destination,
+            {_charter_text_expr(passenger_col)} AS passenger_name,
+            {_charter_text_expr(bill_to_col)} AS bill_to,
+            {_charter_text_expr(account_number_col)} AS account_number,
+            {_charter_text_expr(account_type_col)} AS account_type,
+            {_charter_text_expr(agency_number_col)} AS agency_number,
+            {_charter_text_expr(payment_type_col)} AS payment_type,
+            {_charter_text_expr(profit_center_col)} AS profit_center,
+            {_charter_text_expr(driver_col)} AS driver,
+            {_charter_text_expr(vehicle_col)} AS vehicle,
+            {_charter_text_expr(vehicle_type_col)} AS vehicle_type,
+            {_charter_text_expr(run_type_col)} AS run_type,
+            {_charter_text_expr(status_col)} AS status,
+            {_charter_text_expr(sales_person_col)} AS sales_person,
+            {_charter_text_expr(taken_by_col)} AS taken_by,
+            {_charter_text_expr(group_number_col)} AS group_number,
+            {_charter_numeric_expr(amount_col)} AS amount,
+            {_charter_numeric_expr(paid_col)} AS paid_amount,
+            ({_charter_numeric_expr(amount_col)}
+             - {_charter_numeric_expr(paid_col)}) AS balance
+        FROM charters c
+    """
+
+    return select_sql, date_col
+
+
+def _to_csv_response(rows: list[dict[str, Any]], filename: str) -> Response:
+    if not rows:
+        headers = []
+    else:
+        headers = list(rows[0].keys())
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    if headers:
+        writer.writerow(headers)
+        for row in rows:
+            writer.writerow([row.get(h, "") for h in headers])
+    data = buffer.getvalue()
+    buffer.close()
+    return Response(
+        content=data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/legacy-ops")
+def legacy_ops_report(
+    report_family: str = Query(
+        "manifest", regex="^(manifest|reserve_list|sales_summary)$"
+    ),
+    group_by: str = Query(
+        "none",
+        regex=(
+            "^(none|account_number|account_type|agency_number"
+            "|bill_to|destination|driver|group_number"
+            "|order_date|order_number|passenger_name"
+            "|payment_type|pickup_date|profit_center"
+            "|run_type|sales_person|status|taken_by"
+            "|vehicle|vehicle_type)$"
+        ),
+    ),
+    start_date: str | None = None,
+    end_date: str | None = None,
+    include_cancelled: bool = True,
+    limit: int = Query(2000, ge=1, le=50000),
+    offset: int = Query(0, ge=0),
+    format: str = Query("json", regex="^(json|csv)$"),
+):
+    """Schema-tolerant dataset endpoint for legacy Crystal ops reports.
+
+    This endpoint is intentionally generic so many Crystal variants can be
+    reproduced by changing report_family + group_by without duplicating code.
+    """
+    end_dt = _parse_iso_date(end_date, datetime.now())
+    start_dt = (
+        _parse_iso_date(start_date, end_dt - timedelta(days=365))
+        if start_date or end_date
+        else datetime.now() - timedelta(days=365)
+    )
+
+    conn = get_connection()
+    try:
+        select_sql, date_col = _build_legacy_ops_select(conn)
+
+        conditions = []
+        params: list[Any] = []
+        if date_col:
+            conditions.append(f"c.{date_col}::date BETWEEN %s AND %s")
+            params.extend([start_dt.date(), end_dt.date()])
+
+        cancelled_col = _first_existing_column(conn, "charters", ["cancelled"])
+        if not include_cancelled and cancelled_col:
+            conditions.append(f"COALESCE(c.{cancelled_col}, false) = false")
+
+        where_sql = ""
+        if conditions:
+            where_sql = " WHERE " + " AND ".join(conditions)
+
+        sql = (
+            select_sql
+            + where_sql
+            + " ORDER BY order_date NULLS LAST, order_number"
+            + " LIMIT %s OFFSET %s"
+        )
+        params.extend([limit, offset])
+
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+            col_names = [d[0] for d in cur.description]
+
+        items: list[dict[str, Any]] = []
+        for row in rows:
+            record = dict(zip(col_names, row))
+            if hasattr(record.get("order_date"), "isoformat"):
+                record["order_date"] = record["order_date"].isoformat()
+            record["amount"] = float(record.get("amount") or 0)
+            record["paid_amount"] = float(record.get("paid_amount") or 0)
+            record["balance"] = float(record.get("balance") or 0)
+            items.append(record)
+
+        # Map Crystal naming to canonical item keys.
+        group_key_map = {
+            "pickup_date": "order_date",
+            "order_number": "order_number",
+            "order_date": "order_date",
+            "group_number": "group_number",
+            "account_number": "account_number",
+            "account_type": "account_type",
+            "agency_number": "agency_number",
+            "bill_to": "bill_to",
+            "destination": "destination",
+            "driver": "driver",
+            "passenger_name": "passenger_name",
+            "payment_type": "payment_type",
+            "profit_center": "profit_center",
+            "run_type": "run_type",
+            "sales_person": "sales_person",
+            "status": "status",
+            "taken_by": "taken_by",
+            "vehicle": "vehicle",
+            "vehicle_type": "vehicle_type",
+            "none": "",
+        }
+
+        grouped_rows: list[dict[str, Any]] = []
+        if group_by != "none":
+            key = group_key_map[group_by]
+            agg: dict[str, dict[str, Any]] = defaultdict(
+                lambda: {
+                    "group_value": "",
+                    "runs": 0,
+                    "total_amount": 0.0,
+                    "total_paid": 0.0,
+                    "total_balance": 0.0,
+                }
+            )
+            for item in items:
+                group_value = str(item.get(key) or "")
+                row = agg[group_value]
+                row["group_value"] = group_value
+                row["runs"] += 1
+                row["total_amount"] += float(item.get("amount") or 0)
+                row["total_paid"] += float(item.get("paid_amount") or 0)
+                row["total_balance"] += float(item.get("balance") or 0)
+            grouped_rows = list(agg.values())
+            grouped_rows.sort(key=lambda r: (r["group_value"] or "").lower())
+
+        totals = {
+            "runs": len(items),
+            "total_amount": round(sum(i["amount"] for i in items), 2),
+            "total_paid": round(sum(i["paid_amount"] for i in items), 2),
+            "total_balance": round(sum(i["balance"] for i in items), 2),
+        }
+
+        if format == "csv":
+            csv_rows = grouped_rows if group_by != "none" else items
+            filename = (
+                f"{report_family}_{group_by}_"
+                f"{start_dt.date()}_{end_dt.date()}.csv"
+            )
+            return _to_csv_response(csv_rows, filename)
+
+        return {
+            "report_family": report_family,
+            "group_by": group_by,
+            "start_date": str(start_dt.date()),
+            "end_date": str(end_dt.date()),
+            "count": len(items),
+            "group_count": len(grouped_rows),
+            "totals": totals,
+            "items": items,
+            "groups": grouped_rows,
+            "notes": {
+                "schema_tolerant": True,
+                "date_column_used": date_col,
+                "csv_available": True,
+            },
+        }
+    finally:
+        conn.close()
+
+
+# ── Phase 2 endpoints ────────────────────────────────────────────────────────
+
+@router.get("/long-trip")
+def long_trip_report(
+    start_date: str | None = None,
+    end_date: str | None = None,
+    group_by: str = Query(
+        "none", regex="^(none|driver|vehicle|order_date|destination)$"
+    ),
+    include_cancelled: bool = True,
+    limit: int = Query(2000, ge=1, le=50000),
+    format: str = Query("json", regex="^(json|csv)$"),
+):
+    """Long-trip report -- charters with is_out_of_town or total_kms > 0."""
+    end_dt = _parse_iso_date(end_date, datetime.now())
+    start_dt = _parse_iso_date(start_date, end_dt - timedelta(days=365))
+
+    conn = get_connection()
+    try:
+        def fc(candidates):
+            return _first_existing_column(conn, "charters", candidates)
+
+        date_col = fc(["charter_date", "pickup_date", "created_at"])
+        reserve_col = fc(["reserve_number", "reserve_no", "order_number"])
+        amount_col = fc(["total_amount_due", "amount", "total"])
+        paid_col = fc(["paid_amount", "total_paid"])
+        cancel_col = fc(["cancelled"])
+        oot_col = fc(["is_out_of_town"])
+        kms_col = fc(["total_kms"])
+        _pass_col = fc(["client_display_name", "client_name"])
+        _pick_col = fc(["pickup_address"])
+        _drop_col = fc(["dropoff_address", "destination"])
+        _drv_col = fc(["driver", "driver_name"])
+        _veh_col = fc(["vehicle"])
+        _odo_s_col = fc(["odometer_start"])
+        _odo_e_col = fc(["odometer_end"])
+        _stat_col = fc(["status"])
+        _date_expr = f"c.{date_col}::date" if date_col else "NULL::date"
+
+        def t(col):
+            return f"COALESCE(c.{col}::text,'')" if col else "''"
+
+        def n(col):
+            return f"COALESCE(c.{col}::numeric,0)" if col else "0"
+
+        sel = f"""
+            SELECT
+                {t(reserve_col)} AS order_number,
+                {_date_expr} AS order_date,
+                {t(_pass_col)} AS passenger_name,
+                {t(_pick_col)} AS pickup_address,
+                {t(_drop_col)} AS destination,
+                {t(_drv_col)} AS driver,
+                {t(_veh_col)} AS vehicle,
+                {n(kms_col)} AS total_kms,
+                {n(_odo_s_col)} AS odometer_start,
+                {n(_odo_e_col)} AS odometer_end,
+                {n(amount_col)} AS amount,
+                {n(paid_col)} AS paid_amount,
+                ({n(amount_col)}-{n(paid_col)}) AS balance,
+                {t(_stat_col)} AS status
+            FROM charters c
+        """
+        conds: list[str] = []
+        params: list[Any] = []
+        if date_col:
+            conds.append(f"c.{date_col}::date BETWEEN %s AND %s")
+            params.extend([start_dt.date(), end_dt.date()])
+        trip_conds: list[str] = []
+        if oot_col:
+            trip_conds.append(f"COALESCE(c.{oot_col},false)=true")
+        if kms_col:
+            trip_conds.append(f"COALESCE(c.{kms_col},0)>0")
+        if trip_conds:
+            conds.append("(" + " OR ".join(trip_conds) + ")")
+        if not include_cancelled and cancel_col:
+            conds.append(f"COALESCE(c.{cancel_col},false)=false")
+        where = (" WHERE " + " AND ".join(conds)) if conds else ""
+        sql = (
+            sel
+            + where
+            + " ORDER BY order_date NULLS LAST,order_number LIMIT %s"
+        )
+        params.append(limit)
+
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+            col_names = [d[0] for d in cur.description]
+
+        items: list[dict[str, Any]] = []
+        for row in rows:
+            rec = dict(zip(col_names, row))
+            if hasattr(rec.get("order_date"), "isoformat"):
+                rec["order_date"] = rec["order_date"].isoformat()
+            for f in (
+                "amount",
+                "paid_amount",
+                "balance",
+                "total_kms",
+                "odometer_start",
+                "odometer_end",
+            ):
+                rec[f] = float(rec.get(f) or 0)
+            items.append(rec)
+
+        totals = {
+            "runs": len(items),
+            "total_amount": round(sum(i["amount"] for i in items), 2),
+            "total_paid": round(sum(i["paid_amount"] for i in items), 2),
+            "total_balance": round(sum(i["balance"] for i in items), 2),
+            "total_kms": round(sum(i["total_kms"] for i in items), 1),
+        }
+
+        grouped: list[dict[str, Any]] = []
+        if group_by != "none":
+            agg: dict[str, Any] = defaultdict(
+                lambda: {
+                    "group_value": "",
+                    "runs": 0,
+                    "total_amount": 0.0,
+                    "total_paid": 0.0,
+                    "total_balance": 0.0,
+                    "total_kms": 0.0,
+                }
+            )
+            for item in items:
+                gv = str(item.get(group_by) or "")
+                r = agg[gv]
+                r["group_value"] = gv
+                r["runs"] += 1
+                r["total_amount"] += item["amount"]
+                r["total_paid"] += item["paid_amount"]
+                r["total_balance"] += item["balance"]
+                r["total_kms"] += item["total_kms"]
+            grouped = sorted(
+                agg.values(), key=lambda x: (x["group_value"] or "").lower()
+            )
+
+        if format == "csv":
+            return _to_csv_response(
+                grouped if group_by != "none" else items,
+                f"long_trip_{start_dt.date()}_{end_dt.date()}.csv",
+            )
+        return {
+            "count": len(items),
+            "totals": totals,
+            "groups": grouped,
+            "items": items,
+        }
+    finally:
+        conn.close()
+
+
+@router.get("/invoiced-charges")
+def invoiced_charges_report(
+    start_date: str | None = None,
+    end_date: str | None = None,
+    group_by: str = Query(
+        "none",
+        regex="^(none|charge_type|category|account_number|reserve_number)$",
+    ),
+    limit: int = Query(5000, ge=1, le=100000),
+    format: str = Query("json", regex="^(json|csv)$"),
+):
+    """Charter charges detail report (charter_charges JOIN charters)."""
+    end_dt = _parse_iso_date(end_date, datetime.now())
+    start_dt = _parse_iso_date(start_date, end_dt - timedelta(days=365))
+
+    conn = get_connection()
+    try:
+        def fc(candidates):
+            return _first_existing_column(conn, "charters", candidates)
+
+        date_col = fc(["charter_date", "pickup_date", "created_at"])
+        client_col = fc(["client_display_name", "client_name"])
+        date_expr = f"c.{date_col}::date" if date_col else "NULL::date"
+        client_expr = (
+            f"COALESCE(c.{client_col}::text,'')" if client_col else "''"
+        )
+
+        sql = f"""
+            SELECT cc.reserve_number,
+                   {date_expr} AS charter_date,
+                   {client_expr} AS client_name,
+                   COALESCE(cc.description,'') AS description,
+                   COALESCE(cc.charge_type,'') AS charge_type,
+                   COALESCE(cc.category,'') AS category,
+                   COALESCE(cc.rate,0) AS rate,
+                   COALESCE(cc.amount,0) AS amount,
+                   COALESCE(cc.gst_amount,0) AS gst_amount,
+                   COALESCE(cc.account_number,'') AS account_number
+            FROM charter_charges cc
+            LEFT JOIN charters c ON c.charter_id=cc.charter_id
+            WHERE {date_expr} BETWEEN %s AND %s
+            ORDER BY charter_date NULLS LAST,cc.reserve_number
+            LIMIT %s
+        """
+        with conn.cursor() as cur:
+            cur.execute(sql, [start_dt.date(), end_dt.date(), limit])
+            rows = cur.fetchall()
+            col_names = [d[0] for d in cur.description]
+
+        items: list[dict[str, Any]] = []
+        for row in rows:
+            rec = dict(zip(col_names, row))
+            if hasattr(rec.get("charter_date"), "isoformat"):
+                rec["charter_date"] = rec["charter_date"].isoformat()
+            for f in ("rate", "amount", "gst_amount"):
+                rec[f] = float(rec.get(f) or 0)
+            items.append(rec)
+
+        totals = {
+            "lines": len(items),
+            "total_amount": round(sum(i["amount"] for i in items), 2),
+            "total_gst": round(sum(i["gst_amount"] for i in items), 2),
+        }
+
+        grouped: list[dict[str, Any]] = []
+        if group_by != "none":
+            agg: dict[str, Any] = defaultdict(
+                lambda: {
+                    "group_value": "",
+                    "runs": 0,
+                    "total_amount": 0.0,
+                    "total_gst": 0.0,
+                }
+            )
+            for item in items:
+                gv = str(item.get(group_by) or "")
+                r = agg[gv]
+                r["group_value"] = gv
+                r["runs"] += 1
+                r["total_amount"] += item["amount"]
+                r["total_gst"] += item["gst_amount"]
+            grouped = sorted(
+                agg.values(), key=lambda x: (x["group_value"] or "").lower()
+            )
+
+        if format == "csv":
+            return _to_csv_response(
+                grouped if group_by != "none" else items,
+                f"invoiced_charges_{start_dt.date()}_{end_dt.date()}.csv",
+            )
+        return {
+            "count": len(items),
+            "totals": totals,
+            "groups": grouped,
+            "items": items,
+        }
+    finally:
+        conn.close()
+
+
+@router.get("/driver-pay")
+def driver_pay_report(
+    start_date: str | None = None,
+    end_date: str | None = None,
+    group_by: str = Query(
+        "none",
+        regex="^(none|driver|order_date|driver_paid|run_type|vehicle)$",
+    ),
+    limit: int = Query(2000, ge=1, le=50000),
+    format: str = Query("json", regex="^(json|csv)$"),
+):
+    """Driver pay report from charter pay columns."""
+    end_dt = _parse_iso_date(end_date, datetime.now())
+    start_dt = _parse_iso_date(start_date, end_dt - timedelta(days=365))
+
+    conn = get_connection()
+    try:
+        def fc(candidates):
+            return _first_existing_column(conn, "charters", candidates)
+
+        date_col = fc(["charter_date", "pickup_date", "created_at"])
+        reserve_col = fc(["reserve_number", "reserve_no", "order_number"])
+        base_col = fc(["driver_base_pay"])
+        grat_col = fc(["driver_gratuity"])
+        total_col = fc(["driver_total_expense"])
+        hours_col = fc(["driver_hours_worked"])
+        rate_col = fc(["driver_hourly_rate"])
+        paid_col = fc(["driver_paid"])
+        ctype_col = fc(["charter_type", "run_type"])
+
+        def t(col):
+            return f"COALESCE(c.{col}::text,'')" if col else "''"
+
+        def n(col):
+            return f"COALESCE(c.{col}::numeric,0)" if col else "0"
+
+        date_expr = f"c.{date_col}::date" if date_col else "NULL::date"
+        paid_expr = f"COALESCE(c.{paid_col}::text,'')" if paid_col else "''"
+
+        sql = f"""
+            SELECT
+                {t(reserve_col)} AS order_number,
+                {date_expr} AS order_date,
+                {t(fc(['driver', 'driver_name']))} AS driver,
+                {n(hours_col)} AS driver_hours_worked,
+                {n(rate_col)} AS driver_hourly_rate,
+                {n(base_col)} AS driver_base_pay,
+                {n(grat_col)} AS driver_gratuity,
+                {n(total_col)} AS driver_total_expense,
+                {paid_expr} AS driver_paid,
+                {t(fc(['vehicle']))} AS vehicle,
+                {t(ctype_col)} AS run_type
+            FROM charters c
+            WHERE {date_expr} BETWEEN %s AND %s
+              AND ({n(total_col)}>0 OR {n(base_col)}>0)
+            ORDER BY order_date NULLS LAST,driver
+            LIMIT %s
+        """
+        with conn.cursor() as cur:
+            cur.execute(sql, [start_dt.date(), end_dt.date(), limit])
+            rows = cur.fetchall()
+            col_names = [d[0] for d in cur.description]
+
+        items: list[dict[str, Any]] = []
+        for row in rows:
+            rec = dict(zip(col_names, row))
+            if hasattr(rec.get("order_date"), "isoformat"):
+                rec["order_date"] = rec["order_date"].isoformat()
+            for f in (
+                "driver_hours_worked",
+                "driver_hourly_rate",
+                "driver_base_pay",
+                "driver_gratuity",
+                "driver_total_expense",
+            ):
+                rec[f] = float(rec.get(f) or 0)
+            items.append(rec)
+
+        _tp_base = round(sum(i["driver_base_pay"] for i in items), 2)
+        _tp_grat = round(sum(i["driver_gratuity"] for i in items), 2)
+        _tp_pay = round(sum(i["driver_total_expense"] for i in items), 2)
+        _tp_hrs = round(sum(i["driver_hours_worked"] for i in items), 2)
+        totals = {
+            "runs": len(items),
+            "total_base_pay": _tp_base,
+            "total_gratuity": _tp_grat,
+            "total_pay": _tp_pay,
+            "total_hours": _tp_hrs,
+        }
+
+        grouped: list[dict[str, Any]] = []
+        if group_by != "none":
+            agg: dict[str, Any] = defaultdict(
+                lambda: {
+                    "group_value": "",
+                    "runs": 0,
+                    "total_base_pay": 0.0,
+                    "total_gratuity": 0.0,
+                    "total_pay": 0.0,
+                    "total_hours": 0.0,
+                }
+            )
+            for item in items:
+                gv = str(item.get(group_by) or "")
+                r = agg[gv]
+                r["group_value"] = gv
+                r["runs"] += 1
+                r["total_base_pay"] += item["driver_base_pay"]
+                r["total_gratuity"] += item["driver_gratuity"]
+                r["total_pay"] += item["driver_total_expense"]
+                r["total_hours"] += item["driver_hours_worked"]
+            grouped = sorted(
+                agg.values(), key=lambda x: (x["group_value"] or "").lower()
+            )
+
+        if format == "csv":
+            return _to_csv_response(
+                grouped if group_by != "none" else items,
+                f"driver_pay_{start_dt.date()}_{end_dt.date()}.csv",
+            )
+        return {
+            "count": len(items),
+            "totals": totals,
+            "groups": grouped,
+            "items": items,
+        }
+    finally:
+        conn.close()
+
+
+@router.get("/fleet")
+def fleet_report(
+    group_by: str = Query(
+        "none",
+        regex=(
+            "^(none|operational_status|vehicle_type|vehicle_category"
+            "|lifecycle_status|fuel_type)$"
+        ),
+    ),
+    format: str = Query("json", regex="^(json|csv)$"),
+):
+    """Fleet status report from the vehicles table."""
+    with cursor() as cur:
+        cur.execute("""
+            SELECT vehicle_number,
+                   COALESCE(make,'') AS make,
+                   COALESCE(model,'') AS model,
+                   COALESCE(year::text,'') AS year,
+                   COALESCE(license_plate,'') AS license_plate,
+                   COALESCE(vehicle_type,'') AS vehicle_type,
+                   COALESCE(vehicle_category,'') AS vehicle_category,
+                   COALESCE(passenger_capacity::text,'') AS passenger_capacity,
+                   COALESCE(operational_status,'') AS operational_status,
+                   COALESCE(lifecycle_status,'') AS lifecycle_status,
+                   COALESCE(cvip_expiry_date::text,'') AS cvip_expiry_date,
+                   COALESCE(next_service_due::text,'') AS next_service_due,
+                   COALESCE(odometer::text,'') AS odometer,
+                   COALESCE(fuel_type,'') AS fuel_type,
+                   COALESCE(status,'') AS status
+            FROM vehicles
+            ORDER BY vehicle_number
+        """)
+        rows = cur.fetchall()
+        col_names = [d[0] for d in cur.description]
+
+    items: list[dict[str, Any]] = [dict(zip(col_names, row)) for row in rows]
+    totals = {"count": len(items)}
+
+    grouped: list[dict[str, Any]] = []
+    if group_by != "none":
+        agg: dict[str, Any] = defaultdict(
+            lambda: {"group_value": "", "count": 0}
+        )
+        for item in items:
+            gv = str(item.get(group_by) or "")
+            agg[gv]["group_value"] = gv
+            agg[gv]["count"] += 1
+        grouped = sorted(
+            agg.values(), key=lambda x: (x["group_value"] or "").lower()
+        )
+
+    if format == "csv":
+        return _to_csv_response(
+            grouped if group_by != "none" else items, "fleet_status.csv"
+        )
+    return {
+        "count": len(items),
+        "totals": totals,
+        "groups": grouped,
+        "items": items,
+    }
+
+
+# ── Phase 3 endpoints ────────────────────────────────────────────────────────
+
+@router.get("/client-activity")
+def client_activity_report(
+    start_date: str | None = None,
+    end_date: str | None = None,
+    group_by: str = Query(
+        "none", regex="^(none|account_number|company_name|run_type)$"
+    ),
+    include_cancelled: bool = True,
+    limit: int = Query(5000, ge=1, le=50000),
+    format: str = Query("json", regex="^(json|csv)$"),
+):
+    """Charter activity per client/account (charters LEFT JOIN clients)."""
+    end_dt = _parse_iso_date(end_date, datetime.now())
+    start_dt = _parse_iso_date(start_date, end_dt - timedelta(days=365))
+
+    conn = get_connection()
+    try:
+        def fc(tbl, candidates):
+            return _first_existing_column(conn, tbl, candidates)
+
+        date_col = fc(
+            "charters", ["charter_date", "pickup_date", "created_at"]
+        )
+        reserve_col = fc(
+            "charters", ["reserve_number", "reserve_no", "order_number"]
+        )
+        amount_col = fc("charters", ["total_amount_due", "amount", "total"])
+        paid_col = fc("charters", ["paid_amount", "total_paid"])
+        cancel_col = fc("charters", ["cancelled"])
+        acct_col = fc("charters", ["account_number"])
+        client_col = fc("charters", ["client_display_name", "client_name"])
+        ctype_col = fc("charters", ["charter_type", "run_type"])
+        acct_cl = fc("clients",  ["account_number"])
+        company_col = fc("clients",  ["company_name", "client_name", "name"])
+
+        def t(tbl, col):
+            return f"COALESCE({tbl}.{col}::text,'')" if col else "''"
+
+        def n(col):
+            return f"COALESCE(c.{col}::numeric,0)" if col else "0"
+
+        date_expr = f"c.{date_col}::date" if date_col else "NULL::date"
+        company_expr = (
+            f"COALESCE(cl.{company_col}::text,'')" if company_col else "''"
+        )
+        acct_join = (
+            f"c.{acct_col}=cl.{acct_cl}" if acct_col and acct_cl else "false"
+        )
+
+        conds: list[str] = []
+        params: list[Any] = []
+        if date_col:
+            conds.append(f"c.{date_col}::date BETWEEN %s AND %s")
+            params.extend([start_dt.date(), end_dt.date()])
+        if not include_cancelled and cancel_col:
+            conds.append(f"COALESCE(c.{cancel_col},false)=false")
+        where = (" WHERE " + " AND ".join(conds)) if conds else ""
+
+        sql = f"""
+            SELECT {t('c', reserve_col)} AS order_number,
+                   {date_expr} AS order_date,
+                   {t('c', acct_col)} AS account_number,
+                   {company_expr} AS company_name,
+                   {t('c', client_col)} AS passenger_name,
+                   {t('c', ctype_col)} AS run_type,
+                   {n(amount_col)} AS amount,
+                   {n(paid_col)} AS paid_amount,
+                   ({n(amount_col)}-{n(paid_col)}) AS balance
+            FROM charters c LEFT JOIN clients cl ON {acct_join}
+            {where}
+            ORDER BY account_number, order_date
+            LIMIT %s
+        """
+        params.append(limit)
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+            col_names = [d[0] for d in cur.description]
+
+        items: list[dict[str, Any]] = []
+        for row in rows:
+            rec = dict(zip(col_names, row))
+            if hasattr(rec.get("order_date"), "isoformat"):
+                rec["order_date"] = rec["order_date"].isoformat()
+            for f in ("amount", "paid_amount", "balance"):
+                rec[f] = float(rec.get(f) or 0)
+            items.append(rec)
+
+        totals = {
+            "runs": len(items),
+            "total_amount": round(sum(i["amount"] for i in items), 2),
+            "total_paid": round(sum(i["paid_amount"] for i in items), 2),
+            "total_balance": round(sum(i["balance"] for i in items), 2),
+        }
+        grouped: list[dict[str, Any]] = []
+        if group_by != "none":
+            agg: dict[str, Any] = defaultdict(
+                lambda: {
+                    "group_value": "",
+                    "company_name": "",
+                    "runs": 0,
+                    "total_amount": 0.0,
+                    "total_paid": 0.0,
+                    "total_balance": 0.0,
+                }
+            )
+            for item in items:
+                gv = str(item.get(group_by) or "")
+                r = agg[gv]
+                r["group_value"] = gv
+                r["company_name"] = item.get("company_name", "")
+                r["runs"] += 1
+                r["total_amount"] += item["amount"]
+                r["total_paid"] += item["paid_amount"]
+                r["total_balance"] += item["balance"]
+            grouped = sorted(
+                agg.values(), key=lambda x: (x["group_value"] or "").lower()
+            )
+
+        if format == "csv":
+            return _to_csv_response(
+                grouped if group_by != "none" else items,
+                f"client_activity_{start_dt.date()}_{end_dt.date()}.csv",
+            )
+        return {
+            "count": len(items),
+            "totals": totals,
+            "groups": grouped,
+            "items": items,
+        }
+    finally:
+        conn.close()
+
+
+@router.get("/payment-list")
+def payment_list_report(
+    start_date: str | None = None,
+    end_date: str | None = None,
+    group_by: str = Query(
+        "none", regex="^(none|payment_method|source|client_name)$"
+    ),
+    limit: int = Query(10000, ge=1, le=100000),
+    format: str = Query("json", regex="^(json|csv)$"),
+):
+    """All charter payments within a date range (charter_payments table)."""
+    end_dt = _parse_iso_date(end_date, datetime.now())
+    start_dt = _parse_iso_date(start_date, end_dt - timedelta(days=365))
+
+    with cursor() as cur:
+        cur.execute("""
+            SELECT payment_date,
+                   COALESCE(client_name,'') AS client_name,
+                   COALESCE(charter_id::text,'') AS charter_id,
+                   COALESCE(amount,0) AS amount,
+                   COALESCE(payment_method,'') AS payment_method,
+                   COALESCE(source,'') AS source,
+                   COALESCE(payment_key,'') AS payment_key
+            FROM charter_payments
+            WHERE payment_date BETWEEN %s AND %s
+            ORDER BY payment_date, client_name
+            LIMIT %s
+        """, [start_dt.date(), end_dt.date(), limit])
+        rows = cur.fetchall()
+        col_names = [d[0] for d in cur.description]
+
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        rec = dict(zip(col_names, row))
+        if hasattr(rec.get("payment_date"), "isoformat"):
+            rec["payment_date"] = rec["payment_date"].isoformat()
+        rec["amount"] = float(rec.get("amount") or 0)
+        items.append(rec)
+
+    totals = {
+        "runs": len(items),
+        "total_amount": round(sum(i["amount"] for i in items), 2),
+    }
+    grouped: list[dict[str, Any]] = []
+    if group_by != "none":
+        agg: dict[str, Any] = defaultdict(
+            lambda: {"group_value": "", "runs": 0, "total_amount": 0.0}
+        )
+        for item in items:
+            gv = str(item.get(group_by) or "")
+            r = agg[gv]
+            r["group_value"] = gv
+            r["runs"] += 1
+            r["total_amount"] += item["amount"]
+        grouped = sorted(
+            agg.values(), key=lambda x: (x["group_value"] or "").lower()
+        )
+
+    if format == "csv":
+        return _to_csv_response(
+            grouped if group_by != "none" else items,
+            f"payments_{start_dt.date()}_{end_dt.date()}.csv",
+        )
+    return {
+        "count": len(items),
+        "totals": totals,
+        "groups": grouped,
+        "items": items,
+    }
+
+
+@router.get("/aged-receivables")
+def aged_receivables_report(
+    group_by: str = Query(
+        "none", regex="^(none|age_bracket|account_number|driver)$"
+    ),
+    include_cancelled: bool = True,
+    limit: int = Query(5000, ge=1, le=50000),
+    format: str = Query("json", regex="^(json|csv)$"),
+):
+    """Unpaid charters, aging brackets — all-time, no date filter."""
+    conn = get_connection()
+    try:
+        def fc(candidates):
+            return _first_existing_column(conn, "charters", candidates)
+
+        date_col = fc(["charter_date", "pickup_date", "created_at"])
+        reserve_col = fc(["reserve_number", "reserve_no", "order_number"])
+        amount_col = fc(["total_amount_due", "amount", "total"])
+        paid_col = fc(["paid_amount", "total_paid"])
+        cancel_col = fc(["cancelled"])
+        acct_col = fc(["account_number"])
+        client_col = fc(["client_display_name", "client_name"])
+        driver_col = fc(["driver", "driver_name"])
+
+        def t(col):
+            return f"COALESCE(c.{col}::text,'')" if col else "''"
+
+        def n(col):
+            return f"COALESCE(c.{col}::numeric,0)" if col else "0"
+
+        date_expr = f"c.{date_col}::date" if date_col else "NULL::date"
+
+        conds: list[str] = []
+        params: list[Any] = []
+        if not include_cancelled and cancel_col:
+            conds.append(f"COALESCE(c.{cancel_col},false)=false")
+        extra = (" AND " + " AND ".join(conds)) if conds else ""
+
+        sql = f"""
+            SELECT {t(reserve_col)} AS order_number,
+                   {date_expr} AS order_date,
+                   {t(client_col)} AS passenger_name,
+                   {t(acct_col)} AS account_number,
+                   {t(driver_col)} AS driver,
+                   {n(amount_col)} AS amount,
+                   {n(paid_col)} AS paid_amount,
+                   ({n(amount_col)}-{n(paid_col)}) AS balance,
+                   (CURRENT_DATE
+                    - COALESCE({date_expr}, CURRENT_DATE)
+                   )::int AS days_outstanding,
+                   CASE
+                       WHEN COALESCE({date_expr},CURRENT_DATE)
+                           >= CURRENT_DATE-30 THEN '0-30 days'
+                       WHEN COALESCE({date_expr},CURRENT_DATE)
+                           >= CURRENT_DATE-60 THEN '31-60 days'
+                       WHEN COALESCE({date_expr},CURRENT_DATE)
+                           >= CURRENT_DATE-90 THEN '61-90 days'
+                       ELSE '90+ days'
+                   END AS age_bracket
+            FROM charters c
+            WHERE ({n(amount_col)}-{n(paid_col)})>0{extra}
+            ORDER BY order_date NULLS LAST
+            LIMIT %s
+        """
+        params.append(limit)
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+            col_names = [d[0] for d in cur.description]
+
+        items: list[dict[str, Any]] = []
+        for row in rows:
+            rec = dict(zip(col_names, row))
+            if hasattr(rec.get("order_date"), "isoformat"):
+                rec["order_date"] = rec["order_date"].isoformat()
+            for f in ("amount", "paid_amount", "balance"):
+                rec[f] = float(rec.get(f) or 0)
+            rec["days_outstanding"] = int(rec.get("days_outstanding") or 0)
+            items.append(rec)
+
+        totals = {
+            "runs": len(items),
+            "total_amount": round(sum(i["amount"] for i in items), 2),
+            "total_paid": round(sum(i["paid_amount"] for i in items), 2),
+            "total_balance": round(sum(i["balance"] for i in items), 2),
+        }
+        grouped: list[dict[str, Any]] = []
+        if group_by != "none":
+            agg: dict[str, Any] = defaultdict(
+                lambda: {
+                    "group_value": "",
+                    "runs": 0,
+                    "total_amount": 0.0,
+                    "total_balance": 0.0,
+                }
+            )
+            for item in items:
+                gv = str(item.get(group_by) or "")
+                r = agg[gv]
+                r["group_value"] = gv
+                r["runs"] += 1
+                r["total_amount"] += item["amount"]
+                r["total_balance"] += item["balance"]
+            grouped = sorted(
+                agg.values(), key=lambda x: (x["group_value"] or "").lower()
+            )
+
+        if format == "csv":
+            return _to_csv_response(
+                grouped if group_by != "none" else items,
+                "aged_receivables.csv",
+            )
+        return {
+            "count": len(items),
+            "totals": totals,
+            "groups": grouped,
+            "items": items,
+        }
+    finally:
+        conn.close()
+
+
+@router.get("/income-summary")
+def income_summary_report(
+    start_date: str | None = None,
+    end_date: str | None = None,
+    group_by: str = Query(
+        "none",
+        regex=(
+            "^(none|revenue_category|fiscal_year|fiscal_quarter"
+            "|payment_method|source_system)$"
+        ),
+    ),
+    limit: int = Query(10000, ge=1, le=100000),
+    format: str = Query("json", regex="^(json|csv)$"),
+):
+    """Income ledger summary report (income_ledger table)."""
+    end_dt = _parse_iso_date(end_date, datetime.now())
+    start_dt = _parse_iso_date(start_date, end_dt - timedelta(days=365))
+
+    with cursor() as cur:
+        cur.execute("""
+            SELECT transaction_date,
+                   COALESCE(reserve_number,'') AS reserve_number,
+                   COALESCE(revenue_category,'') AS revenue_category,
+                   COALESCE(revenue_subcategory,'') AS revenue_subcategory,
+                   COALESCE(gross_amount,0) AS gross_amount,
+                   COALESCE(gst_collected,0) AS gst_collected,
+                   COALESCE(net_amount,0) AS net_amount,
+                   COALESCE(payment_method,'') AS payment_method,
+                   COALESCE(fiscal_year::text,'') AS fiscal_year,
+                   COALESCE(fiscal_quarter::text,'') AS fiscal_quarter,
+                   COALESCE(source_system,'') AS source_system,
+                   COALESCE(description,'') AS description
+            FROM income_ledger
+            WHERE transaction_date BETWEEN %s AND %s
+            ORDER BY transaction_date, revenue_category
+            LIMIT %s
+        """, [start_dt.date(), end_dt.date(), limit])
+        rows = cur.fetchall()
+        col_names = [d[0] for d in cur.description]
+
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        rec = dict(zip(col_names, row))
+        if hasattr(rec.get("transaction_date"), "isoformat"):
+            rec["transaction_date"] = rec["transaction_date"].isoformat()
+        for f in ("gross_amount", "gst_collected", "net_amount"):
+            rec[f] = float(rec.get(f) or 0)
+        items.append(rec)
+
+    totals = {
+        "lines": len(items),
+        "total_gross": round(sum(i["gross_amount"] for i in items), 2),
+        "total_gst": round(sum(i["gst_collected"] for i in items), 2),
+        "total_net": round(sum(i["net_amount"] for i in items), 2),
+    }
+    grouped: list[dict[str, Any]] = []
+    if group_by != "none":
+        agg: dict[str, Any] = defaultdict(
+            lambda: {
+                "group_value": "",
+                "runs": 0,
+                "total_gross": 0.0,
+                "total_gst": 0.0,
+                "total_net": 0.0,
+            }
+        )
+        for item in items:
+            gv = str(item.get(group_by) or "")
+            r = agg[gv]
+            r["group_value"] = gv
+            r["runs"] += 1
+            r["total_gross"] += item["gross_amount"]
+            r["total_gst"] += item["gst_collected"]
+            r["total_net"] += item["net_amount"]
+        grouped = sorted(
+            agg.values(), key=lambda x: (x["group_value"] or "").lower()
+        )
+
+    if format == "csv":
+        return _to_csv_response(
+            grouped if group_by != "none" else items,
+            f"income_summary_{start_dt.date()}_{end_dt.date()}.csv",
+        )
+    return {
+        "count": len(items),
+        "totals": totals,
+        "groups": grouped,
+        "items": items,
+    }
+
+
+@router.get("/short-trip")
+def short_trip_report(
+    start_date: str | None = None,
+    end_date: str | None = None,
+    group_by: str = Query(
+        "none",
+        regex="^(none|driver|vehicle|order_date|run_type|account_number)$",
+    ),
+    include_cancelled: bool = True,
+    limit: int = Query(5000, ge=1, le=50000),
+    format: str = Query("json", regex="^(json|csv)$"),
+):
+    """Short/local trips (is_out_of_town=false AND total_kms=0)."""
+    end_dt = _parse_iso_date(end_date, datetime.now())
+    start_dt = _parse_iso_date(start_date, end_dt - timedelta(days=365))
+
+    conn = get_connection()
+    try:
+        def fc(candidates):
+            return _first_existing_column(conn, "charters", candidates)
+
+        date_col = fc(["charter_date", "pickup_date", "created_at"])
+        reserve_col = fc(["reserve_number", "reserve_no", "order_number"])
+        amount_col = fc(["total_amount_due", "amount", "total"])
+        paid_col = fc(["paid_amount", "total_paid"])
+        cancel_col = fc(["cancelled"])
+        oot_col = fc(["is_out_of_town"])
+        kms_col = fc(["total_kms"])
+        _pass_col = fc(["client_display_name", "client_name"])
+
+        def t(col):
+            return f"COALESCE(c.{col}::text,'')" if col else "''"
+
+        def n(col):
+            return f"COALESCE(c.{col}::numeric,0)" if col else "0"
+
+        date_expr = f"c.{date_col}::date" if date_col else "NULL::date"
+
+        conds: list[str] = []
+        params: list[Any] = []
+        if date_col:
+            conds.append(f"c.{date_col}::date BETWEEN %s AND %s")
+            params.extend([start_dt.date(), end_dt.date()])
+        short_conds: list[str] = []
+        if oot_col:
+            short_conds.append(f"COALESCE(c.{oot_col},false)=false")
+        if kms_col:
+            short_conds.append(f"COALESCE(c.{kms_col},0)=0")
+        if short_conds:
+            conds.append("(" + " AND ".join(short_conds) + ")")
+        if not include_cancelled and cancel_col:
+            conds.append(f"COALESCE(c.{cancel_col},false)=false")
+        where = (" WHERE " + " AND ".join(conds)) if conds else ""
+
+        sql = f"""
+            SELECT {t(reserve_col)} AS order_number,
+                   {date_expr} AS order_date,
+                   {t(_pass_col)} AS passenger_name,
+                   {t(fc(['account_number']))} AS account_number,
+                   {t(fc(['driver', 'driver_name']))} AS driver,
+                   {t(fc(['vehicle']))} AS vehicle,
+                   {t(fc(['dropoff_address', 'destination']))} AS destination,
+                   {t(fc(['charter_type', 'run_type']))} AS run_type,
+                   {t(fc(['payment_status', 'nrd_method']))} AS payment_type,
+                   {n(amount_col)} AS amount,
+                   {n(paid_col)} AS paid_amount,
+                   ({n(amount_col)}-{n(paid_col)}) AS balance,
+                   {t(fc(['status']))} AS status
+            FROM charters c{where}
+            ORDER BY order_date NULLS LAST, order_number
+            LIMIT %s
+        """
+        params.append(limit)
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+            col_names = [d[0] for d in cur.description]
+
+        items: list[dict[str, Any]] = []
+        for row in rows:
+            rec = dict(zip(col_names, row))
+            if hasattr(rec.get("order_date"), "isoformat"):
+                rec["order_date"] = rec["order_date"].isoformat()
+            for f in ("amount", "paid_amount", "balance"):
+                rec[f] = float(rec.get(f) or 0)
+            items.append(rec)
+
+        totals = {
+            "runs": len(items),
+            "total_amount": round(sum(i["amount"] for i in items), 2),
+            "total_paid": round(sum(i["paid_amount"] for i in items), 2),
+            "total_balance": round(sum(i["balance"] for i in items), 2),
+        }
+        grouped: list[dict[str, Any]] = []
+        if group_by != "none":
+            agg: dict[str, Any] = defaultdict(
+                lambda: {
+                    "group_value": "",
+                    "runs": 0,
+                    "total_amount": 0.0,
+                    "total_paid": 0.0,
+                    "total_balance": 0.0,
+                }
+            )
+            for item in items:
+                gv = str(item.get(group_by) or "")
+                r = agg[gv]
+                r["group_value"] = gv
+                r["runs"] += 1
+                r["total_amount"] += item["amount"]
+                r["total_paid"] += item["paid_amount"]
+                r["total_balance"] += item["balance"]
+            grouped = sorted(
+                agg.values(), key=lambda x: (x["group_value"] or "").lower()
+            )
+
+        if format == "csv":
+            return _to_csv_response(
+                grouped if group_by != "none" else items,
+                f"short_trip_{start_dt.date()}_{end_dt.date()}.csv",
+            )
+        return {
+            "count": len(items),
+            "totals": totals,
+            "groups": grouped,
+            "items": items,
+        }
+    finally:
+        conn.close()
 
 
 @router.get("/trial-balance")
@@ -135,7 +1450,9 @@ def trial_balance(as_of: str | None = None):
         "total_debits": round(sum(a["total_debit"] for a in accounts), 2),
         "total_credits": round(sum(a["total_credit"] for a in accounts), 2),
     }
-    totals["difference"] = round(totals["total_debits"] - totals["total_credits"], 2)
+    totals["difference"] = round(
+        totals["total_debits"] - totals["total_credits"], 2
+    )
     return {"as_o": str(as_of_date), "accounts": accounts, "totals": totals}
 
 
@@ -272,7 +1589,10 @@ def bank_reconciliation(
 
     total_debits = round(sum(i["debit"] for i in items), 2)
     total_credits = round(sum(i["credit"] for i in items), 2)
-    outstanding = [i for i in items if i["status"] in (None, "unreconciled", "ignored")]
+    outstanding = [
+        i for i in items
+        if i["status"] in (None, "unreconciled", "ignored")
+    ]
 
     return {
         "bank_id": bank_id,
@@ -310,9 +1630,12 @@ def pl_summary(
             """
             SELECT
                 DATE_TRUNC(%s, date) AS period,
-                SUM(CASE WHEN account_type ILIKE 'income%%' THEN credit - debit ELSE 0 END) AS revenue,
-                SUM(CASE WHEN account_type ILIKE 'revenue%%' THEN credit - debit ELSE 0 END) AS revenue_alt,
-                SUM(CASE WHEN account_type ILIKE 'expense%%' THEN debit - credit ELSE 0 END) AS expenses
+                 SUM(CASE WHEN account_type ILIKE 'income%%'
+                     THEN credit - debit ELSE 0 END) AS revenue,
+                 SUM(CASE WHEN account_type ILIKE 'revenue%%'
+                     THEN credit - debit ELSE 0 END) AS revenue_alt,
+                 SUM(CASE WHEN account_type ILIKE 'expense%%'
+                     THEN debit - credit ELSE 0 END) AS expenses
             FROM general_ledger
             WHERE date BETWEEN %s AND %s
             GROUP BY 1
@@ -357,7 +1680,7 @@ def vehicle_performance(
     start_date: str | None = None,
     end_date: str | None = None,
 ):
-    """Vehicle revenue vs expenses with trips count and maintenance/insurance split."""
+    """Vehicle revenue vs expenses with trip count and cost split."""
     end_dt = _parse_iso_date(end_date, datetime.now())
     start_dt = (
         _parse_iso_date(start_date, end_dt - timedelta(days=365))
@@ -368,9 +1691,6 @@ def vehicle_performance(
     conn = get_connection()
     try:
         has_charter_vehicle = _has_column(conn, "charters", "vehicle_id")
-        has_charter_date = _has_column(conn, "charters", "pickup_date") or _has_column(
-            conn, "charters", "charter_date"
-        )
         charter_date_col = (
             "pickup_date"
             if _has_column(conn, "charters", "pickup_date")
@@ -416,8 +1736,16 @@ def vehicle_performance(
                     f"""
                     SELECT vehicle_id,
                            COALESCE(SUM(gross_amount), 0) AS total_expense,
-                           COALESCE(SUM(CASE WHEN description ILIKE '%maint%' OR category ILIKE 'maintenance%%' THEN gross_amount ELSE 0 END), 0) AS maintenance,
-                           COALESCE(SUM(CASE WHEN description ILIKE '%insur%' OR category ILIKE 'insurance%%' THEN gross_amount ELSE 0 END), 0) AS insurance
+                           COALESCE(SUM(
+                               CASE WHEN description ILIKE '%maint%'
+                                    OR category ILIKE 'maintenance%%'
+                               THEN gross_amount ELSE 0 END
+                           ), 0) AS maintenance,
+                           COALESCE(SUM(
+                               CASE WHEN description ILIKE '%insur%'
+                                    OR category ILIKE 'insurance%%'
+                               THEN gross_amount ELSE 0 END
+                           ), 0) AS insurance
                     FROM receipts
                     WHERE {receipt_date_col} BETWEEN %s AND %s
                     GROUP BY vehicle_id
@@ -463,7 +1791,9 @@ def vehicle_performance(
                         "maintenance": round(exp.get("maintenance", 0.0), 2),
                         "insurance": round(exp.get("insurance", 0.0), 2),
                         "profit": round(profit, 2),
-                        "margin_pct": round((profit / rev.get("revenue", 1)) * 100, 2)
+                        "margin_pct": round(
+                            (profit / rev.get("revenue", 1)) * 100, 2
+                        )
                         if rev.get("revenue", 0)
                         else 0.0,
                     }
@@ -531,6 +1861,8 @@ def driver_costs(
 
         has_net = "net_pay" in payroll_cols
         has_gross = "gross_pay" in payroll_cols
+        _net_col = "net_pay" if has_net else "gross_pay"
+        _gross_col = "gross_pay" if has_gross else "net_pay"
 
         id_col = columns[0] if columns else None
         name_join = (
@@ -549,8 +1881,8 @@ def driver_costs(
                 f"""
                 SELECT {id_col}, COALESCE(e.full_name, '') AS name,
                        COUNT(*) AS payruns,
-                       COALESCE(SUM({'net_pay' if has_net else 'gross_pay'}), 0) AS total_cost,
-                       COALESCE(SUM({'gross_pay' if has_gross else 'net_pay'}), 0) AS gross_total
+                       COALESCE(SUM({_net_col}), 0) AS total_cost,
+                       COALESCE(SUM({_gross_col}), 0) AS gross_total
                 FROM driver_payroll dp
                 {name_join}
                 WHERE pay_date BETWEEN %s AND %s
@@ -639,7 +1971,10 @@ def driver_monthly_costs(
 
         periods: dict[str, list[dict[str, Any]]] = {}
         for period, did, name, payruns, total_cost, gross_total in rows:
-            key = period.date().isoformat() if hasattr(period, "date") else str(period)
+            key = (
+                period.date().isoformat() if hasattr(period, "date")
+                else str(period)
+            )
             periods.setdefault(key, []).append(
                 {
                     "driver_id": did,
@@ -661,27 +1996,30 @@ def driver_monthly_costs(
 
 @router.get("/vehicle-insurance-yearly")
 def vehicle_insurance_yearly(years: int = Query(5, ge=1, le=15)):
-    """Insurance cost per vehicle per year from receipts descriptions containing 'insur'."""
+    """Insurance cost per vehicle per year (description ~ 'insur%')."""
     end_dt = datetime.now().date()
     start_dt = end_dt.replace(year=end_dt.year - years + 1, month=1, day=1)
 
     conn = get_connection()
     try:
-        if not _has_column(conn, "receipts", "receipt_date") and not _has_column(
-            conn, "receipts", "date"
-        ):
-            raise HTTPException(status_code=400, detail="receipts_missing_date")
-
-        date_col = (
-            "receipt_date" if _has_column(conn, "receipts", "receipt_date") else "date"
-        )
+        _has_rdate = _has_column(conn, "receipts", "receipt_date")
+        _has_date = _has_column(conn, "receipts", "date")
+        if not _has_rdate and not _has_date:
+            raise HTTPException(
+                status_code=400, detail="receipts_missing_date"
+            )
+        date_col = "receipt_date" if _has_rdate else "date"
 
         with conn.cursor() as cur:
             cur.execute(
                 f"""
                 SELECT vehicle_id,
                        EXTRACT(YEAR FROM {date_col}) AS yr,
-                       COALESCE(SUM(CASE WHEN description ILIKE '%insur%' THEN gross_amount ELSE 0 END), 0) AS insurance_cost
+                       COALESCE(
+                           SUM(CASE WHEN description ILIKE '%insur%'
+                               THEN gross_amount ELSE 0 END),
+                           0
+                       ) AS insurance_cost
                 FROM receipts
                 WHERE {date_col} BETWEEN %s AND %s
                 GROUP BY vehicle_id, yr
@@ -710,7 +2048,10 @@ def vehicle_insurance_yearly(years: int = Query(5, ge=1, le=15)):
 
 
 @router.get("/vehicle-damage-summary")
-def vehicle_damage_summary(start_date: str | None = None, end_date: str | None = None):
+def vehicle_damage_summary(
+    start_date: str | None = None,
+    end_date: str | None = None,
+):
     """Damage/claim cost count and totals per vehicle."""
     end_dt = _parse_iso_date(end_date, datetime.now())
     start_dt = (
@@ -729,7 +2070,9 @@ def vehicle_damage_summary(start_date: str | None = None, end_date: str | None =
             else None
         )
         if not date_col:
-            raise HTTPException(status_code=400, detail="receipts_missing_date")
+            raise HTTPException(
+                status_code=400, detail="receipts_missing_date"
+            )
 
         with conn.cursor() as cur:
             cur.execute(
@@ -739,7 +2082,10 @@ def vehicle_damage_summary(start_date: str | None = None, end_date: str | None =
                        COALESCE(SUM(gross_amount), 0) AS damage_total
                 FROM receipts
                 WHERE ({date_col} BETWEEN %s AND %s)
-                  AND (description ILIKE '%damage%' OR description ILIKE '%claim%' OR description ILIKE '%collision%' OR description ILIKE '%accident%')
+                  AND (description ILIKE '%damage%'
+                    OR description ILIKE '%claim%'
+                    OR description ILIKE '%collision%'
+                    OR description ILIKE '%accident%')
                 GROUP BY vehicle_id
                 ORDER BY damage_total DESC
                 """,
@@ -803,7 +2149,10 @@ def pl_categories(
 
     periods: dict[str, list[dict[str, Any]]] = {}
     for period, acct_type, acct_name, net in rows:
-        key = period.date().isoformat() if hasattr(period, "date") else str(period)
+        key = (
+            period.date().isoformat() if hasattr(period, "date")
+            else str(period)
+        )
         periods.setdefault(key, []).append(
             {
                 "account_type": acct_type,
@@ -823,7 +2172,10 @@ def pl_categories(
             2,
         ),
         "expenses": round(
-            sum(-r[3] for r in rows if (r[1] or "").lower().startswith("expense")),
+            sum(
+                -r[3] for r in rows
+                if (r[1] or "").lower().startswith("expense")
+            ),
             2,
         ),
     }
@@ -839,7 +2191,10 @@ def pl_categories(
 
 
 @router.get("/vehicle-revenue")
-def vehicle_revenue(start_date: str | None = None, end_date: str | None = None):
+def vehicle_revenue(
+    start_date: str | None = None,
+    end_date: str | None = None,
+):
     """Revenue and trip counts per vehicle from charters (defensive joins)."""
     end_dt = _parse_iso_date(end_date, datetime.now())
     start_dt = (
@@ -851,7 +2206,9 @@ def vehicle_revenue(start_date: str | None = None, end_date: str | None = None):
     conn = get_connection()
     try:
         if not _has_column(conn, "charters", "vehicle_id"):
-            raise HTTPException(status_code=400, detail="charters_missing_vehicle_id")
+            raise HTTPException(
+                status_code=400, detail="charters_missing_vehicle_id"
+            )
 
         # Prefer pickup_date; fallback to charter_date
         charter_date_col = (
@@ -862,7 +2219,9 @@ def vehicle_revenue(start_date: str | None = None, end_date: str | None = None):
             else None
         )
         if not charter_date_col:
-            raise HTTPException(status_code=400, detail="charters_missing_date")
+            raise HTTPException(
+                status_code=400, detail="charters_missing_date"
+            )
 
         with conn.cursor() as cur:
             cur.execute(
@@ -902,7 +2261,10 @@ def vehicle_revenue(start_date: str | None = None, end_date: str | None = None):
 
 
 @router.get("/driver-revenue-vs-pay")
-def driver_revenue_vs_pay(start_date: str | None = None, end_date: str | None = None):
+def driver_revenue_vs_pay(
+    start_date: str | None = None,
+    end_date: str | None = None,
+):
     """Driver revenue (charters) vs payroll cost (driver_payroll)."""
     end_dt = _parse_iso_date(end_date, datetime.now())
     start_dt = (
@@ -922,7 +2284,9 @@ def driver_revenue_vs_pay(start_date: str | None = None, end_date: str | None = 
             else None
         )
         if not driver_col:
-            raise HTTPException(status_code=400, detail="charters_missing_driver")
+            raise HTTPException(
+                status_code=400, detail="charters_missing_driver"
+            )
 
         date_col = (
             "pickup_date"
@@ -932,12 +2296,16 @@ def driver_revenue_vs_pay(start_date: str | None = None, end_date: str | None = 
             else None
         )
         if not date_col:
-            raise HTTPException(status_code=400, detail="charters_missing_date")
+            raise HTTPException(
+                status_code=400, detail="charters_missing_date"
+            )
 
         with conn.cursor() as cur:
             cur.execute(
                 f"""
-                SELECT {driver_col}, COALESCE(SUM(gross_amount), 0) AS revenue, COUNT(*) AS trips
+                  SELECT {driver_col},
+                      COALESCE(SUM(gross_amount), 0) AS revenue,
+                      COUNT(*) AS trips
                 FROM charters
                 WHERE {date_col} BETWEEN %s AND %s
                 GROUP BY {driver_col}
@@ -1000,9 +2368,13 @@ def driver_revenue_vs_pay(start_date: str | None = None, end_date: str | None = 
                     "gross_pay": round(float(gross_cost or 0), 2),
                     "payruns": int(payruns or 0),
                     "profit_after_pay": round(profit, 2),
-                    "margin_pct": round((profit / rev.get("revenue", 1)) * 100, 2)
-                    if rev.get("revenue", 0)
-                    else 0.0,
+                    "margin_pct": (
+                        round(
+                            (profit / rev.get("revenue", 1)) * 100, 2
+                        )
+                        if rev.get("revenue", 0)
+                        else 0.0
+                    ),
                 }
             )
 
@@ -1025,7 +2397,9 @@ def driver_revenue_vs_pay(start_date: str | None = None, end_date: str | None = 
         totals = {
             "revenue": round(sum(d["revenue"] for d in data), 2),
             "net_pay": round(sum(d["net_pay"] for d in data), 2),
-            "profit_after_pay": round(sum(d["profit_after_pay"] for d in data), 2),
+            "profit_after_pay": round(
+                sum(d["profit_after_pay"] for d in data), 2
+            ),
         }
         return {
             "start_date": str(start_dt.date()),
@@ -1043,16 +2417,21 @@ def bank_reconciliation_suggestions(
     window_days: int = Query(1, ge=0, le=7),
     max_results: int = Query(200, ge=1, le=1000),
 ):
-    """Suggest receipt matches for unreconciled banking transactions by amount/date proximity."""
+    """Suggest receipt matches for unreconciled banking transactions
+    by amount/date proximity.
+    """
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT transaction_id, trans_date, trans_description,
-                       COALESCE(debit_amount, 0) - COALESCE(credit_amount, 0) AS amount
+                       COALESCE(debit_amount, 0)
+                       - COALESCE(credit_amount, 0) AS amount
                 FROM banking_transactions
-                WHERE bank_id = %s AND (reconciliation_status IS NULL OR reconciliation_status IN ('unreconciled','ignored'))
+                WHERE bank_id = %s
+                  AND (reconciliation_status IS NULL
+                   OR reconciliation_status IN ('unreconciled','ignored'))
                 ORDER BY trans_date DESC
                 LIMIT %s
                 """,
@@ -1140,10 +2519,25 @@ def fleet_maintenance_summary(
                 f"""
                 SELECT vehicle_id,
                        COALESCE(SUM(gross_amount), 0) AS total_expense,
-                       COALESCE(SUM(CASE WHEN description ILIKE '%maint%' OR category ILIKE 'maintenance%%' THEN gross_amount ELSE 0 END), 0) AS maintenance,
-                       COALESCE(SUM(CASE WHEN description ILIKE '%repair%' THEN gross_amount ELSE 0 END), 0) AS repairs,
-                       COALESCE(SUM(CASE WHEN description ILIKE '%insur%' OR category ILIKE 'insurance%%' THEN gross_amount ELSE 0 END), 0) AS insurance,
-                       COALESCE(SUM(CASE WHEN description ILIKE '%damage%' OR description ILIKE '%claim%' THEN gross_amount ELSE 0 END), 0) AS damage
+                       COALESCE(SUM(
+                           CASE WHEN description ILIKE '%maint%'
+                                OR category ILIKE 'maintenance%%'
+                           THEN gross_amount ELSE 0 END
+                       ), 0) AS maintenance,
+                       COALESCE(SUM(
+                           CASE WHEN description ILIKE '%repair%'
+                           THEN gross_amount ELSE 0 END
+                       ), 0) AS repairs,
+                       COALESCE(SUM(
+                           CASE WHEN description ILIKE '%insur%'
+                                OR category ILIKE 'insurance%%'
+                           THEN gross_amount ELSE 0 END
+                       ), 0) AS insurance,
+                       COALESCE(SUM(
+                           CASE WHEN description ILIKE '%damage%'
+                                OR description ILIKE '%claim%'
+                           THEN gross_amount ELSE 0 END
+                       ), 0) AS damage
                 FROM receipts
                 WHERE {receipt_date_col} BETWEEN %s AND %s
                 GROUP BY vehicle_id
@@ -1192,10 +2586,13 @@ def cra_audit_export(
     Generate CRA audit format export from database
 
     Args:
-        start_date: Start date (YYYY-MM-DD) for transactions (optional, defaults to earliest)
-        end_date: End date (YYYY-MM-DD) for transactions (optional, defaults to latest)
-        export_type: Type of export - 'full' (all files), 'transactions' (transactions only),
-                    'summary' (accounts, vendors, employees, trial balance only)
+        start_date: Start date (YYYY-MM-DD) for transactions
+                    (optional, defaults to earliest)
+        end_date: End date (YYYY-MM-DD) for transactions
+                  (optional, defaults to latest)
+        export_type: Type of export - 'full' (all files),
+                    'transactions' (transactions only),
+                    'summary' (accounts, vendors, employees, trial balance)
 
     Returns:
         ZIP file containing XML exports in CRA audit format
@@ -1249,7 +2646,10 @@ def cra_audit_export(
                 accounts = cur.fetchall()
 
                 root = ET.Element("Accounts")
-                root.set("exportDate", datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
+                root.set(
+                    "exportDate",
+                    datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                )
                 root.set("company", "Arrow Limousine & Sedan Ltd.")
                 if start_date:
                     root.set("startDate", start_date)
@@ -1259,12 +2659,18 @@ def cra_audit_export(
                 for acc in accounts:
                     acc_elem = ET.SubElement(root, "Account")
                     ET.SubElement(acc_elem, "Name").text = str(acc[0] or "")
-                    ET.SubElement(acc_elem, "AccountCode").text = str(acc[1] or "")
-                    ET.SubElement(acc_elem, "FullName").text = str(acc[2] or "")
+                    ET.SubElement(
+                        acc_elem, "AccountCode"
+                    ).text = str(acc[1] or "")
+                    ET.SubElement(
+                        acc_elem, "FullName"
+                    ).text = str(acc[2] or "")
                     ET.SubElement(acc_elem, "Number").text = str(acc[3] or "")
                     ET.SubElement(acc_elem, "Type").text = str(acc[4] or "")
 
-                with open(tmppath / "Accounts.xml", "w", encoding="utf-8") as f:
+                with open(
+                    tmppath / "Accounts.xml", "w", encoding="utf-8"
+                ) as f:
                     f.write(prettify_xml(root))
 
                 # Export vendors
@@ -1278,7 +2684,10 @@ def cra_audit_export(
                         SUM(debit) as total_debit,
                         SUM(credit) as total_credit
                     FROM general_ledger
-                    WHERE supplier IS NOT NULL {' AND date BETWEEN %s AND %s' if start_date and end_date else ' AND date >= %s' if start_date else ' AND date <= %s' if end_date else ''}
+                    WHERE supplier IS NOT NULL
+                    {' AND date BETWEEN %s AND %s' if start_date and end_date
+                     else ' AND date >= %s' if start_date
+                     else ' AND date <= %s' if end_date else ''}
                     GROUP BY supplier
                     ORDER BY supplier
                 """,
@@ -1287,17 +2696,30 @@ def cra_audit_export(
                 vendors = cur.fetchall()
 
                 root = ET.Element("Vendors")
-                root.set("exportDate", datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
+                root.set(
+                    "exportDate",
+                    datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                )
                 root.set("company", "Arrow Limousine & Sedan Ltd.")
 
                 for vendor in vendors:
                     vendor_elem = ET.SubElement(root, "Vendor")
                     ET.SubElement(vendor_elem, "Name").text = str(vendor[0])
-                    ET.SubElement(vendor_elem, "TransactionCount").text = str(vendor[1])
-                    ET.SubElement(vendor_elem, "FirstTransaction").text = str(vendor[2])
-                    ET.SubElement(vendor_elem, "LastTransaction").text = str(vendor[3])
-                    ET.SubElement(vendor_elem, "TotalDebit").text = str(vendor[4] or 0)
-                    ET.SubElement(vendor_elem, "TotalCredit").text = str(vendor[5] or 0)
+                    ET.SubElement(
+                        vendor_elem, "TransactionCount"
+                    ).text = str(vendor[1])
+                    ET.SubElement(
+                        vendor_elem, "FirstTransaction"
+                    ).text = str(vendor[2])
+                    ET.SubElement(
+                        vendor_elem, "LastTransaction"
+                    ).text = str(vendor[3])
+                    ET.SubElement(
+                        vendor_elem, "TotalDebit"
+                    ).text = str(vendor[4] or 0)
+                    ET.SubElement(
+                        vendor_elem, "TotalCredit"
+                    ).text = str(vendor[5] or 0)
 
                 with open(tmppath / "Vendors.xml", "w", encoding="utf-8") as f:
                     f.write(prettify_xml(root))
@@ -1313,7 +2735,10 @@ def cra_audit_export(
                         SUM(debit) as total_debit,
                         SUM(credit) as total_credit
                     FROM general_ledger
-                    WHERE employee IS NOT NULL {' AND date BETWEEN %s AND %s' if start_date and end_date else ' AND date >= %s' if start_date else ' AND date <= %s' if end_date else ''}
+                    WHERE employee IS NOT NULL
+                    {' AND date BETWEEN %s AND %s' if start_date and end_date
+                     else ' AND date >= %s' if start_date
+                     else ' AND date <= %s' if end_date else ''}
                     GROUP BY employee
                     ORDER BY employee
                 """,
@@ -1322,19 +2747,34 @@ def cra_audit_export(
                 employees = cur.fetchall()
 
                 root = ET.Element("Employees")
-                root.set("exportDate", datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
+                root.set(
+                    "exportDate",
+                    datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                )
                 root.set("company", "Arrow Limousine & Sedan Ltd.")
 
                 for emp in employees:
                     emp_elem = ET.SubElement(root, "Employee")
                     ET.SubElement(emp_elem, "Name").text = str(emp[0])
-                    ET.SubElement(emp_elem, "TransactionCount").text = str(emp[1])
-                    ET.SubElement(emp_elem, "FirstTransaction").text = str(emp[2])
-                    ET.SubElement(emp_elem, "LastTransaction").text = str(emp[3])
-                    ET.SubElement(emp_elem, "TotalDebit").text = str(emp[4] or 0)
-                    ET.SubElement(emp_elem, "TotalCredit").text = str(emp[5] or 0)
+                    ET.SubElement(
+                        emp_elem, "TransactionCount"
+                    ).text = str(emp[1])
+                    ET.SubElement(
+                        emp_elem, "FirstTransaction"
+                    ).text = str(emp[2])
+                    ET.SubElement(
+                        emp_elem, "LastTransaction"
+                    ).text = str(emp[3])
+                    ET.SubElement(
+                        emp_elem, "TotalDebit"
+                    ).text = str(emp[4] or 0)
+                    ET.SubElement(
+                        emp_elem, "TotalCredit"
+                    ).text = str(emp[5] or 0)
 
-                with open(tmppath / "Employees.xml", "w", encoding="utf-8") as f:
+                with open(
+                    tmppath / "Employees.xml", "w", encoding="utf-8"
+                ) as f:
                     f.write(prettify_xml(root))
 
                 # Export trial balance
@@ -1357,7 +2797,10 @@ def cra_audit_export(
                 balances = cur.fetchall()
 
                 root = ET.Element("TrialBalance")
-                root.set("exportDate", datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
+                root.set(
+                    "exportDate",
+                    datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                )
                 root.set("asOfDate", str(as_of_date))
                 root.set("company", "Arrow Limousine & Sedan Ltd.")
 
@@ -1381,19 +2824,25 @@ def cra_audit_export(
                     ET.SubElement(balance_elem, "TotalCredit").text = str(
                         balance[4] or 0
                     )
-                    ET.SubElement(balance_elem, "Balance").text = str(balance[5] or 0)
+                    ET.SubElement(
+                        balance_elem, "Balance"
+                    ).text = str(balance[5] or 0)
 
                     total_debits += Decimal(balance[3] or 0)
                     total_credits += Decimal(balance[4] or 0)
 
                 summary = ET.SubElement(root, "Summary")
                 ET.SubElement(summary, "TotalDebits").text = str(total_debits)
-                ET.SubElement(summary, "TotalCredits").text = str(total_credits)
+                ET.SubElement(
+                    summary, "TotalCredits"
+                ).text = str(total_credits)
                 ET.SubElement(summary, "Difference").text = str(
                     total_debits - total_credits
                 )
 
-                with open(tmppath / "TrialBalance.xml", "w", encoding="utf-8") as f:
+                with open(
+                    tmppath / "TrialBalance.xml", "w", encoding="utf-8"
+                ) as f:
                     f.write(prettify_xml(root))
 
             # Export transactions if not summary-only
@@ -1401,8 +2850,10 @@ def cra_audit_export(
                 cur.execute(
                     """
                     SELECT
-                        id, date, transaction_type, num, name, account_name, account,
-                        memo_description, account_full_name, debit, credit, balance,
+                        id, date, transaction_type, num,
+                        name, account_name, account,
+                        memo_description, account_full_name,
+                        debit, credit, balance,
                         supplier, employee, customer
                     FROM general_ledger
                     {date_filter}
@@ -1412,7 +2863,10 @@ def cra_audit_export(
                 )
 
                 root = ET.Element("Transactions")
-                root.set("exportDate", datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
+                root.set(
+                    "exportDate",
+                    datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                )
                 root.set("company", "Arrow Limousine & Sedan Ltd.")
                 if start_date:
                     root.set("startDate", start_date)
@@ -1431,30 +2885,57 @@ def cra_audit_export(
                         txn_elem = ET.SubElement(root, "Transaction")
                         ET.SubElement(txn_elem, "ID").text = str(txn[0])
                         ET.SubElement(txn_elem, "Date").text = str(txn[1])
-                        ET.SubElement(txn_elem, "Type").text = str(txn[2] or "")
-                        ET.SubElement(txn_elem, "Number").text = str(txn[3] or "")
-                        ET.SubElement(txn_elem, "Name").text = str(txn[4] or "")
-                        ET.SubElement(txn_elem, "AccountName").text = str(txn[5] or "")
-                        ET.SubElement(txn_elem, "Account").text = str(txn[6] or "")
-                        ET.SubElement(txn_elem, "Memo").text = str(txn[7] or "")
+                        ET.SubElement(
+                            txn_elem, "Type"
+                        ).text = str(txn[2] or "")
+                        ET.SubElement(
+                            txn_elem, "Number"
+                        ).text = str(txn[3] or "")
+                        ET.SubElement(
+                            txn_elem, "Name"
+                        ).text = str(txn[4] or "")
+                        ET.SubElement(
+                            txn_elem, "AccountName"
+                        ).text = str(txn[5] or "")
+                        ET.SubElement(
+                            txn_elem, "Account"
+                        ).text = str(txn[6] or "")
+                        ET.SubElement(
+                            txn_elem, "Memo"
+                        ).text = str(txn[7] or "")
                         ET.SubElement(txn_elem, "AccountFullName").text = str(
                             txn[8] or ""
                         )
-                        ET.SubElement(txn_elem, "Debit").text = str(txn[9] or 0)
-                        ET.SubElement(txn_elem, "Credit").text = str(txn[10] or 0)
-                        ET.SubElement(txn_elem, "Balance").text = str(txn[11] or 0)
-                        ET.SubElement(txn_elem, "Supplier").text = str(txn[12] or "")
-                        ET.SubElement(txn_elem, "Employee").text = str(txn[13] or "")
-                        ET.SubElement(txn_elem, "Customer").text = str(txn[14] or "")
+                        ET.SubElement(
+                            txn_elem, "Debit"
+                        ).text = str(txn[9] or 0)
+                        ET.SubElement(
+                            txn_elem, "Credit"
+                        ).text = str(txn[10] or 0)
+                        ET.SubElement(
+                            txn_elem, "Balance"
+                        ).text = str(txn[11] or 0)
+                        ET.SubElement(
+                            txn_elem, "Supplier"
+                        ).text = str(txn[12] or "")
+                        ET.SubElement(
+                            txn_elem, "Employee"
+                        ).text = str(txn[13] or "")
+                        ET.SubElement(
+                            txn_elem, "Customer"
+                        ).text = str(txn[14] or "")
 
                         total_exported += 1
 
-                with open(tmppath / "Transactions.xml", "w", encoding="utf-8") as f:
+                with open(
+                    tmppath / "Transactions.xml", "w", encoding="utf-8"
+                ) as f:
                     f.write(prettify_xml(root))
 
             # Create README
             cur.execute(
-                f"SELECT MIN(date), MAX(date), COUNT(*) FROM general_ledger{date_filter}",
+                "SELECT MIN(date), MAX(date), COUNT(*)"
+                f" FROM general_ledger{date_filter}",
                 date_params,
             )
             min_date, max_date, total_txns = cur.fetchone()
@@ -1476,11 +2957,11 @@ Total Transactions: {total_txns:,}
 
 EXPORTED FILES
 {'=' * 70}
-{'✓ Accounts.xml - Chart of Accounts' if export_type != 'transactions' else ''}
-{'✓ Vendors.xml - Supplier/Vendor List' if export_type != 'transactions' else ''}
-{'✓ Employees.xml - Employee List' if export_type != 'transactions' else ''}
-{'✓ Transactions.xml - Transaction History' if export_type != 'summary' else ''}
-{'✓ TrialBalance.xml - Account Balances' if export_type != 'transactions' else ''}
+{'Accounts.xml - Chart of Accounts' if export_type != 'transactions' else ''}
+{'Vendors.xml - Vendor List' if export_type != 'transactions' else ''}
+{'Employees.xml - Employee List' if export_type != 'transactions' else ''}
+{'Transactions.xml - Transaction History' if export_type != 'summary' else ''}
+{'TrialBalance.xml - Balances' if export_type != 'transactions' else ''}
 
 FORMAT: XML (QuickBooks CRA audit export compatible)
 CURRENCY: CAD (Canadian Dollars)
@@ -1489,12 +2970,15 @@ DATE FORMAT: YYYY-MM-DD
 Generated via Arrow Limousine Reports Dashboard
 """
 
-            with open(tmppath / "README.txt", "w", encoding="utf-8") as f:
+            with open(
+                tmppath / "README.txt", "w", encoding="utf-8"
+            ) as f:
                 f.write(readme)
 
             # Create ZIP file
             zip_filename = (
-                f"CRA_Audit_Export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+                f"CRA_Audit_Export_"
+                f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
             )
             zip_path = tmppath / zip_filename
 
@@ -1536,8 +3020,13 @@ def get_quickbooks_export_views():
         if not views:
             return {
                 "status": "not_initialized",
-                "message": "QuickBooks export views not found. Run the migration script first.",
-                "migration_script": "migrations/create_quickbooks_export_views.sql",
+                "message": (
+                    "QuickBooks export views not found."
+                    " Run the migration script first."
+                ),
+                "migration_script": (
+                    "migrations/create_quickbooks_export_views.sql"
+                ),
             }
 
         # Get record count for each view
@@ -1549,7 +3038,10 @@ def get_quickbooks_export_views():
 
                 # Get friendly name
                 friendly_name = (
-                    view_name.replace("qb_export_", "").replace("_", " ").title()
+                    view_name
+                    .replace("qb_export_", "")
+                    .replace("_", " ")
+                    .title()
                 )
 
                 view_info.append(
@@ -1557,7 +3049,9 @@ def get_quickbooks_export_views():
                         "view_name": view_name,
                         "friendly_name": friendly_name,
                         "record_count": count,
-                        "export_filename": f"{friendly_name.replace(' ', '_')}.csv",
+                        "export_filename": (
+                            f"{friendly_name.replace(' ', '_')}.csv"
+                        ),
                     }
                 )
             except Exception as e:
@@ -1612,7 +3106,10 @@ def export_quickbooks_view(
         )
 
         if not cur.fetchone()[0]:
-            return Response(status_code=404, content=f"View '{view_name}' not found")
+            return Response(
+                status_code=404,
+                content=f"View '{view_name}' not found",
+            )
 
         # Build query with optional date filtering
         query = f"SELECT * FROM {view_name}"
@@ -1620,7 +3117,8 @@ def export_quickbooks_view(
 
         # Check if view has a "Date" column
         cur.execute(
-            "SELECT column_name FROM information_schema.columns WHERE table_name = %s AND column_name = 'Date'",
+            "SELECT column_name FROM information_schema.columns"
+            " WHERE table_name = %s AND column_name = 'Date'",
             (view_name,),
         )
         has_date_column = cur.fetchone() is not None
@@ -1663,7 +3161,11 @@ def export_quickbooks_view(
             return Response(
                 content=output.getvalue(),
                 media_type="text/csv",
-                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+                headers={
+                    "Content-Disposition": (
+                        f'attachment; filename="{filename}"'
+                    )
+                },
             )
 
         else:
@@ -1701,7 +3203,10 @@ def export_all_quickbooks_views(
         views = [row[0] for row in cur.fetchall()]
 
         if not views:
-            return Response(status_code=404, content="No QuickBooks export views found")
+            return Response(
+                status_code=404,
+                content="No QuickBooks export views found",
+            )
 
         # Create temporary directory
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1715,7 +3220,8 @@ def export_all_quickbooks_views(
 
                 # Check if view has a "Date" column
                 cur.execute(
-                    "SELECT column_name FROM information_schema.columns WHERE table_name = %s AND column_name = 'Date'",
+                    "SELECT column_name FROM information_schema.columns"
+                    " WHERE table_name = %s AND column_name = 'Date'",
                     (view_name,),
                 )
                 has_date_column = cur.fetchone() is not None
@@ -1747,15 +3253,16 @@ def export_all_quickbooks_views(
                     writer.writerows(rows)
 
             # Create README
-            date_range_text = ""
             if start_date and end_date:
                 date_range_text = f"\nDate Range: {start_date} to {end_date}"
             elif start_date:
                 date_range_text = f"\nDate Range: From {start_date}"
             elif end_date:
                 date_range_text = f"\nDate Range: Up to {end_date}"
+            else:
+                date_range_text = ""
 
-            readme = """QUICKBOOKS EXPORT FROM ALMSDATA DATABASE
+            readme = f"""QUICKBOOKS EXPORT FROM ALMSDATA DATABASE
 {'=' * 70}
 
 Export Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
@@ -1770,9 +3277,15 @@ EXPORTED FILES
                 cur.execute(f"SELECT COUNT(*) FROM {view_name}")
                 count = cur.fetchone()[0]
                 friendly_name = (
-                    view_name.replace("qb_export_", "").replace("_", " ").title()
+                    view_name
+                    .replace("qb_export_", "")
+                    .replace("_", " ")
+                    .title()
                 )
-                readme += f"✓ {view_name}.csv - {friendly_name} ({count:,} records)\n"
+                readme += (
+                    f"✓ {view_name}.csv - "
+                    f"{friendly_name} ({count:,} records)\n"
+                )
 
             readme += """
 {'=' * 70}
@@ -1791,7 +3304,9 @@ Start with Chart of Accounts, then Customers/Vendors, then Transactions.
 Generated via Arrow Limousine QuickBooks Dashboard
 """
 
-            with open(tmppath / "README.txt", "w", encoding="utf-8") as f:
+            with open(
+                tmppath / "README.txt", "w", encoding="utf-8"
+            ) as f:
                 f.write(readme)
 
             # Create ZIP file
@@ -1799,7 +3314,10 @@ Generated via Arrow Limousine QuickBooks Dashboard
             if start_date and end_date:
                 date_suffix = f"_{start_date}_to_{end_date}"
 
-            zip_filename = f"QuickBooks_Export_{datetime.now().strftime('%Y%m%d_%H%M%S')}{date_suffix}.zip"
+            zip_filename = (
+                f"QuickBooks_Export_"
+                f"{datetime.now().strftime('%Y%m%d_%H%M%S')}{date_suffix}.zip"
+            )
             zip_path = tmppath / zip_filename
 
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
@@ -1832,14 +3350,20 @@ def get_company_snapshot(
         # Calculate date range
         end_dt = datetime.now()
         if date_range == "today":
-            start_dt = end_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            start_dt = end_dt.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
         elif date_range == "wtd":
             start_dt = end_dt - timedelta(days=end_dt.weekday())
         elif date_range == "mtd":
             start_dt = end_dt.replace(day=1)
         elif date_range == "ytd":
             start_dt = end_dt.replace(month=1, day=1)
-        elif date_range == "custom" and start_date and end_date:
+        elif (
+            date_range == "custom"
+            and start_date
+            and end_date
+        ):
             start_dt = datetime.fromisoformat(start_date)
             end_dt = datetime.fromisoformat(end_date)
         else:
@@ -1887,12 +3411,14 @@ def get_company_snapshot(
         total_revenue = float(revenue_data[1] or 0)
         total_expenses = float(expense_data[1] or 0)
         profit = total_revenue - total_expenses
-        profit_margin = (profit / total_revenue * 100) if total_revenue > 0 else 0
+        profit_margin = (
+            (profit / total_revenue * 100) if total_revenue > 0 else 0
+        )
         charter_count = int(revenue_data[0] or 0)
         active_vehicles = int(vehicle_data[0] or 0)
 
         return {
-            "sections": [],  # Can be populated with detailed breakdowns if needed
+            "sections": [],  # Optional detailed breakdown sections.
             "grandTotals": {
                 "name": "NET PROFIT",
                 "amount": round(profit, 2),
@@ -1907,8 +3433,8 @@ def get_company_snapshot(
                 "expenses": round(total_expenses, 2),
                 "profit": round(profit, 2),
                 "profitMargin": round(profit_margin, 2),
-                "revenueChange": 0,  # Requires historical comparison
-                "expensesChange": 0,  # Requires historical comparison
+                "revenueChange": 0,  # Needs historical comparison.
+                "expensesChange": 0,  # Needs historical comparison.
                 "charters": charter_count,
                 "activeVehicles": active_vehicles,
             },

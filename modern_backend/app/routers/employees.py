@@ -1,4 +1,5 @@
 """Employees API Router: drivers and staff listing"""
+
 import os
 import shutil
 from pathlib import Path
@@ -14,7 +15,9 @@ FILE_STORAGE_ROOT = Path(os.environ.get("FILE_STORAGE_ROOT", "Z:/limo_files"))
 
 
 def create_employee_folder(employee_id: int) -> Path:
-    """Create employee folder structure from template when new employee is added."""
+    """Create employee folder structure from template when new employee is"
+    "added."""
+
     emp_folder = FILE_STORAGE_ROOT / "employees" / str(employee_id)
     if emp_folder.exists():
         return emp_folder
@@ -47,8 +50,7 @@ def list_employees():
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.execute(
-            """
+        cur.execute("""
             SELECT
                 employee_id,
                 first_name,
@@ -57,8 +59,7 @@ def list_employees():
             FROM employees
             ORDER BY first_name, last_name
             LIMIT 100
-            """
-        )
+            """)
         employees = []
         for row in cur.fetchall():
             first_name = row[1] or ""
@@ -76,7 +77,9 @@ def list_employees():
             )
         return employees
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list employees: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list employees: {e}"
+        )
     finally:
         cur.close()
         conn.close()
@@ -91,19 +94,18 @@ def list_drivers():
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.execute(
-            """
+        cur.execute("""
             SELECT
                 employee_id,
                 first_name,
                 last_name,
                 employee_category
             FROM employees
-            WHERE COALESCE(employee_category,'') ILIKE 'driver%' OR is_chauffeur = true
+                WHERE COALESCE(employee_category,'') ILIKE 'driver%'
+                    OR is_chauffeur = true
             ORDER BY first_name, last_name
             LIMIT 200
-            """
-        )
+            """)
         drivers = []
         for row in cur.fetchall():
             first_name = row[1] or ""
@@ -119,7 +121,9 @@ def list_drivers():
             )
         return drivers
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list drivers: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list drivers: {e}"
+        )
     finally:
         cur.close()
         conn.close()
@@ -164,7 +168,9 @@ def get_employee(employee_id: int):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get employee: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get employee: {e}"
+        )
     finally:
         cur.close()
         conn.close()
@@ -172,39 +178,112 @@ def get_employee(employee_id: int):
 
 @router.post("/")
 def create_employee(employee_data: dict):
-    """Create new employee and auto-create file storage folder."""
+    """Create or update employee and auto-create file storage folder."""
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.execute(
-            """
-            INSERT INTO employees (first_name, last_name, employee_category, hire_date, email, phone)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            RETURNING employee_id
-            """,
-            (
-                employee_data.get("first_name"),
-                employee_data.get("last_name"),
-                employee_data.get("employee_category"),
-                employee_data.get("hire_date"),
-                employee_data.get("email"),
-                employee_data.get("phone"),
-            ),
-        )
-        employee_id = cur.fetchone()[0]
+        first_name = employee_data.get("first_name")
+        last_name = employee_data.get("last_name")
+        employee_category = employee_data.get("employee_category")
+        hire_date = employee_data.get("hire_date")
+        email = employee_data.get("email")
+        phone = employee_data.get("phone")
+
+        existing_id = None
+
+        if email:
+            cur.execute(
+                """
+                SELECT employee_id
+                FROM employees
+                WHERE email IS NOT NULL
+                  AND LOWER(TRIM(email)) = LOWER(TRIM(%s))
+                ORDER BY employee_id
+                LIMIT 1
+                """,
+                (email,),
+            )
+            row = cur.fetchone()
+            if row:
+                existing_id = row[0]
+
+        if existing_id is None:
+            cur.execute(
+                """
+                SELECT employee_id
+                FROM employees
+                    WHERE LOWER(TRIM(COALESCE(first_name, ''))) =
+                        LOWER(TRIM(COALESCE(%s, '')))
+                                    AND LOWER(TRIM(COALESCE(last_name, ''))) =
+                                            LOWER(TRIM(COALESCE(%s, '')))
+                ORDER BY employee_id
+                LIMIT 1
+                """,
+                (first_name, last_name),
+            )
+            row = cur.fetchone()
+            if row:
+                existing_id = row[0]
+
+        if existing_id is not None:
+            cur.execute(
+                """
+                UPDATE employees
+                SET first_name = COALESCE(%s, first_name),
+                    last_name = COALESCE(%s, last_name),
+                    employee_category = COALESCE(%s, employee_category),
+                    hire_date = COALESCE(%s, hire_date),
+                    email = COALESCE(%s, email),
+                    phone = COALESCE(%s, phone)
+                WHERE employee_id = %s
+                """,
+                (
+                    first_name,
+                    last_name,
+                    employee_category,
+                    hire_date,
+                    email,
+                    phone,
+                    existing_id,
+                ),
+            )
+            employee_id = existing_id
+            status = "updated_existing"
+        else:
+            cur.execute(
+                """
+                INSERT INTO employees (first_name, last_name,
+                employee_category, hire_date, email, phone)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING employee_id
+                """,
+                (
+                    first_name,
+                    last_name,
+                    employee_category,
+                    hire_date,
+                    email,
+                    phone,
+                ),
+            )
+            employee_id = cur.fetchone()[0]
+            status = "created"
+
         conn.commit()
 
         # Auto-create employee folder structure
         try:
-            folder = create_employee_folder(employee_id)
+            create_employee_folder(employee_id)
         except Exception as folder_err:
             # Log error but don't fail the employee creation
             print(f"Warning: Failed to create employee folder: {folder_err}")
 
-        return {"employee_id": employee_id, "status": "created"}
+        return {"employee_id": employee_id, "status": status}
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to create employee: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create employee: {e}"
+        )
     finally:
         cur.close()
         conn.close()

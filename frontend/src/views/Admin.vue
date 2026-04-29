@@ -235,10 +235,86 @@
         </div>
       </div>
 
+      <div class="pdf-layout-editor">
+        <h3>Run Sheet PDF Layout Editor</h3>
+        <p class="pdf-layout-help">
+          Edit JSON settings for run-sheet layout (container widths, fonts, row heights, alignments).
+        </p>
+        <div class="pdf-layout-actions">
+          <button @click="loadPdfLayoutSettings" class="btn-secondary" :disabled="busy.pdfLayoutLoad">
+            {{ busy.pdfLayoutLoad ? 'Loading…' : 'Load Current' }}
+          </button>
+          <button @click="formatPdfLayoutJson" class="btn-info">Format JSON</button>
+          <button @click="savePdfLayoutSettings" class="btn-save" :disabled="busy.pdfLayoutSave">
+            {{ busy.pdfLayoutSave ? 'Saving…' : 'Save PDF Layout' }}
+          </button>
+          <button @click="resetPdfLayoutSettings" class="btn-secondary" :disabled="busy.pdfLayoutReset">
+            {{ busy.pdfLayoutReset ? 'Resetting…' : 'Reset Layout Defaults' }}
+          </button>
+        </div>
+
+        <div class="pdf-layout-presets">
+          <label for="pdf-layout-preset">Quick Preset</label>
+          <select id="pdf-layout-preset" v-model="selectedPdfPreset">
+            <option value="default">Default</option>
+            <option value="compact">Compact</option>
+            <option value="comfortable">Comfortable</option>
+          </select>
+          <button @click="applyPdfLayoutPreset" class="btn-primary" :disabled="busy.pdfLayoutPreset">
+            {{ busy.pdfLayoutPreset ? 'Applying…' : 'Apply Preset' }}
+          </button>
+        </div>
+
+        <div class="pdf-preview-controls">
+          <label for="pdf-preview-charter-id">Preview Charter ID</label>
+          <input
+            id="pdf-preview-charter-id"
+            v-model="previewCharterId"
+            type="number"
+            min="1"
+            step="1"
+          />
+          <button @click="refreshPdfLayoutPreview" class="btn-info" :disabled="busy.pdfLayoutPreview">
+            {{ busy.pdfLayoutPreview ? 'Refreshing…' : 'Refresh Preview' }}
+          </button>
+          <button @click="openPdfLayoutPreviewInNewTab" class="btn-secondary">
+            Open in New Tab
+          </button>
+          <button @click="saveAndRefreshPdfLayoutPreview" class="btn-save" :disabled="busy.pdfLayoutSave || busy.pdfLayoutPreview">
+            Save + Preview
+          </button>
+          <label class="pdf-preview-checkbox">
+            <input v-model="autoPreviewOnSave" type="checkbox" />
+            Auto-refresh preview after save
+          </label>
+        </div>
+
+        <textarea
+          v-model="pdfLayoutJson"
+          class="pdf-layout-textarea"
+          spellcheck="false"
+          placeholder="Loading PDF layout JSON..."
+        />
+
+        <iframe
+          v-if="pdfPreviewUrl"
+          :key="pdfPreviewUrl"
+          :src="pdfPreviewUrl"
+          class="pdf-preview-frame"
+          title="Run Sheet PDF Preview"
+        />
+
+        <details class="pdf-layout-schema" v-if="pdfLayoutSchemaJson">
+          <summary>Field Guide (types/ranges/options)</summary>
+          <pre>{{ pdfLayoutSchemaJson }}</pre>
+        </details>
+      </div>
+
       <div class="settings-actions">
         <button @click="saveSettings" class="btn-save">Save Settings</button>
         <button @click="resetSettings" class="btn-secondary">Reset to Defaults</button>
       </div>
+
     </div>
 
     <!-- Reports Tab -->
@@ -427,6 +503,11 @@ const busy = ref({
   addUser: false,
   loadUsers: false,
   exportUsers: false,
+  pdfLayoutLoad: false,
+  pdfLayoutSave: false,
+  pdfLayoutReset: false,
+  pdfLayoutPreset: false,
+  pdfLayoutPreview: false,
   createBackup: false,
   restoreBackup: false,
   downloadBackup: false,
@@ -457,11 +538,159 @@ const settings = ref({
 
 const lastBackup = ref('2025-09-17 14:30')
 const backupSize = ref('2.3 GB')
+const pdfLayoutJson = ref('')
+const pdfLayoutSchemaJson = ref('')
+const selectedPdfPreset = ref('default')
+const previewCharterId = ref('19883')
+const pdfPreviewUrl = ref('')
+const autoPreviewOnSave = ref(true)
 
 const filteredLogs = computed(() => {
   if (!selectedLogLevel.value) return logs.value
   return logs.value.filter(log => log.level === selectedLogLevel.value)
 })
+
+async function fetchJson(url, options = {}) {
+  const requestHeaders = options.headers ? { ...options.headers } : {}
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...requestHeaders
+    }
+  })
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    const detail = body?.detail || `Request failed (${response.status})`
+    throw new Error(detail)
+  }
+  return body
+}
+
+function formatPdfLayoutJson() {
+  try {
+    if (!pdfLayoutJson.value.trim()) return
+    pdfLayoutJson.value = JSON.stringify(JSON.parse(pdfLayoutJson.value), null, 2)
+  } catch {
+    toast.error('Cannot format: invalid JSON')
+  }
+}
+
+async function loadPdfLayoutSchema() {
+  try {
+    const schema = await fetchJson('/api/pdf-layout-settings/schema')
+    pdfLayoutSchemaJson.value = JSON.stringify(schema, null, 2)
+  } catch (error) {
+    console.error('Failed to load PDF layout schema:', error)
+  }
+}
+
+async function loadPdfLayoutSettings() {
+  if (busy.value.pdfLayoutLoad) return
+  busy.value.pdfLayoutLoad = true
+  try {
+    const settingsData = await fetchJson('/api/pdf-layout-settings')
+    pdfLayoutJson.value = JSON.stringify(settingsData, null, 2)
+    toast.success('PDF layout settings loaded')
+  } catch (error) {
+    toast.error(`Failed to load PDF layout settings: ${error.message || error}`)
+  } finally {
+    busy.value.pdfLayoutLoad = false
+  }
+}
+
+async function savePdfLayoutSettings() {
+  if (busy.value.pdfLayoutSave) return
+  busy.value.pdfLayoutSave = true
+  try {
+    const payload = JSON.parse(pdfLayoutJson.value || '{}')
+    const saved = await fetchJson('/api/pdf-layout-settings', {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    })
+    pdfLayoutJson.value = JSON.stringify(saved, null, 2)
+    toast.success('PDF layout settings saved')
+    if (autoPreviewOnSave.value) {
+      await refreshPdfLayoutPreview()
+    }
+    return true
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      toast.error('Invalid JSON: please fix syntax before saving')
+    } else {
+      toast.error(`Failed to save PDF layout settings: ${error.message || error}`)
+    }
+    return false
+  } finally {
+    busy.value.pdfLayoutSave = false
+  }
+}
+
+function buildPdfPreviewUrl() {
+  const id = Number.parseInt(String(previewCharterId.value), 10)
+  if (!Number.isFinite(id) || id <= 0) {
+    throw new Error('Preview Charter ID must be a positive number')
+  }
+  return `/api/charters/${id}/invoice-pdf-preview?_ts=${Date.now()}`
+}
+
+async function refreshPdfLayoutPreview() {
+  if (busy.value.pdfLayoutPreview) return
+  busy.value.pdfLayoutPreview = true
+  try {
+    pdfPreviewUrl.value = buildPdfPreviewUrl()
+  } catch (error) {
+    toast.error(error.message || 'Failed to refresh preview')
+  } finally {
+    busy.value.pdfLayoutPreview = false
+  }
+}
+
+function openPdfLayoutPreviewInNewTab() {
+  try {
+    window.open(buildPdfPreviewUrl(), '_blank', 'noopener')
+  } catch (error) {
+    toast.error(error.message || 'Failed to open preview')
+  }
+}
+
+async function saveAndRefreshPdfLayoutPreview() {
+  const didSave = await savePdfLayoutSettings()
+  if (didSave) {
+    await refreshPdfLayoutPreview()
+  }
+}
+
+async function resetPdfLayoutSettings() {
+  if (busy.value.pdfLayoutReset) return
+  if (!confirm('Reset PDF layout settings to defaults?')) return
+  busy.value.pdfLayoutReset = true
+  try {
+    const resetData = await fetchJson('/api/pdf-layout-settings/reset', { method: 'POST' })
+    pdfLayoutJson.value = JSON.stringify(resetData, null, 2)
+    toast.success('PDF layout settings reset to defaults')
+  } catch (error) {
+    toast.error(`Failed to reset PDF layout settings: ${error.message || error}`)
+  } finally {
+    busy.value.pdfLayoutReset = false
+  }
+}
+
+async function applyPdfLayoutPreset() {
+  if (busy.value.pdfLayoutPreset) return
+  busy.value.pdfLayoutPreset = true
+  try {
+    const presetData = await fetchJson(`/api/pdf-layout-settings/presets/${selectedPdfPreset.value}`, {
+      method: 'POST'
+    })
+    pdfLayoutJson.value = JSON.stringify(presetData, null, 2)
+    toast.success(`Applied ${selectedPdfPreset.value} preset`)
+  } catch (error) {
+    toast.error(`Failed to apply preset: ${error.message || error}`)
+  } finally {
+    busy.value.pdfLayoutPreset = false
+  }
+}
 
 async function loadSystemData() {
   try {
@@ -702,6 +931,9 @@ function formatDate(dateString) {
 
 onMounted(() => {
   loadSystemData()
+  loadPdfLayoutSettings()
+  loadPdfLayoutSchema()
+  refreshPdfLayoutPreview()
 })
 </script>
 
@@ -954,6 +1186,114 @@ onMounted(() => {
 
 .settings-actions {
   text-align: center;
+}
+
+.pdf-layout-editor {
+  background: white;
+  border-radius: 8px;
+  padding: 25px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.pdf-layout-help {
+  color: #555;
+  margin: 8px 0 14px;
+}
+
+.pdf-layout-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.pdf-layout-presets {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pdf-layout-presets label {
+  font-weight: 600;
+  color: #333;
+}
+
+.pdf-layout-presets select {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.pdf-preview-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.pdf-preview-controls label {
+  font-weight: 600;
+  color: #333;
+}
+
+.pdf-preview-controls input[type="number"] {
+  width: 120px;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.pdf-preview-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 6px;
+  font-weight: 500;
+}
+
+.pdf-layout-textarea {
+  width: 100%;
+  min-height: 280px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.pdf-preview-frame {
+  width: 100%;
+  height: 520px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-top: 12px;
+  background: #fff;
+}
+
+.pdf-layout-schema {
+  margin-top: 12px;
+}
+
+.pdf-layout-schema summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #333;
+}
+
+.pdf-layout-schema pre {
+  margin-top: 8px;
+  background: #f8f9fa;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 12px;
+  max-height: 260px;
+  overflow: auto;
 }
 
 .report-categories {

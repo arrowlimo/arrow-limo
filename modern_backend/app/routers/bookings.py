@@ -34,7 +34,8 @@ def list_bookings():
             c.pickup_time,
             c.status,
             c.locked AS closed,
-            CASE WHEN c.status = 'cancelled' THEN true ELSE false END AS cancelled,
+            CASE WHEN c.status = 'cancelled'
+                THEN true ELSE false END AS cancelled,
             COALESCE(c.charter_type, 'standard') AS charter_type,
             '{}' AS exchange_of_services_details,
             '4000' AS gl_revenue_code,
@@ -44,21 +45,26 @@ def list_bookings():
             c.total_amount_due,
             c.balance AS paid_amount,
             COALESCE(p.total_paid, 0) AS total_paid,
-            (COALESCE(c.total_amount_due, 0) - COALESCE(p.total_paid, 0)) AS balance,
+            (COALESCE(c.total_amount_due, 0) - COALESCE(p.total_paid,
+            0)) AS balance,
             CASE
-                WHEN c.locked = TRUE AND c.status != 'cancelled' THEN 'Reconciled'
+                WHEN c.locked = TRUE AND c.status != 'cancelled'
+                    THEN 'Reconciled'
                 WHEN c.status = 'cancelled' THEN 'Cancelled'
-                WHEN c.locked = FALSE AND c.status != 'cancelled' THEN 'Not Reconciled'
+                WHEN c.locked = FALSE AND c.status != 'cancelled'
+                    THEN 'Not Reconciled'
                 ELSE 'Unknown'
             END AS reconciliation_status,
             COALESCE(nrr.nrr_amount, 0) AS nrr_amount,
-            CASE WHEN nrr.nrr_amount > 0 THEN TRUE ELSE FALSE END AS nrr_received,
+            CASE WHEN nrr.nrr_amount > 0 THEN TRUE ELSE FALSE END AS
+            nrr_received,
             EXISTS (
                 SELECT 1
                 FROM beverage_orders bo
                 WHERE bo.reserve_number = c.reserve_number
                   AND bo.order_date >= date_trunc('week', CURRENT_DATE)
-                  AND bo.order_date < date_trunc('week', CURRENT_DATE) + interval '7 days') AS beverage_orders_this_week
+                  AND bo.order_date < date_trunc('week', CURRENT_DATE)
+                      + interval '7 days') AS beverage_orders_this_week
         FROM charters c
         LEFT JOIN clients cl ON c.client_id = cl.client_id
         LEFT JOIN vehicles v ON c.vehicle_id = v.vehicle_id
@@ -71,11 +77,14 @@ def list_bookings():
             SELECT reserve_number, COALESCE(SUM(amount), 0) AS nrr_amount
             FROM payments
             WHERE (
-                payment_label IN ('NRR', 'NRD', 'Non-Refundable Retainer', 'Retainer')
+                payment_label IN (
+                    'NRR', 'NRD', 'Non-Refundable Retainer', 'Retainer')
                 OR payment_key ILIKE '%NRR%'
                 OR payment_key ILIKE '%NRD%')
-            AND payment_label NOT IN ('Deposit', 'Security Deposit', 'Damage Deposit')
-            GROUP BY reserve_number) nrr ON nrr.reserve_number = c.reserve_number
+            AND payment_label NOT IN (
+                'Deposit', 'Security Deposit', 'Damage Deposit')
+            GROUP BY reserve_number) nrr ON nrr.reserve_number =
+            c.reserve_number
         ORDER BY c.charter_date DESC, c.charter_id DESC
         LIMIT 50
         """
@@ -86,7 +95,7 @@ def list_bookings():
     items: list[dict[str, Any]] = []
     for r in rows:
         rec = dict(zip(cols, r, strict=False))
-        
+
         items.append(
             {
                 "charter_id": rec.get("charter_id", ""),
@@ -100,19 +109,27 @@ def list_bookings():
                 "vehicle_id": rec.get("vehicle_id", ""),
                 "driver_name": rec.get("driver_name", ""),
                 "passenger_count": rec.get("passenger_count", 0),
-                "passenger_load": rec.get("passenger_count", 0),  # Alias for frontend compatibility
+                # Alias for frontend compatibility
+                "passenger_load": rec.get("passenger_count", 0),
                 "vehicle_capacity": rec.get("vehicle_capacity", 0),
                 "retainer": float(rec.get("retainer", 0) or 0.0),
-                "retainer_received": float(rec.get("retainer_received", 0) or 0.0),
+                "retainer_received": float(
+                    rec.get("retainer_received", 0) or 0.0
+                ),
                 "retainer_amount": float(rec.get("retainer_amount", 0) or 0.0),
                 "odometer_start": rec.get("odometer_start", ""),
                 "odometer_end": rec.get("odometer_end", ""),
                 "fuel_added": rec.get("fuel_added", ""),
-                "vehicle_notes": rec.get("vehicle_notes", "") or rec.get("notes", ""),
+                "vehicle_notes": rec.get("vehicle_notes", "")
+                or rec.get("notes", ""),
                 "itinerary": [],
                 "reserve_number": rec.get("reserve_number", ""),
                 "pickup_address": rec.get("pickup_address", ""),
-                "pickup_time": str(rec.get("pickup_time", "")) if rec.get("pickup_time") else "",
+                "pickup_time": (
+                    str(rec.get("pickup_time", ""))
+                    if rec.get("pickup_time")
+                    else ""
+                ),
                 "dropoff_address": rec.get("dropoff_address", ""),
                 "status": rec.get("status", ""),
                 "closed": bool(rec.get("closed", False)),
@@ -123,8 +140,12 @@ def list_bookings():
                 ),
                 "gl_revenue_code": rec.get("gl_revenue_code", "4000"),
                 "gl_expense_code": rec.get("gl_expense_code", "6100"),
-                "reconciliation_status": rec.get("reconciliation_status", "Unknown"),
-                "total_amount_due": float(rec.get("total_amount_due", 0) or 0.0),
+                "reconciliation_status": rec.get(
+                    "reconciliation_status", "Unknown"
+                ),
+                "total_amount_due": float(
+                    rec.get("total_amount_due", 0) or 0.0
+                ),
                 "paid_amount": float(rec.get("paid_amount", 0) or 0.0),
                 "total_paid": float(rec.get("total_paid", 0) or 0.0),
                 "balance": float(rec.get("balance", 0) or 0.0),
@@ -166,7 +187,8 @@ def get_booking(charter_id: int = Path(...)):
                 v.passenger_capacity AS vehicle_capacity
             FROM charters c
             LEFT JOIN clients cl ON c.client_id = cl.client_id
-            LEFT JOIN vehicles v ON CAST(c.vehicle_booked_id AS TEXT) = CAST(v.vehicle_number AS TEXT)
+            LEFT JOIN vehicles v ON CAST(c.vehicle_booked_id AS TEXT) =
+            CAST(v.vehicle_number AS TEXT)
             WHERE c.charter_id = %s
             """,
             (charter_id,),
@@ -210,13 +232,15 @@ def search_bookings(
 
 
 @router.patch("/bookings/{charter_id}")
-def update_booking(charter_id: int = Path(...), payload: dict[str, Any] | None = None):
+def update_booking(
+    charter_id: int = Path(...), payload: dict[str, Any] | None = None
+):
     payload = payload or {}
-    
+
     # Check if charter is locked
     with cursor() as cur:
         enforce_charter_not_locked(charter_id, cur)
-    
+
     allowed_fields = [
         "vehicle_booked_id",
         "vehicle_number",
@@ -229,9 +253,12 @@ def update_booking(charter_id: int = Path(...), payload: dict[str, Any] | None =
     set_clauses = ", ".join([f"{field} = %s" for field in updates])
     values = [*list(updates.values()), charter_id]
     with cursor() as cur:
-        cur.execute(f"UPDATE charters SET {set_clauses} WHERE charter_id = %s", values)
         cur.execute(
-            "SELECT charter_id, vehicle_booked_id, driver_name, notes FROM charters WHERE charter_id=%s",
+            f"UPDATE charters SET {set_clauses}  WHERE charter_id = %s", values
+        )
+        cur.execute(
+            "SELECT charter_id, vehicle_booked_id, driver_name, notes FROM"
+            "charters WHERE charter_id=%s",
             (charter_id,),
         )
         row = cur.fetchone()
@@ -245,7 +272,8 @@ def update_booking(charter_id: int = Path(...), payload: dict[str, Any] | None =
 def create_booking(payload: dict[str, Any] | None = None):
     """Create a new charter booking with minimal required fields.
 
-    This endpoint focuses on inserting into the `charters` table and generating a
+    This endpoint focuses on inserting into the `charters` table and
+    generating a
     `reserve_number`. It uses business keys appropriately and avoids guessing
     schema beyond verified columns from existing queries.
     """
@@ -270,19 +298,26 @@ def create_booking(payload: dict[str, Any] | None = None):
     billing_address = (payload.get("billing_address") or "").strip()
     city = (payload.get("city") or "").strip()
     province = (payload.get("province") or "").strip()
-    zip_code = (payload.get("postal_code") or "").strip()  # Fixed: DB column is zip_code
+    # Fixed: DB column is zip_code
+    zip_code = (payload.get("postal_code") or "").strip()
 
     charter_date = payload.get("charter_date")
     pickup_time = payload.get("pickup_time")
-    passenger_count = int(payload.get("passenger_load") or payload.get("passenger_count") or 1)  # Default to 1 passenger
-    vehicle_id = payload.get("vehicle_booked_id")  # Fixed: DB column is vehicle_id
-    assigned_driver_id = payload.get("assigned_driver_id")  # Use employee_id instead of driver_name
+    passenger_count = int(
+        payload.get("passenger_load") or payload.get("passenger_count") or 1
+    )  # Default to 1 passenger
+    # Fixed: DB column is vehicle_id
+    vehicle_id = payload.get("vehicle_booked_id")
+    # Use employee_id instead of driver_name
+    assigned_driver_id = payload.get("assigned_driver_id")
     status = payload.get("status") or "Quote"
     total_amount_due = payload.get("total_amount_due")
-    
+
     # Notes fields
-    client_notes = payload.get("customer_notes")  # Fixed: DB column is client_notes
-    driver_notes = payload.get("dispatcher_notes")  # Fixed: DB column is driver_notes
+    # Fixed: DB column is client_notes
+    client_notes = payload.get("customer_notes")
+    # Fixed: DB column is driver_notes
+    driver_notes = payload.get("dispatcher_notes")
     vehicle_notes = payload.get("special_requests")  # Maps to vehicle_notes
 
     # Derive pickup/dropoff from itinerary if present
@@ -312,7 +347,8 @@ def create_booking(payload: dict[str, Any] | None = None):
             else:
                 # Generate account_number (max numeric + 1)
                 cur.execute(
-                    "SELECT MAX(CAST(account_number AS INTEGER)) FROM clients WHERE account_number ~ '^[0-9]+$'"
+                    "SELECT MAX(CAST(account_number AS INTEGER)) FROM clients"
+                    "WHERE account_number ~ '^[0-9]+$'"
                 )
                 max_account = cur.fetchone()[0] or 7604
                 new_account_number = str(int(max_account) + 1)
@@ -320,15 +356,26 @@ def create_booking(payload: dict[str, Any] | None = None):
                 # Create a basic client record
                 cur.execute(
                     """
-                    INSERT INTO clients (account_number, client_name, phone, email, billing_address, city, province, zip_code)
+                    INSERT INTO clients (account_number, client_name, phone,
+                    email, billing_address, city, province, zip_code)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING client_id
                     """,
-                    (new_account_number, client_name, phone, email, billing_address, city, province, zip_code),
+                    (
+                        new_account_number,
+                        client_name,
+                        phone,
+                        email,
+                        billing_address,
+                        city,
+                        province,
+                        zip_code,
+                    ),
                 )
                 client_id = cur.fetchone()[0]
 
-        # Generate reserve_number via sequence if available; else fallback to max+1
+        # Generate reserve_number via sequence if available; else fallback to
+        # max+1
         reserve_number = None
         try:
             cur.execute("SELECT nextval('reserve_number_seq')")
@@ -337,7 +384,8 @@ def create_booking(payload: dict[str, Any] | None = None):
         except Exception:
             # Fallback: derive from current max reserve_number
             cur.execute(
-                "SELECT MAX(CAST(reserve_number AS INTEGER)) FROM charters WHERE reserve_number ~ '^\\d+$'"
+                "SELECT MAX(CAST(reserve_number AS INTEGER)) FROM charters"
+                "WHERE reserve_number ~ '^\\d+$'"
             )
             max_val = cur.fetchone()[0] or 0
             reserve_number = f"{int(max_val) + 1:06d}"
@@ -352,12 +400,16 @@ def create_booking(payload: dict[str, Any] | None = None):
                 assigned_driver_id = None  # Invalid employee_id, set to NULL
 
         # Check if client is GST exempt
-        cur.execute("SELECT gst_exempt FROM clients WHERE client_id = %s", (client_id,))
+        cur.execute(
+            "SELECT gst_exempt FROM clients WHERE client_id = %s", (client_id,)
+        )
         client_row = cur.fetchone()
         is_gst_exempt = client_row[0] if client_row else False
 
         # Get separate_customer_printout flag from payload
-        separate_customer_printout = payload.get("separate_customer_printout", False)
+        separate_customer_printout = payload.get(
+            "separate_customer_printout", False
+        )
 
         # Insert into charters table using correct column names
         cur.execute(
@@ -410,7 +462,7 @@ def create_booking(payload: dict[str, Any] | None = None):
                 stop_type = stop.get("type", "stop")
                 address = stop.get("address", "")
                 time_str = stop.get("time24", "")
-                
+
                 # Parse time string to time object
                 stop_time = None
                 if time_str:
@@ -419,16 +471,17 @@ def create_booking(payload: dict[str, Any] | None = None):
                         stop_time = time_str
                     except Exception:
                         stop_time = None
-                
+
                 # Determine pickup/dropoff based on stop type
-                # For route segments, each stop creates a row with that location as pickup
+                # For route segments, each stop creates a row with that
+                # location as pickup
                 # and next stop as dropoff (except last stop)
                 if seq < len(itinerary):
                     # Not the last stop - create segment to next stop
                     next_stop = itinerary[seq]
                     next_address = next_stop.get("address", "")
                     next_time = next_stop.get("time24", "")
-                    
+
                     cur.execute(
                         """
                         INSERT INTO charter_routes (
@@ -448,8 +501,8 @@ def create_booking(payload: dict[str, Any] | None = None):
                             stop_time,
                             next_address,
                             next_time,
-                            stop_type
-                        )
+                            stop_type,
+                        ),
                     )
                 else:
                     # Last stop - create row with just this location as dropoff
@@ -472,16 +525,16 @@ def create_booking(payload: dict[str, Any] | None = None):
                             None,
                             address,  # Last stop is final dropoff
                             stop_time,
-                            stop_type
-                        )
+                            stop_type,
+                        ),
                     )
 
         # Insert charges line items (business key: reserve_number)
         base_charge = payload.get("base_charge")
         airport_fee = payload.get("airport_fee")
-        additional_charges = payload.get("additional_charges_amount") or payload.get(
-            "additional_charges"
-        )
+        additional_charges = payload.get(
+            "additional_charges_amount"
+        ) or payload.get("additional_charges")
 
         if base_charge:
             try:
@@ -489,7 +542,8 @@ def create_booking(payload: dict[str, Any] | None = None):
                 if base_charge > 0:
                     cur.execute(
                         """
-                        INSERT INTO charges (reserve_number, charge_type, amount, description)
+                        INSERT INTO charges (reserve_number, charge_type,
+                        amount, description)
                         VALUES (%s, %s, %s, %s)
                         """,
                         (
@@ -508,7 +562,8 @@ def create_booking(payload: dict[str, Any] | None = None):
                 if airport_fee > 0:
                     cur.execute(
                         """
-                        INSERT INTO charges (reserve_number, charge_type, amount, description)
+                        INSERT INTO charges (reserve_number, charge_type,
+                        amount, description)
                         VALUES (%s, %s, %s, %s)
                         """,
                         (
@@ -527,7 +582,8 @@ def create_booking(payload: dict[str, Any] | None = None):
                 if additional_charges > 0:
                     cur.execute(
                         """
-                        INSERT INTO charges (reserve_number, charge_type, amount, description)
+                        INSERT INTO charges (reserve_number, charge_type,
+                        amount, description)
                         VALUES (%s, %s, %s, %s)
                         """,
                         (
@@ -540,7 +596,8 @@ def create_booking(payload: dict[str, Any] | None = None):
             except Exception:
                 pass
 
-        # Insert beverage charges from cart (taxable, not included in cart price)
+        # Insert beverage charges from cart (taxable, not included in cart
+        # price)
         beverage_total = payload.get("beverage_total")
         if beverage_total:
             try:
@@ -548,7 +605,8 @@ def create_booking(payload: dict[str, Any] | None = None):
                 if beverage_total > 0:
                     cur.execute(
                         """
-                        INSERT INTO charges (reserve_number, charge_type, amount, description)
+                        INSERT INTO charges (reserve_number, charge_type,
+                        amount, description)
                         VALUES (%s, %s, %s, %s)
                         """,
                         (
@@ -562,8 +620,11 @@ def create_booking(payload: dict[str, Any] | None = None):
                 pass
 
         # Insert gratuity (percentage-based: 18% default, or custom amount)
-        gratuity_percentage = payload.get("gratuity_percentage")  # e.g., 18.0 for 18%
-        gratuity_amount = payload.get("gratuity_amount")  # Override with fixed amount
+        gratuity_percentage = payload.get(
+            "gratuity_percentage"
+        )  # e.g., 18.0 for 18%
+        # Override with fixed amount
+        gratuity_amount = payload.get("gratuity_amount")
 
         if gratuity_amount:
             try:
@@ -571,7 +632,8 @@ def create_booking(payload: dict[str, Any] | None = None):
                 if gratuity_amount > 0:
                     cur.execute(
                         """
-                        INSERT INTO charges (reserve_number, charge_type, amount, description)
+                        INSERT INTO charges (reserve_number, charge_type,
+                        amount, description)
                         VALUES (%s, %s, %s, %s)
                         """,
                         (
@@ -591,11 +653,14 @@ def create_booking(payload: dict[str, Any] | None = None):
                     subtotal = (
                         float(total_amount_due) / 1.05
                     )  # Remove GST to get subtotal
-                    gratuity_calc = round(subtotal * gratuity_percentage / 100, 2)
+                    gratuity_calc = round(
+                        subtotal * gratuity_percentage / 100, 2
+                    )
                     if gratuity_calc > 0:
                         cur.execute(
                             """
-                            INSERT INTO charges (reserve_number, charge_type, amount, description)
+                            INSERT INTO charges (reserve_number, charge_type,
+                            amount, description)
                             VALUES (%s, %s, %s, %s)
                             """,
                             (
@@ -615,7 +680,8 @@ def create_booking(payload: dict[str, Any] | None = None):
             if gst_amount > 0:
                 cur.execute(
                     """
-                    INSERT INTO charges (reserve_number, charge_type, amount, description)
+                    INSERT INTO charges (reserve_number, charge_type, amount,
+                    description)
                     VALUES (%s, %s, %s, %s)
                     """,
                     (

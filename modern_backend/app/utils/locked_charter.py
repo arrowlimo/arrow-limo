@@ -6,20 +6,26 @@ from fastapi import HTTPException, status
 def check_charter_locked(charter_id: int, db_cursor) -> bool:
     """Check if a charter is locked."""
     try:
-        db_cursor.execute("SELECT locked FROM charters WHERE charter_id = %s", (charter_id,))
+        db_cursor.execute(
+            "SELECT locked FROM charters WHERE charter_id = %s", (charter_id,)
+        )
         result = db_cursor.fetchone()
         return result[0] if result else False
     except Exception:
         return False
 
 
-def enforce_charter_not_locked(charter_id: int, db_cursor, operation: str = "update") -> None:
+def enforce_charter_not_locked(
+    charter_id: int, db_cursor, operation: str = "update"
+) -> None:
     """Raise exception if charter is locked."""
     if check_charter_locked(charter_id, db_cursor):
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
-            detail=f"Charter {charter_id} is locked and cannot be {operation}d. "
-            "Contact administrator to unlock if changes are needed.",
+            detail=(
+                f"Charter {charter_id} is locked and cannot be {operation}d. "
+                "Contact administrator to unlock if changes are needed."
+            ),
         )
 
 

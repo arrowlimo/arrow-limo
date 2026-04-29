@@ -2,13 +2,16 @@
 """
 API endpoints for physical receipt verification.
 """
+
 import os
 
 import psycopg2
 from fastapi import APIRouter, HTTPException, Query
 from psycopg2.extras import RealDictCursor
 
-router = APIRouter(prefix="/api/receipts/verification", tags=["receipt_verification"])
+router = APIRouter(
+    prefix="/api/receipts/verification", tags=["receipt_verification"]
+)
 
 
 def get_db_connection():
@@ -35,17 +38,17 @@ async def get_verification_summary():
 
     try:
         # Use materialized view for better performance
-        cur.execute(
-            """
+        cur.execute("""
             SELECT * FROM mv_receipt_verification_summary;
-        """
-        )
+        """)
         result = cur.fetchone()
         return {
             "total_receipts": result["total_receipts"],
             "verified_count": result["physically_verified_count"],
             "unverified_count": result["unverified_count"],
-            "verification_percentage": float(result["verification_percentage"] or 0),
+            "verification_percentage": float(
+                result["verification_percentage"] or 0
+            ),
         }
     finally:
         cur.close()
@@ -60,12 +63,10 @@ async def get_verification_by_year():
 
     try:
         # Use materialized view for better performance
-        cur.execute(
-            """
+        cur.execute("""
             SELECT * FROM mv_receipt_verification_by_year
             ORDER BY year;
-        """
-        )
+        """)
         return [dict(row) for row in cur.fetchall()]
     finally:
         cur.close()
@@ -81,12 +82,15 @@ async def get_unverified_receipts(
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
-        where = "r.is_paper_verified = FALSE AND r.business_personal != 'personal' AND r.is_personal_purchase = FALSE"
+        where = (
+            "r.is_paper_verified = FALSE "
+            "AND r.business_personal != 'personal' "
+            "AND r.is_personal_purchase = FALSE"
+        )
         if year:
             where += f" AND EXTRACT(YEAR FROM r.receipt_date) = {year}"
 
-        cur.execute(
-            f"""
+        cur.execute(f"""
             SELECT
               r.receipt_id,
               r.receipt_date,
@@ -94,13 +98,16 @@ async def get_unverified_receipts(
               r.gross_amount,
               r.category,
               r.banking_transaction_id,
-              CASE WHEN r.banking_transaction_id IS NOT NULL THEN 'Linked to banking' ELSE 'Not linked' END as status
+                            CASE
+                                WHEN r.banking_transaction_id IS NOT NULL
+                                THEN 'Linked to banking'
+                                ELSE 'Not linked'
+                            END as status
             FROM receipts r
             WHERE {where}
             ORDER BY r.receipt_date DESC
             LIMIT {limit};
-        """
-        )
+        """)
         return [dict(row) for row in cur.fetchall()]
     finally:
         cur.close()
@@ -190,8 +197,7 @@ async def get_verified_receipts(
         if year:
             where += f" AND EXTRACT(YEAR FROM r.receipt_date) = {year}"
 
-        cur.execute(
-            f"""
+        cur.execute(f"""
             SELECT
               r.receipt_id,
               r.receipt_date,
@@ -202,12 +208,12 @@ async def get_verified_receipts(
               bt.transaction_date,
               bt.description
             FROM receipts r
-            LEFT JOIN banking_transactions bt ON r.banking_transaction_id = bt.transaction_id
+            LEFT JOIN banking_transactions bt ON r.banking_transaction_id =
+            bt.transaction_id
             WHERE {where}
             ORDER BY r.receipt_date DESC
             LIMIT {limit};
-        """
-        )
+        """)
         return [dict(row) for row in cur.fetchall()]
     finally:
         cur.close()

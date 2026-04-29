@@ -1,0 +1,29 @@
+REFACTOR PLAN: Route-integrated HOS Record of Duty Status
+
+SECTION 1: Simplified CDDL Header Box
+========================================
+Driver: [name]    Date: [mm/dd]    License#: [lic]    Work Shift Start: [time] [Trip 1 note if 2nd]
+
+SECTION 2: HOS Table from Routing (replaces current grid)
+===========================================================
+Build a ReportLab Table with columns:
+  - Location/Event (P/U, Leave, etc.)
+  - Time (start, arrive, leave as applicable)
+  - Description (from route_notes or address)
+  - Duty Status (On-Duty, Off-Duty, Driving a Bus [if >10 pax, else just On-Duty for driving])
+  - Comments
+
+First row: Start Workshift @ [time]
+Then: All routing entries (ordered by sequence)
+Then: 4 blank rows
+Then: Totals row (Off-Duty hrs, On-Duty hrs, Driving a Bus hrs [if applicable])
+
+SECTION 3: Vehicle Info Block
+===============================
+Vehicle ID: [L-8]
+Home Terminal: 38014 C and E Trail, Red Deer County, AB T4E 1R9
+Start Odometer: [____]   End Odometer: [____]   Total Distance: [____]
+Fuel Added: [____] L   Float Amount: $[____]   Reimbursement Needed: [ ]
+Driver Signature: ________________________________   Date: __________
+
+SECTION 4: Exemption Statement & Beverages/Notes remain as-is

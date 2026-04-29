@@ -1,4 +1,6 @@
-"""Customers API Router: search/autocomplete for booking form and full customer list"""
+"""Customers API Router: search/autocomplete for booking form and full"
+"customer list"""
+
 from fastapi import APIRouter, HTTPException, Query
 
 from ..db import get_connection
@@ -13,7 +15,8 @@ def search_customers(
 ):
     """Search customers by name or phone for autocomplete.
 
-    Uses the existing `clients` table, returning fields needed by the LMS booking form.
+    Uses the existing `clients` table,
+    returning fields needed by the LMS booking form.
     """
     q = (q or "").strip()
     conn = get_connection()
@@ -26,7 +29,8 @@ def search_customers(
             """
             SELECT client_id, client_name, phone, email
             FROM clients
-            WHERE COALESCE(client_name,'') ILIKE %s OR COALESCE(phone,'') ILIKE %s
+            WHERE COALESCE(client_name,'') ILIKE %s
+               OR COALESCE(phone,'') ILIKE %s
             ORDER BY client_name
             LIMIT %s
             """,
@@ -44,7 +48,9 @@ def search_customers(
         ]
         return {"results": results, "count": len(results)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to search customers: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to search customers: {e}"
+        )
     finally:
         cur.close()
         conn.close()
@@ -53,7 +59,7 @@ def search_customers(
 @router.get("/")
 def list_all_customers():
     """List all customers/clients for Customer Management view.
-    
+
     Returns fields:
     - client_id, client_name, client_type, phone, email, company_name
     - is_gst_exempt, last_booking_date
@@ -61,8 +67,7 @@ def list_all_customers():
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.execute(
-            """
+        cur.execute("""
             SELECT 
                 cl.client_id,
                 cl.client_name,
@@ -77,8 +82,7 @@ def list_all_customers():
             GROUP BY cl.client_id, cl.client_name, cl.client_type, cl.phone, 
                      cl.email, cl.company_name, cl.is_gst_exempt
             ORDER BY cl.client_name
-            """
-        )
+            """)
         customers = []
         for row in cur.fetchall():
             customers.append(
@@ -96,7 +100,9 @@ def list_all_customers():
             )
         return customers
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list customers: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list customers: {e}"
+        )
     finally:
         cur.close()
         conn.close()

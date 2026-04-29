@@ -19,7 +19,7 @@ def test_max_charter_routes(db_cursor, cleanup_test_data):
     # Add 15 routes
     for i in range(15):
         db_cursor.execute("""
-            INSERT INTO charter_routes (charter_id, stop_number, location, stop_time)
+            INSERT INTO charter_routes (charter_id, route_sequence, pickup_location, pickup_time)
             VALUES (%s, %s, %s, %s)
         """, (charter_id, i + 1, f"Stop {i + 1}", f"{10 + i}:00:00"))
     

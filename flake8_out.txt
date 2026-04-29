@@ -1,0 +1,846 @@
+desktop_app\accountant_notes_widget.py:12:1: F401 'PyQt6.QtGui.QColor' imported but unused
+desktop_app\asset_management_widget.py:15:1: E402 module level import not at top of file
+desktop_app\asset_management_widget.py:16:1: E402 module level import not at top of file
+desktop_app\asset_management_widget.py:17:1: E402 module level import not at top of file
+desktop_app\asset_management_widget.py:647:17: F841 local variable '_result' is assigned to but never used
+desktop_app\asset_management_widget.py:851:13: F841 local variable '_description' is assigned to but never used
+desktop_app\asset_management_widget.py:851:27: F841 local variable '_ok' is assigned to but never used
+desktop_app\asset_management_widget.py:927:13: F841 local variable '_result' is assigned to but never used
+desktop_app\beverage_reconciliation_widget.py:63:16: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:64:14: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:66:15: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:67:15: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:288:26: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:289:23: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:291:24: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:292:30: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:293:23: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:363:17: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:374:9: F841 local variable 'today' is assigned to but never used
+desktop_app\beverage_reconciliation_widget.py:385:14: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:390:15: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:392:15: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:393:15: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:449:21: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:450:16: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:451:23: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:452:19: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:453:12: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:454:23: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:498:16: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:499:16: E221 multiple spaces before operator
+desktop_app\beverage_reconciliation_widget.py:500:16: E221 multiple spaces before operator
+desktop_app\business_entity_drill_down.py:37:1: E402 module level import not at top of file
+desktop_app\charter_form_widget.py:30:1: F401 'PyQt6.QtPrintSupport.QPrintDialog' imported but unused
+desktop_app\charter_form_widget.py:30:1: F401 'PyQt6.QtPrintSupport.QPrinter' imported but unused
+desktop_app\charter_form_widget.py:3953:13: F811 redefinition of unused 'QPrinter' from line 30
+desktop_app\charter_form_widget.py:4572:13: F811 redefinition of unused 'QPrinter' from line 30
+desktop_app\charter_form_widget.py:8067:9: F811 redefinition of unused 'QPrintDialog' from line 30
+desktop_app\charter_form_widget.py:8067:9: F811 redefinition of unused 'QPrinter' from line 30
+desktop_app\charter_form_widget.py:8087:13: F811 redefinition of unused 'QPrinter' from line 30
+desktop_app\charter_form_widget.py:8651:19: E221 multiple spaces before operator
+desktop_app\charter_form_widget.py:8652:19: E221 multiple spaces before operator
+desktop_app\charter_form_widget.py:8653:19: E221 multiple spaces before operator
+desktop_app\charter_form_widget.py:8655:22: E221 multiple spaces before operator
+desktop_app\client_drill_down.py:904:13: F841 local variable '_new_name' is assigned to but never used
+desktop_app\client_drill_down.py:904:24: F841 local variable '_ok' is assigned to but never used
+desktop_app\client_finder_dialog.py:171:9: F841 local variable '_parent_child_map' is assigned to but never used
+desktop_app\crystal_reports_widget.py:15:1: F401 'datetime.timedelta' imported but unused
+desktop_app\crystal_reports_widget.py:320:13: E731 do not assign a lambda expression, use a def
+desktop_app\crystal_reports_widget.py:321:21: E221 multiple spaces before operator
+desktop_app\crystal_reports_widget.py:323:23: E221 multiple spaces before operator
+desktop_app\crystal_reports_widget.py:324:21: E221 multiple spaces before operator
+desktop_app\crystal_reports_widget.py:326:22: E221 multiple spaces before operator
+desktop_app\crystal_reports_widget.py:327:23: E221 multiple spaces before operator
+desktop_app\crystal_reports_widget.py:328:21: E221 multiple spaces before operator
+desktop_app\crystal_reports_widget.py:329:23: E221 multiple spaces before operator
+desktop_app\crystal_reports_widget.py:330:21: E221 multiple spaces before operator
+desktop_app\crystal_reports_widget.py:331:23: E221 multiple spaces before operator
+desktop_app\crystal_reports_widget.py:333:23: E221 multiple spaces before operator
+desktop_app\crystal_reports_widget.py:358:34: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:358:45: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:359:14: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:361:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:362:58: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:362:77: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:363:56: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:363:64: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:368:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:372:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:373:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:374:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:376:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:377:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:377:26: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:377:44: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:377:47: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:377:58: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:378:34: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:378:50: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:378:67: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:378:88: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:378:108: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:379:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:383:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:385:13: E731 do not assign a lambda expression, use a def
+desktop_app\crystal_reports_widget.py:385:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:386:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:387:24: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:388:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:389:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:390:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:390:41: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:390:50: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:390:73: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:390:82: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:391:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:392:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:408:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:412:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:413:23: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:414:23: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:415:18: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:418:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:420:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:420:32: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:420:43: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:421:14: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:423:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:424:58: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:424:77: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:425:100: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:425:108: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:430:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:432:13: E731 do not assign a lambda expression, use a def
+desktop_app\crystal_reports_widget.py:432:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:433:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:434:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:435:22: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:436:24: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:452:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:452:32: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:452:43: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:453:14: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:455:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:456:60: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:456:81: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:457:52: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:457:60: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:459:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:461:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:462:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:463:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:465:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:466:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:466:26: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:466:44: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:466:47: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:466:58: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:467:34: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:467:50: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:467:66: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:468:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:472:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:474:13: E731 do not assign a lambda expression, use a def
+desktop_app\crystal_reports_widget.py:474:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:475:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:476:24: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:477:22: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:478:22: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:478:50: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:478:60: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:479:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:479:45: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:479:55: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:480:22: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:480:51: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:480:61: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:481:24: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:481:40: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:481:52: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:482:22: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:483:22: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:501:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:501:32: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:501:43: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:502:14: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:504:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:505:58: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:505:77: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:507:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:509:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:514:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:515:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:516:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:518:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:519:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:519:26: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:519:44: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:519:47: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:519:58: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:520:36: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:520:61: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:520:82: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:521:31: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:521:61: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:521:79: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:522:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:526:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:540:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:540:32: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:540:43: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:541:14: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:542:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:543:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:544:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:545:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:547:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:548:39: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:548:42: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:548:59: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:549:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:553:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:555:13: E731 do not assign a lambda expression, use a def
+desktop_app\crystal_reports_widget.py:555:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:556:13: E731 do not assign a lambda expression, use a def
+desktop_app\crystal_reports_widget.py:556:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:557:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:558:24: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:559:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:560:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:561:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:562:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:563:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:564:22: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:565:20: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:566:24: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:567:22: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:568:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:569:22: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:570:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:576:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:589:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:589:32: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:589:43: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:590:14: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:592:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:593:58: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:593:77: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:594:56: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:594:64: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:596:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:600:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:601:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:602:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:604:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:605:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:605:26: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:605:44: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:605:47: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:605:66: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:606:26: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:606:29: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:606:48: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:607:32: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:607:53: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:607:73: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:608:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:612:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:625:17: E128 continuation line under-indented for visual indent
+desktop_app\crystal_reports_widget.py:626:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:626:32: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:626:43: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:627:14: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:629:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:630:60: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:630:81: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:631:26: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:633:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:634:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:635:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:636:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:638:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:639:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:639:26: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:639:44: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:639:47: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:639:58: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:639:61: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:639:80: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:640:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:644:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:646:13: E731 do not assign a lambda expression, use a def
+desktop_app\crystal_reports_widget.py:646:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:647:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:648:24: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:649:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:650:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:651:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:652:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:653:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:654:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:655:22: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:656:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:657:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:660:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:680:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:680:32: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:680:43: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:681:14: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:683:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:684:58: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:684:77: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:685:56: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:685:64: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:686:36: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:688:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:692:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:693:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:694:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:696:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:697:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:697:26: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:697:44: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:697:47: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:697:58: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:698:34: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:698:50: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:698:70: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:699:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:703:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:721:17: E128 continuation line under-indented for visual indent
+desktop_app\crystal_reports_widget.py:722:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:722:32: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:722:43: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:723:14: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:725:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:726:64: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:726:89: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:727:67: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:727:75: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:729:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:733:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:734:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:735:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:737:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:738:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:738:26: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:738:44: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:738:47: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:738:58: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:739:33: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:739:55: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:739:71: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:740:31: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:741:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:745:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:747:13: E731 do not assign a lambda expression, use a def
+desktop_app\crystal_reports_widget.py:747:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:748:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:749:24: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:750:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:751:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:752:24: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:753:22: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:754:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:755:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:756:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:757:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:758:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:759:24: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:760:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:761:20: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:762:20: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:763:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:778:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:782:24: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:783:23: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:784:23: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:785:27: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:788:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:790:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:790:32: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:790:43: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:791:14: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:793:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:794:58: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:794:77: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:795:56: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:795:64: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:803:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:804:9: E128 continuation line under-indented for visual indent
+desktop_app\crystal_reports_widget.py:805:9: E128 continuation line under-indented for visual indent
+desktop_app\crystal_reports_widget.py:806:9: E128 continuation line under-indented for visual indent
+desktop_app\crystal_reports_widget.py:807:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:808:9: E128 continuation line under-indented for visual indent
+desktop_app\crystal_reports_widget.py:812:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:812:19: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:812:32: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:812:35: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:812:49: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:812:52: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:812:66: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:812:69: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:812:83: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:816:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:816:31: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:816:65: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:817:14: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:818:59: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:820:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:822:26: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:822:38: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:823:33: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:826:28: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:827:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:827:37: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:828:41: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:828:60: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:830:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:831:27: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:831:43: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:832:24: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:832:36: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:836:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:836:39: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:837:22: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:837:34: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:839:51: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:841:27: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:841:58: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:842:43: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:842:62: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:844:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:845:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:845:50: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:846:55: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:847:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:847:50: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:848:55: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:849:23: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:849:55: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:850:60: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:851:29: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:853:26: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:854:56: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:856:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:856:34: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:867:12: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:868:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:869:44: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:870:27: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:872:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:873:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:879:53: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:880:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:881:12: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:882:19: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:883:20: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:884:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:885:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:885:38: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:885:44: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:886:14: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:887:12: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:888:39: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:889:41: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:891:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:892:56: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:896:20: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:896:26: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:896:40: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:896:47: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:896:61: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:897:38: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:897:69: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:898:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:899:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:899:48: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:900:19: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:901:13: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:905:38: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:909:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:909:34: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:909:39: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:910:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:912:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:914:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:916:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:918:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:920:17: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:929:12: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:930:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:930:35: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:931:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:931:29: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:932:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:932:24: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:933:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:933:34: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:934:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:934:31: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:935:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:935:35: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:936:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:936:33: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:945:20: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:947:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:948:70: E227 missing whitespace around bitwise or shift operator
+desktop_app\crystal_reports_widget.py:950:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:951:70: E227 missing whitespace around bitwise or shift operator
+desktop_app\crystal_reports_widget.py:953:25: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:964:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:965:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:965:48: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:966:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:967:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:969:72: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:970:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:971:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:972:20: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:975:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:975:32: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:976:37: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:982:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:984:15: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:985:54: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:989:21: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:990:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:990:48: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:991:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:992:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:993:18: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:994:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:995:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:996:13: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:1003:20: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:1004:41: E701 multiple statements on one line (colon)
+desktop_app\crystal_reports_widget.py:1004:46: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:1008:12: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:1008:28: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:1009:16: E225 missing whitespace around operator
+desktop_app\crystal_reports_widget.py:1009:34: E702 multiple statements on one line (semicolon)
+desktop_app\crystal_reports_widget.py:1009:61: E702 multiple statements on one line (semicolon)
+desktop_app\dashboards_phase4_5_6.py:873:21: F841 local variable '_active_cond' is assigned to but never used
+desktop_app\dashboards_phase7_8.py:1460:65: F841 local variable '_cur' is assigned to but never used
+desktop_app\deposit_slip_dialog.py:14:1: F401 'psycopg2' imported but unused
+desktop_app\deposit_slip_dialog.py:16:1: F401 'PyQt6.QtGui.QColor' imported but unused
+desktop_app\deposit_slip_dialog.py:16:1: F401 'PyQt6.QtGui.QFont' imported but unused
+desktop_app\deposit_slip_dialog.py:17:1: F401 'PyQt6.QtWidgets.QTextEdit' imported but unused
+desktop_app\deposit_slip_dialog.py:17:1: F401 'PyQt6.QtWidgets.QWidget' imported but unused
+desktop_app\deposit_slip_dialog.py:147:13: E741 ambiguous variable name 'l'
+desktop_app\dispatcher_calendar_widget.py:22:1: E402 module level import not at top of file
+desktop_app\dispatcher_calendar_widget.py:23:1: E402 module level import not at top of file
+desktop_app\dispatcher_calendar_widget.py:24:1: E402 module level import not at top of file
+desktop_app\drill_down_widgets.py:18:1: E402 module level import not at top of file
+desktop_app\drill_down_widgets.py:19:1: E402 module level import not at top of file
+desktop_app\drill_down_widgets.py:20:1: E402 module level import not at top of file
+desktop_app\drill_down_widgets.py:44:1: E402 module level import not at top of file
+desktop_app\drill_down_widgets.py:45:1: E402 module level import not at top of file
+desktop_app\employee_drill_down.py:192:21: F841 local variable '_status_color' is assigned to but never used
+desktop_app\employee_management_widget.py:852:53: E127 continuation line over-indented for visual indent
+desktop_app\enhanced_banking_manager.py:991:9: F401 'PyQt6.QtWidgets.QScrollArea' imported but unused
+desktop_app\enhanced_banking_manager.py:991:9: F401 'PyQt6.QtWidgets.QWidget as _QWidget' imported but unused
+desktop_app\enhanced_receipts_import_export.py:211:17: F841 local variable '_result' is assigned to but never used
+desktop_app\enhanced_receipts_manager.py:1040:9: F841 local variable 'receipt_id_idx' is assigned to but never used
+desktop_app\function_executor.py:33:1: E402 module level import not at top of file
+desktop_app\login_dialog.py:18:1: E402 module level import not at top of file
+desktop_app\login_dialog.py:19:1: E402 module level import not at top of file
+desktop_app\login_dialog.py:20:1: E402 module level import not at top of file
+desktop_app\login_dialog.py:21:1: E402 module level import not at top of file
+desktop_app\login_manager.py:20:1: E402 module level import not at top of file
+desktop_app\login_manager.py:21:1: E402 module level import not at top of file
+desktop_app\login_manager.py:23:1: E402 module level import not at top of file
+desktop_app\main.py:29:1: E402 module level import not at top of file
+desktop_app\main.py:30:1: E402 module level import not at top of file
+desktop_app\main.py:36:1: E402 module level import not at top of file
+desktop_app\main.py:37:1: E402 module level import not at top of file
+desktop_app\main.py:38:1: E402 module level import not at top of file
+desktop_app\main.py:39:1: E402 module level import not at top of file
+desktop_app\main.py:40:1: E402 module level import not at top of file
+desktop_app\main.py:42:1: E402 module level import not at top of file
+desktop_app\main.py:43:1: E402 module level import not at top of file
+desktop_app\main.py:48:1: E402 module level import not at top of file
+desktop_app\main.py:83:1: E402 module level import not at top of file
+desktop_app\main.py:84:1: E402 module level import not at top of file
+desktop_app\main.py:87:1: E402 module level import not at top of file
+desktop_app\main.py:88:1: E402 module level import not at top of file
+desktop_app\main.py:89:1: E402 module level import not at top of file
+desktop_app\main.py:90:1: E402 module level import not at top of file
+desktop_app\main.py:95:1: E402 module level import not at top of file
+desktop_app\main.py:96:1: E402 module level import not at top of file
+desktop_app\main.py:99:1: E402 module level import not at top of file
+desktop_app\main.py:100:1: E402 module level import not at top of file
+desktop_app\main.py:119:1: E402 module level import not at top of file
+desktop_app\main.py:137:1: E402 module level import not at top of file
+desktop_app\main.py:156:1: E402 module level import not at top of file
+desktop_app\main.py:168:1: E402 module level import not at top of file
+desktop_app\main.py:193:1: E402 module level import not at top of file
+desktop_app\main.py:222:1: E402 module level import not at top of file
+desktop_app\main.py:252:1: E402 module level import not at top of file
+desktop_app\main.py:253:1: E402 module level import not at top of file
+desktop_app\main.py:254:1: E402 module level import not at top of file
+desktop_app\main.py:255:1: E402 module level import not at top of file
+desktop_app\main.py:256:1: E402 module level import not at top of file
+desktop_app\main.py:259:1: E402 module level import not at top of file
+desktop_app\main.py:260:1: E402 module level import not at top of file
+desktop_app\main.py:261:1: E402 module level import not at top of file
+desktop_app\main.py:262:1: E402 module level import not at top of file
+desktop_app\main.py:263:1: E402 module level import not at top of file
+desktop_app\main.py:264:1: E402 module level import not at top of file
+desktop_app\main.py:265:1: E402 module level import not at top of file
+desktop_app\main.py:268:1: E402 module level import not at top of file
+desktop_app\main.py:269:1: E402 module level import not at top of file
+desktop_app\main.py:270:1: E402 module level import not at top of file
+desktop_app\main.py:271:1: E402 module level import not at top of file
+desktop_app\main.py:2562:1: E402 module level import not at top of file
+desktop_app\main.py.CLEAN_20260121_102638.py:5169:21: E999 IndentationError: unexpected indent
+desktop_app\main_backup_pre_automation.py:5617:18: E999 IndentationError: expected an indented block after 'with' statement on line 5616
+desktop_app\manage_banking_widget.py:333:5: F811 redefinition of unused '_populate_table' from line 253
+desktop_app\manage_banking_widget.py:364:5: F811 redefinition of unused '_clear_filters' from line 311
+desktop_app\manage_personal_expenses_widget.py:171:13: F841 local variable '_desc' is assigned to but never used
+desktop_app\outlook_style_calendar_widget.py:393:17: F841 local variable 'has_charter_hours' is assigned to but never used
+desktop_app\payment_dialog.py:453:27: E221 multiple spaces before operator
+desktop_app\payment_dialog.py:454:24: E221 multiple spaces before operator
+desktop_app\payroll_entry_widget.py:15:1: F401 'PyQt6.QtWidgets.QCompleter' imported but unused
+desktop_app\pdf_payroll_accounting_filler.py:494:17: F841 local variable '_category' is assigned to but never used
+desktop_app\quote_generator_widget.py:290:9: F841 local variable '_balance_before_deposit' is assigned to but never used
+desktop_app\quote_generator_widget.py:293:9: F841 local variable '_balance_due' is assigned to but never used
+desktop_app\receipt_search_match_widget.py:545:40: E203 whitespace before ':'
+desktop_app\receipt_search_match_widget.py:556:35: E203 whitespace before ':'
+desktop_app\red_deer_bylaw_and_incidents.py:36:1: E402 module level import not at top of file
+desktop_app\report_management_widget.py:7:1: F401 'sys' imported but unused
+desktop_app\report_management_widget.py:9:1: F401 'pathlib.Path' imported but unused
+desktop_app\report_management_widget.py:11:1: F401 'PyQt6.QtWidgets.QLineEdit' imported but unused
+desktop_app\report_management_widget.py:11:1: F401 'PyQt6.QtWidgets.QTableWidgetItem' imported but unused
+desktop_app\report_management_widget.py:11:1: F401 'PyQt6.QtWidgets.QScrollArea' imported but unused
+desktop_app\report_management_widget.py:11:1: F401 'PyQt6.QtWidgets.QFrame' imported but unused
+desktop_app\report_management_widget.py:17:1: F401 'PyQt6.QtCore.Qt' imported but unused
+desktop_app\report_management_widget.py:17:1: F401 'PyQt6.QtCore.pyqtSignal' imported but unused
+desktop_app\report_management_widget.py:29:5: F401 'reportlab.lib.colors' imported but unused
+desktop_app\report_management_widget.py:468:17: E722 do not use bare 'except'
+desktop_app\roe_form_widget.py:27:1: E402 module level import not at top of file
+desktop_app\roe_form_widget.py:28:1: E402 module level import not at top of file
+desktop_app\roe_form_widget.py:29:1: E402 module level import not at top of file
+desktop_app\split_receipt_creation_dialog.py:392:13: F841 local variable '_color' is assigned to but never used
+desktop_app\split_receipt_creation_dialog.py:393:13: F841 local variable '_status' is assigned to but never used
+desktop_app\split_receipt_creation_dialog.py:396:9: F841 local variable '_stylesheet' is assigned to but never used
+desktop_app\t2_data_entry_widget.py:1796:13: F541 f-string is missing placeholders
+desktop_app\unbooked_calendar_report_widget.py:15:1: E402 module level import not at top of file
+desktop_app\unbooked_calendar_report_widget.py:16:1: E402 module level import not at top of file
+desktop_app\vehicle_booked_out_widget.py:15:1: E402 module level import not at top of file
+desktop_app\vehicle_booked_out_widget.py:16:1: E402 module level import not at top of file
+desktop_app\vehicle_booked_out_widget.py:17:1: E402 module level import not at top of file
+desktop_app\vehicle_management_widget.py:1885:13: F841 local variable 'has_statement' is assigned to but never used
+desktop_app\vendor_invoice_manager.py:2157:25: F541 f-string is missing placeholders
+desktop_app\vendor_invoice_manager.py:2217:25: F541 f-string is missing placeholders
+desktop_app\vendor_invoice_manager.py:4336:13: F841 local variable 'category' is assigned to but never used
+desktop_app\vendor_payables_dashboard.py:88:13: F841 local variable '_days_30' is assigned to but never used
+desktop_app\vendor_payables_dashboard.py:89:13: F841 local variable '_days_60' is assigned to but never used
+desktop_app\vendor_payables_dashboard.py:90:13: F841 local variable '_days_90' is assigned to but never used
+modern_backend\app\main.py:11:1: E402 module level import not at top of file
+modern_backend\app\main.py:12:1: E402 module level import not at top of file
+modern_backend\app\main.py:13:1: E402 module level import not at top of file
+modern_backend\app\main.py:14:1: E402 module level import not at top of file
+modern_backend\app\main.py:16:1: E402 module level import not at top of file
+modern_backend\app\main.py:17:1: E402 module level import not at top of file
+modern_backend\app\main.py:24:1: E402 module level import not at top of file
+modern_backend\app\main.py:25:1: E402 module level import not at top of file
+modern_backend\app\main.py:26:1: E402 module level import not at top of file
+modern_backend\app\main.py:27:1: E402 module level import not at top of file
+modern_backend\app\main.py:28:1: E402 module level import not at top of file
+modern_backend\app\main.py:29:1: E402 module level import not at top of file
+modern_backend\app\main.py:30:1: E402 module level import not at top of file
+modern_backend\app\main.py:31:1: E402 module level import not at top of file
+modern_backend\app\main.py:32:1: E402 module level import not at top of file
+modern_backend\app\main.py:33:1: E402 module level import not at top of file
+modern_backend\app\main.py:34:1: E402 module level import not at top of file
+modern_backend\app\main.py:35:1: E402 module level import not at top of file
+modern_backend\app\main.py:36:1: E402 module level import not at top of file
+modern_backend\app\main.py:37:1: E402 module level import not at top of file
+modern_backend\app\main.py:38:1: E402 module level import not at top of file
+modern_backend\app\main.py:39:1: E402 module level import not at top of file
+modern_backend\app\main.py:40:1: E402 module level import not at top of file
+modern_backend\app\main.py:41:1: E402 module level import not at top of file
+modern_backend\app\main.py:42:1: E402 module level import not at top of file
+modern_backend\app\main.py:43:1: E402 module level import not at top of file
+modern_backend\app\main.py:44:1: E402 module level import not at top of file
+modern_backend\app\main.py:45:1: E402 module level import not at top of file
+modern_backend\app\main.py:46:1: E402 module level import not at top of file
+modern_backend\app\main.py:47:1: E402 module level import not at top of file
+modern_backend\app\main.py:48:1: E402 module level import not at top of file
+modern_backend\app\main.py:49:1: E402 module level import not at top of file
+modern_backend\app\main.py:50:1: E402 module level import not at top of file
+modern_backend\app\main.py:51:1: E402 module level import not at top of file
+modern_backend\app\main.py:52:1: E402 module level import not at top of file
+modern_backend\app\main.py:53:1: E402 module level import not at top of file
+modern_backend\app\main.py:54:1: E402 module level import not at top of file
+modern_backend\app\main.py:55:1: E402 module level import not at top of file
+modern_backend\app\main.py:56:1: E402 module level import not at top of file
+modern_backend\app\main.py:236:1: E402 module level import not at top of file
+modern_backend\app\main.py:241:1: E402 module level import not at top of file
+modern_backend\app\routers\driver_auth.py:81:29: E722 do not use bare 'except'
+modern_backend\app\routers\driver_auth.py:420:5: E722 do not use bare 'except'
+modern_backend\app\routers\payroll_tax.py:759:9: F841 local variable 'start_date' is assigned to but never used
+modern_backend\app\routers\reconciliation_report.py:166:37: E741 ambiguous variable name 'l'
+modern_backend\app\routers\reports.py:348:11: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:356:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:358:19: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:359:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:360:19: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:361:16: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:362:16: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:364:20: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:364:58: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:365:20: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:391:19: E701 multiple statements on one line (colon)
+modern_backend\app\routers\reports.py:392:19: E701 multiple statements on one line (colon)
+modern_backend\app\routers\reports.py:393:22: E701 multiple statements on one line (colon)
+modern_backend\app\routers\reports.py:416:51: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:418:52: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:419:54: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:430:33: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:430:36: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:430:47: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:431:34: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:431:50: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:431:67: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:432:35: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:432:52: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:432:68: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:449:9: E128 continuation line under-indented for visual indent
+modern_backend\app\routers\reports.py:454:11: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:462:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:464:18: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:465:20: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:500:50: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:510:28: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:510:46: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:510:49: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:510:60: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:511:34: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:511:50: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:511:66: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:528:9: E128 continuation line under-indented for visual indent
+modern_backend\app\routers\reports.py:533:11: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:541:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:543:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:544:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:545:18: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:546:18: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:547:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:548:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:549:18: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:551:20: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:551:58: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:552:20: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:593:61: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:594:61: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:595:66: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:596:65: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:606:28: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:606:46: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:606:49: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:606:60: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:607:36: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:608:36: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:609:31: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:610:33: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:625:9: E128 continuation line under-indented for visual indent
+modern_backend\app\routers\reports.py:660:35: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:660:38: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:660:56: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:682:11: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:690:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:692:19: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:693:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:694:19: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:695:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:696:19: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:697:18: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:698:16: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:702:20: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:702:64: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:704:18: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:706:18: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:749:52: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:751:53: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:760:28: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:760:46: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:760:49: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:760:68: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:761:26: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:761:29: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:761:48: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:762:32: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:762:53: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:762:73: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:783:11: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:817:24: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:817:42: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:817:45: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:817:56: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:817:59: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:817:78: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:839:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:841:19: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:842:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:843:19: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:844:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:845:19: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:846:19: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:848:57: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:898:51: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:900:52: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:908:28: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:908:46: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:908:49: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:908:60: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:909:34: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:909:50: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:909:70: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:926:9: E128 continuation line under-indented for visual indent
+modern_backend\app\routers\reports.py:931:11: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:967:51: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:969:49: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:977:24: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:977:42: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:977:45: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:977:56: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:978:29: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:979:27: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:980:27: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:994:9: E128 continuation line under-indented for visual indent
+modern_backend\app\routers\reports.py:1000:11: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:1008:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:1010:19: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:1011:17: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:1012:19: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:1013:16: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:1014:16: E221 multiple spaces before operator
+modern_backend\app\routers\reports.py:1016:57: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:1027:19: E701 multiple statements on one line (colon)
+modern_backend\app\routers\reports.py:1028:19: E701 multiple statements on one line (colon)
+modern_backend\app\routers\reports.py:1029:23: E701 multiple statements on one line (colon)
+modern_backend\app\routers\reports.py:1069:51: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:1071:52: E272 multiple spaces before keyword
+modern_backend\app\routers\reports.py:1080:28: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:1080:46: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:1080:49: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:1080:60: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:1081:34: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:1081:50: E702 multiple statements on one line (semicolon)
+modern_backend\app\routers\reports.py:1081:67: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:1082:35: E225 missing whitespace around operator
+modern_backend\app\routers\reports.py:1366:9: F841 local variable 'has_charter_date' is assigned to but never used
+modern_backend\app\routers\reports.py:2751:17: F841 local variable 'date_range_text' is assigned to but never used
+modern_backend\app\routers\t2_returns.py:322:26: E128 continuation line under-indented for visual indent
+modern_backend\app\routers\t2_returns.py:323:26: E128 continuation line under-indented for visual indent
+modern_backend\app\routers\t2_returns.py:324:26: E128 continuation line under-indented for visual indent
+modern_backend\app\routers\vehicles.py:122:17: F841 local variable 'folder' is assigned to but never used
+modern_backend\app\services\pdf_generator.py:11:1: F401 'reportlab.lib.enums.TA_CENTER' imported but unused
+modern_backend\app\services\pdf_generator.py:14:1: F401 'reportlab.lib.styles.ParagraphStyle' imported but unused
+modern_backend\app\services\pdf_generator.py:14:1: F401 'reportlab.lib.styles.getSampleStyleSheet' imported but unused
+modern_backend\app\services\pdf_generator.py:18:1: F401 'reportlab.platypus.Paragraph' imported but unused
+modern_backend\app\services\pdf_generator.py:18:1: F401 'reportlab.platypus.SimpleDocTemplate' imported but unused
+modern_backend\app\services\pdf_generator.py:18:1: F401 'reportlab.platypus.Spacer' imported but unused

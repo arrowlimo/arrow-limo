@@ -1,4 +1,5 @@
 """Banking Transactions API Router"""
+
 from datetime import date
 from decimal import Decimal
 
@@ -64,7 +65,10 @@ def get_banking_transactions(
         query += " AND category = %s"
         params.append(category)
 
-    query += " ORDER BY transaction_date DESC, transaction_id DESC LIMIT %s OFFSET %s"
+    query += (
+        " ORDER BY transaction_date DESC, "
+        "transaction_id DESC LIMIT %s OFFSET %s"
+    )
     params.extend([limit, offset])
 
     cur.execute(query, params)
@@ -127,7 +131,10 @@ def search_banking_transactions(
     params = []
 
     if amount is not None:
-        query += " AND (ABS(debit_amount - %s) < 0.01 OR ABS(credit_amount - %s) < 0.01)"
+        query += (
+            " AND (ABS(debit_amount - %s) < 0.01 "
+            "OR ABS(credit_amount - %s) < 0.01)"
+        )
         params.extend([amount, amount])
 
     if vendor:
@@ -141,7 +148,10 @@ def search_banking_transactions(
         query += " AND transaction_date <= %s"
         params.append(end_date)
 
-    query += " ORDER BY transaction_date DESC, transaction_id DESC LIMIT %s OFFSET %s"
+    query += (
+        " ORDER BY transaction_date DESC, "
+        "transaction_id DESC LIMIT %s OFFSET %s"
+    )
     params.extend([limit, offset])
 
     cur.execute(query, params)
@@ -176,8 +186,7 @@ def get_bank_accounts():
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute(
-        """
+    cur.execute("""
         SELECT DISTINCT
             account_number,
             COUNT(*) as transaction_count,
@@ -186,8 +195,7 @@ def get_bank_accounts():
         WHERE account_number IS NOT NULL
         GROUP BY account_number
         ORDER BY account_number
-    """
-    )
+    """)
 
     accounts = []
     for row in cur.fetchall():
@@ -225,7 +233,9 @@ def categorize_transaction(transaction_id: int, category: str):
             conn.rollback()
             cur.close()
             conn.close()
-            raise HTTPException(status_code=404, detail="Transaction not found")
+            raise HTTPException(
+                status_code=404, detail="Transaction not found"
+            )
 
         conn.commit()
         cur.close()
@@ -239,7 +249,9 @@ def categorize_transaction(transaction_id: int, category: str):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(status_code=500, detail=f"Failed to categorize: {e!s}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to categorize: {e!s}"
+        )
 
 
 class BankingTransactionUpdate(BaseModel):
@@ -249,7 +261,9 @@ class BankingTransactionUpdate(BaseModel):
 
 
 @router.put("/transactions/{transaction_id}")
-def update_banking_transaction(transaction_id: int, update: BankingTransactionUpdate):
+def update_banking_transaction(
+    transaction_id: int, update: BankingTransactionUpdate
+):
     """Update a banking transaction (description, category, verified status)"""
     conn = get_connection()
     cur = conn.cursor()
@@ -258,48 +272,52 @@ def update_banking_transaction(transaction_id: int, update: BankingTransactionUp
         # Build dynamic update query based on provided fields
         update_fields = []
         params = []
-        
+
         if update.description is not None:
             update_fields.append("description = %s")
             params.append(update.description)
-        
+
         if update.category is not None:
             update_fields.append("category = %s")
             params.append(update.category)
-        
+
         if update.verified is not None:
             update_fields.append("verified = %s")
             params.append(update.verified)
-        
+
         if not update_fields:
             raise HTTPException(status_code=400, detail="No fields to update")
-        
+
         params.append(transaction_id)
         query = f"""
             UPDATE banking_transactions
             SET {', '.join(update_fields)}
             WHERE transaction_id = %s
         """
-        
+
         cur.execute(query, params)
 
         if cur.rowcount == 0:
             conn.rollback()
             cur.close()
             conn.close()
-            raise HTTPException(status_code=404, detail="Transaction not found")
+            raise HTTPException(
+                status_code=404, detail="Transaction not found"
+            )
 
         conn.commit()
-        
+
         # Return updated transaction
         cur.execute(
             """
-            SELECT transaction_id, account_number, transaction_date, description,
-                   debit_amount, credit_amount, balance, category, COALESCE(verified, false)
+            SELECT transaction_id, account_number, transaction_date,
+            description,
+                   debit_amount, credit_amount, balance, category,
+                   COALESCE(verified, false)
             FROM banking_transactions
             WHERE transaction_id = %s
             """,
-            (transaction_id,)
+            (transaction_id,),
         )
         row = cur.fetchone()
         cur.close()
@@ -317,7 +335,7 @@ def update_banking_transaction(transaction_id: int, update: BankingTransactionUp
                 "balance": float(row[6]) if row[6] else None,
                 "category": row[7],
                 "verified": row[8],
-            }
+            },
         }
 
     except HTTPException:
@@ -326,7 +344,9 @@ def update_banking_transaction(transaction_id: int, update: BankingTransactionUp
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(status_code=500, detail=f"Failed to update transaction: {e!s}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update transaction: {e!s}"
+        )
 
 
 @router.get("/reconciliation/status")
@@ -336,52 +356,44 @@ def get_reconciliation_status():
     cur = conn.cursor()
 
     # Get unmatched credits (deposits not linked to payments)
-    cur.execute(
-        """
+    cur.execute("""
         SELECT COUNT(*), COALESCE(SUM(credit_amount), 0)
         FROM banking_transactions b
         LEFT JOIN payments p ON p.banking_transaction_id = b.transaction_id
         WHERE b.credit_amount > 0
         AND p.payment_id IS NULL
-    """
-    )
+    """)
     unmatched_deposits = cur.fetchone()
 
     # Get unmatched debits (expenses not linked to receipts)
-    cur.execute(
-        """
+    cur.execute("""
         SELECT COUNT(*), COALESCE(SUM(debit_amount), 0)
         FROM banking_transactions b
         LEFT JOIN receipts r ON r.banking_transaction_id = b.transaction_id
         WHERE b.debit_amount > 0
         AND r.receipt_id IS NULL
-    """
-    )
+    """)
     unmatched_expenses = cur.fetchone()
 
     # Get match rates
-    cur.execute(
-        """
+    cur.execute("""
         SELECT
             COUNT(*) FILTER (WHERE p.payment_id IS NOT NULL) as matched,
             COUNT(*) as total
         FROM banking_transactions b
         LEFT JOIN payments p ON p.banking_transaction_id = b.transaction_id
         WHERE b.credit_amount > 0
-    """
-    )
+    """)
     deposit_match = cur.fetchone()
 
-    cur.execute(
-        """
+    cur.execute("""
         SELECT
             COUNT(*) FILTER (WHERE r.receipt_id IS NOT NULL) as matched,
             COUNT(*) as total
         FROM banking_transactions b
         LEFT JOIN receipts r ON r.banking_transaction_id = b.transaction_id
         WHERE b.debit_amount > 0
-    """
-    )
+    """)
     expense_match = cur.fetchone()
 
     cur.close()
@@ -390,20 +402,24 @@ def get_reconciliation_status():
     return {
         "deposits": {
             "unmatched_count": unmatched_deposits[0],
-            "unmatched_amount": float(unmatched_deposits[1])
-            if unmatched_deposits[1]
-            else 0.0,
-            "match_rate": (deposit_match[0] / deposit_match[1] * 100)
-            if deposit_match[1] > 0
-            else 0.0,
+            "unmatched_amount": (
+                float(unmatched_deposits[1]) if unmatched_deposits[1] else 0.0
+            ),
+            "match_rate": (
+                (deposit_match[0] / deposit_match[1] * 100)
+                if deposit_match[1] > 0
+                else 0.0
+            ),
         },
         "expenses": {
             "unmatched_count": unmatched_expenses[0],
-            "unmatched_amount": float(unmatched_expenses[1])
-            if unmatched_expenses[1]
-            else 0.0,
-            "match_rate": (expense_match[0] / expense_match[1] * 100)
-            if expense_match[1] > 0
-            else 0.0,
+            "unmatched_amount": (
+                float(unmatched_expenses[1]) if unmatched_expenses[1] else 0.0
+            ),
+            "match_rate": (
+                (expense_match[0] / expense_match[1] * 100)
+                if expense_match[1] > 0
+                else 0.0
+            ),
         },
     }

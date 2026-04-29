@@ -2,73 +2,564 @@
 PDF Generation Endpoints
 """
 
+import json
+from typing import Any
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, Body, HTTPException, Path
 from fastapi.responses import StreamingResponse
 
 from ..db import cursor
+from ..services.pdf_layout_settings import (
+    apply_pdf_layout_preset,
+    default_pdf_layout_settings,
+    load_pdf_layout_settings,
+    pdf_layout_settings_schema,
+    reset_pdf_layout_settings,
+    save_pdf_layout_settings,
+)
 from ..services.pdf_generator import generate_charter_pdf, generate_t4_pdf
 
 router = APIRouter(prefix="/api", tags=["pdf"])
 
 
-@router.get("/charters/{charter_id}/invoice-pdf")
-def get_charter_invoice_pdf(charter_id: int = Path(...)):
-    """Generate and download charter invoice as PDF"""
+@router.get("/pdf-layout-settings")
+def get_pdf_layout_settings():
+    """Get editable layout settings used by charter PDF generation."""
+    return load_pdf_layout_settings()
 
+
+@router.get("/pdf-layout-settings/defaults")
+def get_pdf_layout_settings_defaults():
+    """Get default layout settings for charter PDF generation."""
+    return default_pdf_layout_settings()
+
+
+@router.get("/pdf-layout-settings/schema")
+def get_pdf_layout_settings_schema():
+    """Get setting metadata (type/range/options) for editor UIs."""
+    return pdf_layout_settings_schema()
+
+
+@router.put(
+    "/pdf-layout-settings",
+    responses={
+        400: {"description": "Request body must be a JSON object"},
+        500: {"description": "Failed to save layout settings"},
+    },
+)
+def update_pdf_layout_settings(
+    settings_patch: Annotated[dict[str, Any], Body(...)],
+):
+    """Update layout settings (partial patch) for charter PDF generation."""
+    if not isinstance(settings_patch, dict):
+        raise HTTPException(
+            status_code=400, detail="Request body must be a JSON object"
+        )
+    try:
+        return save_pdf_layout_settings(settings_patch)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to save layout settings: {e!s}"
+        )
+
+
+@router.post(
+    "/pdf-layout-settings/reset",
+    responses={
+        500: {"description": "Failed to reset layout settings"},
+    },
+)
+def reset_pdf_settings_to_default():
+    """Reset current layout settings to defaults."""
+    try:
+        return reset_pdf_layout_settings()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to reset layout settings: {e!s}"
+        )
+
+
+@router.post(
+    "/pdf-layout-settings/presets/{preset_name}",
+    responses={
+        400: {"description": "Unknown preset name"},
+        500: {"description": "Failed to apply preset"},
+    },
+)
+def apply_pdf_layout_settings_preset(
+    preset_name: Annotated[str, Path(...)],
+):
+    """Apply a built-in layout preset (default, compact, comfortable)."""
+    try:
+        return apply_pdf_layout_preset(preset_name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to apply preset: {e!s}"
+        )
+
+
+def _normalize_exchange_details(charter_data: dict) -> None:
+    """Normalize JSON payloads loaded from PostgreSQL."""
+    if isinstance(charter_data.get("exchange_of_services_details"), str):
+        try:
+            charter_data["exchange_of_services_details"] = json.loads(
+                charter_data["exchange_of_services_details"]
+            )
+        except Exception:
+            charter_data["exchange_of_services_details"] = {}
+    elif not charter_data.get("exchange_of_services_details"):
+        charter_data["exchange_of_services_details"] = {}
+
+
+def _parse_jsonish(value: Any, default: Any):
+    if value in (None, "", []):
+        return default
+    if isinstance(value, (dict, list)):
+        return value
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except Exception:
+            return default
+    return default
+
+
+def _coerce_order_ids(value: Any) -> list[int]:
+    if value in (None, "", []):
+        return []
+    if isinstance(value, list):
+        raw_items = value
+    else:
+        parsed = _parse_jsonish(value, None)
+        if isinstance(parsed, list):
+            raw_items = parsed
+        else:
+            raw_items = [part.strip() for part in str(value).split(",")]
+
+    order_ids: list[int] = []
+    for item in raw_items:
+        candidate = item.get("order_id") if isinstance(item, dict) else item
+        try:
+            order_ids.append(int(candidate))
+        except (TypeError, ValueError):
+            continue
+    return order_ids
+
+
+def _resolve_client_details(cur, charter_data: dict) -> None:
+    client_id = charter_data.get("client_id")
+    if not client_id:
+        return
+
+    cur.execute(
+        """
+        SELECT
+            client_name,
+            company_name,
+            email,
+            COALESCE(primary_phone, phone) AS phone,
+            address_line1,
+            city,
+            province,
+            zip_code
+        FROM clients
+        WHERE client_id = %s
+        """,
+        (client_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return
+
+    columns = [desc[0] for desc in cur.description]
+    for key, value in dict(zip(columns, row)).items():
+        if not charter_data.get(key):
+            charter_data[key] = value
+
+
+def _resolve_vehicle_details(cur, charter_data: dict) -> None:
+    vehicle_pk = charter_data.get("vehicle_id")
+    if not vehicle_pk:
+        return
+
+    cur.execute(
+        """
+        SELECT
+            vehicle_number,
+            license_plate,
+            passenger_capacity,
+            COALESCE(description, TRIM(COALESCE(make, '') || ' ' || COALESCE(model, ''))) AS vehicle_description,
+            vehicle_type
+        FROM vehicles
+        WHERE vehicle_id = %s
+        """,
+        (vehicle_pk,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return
+
+    columns = [desc[0] for desc in cur.description]
+    vehicle = dict(zip(columns, row))
+    charter_data.setdefault("vehicle_number", vehicle.get("vehicle_number"))
+    charter_data.setdefault("license_plate", vehicle.get("license_plate"))
+    charter_data.setdefault("passenger_capacity", vehicle.get("passenger_capacity"))
+    if not charter_data.get("vehicle"):
+        charter_data["vehicle"] = vehicle.get("vehicle_number")
+    if not charter_data.get("vehicle_id"):
+        charter_data["vehicle_id"] = vehicle.get("vehicle_number")
+    if not charter_data.get("vehicle_description"):
+        charter_data["vehicle_description"] = vehicle.get("vehicle_description")
+    if not charter_data.get("vehicle_type_requested"):
+        charter_data["vehicle_type_requested"] = vehicle.get("vehicle_type")
+
+
+def _resolve_driver_details(cur, charter_data: dict) -> None:
+    employee_id = (
+        charter_data.get("assigned_driver_id")
+        or charter_data.get("employee_id")
+        or charter_data.get("chauffeur_id")
+    )
+    if not employee_id:
+        return
+
+    cur.execute(
+        """
+        SELECT
+            full_name,
+            employee_number,
+            driver_license_number,
+            COALESCE(hourly_pay_rate, hourly_rate) AS hourly_rate
+        FROM employees
+        WHERE employee_id = %s
+        """,
+        (employee_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return
+
+    columns = [desc[0] for desc in cur.description]
+    driver = dict(zip(columns, row))
+    if not charter_data.get("driver_name"):
+        charter_data["driver_name"] = driver.get("full_name")
+    if not charter_data.get("driver"):
+        charter_data["driver"] = driver.get("full_name")
+    if not charter_data.get("employee_number"):
+        charter_data["employee_number"] = driver.get("employee_number")
+    if not charter_data.get("driver_license_number"):
+        charter_data["driver_license_number"] = driver.get(
+            "driver_license_number"
+        )
+    if not charter_data.get("driver_hourly_rate"):
+        charter_data["driver_hourly_rate"] = driver.get("hourly_rate")
+
+
+def _load_beverage_items(cur, charter_data: dict) -> list[dict[str, Any]]:
+    charter_id = charter_data.get("charter_id")
+    beverages: list[dict[str, Any]] = []
+
+    if charter_id:
+        cur.execute(
+            """
+            SELECT item_name, quantity
+            FROM charter_beverages
+            WHERE charter_id = %s
+            ORDER BY id
+            """,
+            (charter_id,),
+        )
+        beverage_columns = [desc[0] for desc in cur.description]
+        beverages = [dict(zip(beverage_columns, row)) for row in cur.fetchall()]
+        if beverages:
+            return beverages
+
+    order_ids = _coerce_order_ids(
+        charter_data.get("beverage_cart_ids")
+        or charter_data.get("cart_order_list")
+    )
+    if not order_ids and charter_data.get("reserve_number"):
+        cur.execute(
+            """
+            SELECT order_id
+            FROM beverage_orders
+            WHERE reserve_number = %s
+            ORDER BY order_date, order_id
+            """,
+            (charter_data.get("reserve_number"),),
+        )
+        order_ids = [row[0] for row in cur.fetchall()]
+
+    if not order_ids:
+        return []
+
+    placeholders = ", ".join(["%s"] * len(order_ids))
+    cur.execute(
+        f"""
+        SELECT item_name, quantity
+        FROM beverage_order_items
+        WHERE order_id IN ({placeholders})
+        ORDER BY order_id, item_line_id
+        """,
+        tuple(order_ids),
+    )
+    beverage_columns = [desc[0] for desc in cur.description]
+    return [dict(zip(beverage_columns, row)) for row in cur.fetchall()]
+
+
+def _build_payload_routes(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    routes = payload.get("routes") or []
+    normalized_routes: list[dict[str, Any]] = []
+    for index, route in enumerate(routes, start=1):
+        if not isinstance(route, dict):
+            continue
+        normalized_routes.append(
+            {
+                "route_sequence": index,
+                "event_type_code": route.get("event_type_code")
+                or route.get("type"),
+                "address": route.get("address") or route.get("location"),
+                "stop_time": route.get("stop_time") or route.get("time"),
+                "route_notes": route.get("route_notes") or route.get("notes"),
+            }
+        )
+    return normalized_routes
+
+
+def _build_payload_charges(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    existing = payload.get("charges") or []
+    if existing:
+        return existing
+
+    def _amount(key: str) -> float:
+        try:
+            return float(payload.get(key) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    charges: list[dict[str, Any]] = []
+    charter_fee = _amount("charter_fee_amount")
+    if charter_fee:
+        charges.append(
+            {
+                "charge_type": "base_rate",
+                "description": "Charter Fee",
+                "amount": charter_fee,
+            }
+        )
+
+    beverage_total = _amount("beverage_total")
+    if beverage_total:
+        charges.append(
+            {
+                "charge_type": "additional",
+                "description": "Beverages",
+                "amount": beverage_total,
+            }
+        )
+
+    fuel_total = _amount("fuel_litres") * _amount("fuel_price")
+    if fuel_total:
+        charges.append(
+            {
+                "charge_type": "additional",
+                "description": "Fuel",
+                "amount": fuel_total,
+            }
+        )
+
+    for charge in _parse_jsonish(payload.get("custom_charges"), []):
+        if not isinstance(charge, dict):
+            continue
+        charges.append(
+            {
+                "charge_type": "additional",
+                "description": charge.get("description") or "Custom Charge",
+                "amount": charge.get("amount") or 0,
+            }
+        )
+
+    gratuity = _amount("gratuity_amount")
+    if gratuity:
+        charges.append(
+            {
+                "charge_type": "gratuity",
+                "description": "Gratuity",
+                "amount": gratuity,
+            }
+        )
+
+    extra_gratuity = _amount("extra_gratuity")
+    if extra_gratuity:
+        charges.append(
+            {
+                "charge_type": "additional",
+                "description": "Extra Gratuity",
+                "amount": extra_gratuity,
+            }
+        )
+
+    gst_amount = _amount("gst_amount")
+    if gst_amount:
+        charges.append(
+            {"charge_type": "gst", "description": "GST", "amount": gst_amount}
+        )
+
+    if not charges:
+        total_due = _amount("grand_total") or _amount("total_amount_due")
+        if total_due:
+            charges.append(
+                {
+                    "charge_type": "service_fee",
+                    "description": "Service Fee",
+                    "amount": total_due,
+                }
+            )
+
+    return charges
+
+
+def _apply_pdf_field_aliases(charter_data: dict[str, Any]) -> dict[str, Any]:
+    if not charter_data.get("passenger_load"):
+        charter_data["passenger_load"] = charter_data.get("passenger_count")
+    if not charter_data.get("notes"):
+        charter_data["notes"] = charter_data.get("client_notes")
+    if not charter_data.get("booking_notes"):
+        charter_data["booking_notes"] = charter_data.get("driver_notes")
+    if not charter_data.get("special_requirements"):
+        charter_data["special_requirements"] = charter_data.get("vehicle_notes")
+    if not charter_data.get("fuel_added"):
+        charter_data["fuel_added"] = charter_data.get("fuel_added_liters") or charter_data.get("fuel_litres")
+    if not charter_data.get("total_amount_due"):
+        charter_data["total_amount_due"] = charter_data.get("grand_total") or charter_data.get("subtotal")
+    if not charter_data.get("total_paid"):
+        charter_data["total_paid"] = charter_data.get("amount_paid") or charter_data.get("paid_amount") or 0
+    if not charter_data.get("vehicle_id"):
+        charter_data["vehicle_id"] = charter_data.get("vehicle_number") or charter_data.get("vehicle")
+    if not charter_data.get("driver_name"):
+        charter_data["driver_name"] = charter_data.get("driver")
+    return charter_data
+
+
+def _build_run_sheet_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    charter_data = dict(payload or {})
+    charter_data["routes"] = _build_payload_routes(charter_data)
+    charter_data["charges"] = _build_payload_charges(charter_data)
+    _normalize_exchange_details(charter_data)
+
+    with cursor() as cur:
+        _resolve_client_details(cur, charter_data)
+        _resolve_vehicle_details(cur, charter_data)
+        _resolve_driver_details(cur, charter_data)
+        charter_data["beverages"] = _load_beverage_items(cur, charter_data)
+
+    return _apply_pdf_field_aliases(charter_data)
+
+
+def _load_charter_pdf_data(charter_id: int) -> dict:
+    """Load the richer charter data needed for the run sheet PDF."""
     with cursor() as cur:
         cur.execute(
             """
             SELECT
                 c.charter_id,
-                c.charter_date,
                 c.reserve_number,
                 c.client_id,
-                c.passenger_load,
-                c.vehicle,
-                c.vehicle_description,
-                c.vehicle_type_requested,
-                c.driver,
-                c.driver_name,
+                c.charter_date,
+                c.pickup_time,
+                c.dropoff_time,
                 c.pickup_address,
                 c.dropoff_address,
+                c.passenger_count,
+                c.vehicle,
+                c.vehicle_id,
+                c.driver,
+                c.employee_id,
+                c.assigned_driver_id,
                 c.status,
                 c.charter_type,
                 c.exchange_of_services_details,
-                c.gl_revenue_code,
-                c.gl_expense_code,
                 c.total_amount_due,
                 c.paid_amount,
-                COALESCE(p.total_paid, 0) AS total_paid,
-                (COALESCE(c.total_amount_due, 0) - COALESCE(p.total_paid, 0)) AS balance,
-                COALESCE(nrr.nrr_amount, 0) AS nrr_amount,
+                c.quoted_hours,
+                c.actual_hours,
+                c.odometer_start,
+                c.odometer_end,
+                c.total_kms,
+                c.fuel_added,
+                c.fuel_added_liters,
+                c.fuel_litres,
+                c.fuel_price,
+                c.notes,
+                c.client_notes,
+                c.driver_notes,
+                c.vehicle_notes,
+                c.booking_notes,
+                c.payment_status,
+                c.amount_paid,
+                c.payment_method,
+                c.driver_hours_worked,
+                c.driver_hourly_rate,
+                c.workshift_start,
+                c.workshift_end,
+                c.on_duty_started_at,
+                c.off_duty_at,
+                c.duty_log,
+                c.cart_order_list,
+                c.custom_charges,
+                c.subtotal,
+                c.gst_amount,
+                c.grand_total,
+                c.gst_exempt,
+                c.charter_fee_type,
+                c.hourly_rate,
+                c.extra_gratuity,
+                c.gratuity_percent,
+                COALESCE(p.total_paid, c.amount_paid, c.paid_amount, 0) AS total_paid,
+                (COALESCE(c.total_amount_due, c.grand_total, 0) - COALESCE(p.total_paid, c.amount_paid, c.paid_amount, 0)) AS balance,
+                COALESCE(nrr.nrr_amount, c.nrr_amount, 0) AS nrr_amount,
                 cl.client_name,
                 cl.company_name,
                 cl.email,
-                cl.phone,
+                COALESCE(cl.primary_phone, cl.phone) AS phone,
+                cl.address_line1,
+                cl.city,
+                cl.province,
+                cl.zip_code,
+                v.vehicle_number,
+                v.license_plate,
                 v.passenger_capacity,
+                COALESCE(v.description, TRIM(COALESCE(v.make, '') || ' ' || COALESCE(v.model, ''))) AS vehicle_description,
+                v.vehicle_type AS vehicle_type_requested,
                 CASE
-                    WHEN c.closed = true AND c.cancelled = false THEN 'Reconciled'
+                    WHEN c.locked = true AND c.cancelled = false THEN 'Reconciled'
                     WHEN c.cancelled = true THEN 'Cancelled'
                     ELSE 'Not Reconciled'
                 END AS reconciliation_status
             FROM charters c
             LEFT JOIN clients cl ON c.client_id = cl.client_id
-            LEFT JOIN vehicles v ON c.vehicle_booked_id = v.vehicle_id
+            LEFT JOIN vehicles v ON c.vehicle_id = v.vehicle_id
             LEFT JOIN (
                 SELECT charter_id, SUM(amount) AS total_paid
                 FROM payments
                 WHERE deleted_at IS NULL
-                GROUP BY charter_id) p ON c.charter_id = p.charter_id
+                GROUP BY charter_id
+            ) p ON c.charter_id = p.charter_id
             LEFT JOIN (
                 SELECT charter_id, SUM(amount) AS nrr_amount
                 FROM payments
-                WHERE payment_label IN ('NRR', 'NRD', 'Non-Refundable Retainer', 'Retainer')
-                AND payment_label NOT IN ('Deposit')
-                AND deleted_at IS NULL
-                GROUP BY charter_id) nrr ON c.charter_id = nrr.charter_id
+                WHERE payment_label IN (
+                    'NRR', 'NRD', 'Non-Refundable Retainer', 'Retainer'
+                )
+                  AND payment_label NOT IN ('Deposit')
+                  AND deleted_at IS NULL
+                GROUP BY charter_id
+            ) nrr ON c.charter_id = nrr.charter_id
             WHERE c.charter_id = %s
-        """,
+            """,
             (charter_id,),
         )
 
@@ -76,132 +567,206 @@ def get_charter_invoice_pdf(charter_id: int = Path(...)):
         if not record:
             raise HTTPException(status_code=404, detail="Charter not found")
 
-        # Map to dict
         columns = [desc[0] for desc in cur.description]
         charter_data = dict(zip(columns, record))
+        _normalize_exchange_details(charter_data)
+        _resolve_driver_details(cur, charter_data)
+        _resolve_vehicle_details(cur, charter_data)
+        charter_data = _apply_pdf_field_aliases(charter_data)
 
-        # Handle JSONB
-        if isinstance(charter_data.get("exchange_of_services_details"), str):
-            import json
+        reserve_number = charter_data.get("reserve_number")
 
-            try:
-                charter_data["exchange_of_services_details"] = json.loads(
-                    charter_data["exchange_of_services_details"]
+        cur.execute(
+            """
+            SELECT
+                route_sequence,
+                event_type_code,
+                COALESCE(
+                    address, pickup_location, dropoff_location, ''
+                ) AS address,
+                COALESCE(stop_time, pickup_time, dropoff_time) AS stop_time,
+                route_notes
+            FROM charter_routes
+            WHERE charter_id = %s
+            ORDER BY route_sequence
+            """,
+            (charter_id,),
+        )
+        route_columns = [desc[0] for desc in cur.description]
+        charter_data["routes"] = [
+            dict(zip(route_columns, row)) for row in cur.fetchall()
+        ]
+
+        cur.execute(
+            """
+            SELECT charge_type, description, amount
+            FROM charges
+            WHERE reserve_number = %s
+            ORDER BY
+                CASE charge_type
+                    WHEN 'base_rate' THEN 1
+                    WHEN 'service_fee' THEN 2
+                    WHEN 'gratuity' THEN 3
+                    WHEN 'gst' THEN 4
+                    WHEN 'airport_fee' THEN 5
+                    ELSE 6
+                END,
+                charge_id
+            """,
+            (reserve_number,),
+        )
+        charge_columns = [desc[0] for desc in cur.description]
+        charter_data["charges"] = [
+            dict(zip(charge_columns, row)) for row in cur.fetchall()
+        ]
+
+        if not charter_data["charges"]:
+            charter_data["charges"] = _build_payload_charges(charter_data)
+
+        cur.execute(
+            """
+            SELECT payment_label, payment_method, amount, payment_date, notes,
+            reference_number
+            FROM payments
+            WHERE charter_id = %s
+              AND deleted_at IS NULL
+            ORDER BY payment_date, payment_id
+            """,
+            (charter_id,),
+        )
+        payment_columns = [desc[0] for desc in cur.description]
+        charter_data["payments"] = [
+            dict(zip(payment_columns, row)) for row in cur.fetchall()
+        ]
+
+        charter_data["beverages"] = _load_beverage_items(cur, charter_data)
+
+        driver_key = charter_data.get("driver") or charter_data.get("assigned_driver_id")
+        charter_date = charter_data.get("charter_date")
+        if driver_key and charter_date:
+            cur.execute(
+                """
+                SELECT charter_id,
+                       workshift_start,
+                       on_duty_started_at,
+                       duty_log,
+                       pickup_time
+                FROM charters
+                WHERE driver = %s
+                  AND charter_date = %s
+                  AND charter_id < %s
+                  AND (cancelled IS NULL OR cancelled = false)
+                ORDER BY pickup_time ASC, charter_id ASC
+                LIMIT 1
+                """,
+                (charter_data.get("driver"), charter_date, charter_id),
+            )
+            prior = cur.fetchone()
+            if prior:
+                pcols = [d[0] for d in cur.description]
+                prior_dict = dict(zip(pcols, prior))
+                charter_data["is_second_trip"] = True
+                charter_data["prior_trip_charter_id"] = prior_dict.get(
+                    "charter_id"
                 )
-            except Exception:
-                charter_data["exchange_of_services_details"] = {}
-        elif not charter_data.get("exchange_of_services_details"):
-            charter_data["exchange_of_services_details"] = {}
+                charter_data["prior_trip_workshift_start"] = (
+                    prior_dict.get("workshift_start")
+                    or prior_dict.get("on_duty_started_at")
+                )
+                charter_data["prior_trip_duty_log"] = prior_dict.get(
+                    "duty_log"
+                )
 
-    # Generate PDF
-    try:
-        pdf_bytes = generate_charter_pdf(charter_data)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e!s}")
+    return charter_data
 
-    # Return as downloadable file
+
+def _stream_pdf_response(
+    pdf_bytes: bytes, filename: str, inline: bool
+) -> StreamingResponse:
+    disposition = "inline" if inline else "attachment"
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",
-        headers={
-            "Content-Disposition": f"attachment; filename=Charter_{charter_data.get('reserve_number', 'Invoice')}.pdf"
-        },
+        headers={"Content-Disposition": f"{disposition}; filename={filename}"},
+    )
+
+
+@router.get("/charters/{charter_id}/invoice-pdf")
+def get_charter_invoice_pdf(charter_id: int = Path(...)):
+    """Generate and download charter invoice as PDF."""
+    charter_data = _load_charter_pdf_data(charter_id)
+
+    try:
+        pdf_bytes = generate_charter_pdf(charter_data)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"PDF generation failed: {e!s}"
+        )
+
+    return _stream_pdf_response(
+        pdf_bytes,
+        f"Charter_{charter_data.get('reserve_number', 'Invoice')}.pdf",
+        inline=False,
     )
 
 
 @router.get("/charters/{charter_id}/invoice-pdf-preview")
 def preview_charter_invoice_pdf(charter_id: int = Path(...)):
-    """Preview charter invoice as PDF (inline)"""
+    """Preview charter invoice as PDF (inline)."""
+    charter_data = _load_charter_pdf_data(charter_id)
 
-    with cursor() as cur:
-        cur.execute(
-            """
-            SELECT
-                c.charter_id,
-                c.charter_date,
-                c.reserve_number,
-                c.client_id,
-                c.passenger_load,
-                c.vehicle,
-                c.vehicle_description,
-                c.vehicle_type_requested,
-                c.driver,
-                c.driver_name,
-                c.pickup_address,
-                c.dropoff_address,
-                c.status,
-                c.charter_type,
-                c.exchange_of_services_details,
-                c.gl_revenue_code,
-                c.gl_expense_code,
-                c.total_amount_due,
-                c.paid_amount,
-                COALESCE(p.total_paid, 0) AS total_paid,
-                (COALESCE(c.total_amount_due, 0) - COALESCE(p.total_paid, 0)) AS balance,
-                COALESCE(nrr.nrr_amount, 0) AS nrr_amount,
-                cl.client_name,
-                cl.company_name,
-                cl.email,
-                cl.phone,
-                v.passenger_capacity,
-                CASE
-                    WHEN c.closed = true AND c.cancelled = false THEN 'Reconciled'
-                    WHEN c.cancelled = true THEN 'Cancelled'
-                    ELSE 'Not Reconciled'
-                END AS reconciliation_status
-            FROM charters c
-            LEFT JOIN clients cl ON c.client_id = cl.client_id
-            LEFT JOIN vehicles v ON c.vehicle_booked_id = v.vehicle_id
-            LEFT JOIN (
-                SELECT charter_id, SUM(amount) AS total_paid
-                FROM payments
-                WHERE deleted_at IS NULL
-                GROUP BY charter_id) p ON c.charter_id = p.charter_id
-            LEFT JOIN (
-                SELECT charter_id, SUM(amount) AS nrr_amount
-                FROM payments
-                WHERE payment_label IN ('NRR', 'NRD', 'Non-Refundable Retainer', 'Retainer')
-                AND payment_label NOT IN ('Deposit')
-                AND deleted_at IS NULL
-                GROUP BY charter_id) nrr ON c.charter_id = nrr.charter_id
-            WHERE c.charter_id = %s
-        """,
-            (charter_id,),
-        )
-
-        record = cur.fetchone()
-        if not record:
-            raise HTTPException(status_code=404, detail="Charter not found")
-
-        # Map to dict
-        columns = [desc[0] for desc in cur.description]
-        charter_data = dict(zip(columns, record))
-
-        # Handle JSONB
-        if isinstance(charter_data.get("exchange_of_services_details"), str):
-            import json
-
-            try:
-                charter_data["exchange_of_services_details"] = json.loads(
-                    charter_data["exchange_of_services_details"]
-                )
-            except Exception:
-                charter_data["exchange_of_services_details"] = {}
-        elif not charter_data.get("exchange_of_services_details"):
-            charter_data["exchange_of_services_details"] = {}
-
-    # Generate PDF
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e!s}")
+        raise HTTPException(
+            status_code=500, detail=f"PDF generation failed: {e!s}"
+        )
 
-    # Return as inline display
-    return StreamingResponse(iter([pdf_bytes]), media_type="application/pdf")
+    return _stream_pdf_response(
+        pdf_bytes,
+        f"Charter_{charter_data.get('reserve_number', 'Invoice')}.pdf",
+        inline=True,
+    )
+
+
+@router.post("/charters/run-sheet-pdf")
+def get_run_sheet_pdf_from_payload(
+    payload: Annotated[dict[str, Any], Body(...)],
+):
+    """Generate a run charter PDF directly from the Run Charter tab payload."""
+    charter_data = _build_run_sheet_payload(payload)
+    try:
+        pdf_bytes = generate_charter_pdf(charter_data)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"PDF generation failed: {e!s}"
+        )
+
+    filename = f"Charter_{charter_data.get('reserve_number', 'RunSheet')}.pdf"
+    return _stream_pdf_response(pdf_bytes, filename, inline=False)
+
+
+@router.post("/charters/run-sheet-pdf-preview")
+def preview_run_sheet_pdf_from_payload(
+    payload: Annotated[dict[str, Any], Body(...)],
+):
+    """Preview a run charter PDF directly from the Run Charter tab payload."""
+    charter_data = _build_run_sheet_payload(payload)
+    try:
+        pdf_bytes = generate_charter_pdf(charter_data)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"PDF generation failed: {e!s}"
+        )
+
+    filename = f"Charter_{charter_data.get('reserve_number', 'RunSheet')}.pdf"
+    return _stream_pdf_response(pdf_bytes, filename, inline=True)
 
 
 @router.get("/employees/{employee_id}/t4-pdf/{tax_year}")
-def get_employee_t4_pdf(employee_id: int = Path(...), tax_year: int = Path(...)):
+def get_employee_t4_pdf(
+    employee_id: int = Path(...), tax_year: int = Path(...)
+):
     """Generate and download T4 tax form for an employee"""
 
     with cursor() as cur:
@@ -224,7 +789,9 @@ def get_employee_t4_pdf(employee_id: int = Path(...), tax_year: int = Path(...))
         employee_row = cur.fetchone()
 
         if not employee_row:
-            raise HTTPException(status_code=404, detail=f"Employee {employee_id} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Employee {employee_id} not found"
+            )
 
         employee_data = dict(employee_row)
 
@@ -236,8 +803,10 @@ def get_employee_t4_pdf(employee_id: int = Path(...), tax_year: int = Path(...))
                 COALESCE(SUM(cpp), 0) as box16,
                 COALESCE(SUM(ei), 0) as box18,
                 COALESCE(SUM(tax), 0) as box22,
-                COALESCE(SUM(CASE WHEN ei_insurable_earnings > 0 THEN ei_insurable_earnings ELSE gross_pay END), 0) as box24,
-                COALESCE(SUM(CASE WHEN cpp_pensionable_earnings > 0 THEN cpp_pensionable_earnings ELSE gross_pay END), 0) as box26,
+                COALESCE(SUM(CASE WHEN ei_insurable_earnings > 0 THEN
+                ei_insurable_earnings ELSE gross_pay END), 0) as box24,
+                COALESCE(SUM(CASE WHEN cpp_pensionable_earnings > 0 THEN
+                cpp_pensionable_earnings ELSE gross_pay END), 0) as box26,
                 COALESCE(SUM(commission), 0) as box44,
                 COALESCE(SUM(union_dues), 0) as box52
             FROM driver_payroll
@@ -266,20 +835,26 @@ def get_employee_t4_pdf(employee_id: int = Path(...), tax_year: int = Path(...))
     try:
         pdf_bytes = generate_t4_pdf(employee_data, t4_data, tax_year)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"T4 PDF generation failed: {e!s}")
+        raise HTTPException(
+            status_code=500, detail=f"T4 PDF generation failed: {e!s}"
+        )
 
     # Return as download
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f"attachment; filename=T4_{tax_year}_{employee_data.get('full_name', 'Employee').replace(' ', '_')}.pdf"
+            "Content-Disposition": f"attachment;"
+            "filename=T4_{tax_year}_{employee_data.get('full_name',"
+            "'Employee').replace(' ', '_')}.pdf"
         },
     )
 
 
 @router.get("/employees/{employee_id}/t4-pdf-preview/{tax_year}")
-def preview_employee_t4_pdf(employee_id: int = Path(...), tax_year: int = Path(...)):
+def preview_employee_t4_pdf(
+    employee_id: int = Path(...), tax_year: int = Path(...)
+):
     """Preview T4 tax form for an employee (inline)"""
 
     with cursor() as cur:
@@ -302,7 +877,9 @@ def preview_employee_t4_pdf(employee_id: int = Path(...), tax_year: int = Path(.
         employee_row = cur.fetchone()
 
         if not employee_row:
-            raise HTTPException(status_code=404, detail=f"Employee {employee_id} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Employee {employee_id} not found"
+            )
 
         employee_data = dict(employee_row)
 
@@ -314,8 +891,10 @@ def preview_employee_t4_pdf(employee_id: int = Path(...), tax_year: int = Path(.
                 COALESCE(SUM(cpp), 0) as box16,
                 COALESCE(SUM(ei), 0) as box18,
                 COALESCE(SUM(tax), 0) as box22,
-                COALESCE(SUM(CASE WHEN ei_insurable_earnings > 0 THEN ei_insurable_earnings ELSE gross_pay END), 0) as box24,
-                COALESCE(SUM(CASE WHEN cpp_pensionable_earnings > 0 THEN cpp_pensionable_earnings ELSE gross_pay END), 0) as box26,
+                COALESCE(SUM(CASE WHEN ei_insurable_earnings > 0 THEN
+                ei_insurable_earnings ELSE gross_pay END), 0) as box24,
+                COALESCE(SUM(CASE WHEN cpp_pensionable_earnings > 0 THEN
+                cpp_pensionable_earnings ELSE gross_pay END), 0) as box26,
                 COALESCE(SUM(commission), 0) as box44,
                 COALESCE(SUM(union_dues), 0) as box52
             FROM driver_payroll
@@ -343,8 +922,9 @@ def preview_employee_t4_pdf(employee_id: int = Path(...), tax_year: int = Path(.
     try:
         pdf_bytes = generate_t4_pdf(employee_data, t4_data, tax_year)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"T4 PDF generation failed: {e!s}")
+        raise HTTPException(
+            status_code=500, detail=f"T4 PDF generation failed: {e!s}"
+        )
 
     # Return as inline display
     return StreamingResponse(iter([pdf_bytes]), media_type="application/pdf")
-

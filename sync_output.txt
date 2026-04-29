@@ -1,0 +1,33 @@
+
+================================================================================
+SYNC NEON TO LOCAL (LOCAL IS SOURCE OF TRUTH)
+================================================================================
+
+[1] Database Configuration
+--------------------------------------------------------------------------------
+  LOCAL: localhost:5432/almsdata
+  NEON:  ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech:5432/neondb
+
+[2] Identifying extra employees in NEON...
+  Found 5 extra employee(s) in NEON:
+    - ID 3: Jeannie Shillington (Dr03)
+    - ID 85: Shondal Saunders (Dr62)
+    - ID 126: Logan Mosinsky (H04)
+    - ID 135: Tammy Pettitt (Of03)
+    - ID 1983: Doug REDMOND (7)
+
+[3] BEFORE SYNC - Row Counts:
+--------------------------------------------------------------------------------
+Table                          LOCAL       NEON       Diff
+--------------------------------------------------------------------------------
+employees                        144        149         +5
+charters                       18835      18835         +0
+charter_payments               24389      24389         +0
+receipts                       26821      26821         +0
+vendor_accounts                  259        259         +0
+driver_payroll                 16370      16370         +0
+
+[4] Deleting extra employees from NEON...
+--------------------------------------------------------------------------------
+  [ERROR] Failed to delete employee 3: current transaction is aborted, commands ignored until end of transaction block
+ERROR: Failed to delete extra employees

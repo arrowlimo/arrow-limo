@@ -25,7 +25,8 @@ def list_charges(charter_id: int) -> dict[str, Any]:
     with cursor() as cur:
         cur.execute(
             """
-            SELECT charge_id, charter_id, charge_type, amount, description, created_at
+            SELECT charge_id, charter_id, charge_type, amount, description,
+            created_at
             FROM charter_charges
             WHERE charter_id = %s
             ORDER BY created_at ASC, charge_id ASC
@@ -43,9 +44,11 @@ def create_charge(charter_id: int, body: ChargeCreate) -> dict[str, Any]:
     with cursor() as cur:
         cur.execute(
             """
-            INSERT INTO charter_charges (charter_id, charge_type, amount, description)
+            INSERT INTO charter_charges (charter_id, charge_type, amount,
+            description)
             VALUES (%s, %s, %s, %s)
-            RETURNING charge_id, charter_id, charge_type, amount, description, created_at
+            RETURNING charge_id, charter_id, charge_type, amount, description,
+            created_at
             """,
             (charter_id, body.charge_type, body.amount, body.description),
         )
@@ -66,7 +69,9 @@ def update_charge(charge_id: int, body: ChargeUpdate) -> dict[str, Any]:
     values = [*list(updates.values()), charge_id]
     with cursor() as cur:
         cur.execute(
-            f"UPDATE charter_charges SET {sets} WHERE charge_id = %s RETURNING charge_id, charter_id, charge_type, amount, description, created_at",
+            f"UPDATE charter_charges SET {sets} WHERE charge_id = %s"
+            f"RETURNING charge_id, charter_id, charge_type, amount,"
+            f"description, created_at",
             values,
         )
         row = cur.fetchone()
@@ -80,7 +85,9 @@ def update_charge(charge_id: int, body: ChargeUpdate) -> dict[str, Any]:
 @router.delete("/charges/{charge_id}")
 def delete_charge(charge_id: int) -> dict[str, Any]:
     with cursor() as cur:
-        cur.execute("DELETE FROM charter_charges WHERE charge_id = %s", (charge_id,))
+        cur.execute(
+            "DELETE FROM charter_charges WHERE charge_id = %s", (charge_id,)
+        )
         deleted = cur.rowcount
         if not deleted:
             raise HTTPException(status_code=404, detail="not_found")
@@ -92,13 +99,17 @@ def delete_charge(charge_id: int) -> dict[str, Any]:
 
 @router.get("/charges/catalog")
 def get_charge_catalog(
-    active_only: bool = Query(True, description="Filter to active charges only"),
+    active_only: bool = Query(
+        True, description="Filter to active charges only"
+    ),
     charge_type: str | None = Query(
         None,
         description="Filter by type: base_rate, airport_fee, additional, gst",
     ),
 ):
-    """Get catalog of available charge line items for selection in booking form."""
+    """Get catalog of available charge line items for selection in booking"
+    "form."""
+
     conn = get_connection()
     cur = conn.cursor()
     try:
@@ -152,13 +163,16 @@ def get_charge_catalog(
 
 @router.get("/charges/by-reserve/{reserve_number}")
 def get_charges_by_reserve(reserve_number: str):
-    """Get all charge line items for a booking by reserve_number (business key)."""
+    """Get all charge line items for a booking by reserve_number (business"
+    "key)."""
+
     conn = get_connection()
     cur = conn.cursor()
     try:
         cur.execute(
             """
-            SELECT charge_id, reserve_number, charge_type, amount, description, created_at
+            SELECT charge_id, reserve_number, charge_type, amount, description,
+            created_at
             FROM charges
             WHERE reserve_number = %s
             ORDER BY
@@ -189,7 +203,9 @@ def get_charges_by_reserve(reserve_number: str):
 
         return {"results": results, "count": len(results)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load charges: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to load charges: {e}"
+        )
     finally:
         cur.close()
         conn.close()

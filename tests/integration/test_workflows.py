@@ -68,21 +68,33 @@ def test_payment_reconciliation(db_cursor, cleanup_test_data):
     """, (Decimal("500.00"), date.today()))
     
     payment_id = db_cursor.fetchone()[0]
+
+    db_cursor.execute("""
+        SELECT account_number
+        FROM cibc_accounts
+        WHERE COALESCE(is_active, true) = true
+        ORDER BY account_id
+        LIMIT 1
+    """)
+    account_row = db_cursor.fetchone()
+    if not account_row:
+        pytest.skip("No active cibc_accounts row available for banking FK test")
+    account_number = account_row[0]
     
     # Create banking transaction
     db_cursor.execute("""
         INSERT INTO banking_transactions 
-        (transaction_date, description, amount, mapped_bank_account_id)
-        VALUES (%s, 'DEPOSIT - Cash', %s, 1)
-        RETURNING banking_transaction_id
-    """, (date.today(), Decimal("500.00")))
+        (transaction_date, description, debit_amount, account_number)
+        VALUES (%s, 'DEPOSIT - Cash', %s, %s)
+        RETURNING transaction_id
+    """, (date.today(), Decimal("500.00"), account_number))
     
     banking_id = db_cursor.fetchone()[0]
     
     # Link payment to banking
     db_cursor.execute("""
         INSERT INTO banking_receipt_matching_ledger 
-        (banking_transaction_id, receipt_id, matched_amount)
+        (banking_transaction_id, payment_id, amount_allocated)
         VALUES (%s, %s, %s)
     """, (banking_id, payment_id, Decimal("500.00")))
     

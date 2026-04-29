@@ -58,6 +58,45 @@ const router = createRouter({
   routes
 })
 
+let lastTokenValidationTs = 0
+const TOKEN_VALIDATE_CACHE_MS = 60 * 1000
+
+const clearAuthState = () => {
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('user')
+  localStorage.removeItem('user_role')
+  localStorage.removeItem('user_permissions')
+}
+
+const validateToken = async (token) => {
+  if (!token) return false
+  const now = Date.now()
+  if (now - lastTokenValidationTs < TOKEN_VALIDATE_CACHE_MS) {
+    return true
+  }
+
+  try {
+    const response = await fetch('/auth/validate', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    if (!response.ok) {
+      return false
+    }
+    const payload = await response.json()
+    const user = payload.user || {}
+    localStorage.setItem('user', JSON.stringify(user))
+    localStorage.setItem('user_role', user.role || 'user')
+    localStorage.setItem('user_permissions', JSON.stringify(user.permissions || {}))
+    lastTokenValidationTs = now
+    return true
+  } catch (err) {
+    console.warn('Token validation failed:', err)
+    return false
+  }
+}
+
 // Check if auto-login is enabled (for local development)
 const checkAutoLogin = async () => {
   try {
@@ -75,7 +114,7 @@ const checkAutoLogin = async () => {
       }
     }
   } catch (err) {
-    // Auto-login not available, proceed normally
+    console.warn('Auto-login check unavailable:', err)
   }
   return false
 }
@@ -94,6 +133,16 @@ router.beforeEach(async (to, from, next) => {
       next('/login')
     }
   } 
+  // Protected routes always require a currently valid token.
+  else if (requiresAuth && token) {
+    const valid = await validateToken(token)
+    if (valid) {
+      next()
+    } else {
+      clearAuthState()
+      next('/login')
+    }
+  }
   // If already logged in and trying to access login page, go to home
   else if (to.path === '/login' && token) {
     next('/')

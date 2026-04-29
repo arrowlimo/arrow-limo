@@ -31,13 +31,15 @@ def _db_cursor():
 
 @router.get("/charters")
 def list_charters(
-    q: str
-    | None = Query(default=None, description="Search by charter_id or client name"),
+    q: str | None = Query(
+        default=None, description="Search by charter_id or client name"
+    ),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
 ):
     sql = """
-        SELECT c.charter_id, c.charter_date, COALESCE(cl.client_name, c.client_id::text) AS client,
+        SELECT c.charter_id, c.charter_date, COALESCE(cl.client_name,
+        c.client_id::text) AS client,
                c.vehicle_booked_id, c.driver_name, c.status
         FROM charters c
         LEFT JOIN clients cl ON c.client_id = cl.client_id
@@ -48,7 +50,10 @@ def list_charters(
     where = ""
     params: list[Any] = []
     if q:
-        where = "WHERE (c.charter_id::text ILIKE %s OR COALESCE(cl.client_name,'') ILIKE %s)"
+        where = (
+            "WHERE (c.charter_id::text ILIKE %s"
+            " OR COALESCE(cl.client_name,'') ILIKE %s)"
+        )
         like = f"%{q}%"
         params.extend([like, like])
     params.extend([limit, offset])
@@ -61,10 +66,15 @@ def list_charters(
 
 @router.get("/charters/search")
 def search_charters(
-    q: str = Query(default="", description="Search by reserve number, client name, or charter ID"),
+    q: str = Query(
+        default="",
+        description="Search by reserve number, client name, or charter ID",
+    ),
     limit: int = Query(default=10, ge=1, le=100),
 ):
-    """Search charters with detailed information for autocomplete/search features."""
+    """Search charters with detailed information for autocomplete/search"
+    "features."""
+
     sql = """
         SELECT 
             c.charter_id,
@@ -95,7 +105,7 @@ def get_charter_by_reserve(reserve_number: str):
     """Lookup charter by reserve number for receipt linking"""
     conn = get_connection()
     cur = conn.cursor()
-    
+
     try:
         cur.execute(
             """
@@ -106,20 +116,20 @@ def get_charter_by_reserve(reserve_number: str):
             WHERE c.reserve_number = %s
             LIMIT 1
             """,
-            (reserve_number,)
+            (reserve_number,),
         )
-        
+
         row = cur.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Charter not found")
-        
+
         return {
             "charter_id": row[0],
             "reserve_number": row[1],
             "charter_date": row[2],
             "client_name": row[3],
             "vehicle_id": row[4],
-            "driver_id": row[5]
+            "driver_id": row[5],
         }
     finally:
         cur.close()
@@ -132,17 +142,18 @@ def get_charges_by_reserve_number(reserve_number: str):
     with _db_cursor() as cur:
         cur.execute(
             """
-            SELECT id, reserve_number, charge_type, amount, description, created_at
+            SELECT id, reserve_number, charge_type, amount, description,
+            created_at
             FROM charges
             WHERE reserve_number = %s
             ORDER BY id
             """,
-            (reserve_number,)
+            (reserve_number,),
         )
         rows = cur.fetchall()
         cols = [d[0] for d in (cur.description or [])]
         charges = [dict(zip(cols, r, strict=False)) for r in rows]
-    
+
     return {"reserve_number": reserve_number, "charges": charges}
 
 
@@ -151,7 +162,9 @@ def get_charter(
     charter_id: int = Path(..., description="Charter ID"),
 ):
     with _db_cursor() as cur:
-        cur.execute("SELECT * FROM charters WHERE charter_id=%s", (charter_id,))
+        cur.execute(
+            "SELECT * FROM charters WHERE charter_id=%s", (charter_id,)
+        )
         row = cur.fetchone()
         cols = [d[0] for d in (cur.description or [])]
     if not row:
@@ -176,7 +189,9 @@ def update_charter(
         "client_id",
     }
     payload = payload or {}
-    updates: dict[str, Any] = {k: v for k, v in payload.items() if k in allowed}
+    updates: dict[str, Any] = {
+        k: v for k, v in payload.items() if k in allowed
+    }
     if not updates:
         raise HTTPException(status_code=400, detail="no_allowed_fields")
     sets = ", ".join([f"{k}=%s" for k in updates])
@@ -184,7 +199,9 @@ def update_charter(
     with _db_cursor() as cur:
         cur.execute(f"UPDATE charters SET {sets} WHERE charter_id=%s", params)
         # Return the updated record
-        cur.execute("SELECT * FROM charters WHERE charter_id=%s", (charter_id,))
+        cur.execute(
+            "SELECT * FROM charters WHERE charter_id=%s", (charter_id,)
+        )
         row = cur.fetchone()
         cols = [d[0] for d in (cur.description or [])]
     if not row:
@@ -203,7 +220,8 @@ def get_charter_routes(
     with _db_cursor() as cur:
         # Verify charter exists
         cur.execute(
-            "SELECT charter_id FROM charters WHERE charter_id = %s", (charter_id,)
+            "SELECT charter_id FROM charters WHERE charter_id = %s",
+            (charter_id,),
         )
         if not cur.fetchone():
             raise HTTPException(status_code=404, detail="charter_not_found")
@@ -221,7 +239,9 @@ def get_charter_routes(
     return [dict(zip(cols, r, strict=False)) for r in rows]
 
 
-@router.get("/charters/{charter_id}/with-routes", response_model=CharterWithRoutes)
+@router.get(
+    "/charters/{charter_id}/with-routes", response_model=CharterWithRoutes
+)
 def get_charter_with_routes(
     charter_id: int = Path(..., description="Charter ID"),
 ):
@@ -231,17 +251,22 @@ def get_charter_with_routes(
         cur.execute(
             """
             SELECT 
-                c.charter_id, c.reserve_number, c.charter_date, c.client_id, c.status,
+                c.charter_id, c.reserve_number, c.charter_date, c.client_id,
+                c.status,
                 COUNT(r.route_id) as total_routes,
-                COALESCE(SUM(r.estimated_duration_minutes), 0) as total_estimated_minutes,
-                COALESCE(SUM(r.actual_duration_minutes), 0) as total_actual_minutes,
-                COALESCE(SUM(r.estimated_distance_km), 0) as total_estimated_km,
+                COALESCE(SUM(r.estimated_duration_minutes),
+                0) as total_estimated_minutes,
+                COALESCE(SUM(r.actual_duration_minutes),
+                0) as total_actual_minutes,
+                COALESCE(SUM(r.estimated_distance_km),
+                0) as total_estimated_km,
                 COALESCE(SUM(r.actual_distance_km), 0) as total_actual_km,
                 COALESCE(SUM(r.route_price), 0) as total_route_price
             FROM charters c
             LEFT JOIN charter_routes r ON c.charter_id = r.charter_id
             WHERE c.charter_id = %s
-            GROUP BY c.charter_id, c.reserve_number, c.charter_date, c.client_id, c.status
+            GROUP BY c.charter_id, c.reserve_number, c.charter_date,
+            c.client_id, c.status
             """,
             (charter_id,),
         )
@@ -270,7 +295,9 @@ def get_charter_with_routes(
 
 
 @router.post(
-    "/charters/{charter_id}/routes", response_model=CharterRoute, status_code=201
+    "/charters/{charter_id}/routes",
+    response_model=CharterRoute,
+    status_code=201,
 )
 def create_charter_route(
     charter_id: int = Path(..., description="Charter ID"),
@@ -283,7 +310,8 @@ def create_charter_route(
     with _db_cursor() as cur:
         # Verify charter exists
         cur.execute(
-            "SELECT charter_id FROM charters WHERE charter_id = %s", (charter_id,)
+            "SELECT charter_id FROM charters WHERE charter_id = %s",
+            (charter_id,),
         )
         if not cur.fetchone():
             raise HTTPException(status_code=404, detail="charter_not_found")
@@ -294,7 +322,8 @@ def create_charter_route(
             INSERT INTO charter_routes (
                 charter_id, route_sequence, pickup_location, pickup_time,
                 dropoff_location, dropoff_time, estimated_duration_minutes,
-                actual_duration_minutes, estimated_distance_km, actual_distance_km,
+                actual_duration_minutes, estimated_distance_km,
+                actual_distance_km,
                 route_price, route_notes, route_status
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -322,7 +351,9 @@ def create_charter_route(
     return dict(zip(cols, new_row, strict=False))
 
 
-@router.patch("/charters/{charter_id}/routes/{route_id}", response_model=CharterRoute)
+@router.patch(
+    "/charters/{charter_id}/routes/{route_id}", response_model=CharterRoute
+)
 def update_charter_route(
     charter_id: int = Path(..., description="Charter ID"),
     route_id: int = Path(..., description="Route ID"),
@@ -362,7 +393,8 @@ def delete_charter_route(
     """Delete a charter route."""
     with _db_cursor() as cur:
         cur.execute(
-            "DELETE FROM charter_routes WHERE route_id = %s AND charter_id = %s",
+            "DELETE FROM charter_routes WHERE route_id = %s AND charter_id ="
+            "%s",
             (route_id, charter_id),
         )
         if cur.rowcount == 0:
@@ -370,7 +402,9 @@ def delete_charter_route(
     return None
 
 
-@router.post("/charters/{charter_id}/routes/reorder", response_model=list[CharterRoute])
+@router.post(
+    "/charters/{charter_id}/routes/reorder", response_model=list[CharterRoute]
+)
 def reorder_charter_routes(
     charter_id: int = Path(..., description="Charter ID"),
     sequence_map: dict[int, int] = Body(
@@ -386,7 +420,8 @@ def reorder_charter_routes(
     with _db_cursor() as cur:
         # Verify charter exists
         cur.execute(
-            "SELECT charter_id FROM charters WHERE charter_id = %s", (charter_id,)
+            "SELECT charter_id FROM charters WHERE charter_id = %s",
+            (charter_id,),
         )
         if not cur.fetchone():
             raise HTTPException(status_code=404, detail="charter_not_found")
@@ -394,7 +429,8 @@ def reorder_charter_routes(
         # Verify all route_ids belong to this charter
         route_ids = list(sequence_map.keys())
         cur.execute(
-            f"SELECT route_id FROM charter_routes WHERE charter_id = %s AND route_id IN ({','.join(['%s']*len(route_ids))})",
+            f"SELECT route_id FROM charter_routes WHERE charter_id = %s AND"
+            f"route_id IN ({','.join(['%s']*len(route_ids))})",
             (charter_id, *route_ids),
         )
         found_ids = {row[0] for row in cur.fetchall()}
@@ -405,20 +441,23 @@ def reorder_charter_routes(
         # Using route_id + 100000 ensures no overlap with valid sequences
         for route_id in route_ids:
             cur.execute(
-                "UPDATE charter_routes SET route_sequence = %s WHERE route_id = %s",
+                "UPDATE charter_routes SET route_sequence = %s WHERE route_id"
+                "= %s",
                 (route_id + 100000, route_id),
             )
 
         # Now apply the new sequences
         for route_id, new_seq in sequence_map.items():
             cur.execute(
-                "UPDATE charter_routes SET route_sequence = %s WHERE route_id = %s",
+                "UPDATE charter_routes SET route_sequence = %s WHERE route_id"
+                "= %s",
                 (new_seq, route_id),
             )
 
         # Return updated routes in order
         cur.execute(
-            "SELECT * FROM charter_routes WHERE charter_id = %s ORDER BY route_sequence",
+            "SELECT * FROM charter_routes WHERE charter_id = %s ORDER BY"
+            "route_sequence",
             (charter_id,),
         )
         rows = cur.fetchall()

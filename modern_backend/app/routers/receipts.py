@@ -1,5 +1,7 @@
 """Receipts and Expenses API Router"""
-from datetime import date, datetime
+
+from datetime import date as dt_date
+from datetime import datetime as dt_datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, HTTPException
@@ -19,7 +21,7 @@ class SplitComponent(BaseModel):
 
 
 class ReceiptCreate(BaseModel):
-    date: date
+    date: dt_date
     vendor: str
     amount: Decimal
     gst: Decimal | None = None
@@ -32,7 +34,7 @@ class ReceiptCreate(BaseModel):
 
 
 class ReceiptUpdate(BaseModel):
-    date: date | None = None
+    date: dt_date | None = None
     vendor: str | None = None
     amount: Decimal | None = None
     gst: Decimal | None = None
@@ -40,14 +42,16 @@ class ReceiptUpdate(BaseModel):
     category: str | None = None  # Deprecated, use gl_account_code
     description: str | None = None
     vehicle_id: int | None = None
-    receipt_review_status: str | None = None  # verified, missing, unreadable, data-error
+    # verified, missing, unreadable, data-error
+    receipt_review_status: str | None = None
     receipt_review_notes: str | None = None
-    is_paper_verified: bool | None = None  # Mark if physical receipt has been validated
+    # Mark if physical receipt has been validated
+    is_paper_verified: bool | None = None
 
 
 class ReceiptResponse(BaseModel):
     receipt_id: int
-    date: date
+    date: dt_date
     vendor: str
     amount: Decimal
     gst: Decimal | None
@@ -57,7 +61,7 @@ class ReceiptResponse(BaseModel):
     vehicle_id: int | None
     payment_method: str | None
     banking_transaction_id: int | None
-    created_at: datetime | None
+    created_at: dt_datetime | None
 
 
 class ExpenseSummary(BaseModel):
@@ -73,14 +77,12 @@ def get_vendors():
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute(
-        """
+    cur.execute("""
         SELECT DISTINCT vendor_name
         FROM receipts
         WHERE vendor_name IS NOT NULL AND vendor_name != ''
         ORDER BY vendor_name
-    """
-    )
+    """)
 
     vendors = [row[0] for row in cur.fetchall()]
 
@@ -116,8 +118,8 @@ def get_categories():
 
 @router.get("/")
 def get_receipts(
-    start_date: date | None = None,
-    end_date: date | None = None,
+    start_date: dt_date | None = None,
+    end_date: dt_date | None = None,
     vendor: str | None = None,
     category: str | None = None,
     limit: int = 100,
@@ -237,7 +239,8 @@ def create_receipt(receipt: ReceiptCreate):
         cur.execute(
             """
             INSERT INTO receipts (
-                receipt_date, vendor_name, gross_amount, gst_amount, gl_account_code,
+                receipt_date, vendor_name, gross_amount, gst_amount,
+                gl_account_code,
                 category, description, vehicle_id, payment_method,
                 banking_transaction_id, created_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
@@ -313,11 +316,19 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
             params.append(receipt.vehicle_id)
         if receipt.receipt_review_status is not None:
             # Validate status
-            valid_statuses = ['verified', 'missing', 'unreadable', 'data-error']
+            valid_statuses = [
+                "verified",
+                "missing",
+                "unreadable",
+                "data-error",
+            ]
             if receipt.receipt_review_status not in valid_statuses:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid review status. Must be one of: {', '.join(valid_statuses)}"
+                    detail=(
+                        "Invalid review status. Must be one of: "
+                        f"{', '.join(valid_statuses)}"
+                    ),
                 )
             updates.append("receipt_review_status = %s")
             params.append(receipt.receipt_review_status)
@@ -336,17 +347,19 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")
 
-        # AUTO-VERIFY: Mark receipt as reviewed when saved (unless explicitly set to other status)
+        # AUTO-VERIFY: Mark receipt as reviewed when saved (unless explicitly
+        # set to other status)
         # Note: This is for DATA review, not paper verification
         if receipt.receipt_review_status is None:
-            # Default to 'verified' if user is editing/saving without specifying status
+            # Default to 'verified' if user is editing/saving without
+            # specifying status
             updates.append("receipt_review_status = 'verified'")
-        
+
         # Always update review timestamp and user when saving
         updates.append("receipt_reviewed_at = NOW()")
         updates.append("receipt_reviewed_by = %s")
         params.append("web_user")  # Can be customized with actual user auth
-        
+
         # Keep legacy verified_by_edit for backwards compatibility
         updates.append("verified_by_edit = TRUE")
         updates.append("verified_at = NOW()")
@@ -354,7 +367,8 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
         params.append("api_user")
 
         params.append(receipt_id)
-        query = f"UPDATE receipts SET {', '.join(updates)} WHERE receipt_id = %s"
+        query = f"UPDATE receipts SET {
+            ', '.join(updates)}  WHERE receipt_id = %s"
 
         cur.execute(query, params)
 
@@ -368,7 +382,9 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
         cur.close()
         conn.close()
 
-        paper_status = "paper-verified" if receipt.is_paper_verified else "data-verified"
+        paper_status = (
+            "paper-verified" if receipt.is_paper_verified else "data-verified"
+        )
         return {"message": f"Receipt updated successfully ({paper_status})"}
 
     except HTTPException:
@@ -390,7 +406,9 @@ def delete_receipt(receipt_id: int):
 
     try:
         # Delete receipt
-        cur.execute("DELETE FROM receipts WHERE receipt_id = %s", (receipt_id,))
+        cur.execute(
+            "DELETE FROM receipts WHERE receipt_id = %s", (receipt_id,)
+        )
 
         if cur.rowcount == 0:
             conn.rollback()
@@ -417,7 +435,7 @@ def delete_receipt(receipt_id: int):
 
 @router.get("/summary/by-category")
 def get_expense_summary(
-    start_date: date | None = None, end_date: date | None = None
+    start_date: dt_date | None = None, end_date: dt_date | None = None
 ):
     """Get expense summary grouped by category"""
     conn = get_connection()

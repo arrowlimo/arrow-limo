@@ -1,0 +1,11 @@
+TOTAL|7512
+TOP|desktop_app\charter_form_widget.py|441
+TOP|desktop_app\vendor_invoice_manager.py|376
+TOP|desktop_app\receipt_search_match_widget.py|356
+TOP|desktop_app\t2_data_entry_widget.py|326
+TOP|modern_backend\app\routers\reports.py|285
+TOP|desktop_app\payroll_entry_widget.py|258
+TOP|desktop_app\accounting_reports.py|241
+TOP|desktop_app\accounting_control_center_widget.py|234
+TOP|desktop_app\vehicle_management_widget.py|194
+TOP|desktop_app\enhanced_banking_manager.py|151

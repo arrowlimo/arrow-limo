@@ -1,5 +1,6 @@
 """
-User authentication routes - supports any user role (admin, driver, manager, super_user, etc.)
+User authentication routes - supports any user role (admin, driver, manager,
+super_user, etc.)
 Serves login page and handles login for all user types
 Last updated: 2026-02-07 - Added auto-login support for local development
 """
@@ -37,7 +38,8 @@ def verify_user_credentials(username: str, password: str) -> dict:
         # Check users table first (for authenticated access)
         cur.execute(
             """
-            SELECT user_id, username, email, role, password_hash, permissions, status
+            SELECT user_id, username, email, role, password_hash, permissions,
+            status
             FROM users 
             WHERE username = %s
             LIMIT 1
@@ -78,7 +80,7 @@ def verify_user_credentials(username: str, password: str) -> dict:
                                     if isinstance(perms, str)
                                     else perms
                                 )
-                            except:
+                            except Exception:
                                 permissions = {}
 
                         cur.close()
@@ -101,12 +103,21 @@ def verify_user_credentials(username: str, password: str) -> dict:
         return None
 
 
-def create_session(employee_id: int, employee_name: str) -> str:
+def create_session(
+    employee_id: int,
+    employee_name: str,
+    role: str = "user",
+    permissions: dict | None = None,
+    username: str | None = None,
+) -> str:
     """Create a session token"""
     token = secrets.token_urlsafe(32)
     SESSIONS[token] = {
         "employee_id": employee_id,
         "name": employee_name,
+        "username": username or employee_name,
+        "role": role,
+        "permissions": permissions or {},
         "created_at": datetime.now(),
         "expires_at": datetime.now() + timedelta(seconds=SESSION_TIMEOUT),
     }
@@ -123,7 +134,23 @@ def get_session(token: str) -> dict:
         del SESSIONS[token]
         return None
 
+    # Sliding expiration for active sessions.
+    session["expires_at"] = datetime.now() + timedelta(seconds=SESSION_TIMEOUT)
     return session
+
+
+def revoke_session(token: str | None) -> None:
+    if token and token in SESSIONS:
+        del SESSIONS[token]
+
+
+def parse_bearer_token(authorization: str | None) -> str | None:
+    if not authorization:
+        return None
+    parts = authorization.strip().split(" ", 1)
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        return None
+    return parts[1].strip() or None
 
 
 def get_driver_trips(employee_id: int) -> list:
@@ -182,20 +209,43 @@ LOGIN_HTML = """<!DOCTYPE html>
     <title>Arrow Limo - Login</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .login-container { background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); width: 100%; max-width: 400px; padding: 40px; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-container { background: white; border-radius: 12px; box-shadow:
+        0 10px 40px rgba(0,0,0,
+        0.3); width: 100%; max-width: 400px; padding: 40px; }
         .login-header { text-align: center; margin-bottom: 30px; }
         .login-header h1 { color: #333; font-size: 28px; margin-bottom: 10px; }
         .login-header p { color: #666; font-size: 14px; }
         .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; color: #333; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
-        .form-group input { width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: all 0.3s; }
-        .form-group input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
-        .login-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-top: 10px; }
-        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4); }
-        .error-message { background: #fee; border: 1px solid #fcc; color: #c00; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; display: none; }
+        .form-group label { display: block; color: #333; font-weight: 600;
+        margin-bottom: 8px; font-size: 14px; }
+        .form-group input { width: 100%; padding: 12px 15px; border: 2px solid
+        #e0e0e0; border-radius: 8px; font-size: 14px; transition: all 0.3s; }
+        .form-group input:focus { outline: none; border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .login-btn { width: 100%; padding: 12px; background:
+        linear-gradient(135deg, #667eea 0%,
+        # 764ba2 100%); color: white; border: none; border-radius: 8px;
+        # font-size: 16px; font-weight: 600; cursor: pointer; transition: all
+        # 0.3s; margin-top: 10px; }
+        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px
+        rgba(102, 126, 234, 0.4); }
+        .error-message { background: #fee; border: 1px solid #fcc; color:
+        # c00; padding: 12px; border-radius: 6px; margin-bottom: 20px;
+        # font-size: 14px; display: none; }
         .error-message.show { display: block; }
-        .demo-note { background: #f0f7ff; border-left: 4px solid #667eea; padding: 12px; margin-top: 20px; font-size: 12px; color: #555; border-radius: 4px; }
+        .demo-note { background: #f0f7ff; border-left: 4px solid #667eea;
+        padding: 12px; margin-top: 20px; font-size: 12px; color: #555;
+        border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -208,20 +258,24 @@ LOGIN_HTML = """<!DOCTYPE html>
         <form id="loginForm">
             <div class="form-group">
                 <label for="username">Username (Employee Name)</label>
-                <input type="text" id="username" name="username" placeholder="Enter your name" autocomplete="off" required>
+                <input type="text" id="username" name="username"
+                    placeholder="Enter your name" autocomplete="off" required>
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Enter password" required>
+                <input type="password" id="password" name="password"
+                    placeholder="Enter password" required>
             </div>
             <button type="submit" class="login-btn">Sign In</button>
         </form>
         <div class="demo-note">
-            <strong>Demo Mode:</strong> Try any employee name. Password can be anything.
+            <strong>Demo Mode:</strong> Try any employee name. Password can be
+            anything.
         </div>
     </div>
     <script>
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        document.getElementById('loginForm').addEventListener(
+            'submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
@@ -229,8 +283,11 @@ LOGIN_HTML = """<!DOCTYPE html>
             try {
                 const response = await fetch('/auth/login-submit', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body:
+                    `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
                 });
                 if (response.ok) {
                     window.location.href = '/auth/dashboard';
@@ -244,6 +301,8 @@ LOGIN_HTML = """<!DOCTYPE html>
                 errorDiv.classList.add('show');
             }
         });
+        
+    
     </script>
 </body>
 </html>
@@ -262,39 +321,56 @@ async def login_page(request: Request):
 @router.get("/auto-login-check")
 async def auto_login_check():
     """Check if auto-login is enabled for local development"""
-    auto_login = os.getenv('AUTO_LOGIN', 'false').lower() in ('true', '1', 'yes')
-    
+    auto_login = os.getenv("AUTO_LOGIN", "false").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+
     if auto_login:
         # Create auto-login session
-        auto_login_user = os.getenv('AUTO_LOGIN_USER', 'admin')
+        auto_login_user = os.getenv("AUTO_LOGIN_USER", "admin")
         token = create_session(
             employee_id=0,
-            employee_name=auto_login_user
+            employee_name=auto_login_user,
+            role="admin",
+            permissions={},
+            username=auto_login_user,
         )
-        
-        return JSONResponse({
-            "auto_login": True,
-            "token": token,
-            "user": {
-                "username": auto_login_user,
-                "role": "admin",
-                "employee_id": 0,
-                "permissions": {}
+
+        return JSONResponse(
+            {
+                "auto_login": True,
+                "token": token,
+                "user": {
+                    "username": auto_login_user,
+                    "role": "admin",
+                    "employee_id": 0,
+                    "permissions": {},
+                },
             }
-        })
-    
+        )
+
     return JSONResponse({"auto_login": False})
 
 
 @router.post("/login-submit")
 async def login_submit(
-    username: str = Form(...), password: str = Form(...), response: Response = None
+    username: str = Form(...),
+    password: str = Form(...),
+    response: Response = None,
 ):
     """Handle login form submission (HTML form)"""
     user = verify_user_credentials(username, password)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    session_token = create_session(user["employee_id"], user["name"])
+    session_token = create_session(
+        user["employee_id"],
+        user["name"],
+        role=user.get("role", "user"),
+        permissions=user.get("permissions", {}),
+        username=username,
+    )
     response.set_cookie(
         key="session_token",
         value=session_token,
@@ -310,27 +386,62 @@ async def login_submit(
 async def login_json(login_request: LoginRequest):
     """Handle JSON login (for Vue frontend)"""
     print(f"[LOGIN] Attempting login for username: {login_request.username}")
-    user = verify_user_credentials(login_request.username, login_request.password)
+    user = verify_user_credentials(
+        login_request.username, login_request.password
+    )
     if not user:
-        print(f"[LOGIN] Failed - invalid credentials for {login_request.username}")
+        print(
+            f"[LOGIN] Failed - invalid credentials for"
+            f"{login_request.username}"
+        )
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     print(
-        f"[LOGIN] Success - authenticated {login_request.username} as {user.get('role')}"
+        f"[LOGIN] Success - authenticated {login_request.username} as"
+        f"{user.get('role')}"
     )
     # Create session token
-    session_token = create_session(user["employee_id"], user["name"])
+    session_token = create_session(
+        user["employee_id"],
+        user["name"],
+        role=user.get("role", "user"),
+        permissions=user.get("permissions", {}),
+        username=login_request.username,
+    )
 
     # Return JWT-style response for frontend
     return {
         "access_token": session_token,
         "token_type": "bearer",
+        "expires_in": SESSION_TIMEOUT,
         "user": {
             "user_id": user["employee_id"],
             "username": login_request.username,
             "name": user["name"],
             "role": user.get("role", "user"),
             "permissions": user.get("permissions", {}),
+        },
+    }
+
+
+@router.get("/validate")
+async def validate_token(request: Request):
+    """Validate bearer token for SPA route/API guards."""
+    authorization = request.headers.get("Authorization")
+    token = parse_bearer_token(authorization)
+    session = get_session(token) if token else None
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    return {
+        "authenticated": True,
+        "expires_at": session["expires_at"].isoformat(),
+        "user": {
+            "user_id": session["employee_id"],
+            "username": session.get("username") or session["name"],
+            "name": session["name"],
+            "role": session.get("role", "user"),
+            "permissions": session.get("permissions", {}),
         },
     }
 
@@ -349,12 +460,14 @@ async def dashboard(request: Request):
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT role FROM employees WHERE employee_id = %s", (employee_id,))
+        cur.execute(
+            "SELECT role FROM employees WHERE employee_id = %s", (employee_id,)
+        )
         role_row = cur.fetchone()
         user_role = role_row[0] if role_row else "user"
         cur.close()
         conn.close()
-    except:
+    except Exception:
         user_role = "user"
 
     if user_role in ["driver", "operator"]:
@@ -377,6 +490,15 @@ async def logout(response: Response):
     return RedirectResponse(url="/auth/login", status_code=302)
 
 
+@router.post("/logout")
+async def logout_json(request: Request):
+    """API logout for SPA clients using bearer token."""
+    authorization = request.headers.get("Authorization")
+    token = parse_bearer_token(authorization)
+    revoke_session(token)
+    return {"status": "ok"}
+
+
 def generate_driver_dashboard(driver_name: str, trips: list, role: str) -> str:
     """Generate dashboard for drivers/operators"""
     trips_html = ""
@@ -387,30 +509,51 @@ def generate_driver_dashboard(driver_name: str, trips: list, role: str) -> str:
             "completed": "#10b981",
             "cancelled": "#ef4444",
         }.get(trip.get("status", "scheduled"), "#667eea")
-        trips_html += f'<div class="trip-card"><div class="trip-header"><div><h3>{trip.get("passenger", "Unknown")}</h3></div><span class="trip-status" style="background-color: {status_color}">{trip.get("status", "scheduled").replace("_", " ").title()}</span></div><div class="trip-details"><p><strong>Pickup:</strong> {trip.get("pickup", "TBA")}</p><p><strong>Dropoff:</strong> {trip.get("dropoff", "TBA")}</p></div></div>'
+        trips_html += (
+            '<div class="trip-card"><div class="trip-header"><div><h3>'
+            f'{trip.get("passenger", "Unknown")}'
+            '</h3></div><span class="trip-status" style="background-color: '
+            f'{status_color}">'
+            f'{trip.get("status", "scheduled").replace("_", " ").title()}'
+            '</span></div><div class="trip-details"><p><strong>Pickup:'
+            f'</strong> {trip.get("pickup", "TBA")}</p><p><strong>Dropoff:'
+            f'</strong> {trip.get("dropoff", "TBA")}</p></div></div>'
+        )
     if not trips:
-        trips_html = '<p style="text-align: center; color: #999; padding: 20px;">No trips scheduled</p>'
+        trips_html = (
+            '<p style="text-align: center; color: #999; padding: 20px;">'
+            'No trips scheduled</p>'
+        )
 
     return f"""<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><title>Driver Dashboard</title><style>
+<html><head><meta charset="UTF-8"><meta name="viewport"
+content="width=device-width"><title>Driver Dashboard</title><style>
 body{{font-family:sans-serif;background:#f5f7fa;margin:0}}
-.navbar{{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px 40px;display:flex;justify-content:space-between}}
+.navbar{{background:linear-gradient(135deg,#667eea,
+# 764ba2);color:white;padding:20px
+# 40px;display:flex;justify-content:space-between}}
 .container{{max-width:1200px;margin:40px auto;padding:0 20px}}
 .welcome{{background:white;padding:30px;border-radius:12px;margin-bottom:30px}}
-.stats{{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-bottom:30px}}
-.stat-card{{background:white;padding:20px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}}
+.stats{{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,
+1fr));gap:20px;margin-bottom:30px}}
+.stat-card{{background:white;padding:20px;border-radius:12px;box-shadow:0 2px
+10px rgba(0,0,0,0.05)}}
 .stat-value{{font-size:32px;font-weight:700;color:#667eea}}
 .trips-section{{background:white;padding:30px;border-radius:12px}}
-.trip-card{{border:1px solid #e0e0e0;border-radius:8px;padding:16px;margin-bottom:12px}}
+.trip-card{{border:1px solid
+#e0e0e0;border-radius:8px;padding:16px;margin-bottom:12px}}
 .trip-status{{color:white;padding:4px 12px;border-radius:20px;font-size:12px}}
 </style></head>
 <body>
-<div class="navbar"><h1>Arrow Limo {role.title()} Portal</h1><a href="/auth/logout" style="color:white;text-decoration:none">Logout</a></div>
+<div class="navbar"><h1>Arrow Limo {role.title()} Portal</h1><a
+href="/auth/logout" style="color:white;text-decoration:none">Logout</a></div>
 <div class="container">
 <div class="welcome"><h2>Welcome, {driver_name}!</h2></div>
 <div class="stats">
-<div class="stat-card"><div style="color:#999;font-size:12px">Trips Today</div><div class="stat-value">{len(trips)}</div></div>
-<div class="stat-card"><div style="color:#999;font-size:12px">Status</div><div class="stat-value" style="color:#10b981">Active</div></div>
+<div class="stat-card"><div style="color:#999;font-size:12px">Trips
+Today</div><div class="stat-value">{len(trips)}</div></div>
+<div class="stat-card"><div style="color:#999;font-size:12px">Status</div>
+<div class="stat-value" style="color:#10b981">Active</div></div>
 </div>
 <div class="trips-section"><h3>Today's Trips</h3>{trips_html}</div>
 </div>
@@ -421,14 +564,19 @@ def generate_admin_dashboard(admin_name: str, role: str) -> str:
     return f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Admin Dashboard</title><style>
 body{{font-family:sans-serif;background:#f5f7fa;margin:0}}
-.navbar{{background:linear-gradient(135deg,#e74c3c,#c0392b);color:white;padding:20px 40px;display:flex;justify-content:space-between}}
+.navbar{{background:linear-gradient(135deg,#e74c3c,
+# c0392b);color:white;padding:20px
+# 40px;display:flex;justify-content:space-between}}
 .container{{max-width:1200px;margin:40px auto;padding:0 20px}}
 .welcome{{background:white;padding:30px;border-radius:12px;margin-bottom:30px}}
-.tools{{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}}
-.tool-card{{background:white;padding:20px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}}
+.tools{{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,
+1fr));gap:20px}}
+.tool-card{{background:white;padding:20px;border-radius:12px;box-shadow:0 2px
+10px rgba(0,0,0,0.05)}}
 </style></head>
 <body>
-<div class="navbar"><h1>Arrow Limo {role.title()} Panel</h1><a href="/auth/logout" style="color:white;text-decoration:none">Logout</a></div>
+<div class="navbar"><h1>Arrow Limo {role.title()} Panel</h1><a
+href="/auth/logout" style="color:white;text-decoration:none">Logout</a></div>
 <div class="container">
 <div class="welcome"><h2>Welcome, {admin_name}!</h2></div>
 <div class="tools">
@@ -443,17 +591,25 @@ def generate_super_user_dashboard(super_user_name: str) -> str:
     return f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Super User Dashboard</title><style>
 body{{font-family:sans-serif;background:#f5f7fa;margin:0}}
-.navbar{{background:linear-gradient(135deg,#8e44ad,#2c3e50);color:white;padding:20px 40px;display:flex;justify-content:space-between}}
+.navbar{{background:linear-gradient(135deg,#8e44ad,
+# 2c3e50);color:white;padding:20px
+# 40px;display:flex;justify-content:space-between}}
 .container{{max-width:1200px;margin:40px auto;padding:0 20px}}
-.welcome{{background:white;padding:30px;border-radius:12px;margin-bottom:30px;border-left:4px solid #8e44ad}}
-.badge{{background:#8e44ad;color:white;padding:4px 12px;border-radius:20px;font-size:12px;display:inline-block;margin-top:10px}}
-.tools{{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}}
-.tool-card{{background:white;padding:20px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}}
+.welcome{{background:white;padding:30px;border-radius:12px;margin-bottom:30px;border-left:4px
+solid #8e44ad}}
+.badge{{background:#8e44ad;color:white;padding:4px
+12px;border-radius:20px;font-size:12px;display:inline-block;margin-top:10px}}
+.tools{{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,
+1fr));gap:20px}}
+.tool-card{{background:white;padding:20px;border-radius:12px;box-shadow:0 2px
+10px rgba(0,0,0,0.05)}}
 </style></head>
 <body>
-<div class="navbar"><h1>Arrow Limo Super User Panel</h1><a href="/auth/logout" style="color:white;text-decoration:none">Logout</a></div>
+<div class="navbar"><h1>Arrow Limo Super User Panel</h1><a
+href="/auth/logout" style="color:white;text-decoration:none">Logout</a></div>
 <div class="container">
-<div class="welcome"><h2>Welcome, {super_user_name}!</h2><div class="badge">SUPER USER</div></div>
+<div class="welcome"><h2>Welcome, {super_user_name}!</h2><div
+class="badge">SUPER USER</div></div>
 <div class="tools">
 <div class="tool-card"><h3>All Reports</h3></div>
 <div class="tool-card"><h3>Settings</h3></div>
@@ -468,13 +624,18 @@ def generate_default_dashboard(user_name: str, role: str) -> str:
     return f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Dashboard</title><style>
 body{{font-family:sans-serif;background:#f5f7fa;margin:0}}
-.navbar{{background:linear-gradient(135deg,#3498db,#2980b9);color:white;padding:20px 40px;display:flex;justify-content:space-between}}
+.navbar{{background:linear-gradient(135deg,#3498db,
+# 2980b9);color:white;padding:20px
+# 40px;display:flex;justify-content:space-between}}
 .container{{max-width:1200px;margin:40px auto;padding:0 20px}}
 .welcome{{background:white;padding:30px;border-radius:12px}}
-.role-badge{{background:#3498db;color:white;padding:4px 12px;border-radius:20px;font-size:12px;display:inline-block;margin-top:10px}}
+.role-badge{{background:#3498db;color:white;padding:4px
+12px;border-radius:20px;font-size:12px;display:inline-block;margin-top:10px}}
 </style></head>
 <body>
-<div class="navbar"><h1>Arrow Limo Portal</h1><a href="/auth/logout" style="color:white;text-decoration:none">Logout</a></div>
+<div class="navbar"><h1>Arrow Limo Portal</h1><a href="/auth/logout"
+style="color:white;text-decoration:none">Logout</a></div>
 <div class="container">
-<div class="welcome"><h2>Welcome, {user_name}!</h2><p>Role: {role}</p><div class="role-badge">{role.upper()}</div></div>
+<div class="welcome"><h2>Welcome, {user_name}!</h2><p>Role: {role}</p><div
+class="role-badge">{role.upper()}</div></div>
 </div></body></html>"""

@@ -80,4 +80,8 @@ if errorlevel 1 (
     echo.
 )
 
-pause
+REM Auto-close terminal by default when app exits.
+REM Set KEEP_TERMINAL_OPEN=1 before launch if you want this window to stay open.
+if "%KEEP_TERMINAL_OPEN%"=="1" (
+    pause
+)
