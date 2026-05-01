@@ -26,7 +26,7 @@ Treat the generated installer and update packages as private internal deployment
 - `build_offsite_release.ps1`
   - stages the application/runtime and optionally compiles the installer with Inno Setup
 - `build_offsite_update.ps1`
-  - creates an update payload zip for later deployments
+  - creates an update payload zip for later deployments (includes bundled `.venv` runtime by default)
 - `ArrowLimoOffsite.iss`
   - Inno Setup script for a Microsoft-style installer experience
 - `runtime\Configure-OffsiteInstall.ps1`
@@ -42,8 +42,10 @@ Current bootstrap checks/install behavior:
 - Verifies Administrator context.
 - Verifies 64-bit Windows.
 - Verifies bundled Python runtime exists in install folder.
+- Auto-repairs Python package set from `modern_backend\requirements.txt` when dependency drift is detected.
 - Verifies Visual C++ runtime availability required by many Python native wheels.
 - Runs bundled `prerequisites\vc_redist.x64.exe` silently when VC++ runtime is missing.
+- Supports explicit VC++ repair mode (`/repair`) when needed.
 - Fails installation/update with a clear message if prerequisites remain unmet after install attempt.
 
 `build_offsite_release.ps1` automatically downloads `vc_redist.x64.exe` into `prerequisites` during release build if it is not already present.
@@ -76,6 +78,8 @@ Set-Location L:\limo
 PowerShell -ExecutionPolicy Bypass -File .\DEPLOYMENT_PACKAGE\OFFSITE_REMOTE\build_offsite_update.ps1
 ```
 
+Use `-ExcludeRuntime` only for code-only hotfix payloads where runtime parity is guaranteed.
+
 ## Install on the dispatcher PC
 
 Preferred path:
@@ -107,3 +111,4 @@ The installer defaults to:
 4. Run `Apply-OffsiteUpdate.ps1` as Administrator.
 
 The updater preserves the installed `.env` and local data folders.
+When runtime is included (default), the updater removes and reinstalls `.venv` to prevent stale/mismatched package versions.

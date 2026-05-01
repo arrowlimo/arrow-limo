@@ -1,5 +1,6 @@
 param(
     [switch]$IncludeRuntime,
+    [switch]$ExcludeRuntime,
     [string]$ReleaseName = "ArrowLimoOffsite"
 )
 
@@ -12,6 +13,7 @@ $runtimeDir = Join-Path $PSScriptRoot "runtime"
 $version = Get-Date -Format "yyyy.MM.dd.HHmm"
 $payloadRoot = Join-Path $updatesRoot "$ReleaseName-$version"
 $payloadDir = Join-Path $payloadRoot "payload"
+$includeRuntimeEffective = $IncludeRuntime -or (-not $ExcludeRuntime)
 
 function Copy-Tree([string]$Source, [string]$Destination) {
     New-Item -ItemType Directory -Path $Destination -Force | Out-Null
@@ -35,7 +37,7 @@ Copy-Item (Join-Path $runtimeDir "START_ARROW_LIMO_OFFSITE.bat") (Join-Path $pay
 Copy-Item (Join-Path $runtimeDir "Bootstrap-Prereqs.ps1") (Join-Path $payloadDir "Bootstrap-Prereqs.ps1") -Force
 Copy-Item (Join-Path $runtimeDir "Configure-OffsiteInstall.ps1") (Join-Path $payloadDir "Configure-OffsiteInstall.ps1") -Force
 
-if ($IncludeRuntime) {
+if ($includeRuntimeEffective) {
     Copy-Tree (Join-Path $repoRoot ".venv") (Join-Path $payloadDir ".venv")
 }
 
@@ -49,7 +51,7 @@ if (Test-Path $prereqDir) {
 $manifest = @{
     release_name = $ReleaseName
     version = $version
-    include_runtime = [bool]$IncludeRuntime
+    include_runtime = [bool]$includeRuntimeEffective
     built_at = (Get-Date).ToString("s")
 } | ConvertTo-Json -Depth 4
 Set-Content -Path (Join-Path $payloadRoot "update-manifest.json") -Value $manifest -Encoding UTF8
