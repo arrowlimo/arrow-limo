@@ -13,6 +13,15 @@ function Copy-Tree([string]$Source, [string]$Destination) {
     }
 }
 
+function Remove-Tree([string]$PathValue) {
+    if (-not (Test-Path $PathValue)) {
+        return
+    }
+
+    attrib -r -h -s "$PathValue\*" /S /D 2>$null | Out-Null
+    Remove-Item -Path $PathValue -Recurse -Force
+}
+
 if (-not (Test-Path $InstallRoot)) {
     throw "Install root not found: $InstallRoot"
 }
@@ -53,12 +62,17 @@ foreach ($name in @("launcher.py", "START_ARROW_LIMO_OFFSITE.bat", "Bootstrap-Pr
 
 $runtimeSource = Join-Path $PayloadRoot ".venv"
 if (Test-Path $runtimeSource) {
-    Copy-Tree $runtimeSource (Join-Path $InstallRoot ".venv")
+    $runtimeDest = Join-Path $InstallRoot ".venv"
+    if (Test-Path $runtimeDest) {
+        Write-Host "Replacing existing bundled runtime (.venv) to prevent version drift..." -ForegroundColor Yellow
+        Remove-Tree $runtimeDest
+    }
+    Copy-Tree $runtimeSource $runtimeDest
 }
 
 $bootstrapScript = Join-Path $InstallRoot "Bootstrap-Prereqs.ps1"
 if (Test-Path $bootstrapScript) {
-    & powershell.exe -ExecutionPolicy Bypass -NoProfile -File $bootstrapScript -InstallRoot $InstallRoot
+    & powershell.exe -ExecutionPolicy Bypass -NoProfile -File $bootstrapScript -InstallRoot $InstallRoot -AutoRepairPython
 }
 
 $configureScript = Join-Path $InstallRoot "Configure-OffsiteInstall.ps1"
