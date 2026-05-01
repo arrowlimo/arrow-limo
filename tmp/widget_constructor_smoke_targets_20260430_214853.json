@@ -1,0 +1,101 @@
+{
+  "generated_at": "2026-04-30T21:48:53.062540",
+  "summary": {
+    "targets_total": 13,
+    "targets_passed": 8,
+    "targets_failed": 5
+  },
+  "results": [
+    {
+      "module": "desktop_app.mega_menu_widget",
+      "class": "MegaMenuWidget",
+      "ok": true,
+      "error": "",
+      "strategy": "no_args"
+    },
+    {
+      "module": "desktop_app.report_explorer_widget",
+      "class": "ReportExplorerWidget",
+      "ok": true,
+      "error": "",
+      "strategy": "no_args"
+    },
+    {
+      "module": "desktop_app.employee_management_widget",
+      "class": "EmployeeManagementWidget",
+      "ok": true,
+      "error": "",
+      "strategy": "db"
+    },
+    {
+      "module": "desktop_app.vehicle_management_widget",
+      "class": "VehicleManagementWidget",
+      "ok": true,
+      "error": "",
+      "strategy": "db"
+    },
+    {
+      "module": "desktop_app.dispatch_management_widget",
+      "class": "DispatchManagementWidget",
+      "ok": true,
+      "error": "",
+      "strategy": "db"
+    },
+    {
+      "module": "desktop_app.document_management_widget",
+      "class": "DocumentManagementWidget",
+      "ok": true,
+      "error": "",
+      "strategy": "db"
+    },
+    {
+      "module": "desktop_app.charter_form_widget",
+      "class": "CharterFormWidget",
+      "ok": false,
+      "error": "timeout",
+      "strategy": ""
+    },
+    {
+      "module": "desktop_app.manage_banking_widget",
+      "class": "ManageBankingWidget",
+      "ok": true,
+      "error": "",
+      "strategy": "db"
+    },
+    {
+      "module": "desktop_app.manage_cash_box_widget",
+      "class": "ManageCashBoxWidget",
+      "ok": false,
+      "error": "TypeError: ManageCashBoxWidget.__init__() missing 1 required positional argument: 'conn'",
+      "strategy": ""
+    },
+    {
+      "module": "desktop_app.report_management_widget",
+      "class": "ReportManagementWidget",
+      "ok": false,
+      "error": "TypeError: ReportManagementWidget.__init__() missing 1 required positional argument: 'db'",
+      "strategy": ""
+    },
+    {
+      "module": "desktop_app.roe_form_widget",
+      "class": "ROEFormWidget",
+      "ok": true,
+      "error": "",
+      "strategy": "db"
+    },
+    {
+      "module": "desktop_app.dashboard_classes",
+      "class": "FleetManagementWidget",
+      "ok": false,
+      "error": "timeout",
+      "strategy": ""
+    },
+    {
+      "module": "desktop_app.dashboard_classes",
+      "class": "FinancialDashboardWidget",
+      "ok": false,
+      "error": "timeout",
+      "strategy": ""
+    }
+  ]
+}

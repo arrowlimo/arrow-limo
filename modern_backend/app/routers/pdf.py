@@ -3,12 +3,11 @@ PDF Generation Endpoints
 """
 
 import json
-from pathlib import Path as FilePath
 from typing import Any
 from typing import Annotated
 
 from fastapi import APIRouter, Body, HTTPException, Path
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 
 from ..db import cursor
 from ..services.pdf_layout_settings import (
@@ -19,7 +18,11 @@ from ..services.pdf_layout_settings import (
     reset_pdf_layout_settings,
     save_pdf_layout_settings,
 )
-from ..services.pdf_generator import generate_charter_pdf, generate_t4_pdf
+from ..services.pdf_generator import (
+    generate_charter_pdf,
+    generate_confirmation_letter_pdf,
+    generate_t4_pdf,
+)
 
 router = APIRouter(prefix="/api", tags=["pdf"])
 
@@ -324,6 +327,7 @@ def _build_payload_routes(payload: dict[str, Any]) -> list[dict[str, Any]]:
                 or route.get("type"),
                 "address": route.get("address") or route.get("location"),
                 "stop_time": route.get("stop_time") or route.get("time"),
+                "at_by": route.get("at_by") or "at",
                 "route_notes": route.get("route_notes") or route.get("notes"),
             }
         )
@@ -460,11 +464,32 @@ def _build_run_sheet_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return _apply_pdf_field_aliases(charter_data)
 
 
+def _column_exists(cur, table_name: str, column_name: str) -> bool:
+    cur.execute(
+        """
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = %s
+          AND column_name = %s
+        LIMIT 1
+        """,
+        (table_name, column_name),
+    )
+    return cur.fetchone() is not None
+
+
 def _load_charter_pdf_data(charter_id: int) -> dict:
     """Load the richer charter data needed for the run sheet PDF."""
     with cursor() as cur:
+        exchange_details_select = (
+            "c.exchange_of_services_details"
+            if _column_exists(cur, "charters", "exchange_of_services_details")
+            else "NULL::jsonb AS exchange_of_services_details"
+        )
+
         cur.execute(
-            """
+            f"""
             SELECT
                 c.charter_id,
                 c.reserve_number,
@@ -482,7 +507,7 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
                 c.assigned_driver_id,
                 c.status,
                 c.charter_type,
-                c.exchange_of_services_details,
+                {exchange_details_select},
                 c.total_amount_due,
                 c.paid_amount,
                 c.quoted_hours,
@@ -546,7 +571,6 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
             LEFT JOIN (
                 SELECT charter_id, SUM(amount) AS total_paid
                 FROM payments
-                WHERE deleted_at IS NULL
                 GROUP BY charter_id
             ) p ON c.charter_id = p.charter_id
             LEFT JOIN (
@@ -556,7 +580,6 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
                     'NRR', 'NRD', 'Non-Refundable Retainer', 'Retainer'
                 )
                   AND payment_label NOT IN ('Deposit')
-                  AND deleted_at IS NULL
                 GROUP BY charter_id
             ) nrr ON c.charter_id = nrr.charter_id
             WHERE c.charter_id = %s
@@ -732,36 +755,19 @@ def preview_charter_invoice_pdf(charter_id: int = Path(...)):
 
 @router.get("/charters/{charter_id}/confirmation-letter-pdf")
 def get_confirmation_letter_pdf(charter_id: int = Path(...)):
-    """
-    Serve the existing confirmation letter PDF made in the desktop flow.
-    Source file: L:/Confirmation/quote.pdf
-    """
-    confirmation_path = FilePath("L:/Confirmation/quote.pdf")
-    if not confirmation_path.is_file():
-        raise HTTPException(
-            status_code=404,
-            detail="Confirmation PDF not found at L:/Confirmation/quote.pdf",
-        )
+    """Generate client-facing confirmation letter PDF from live charter data."""
+    charter_data = _load_charter_pdf_data(charter_id)
 
-    reserve_number = "quote"
     try:
-        charter_data = _load_charter_pdf_data(charter_id)
-        reserve_number = str(
-            charter_data.get("reserve_number") or reserve_number
+        pdf_bytes = generate_confirmation_letter_pdf(charter_data)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"PDF generation failed: {e!s}"
         )
-    except Exception:
-        # Fall back to generic filename if charter lookup fails.
-        pass
 
+    reserve_number = str(charter_data.get("reserve_number") or "quote")
     filename = f"Confirmation_{reserve_number}.pdf"
-    return FileResponse(
-        path=str(confirmation_path),
-        media_type="application/pdf",
-        filename=filename,
-        headers={
-            "Content-Disposition": f"inline; filename={filename}",
-        },
-    )
+    return _stream_pdf_response(pdf_bytes, filename, inline=True)
 
 
 @router.post("/charters/run-sheet-pdf")

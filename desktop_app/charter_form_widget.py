@@ -127,6 +127,13 @@ class CharterFormWidget(QWidget):
         self.print_invoice_btn = QPushButton("📄 Print Invoice")
         self.print_invoice_btn.clicked.connect(self.print_invoice)
 
+        # Run Sheet PDF buttons
+        self.print_run_sheet_btn = QPushButton("🗒️ Print Run Sheet")
+        self.print_run_sheet_btn.clicked.connect(self.print_run_sheet)
+
+        self.print_blank_sheet_btn = QPushButton("🗒️ Blank Run Sheet")
+        self.print_blank_sheet_btn.clicked.connect(self.print_blank_run_sheet)
+
         # Beverage print buttons
         self.print_dispatch_btn = QPushButton("🍷 Print Dispatch Order")
         self.print_dispatch_btn.clicked.connect(
@@ -149,6 +156,28 @@ class CharterFormWidget(QWidget):
         self.print_driver_manifest_btn.clicked.connect(
             self.print_driver_manifest)
 
+        # Consolidated print/email action menu (desktop app)
+        self.print_actions_combo = QComboBox()
+        self.print_actions_combo.setMinimumWidth(250)
+        self.print_actions_combo.addItems(
+            [
+                "🖨️ Print / Email...",
+                "📋 Print Confirmation",
+                "📄 Print Invoice",
+                "🗒️ Print Run Sheet",
+                "🗒️ Print Blank Run Sheet",
+                "🍷 Print Dispatch Order",
+                "🍷 Print Guest Invoice",
+                "🍷 Print Driver Sheet",
+                "🛒 Print Client Beverage List",
+                "📋 Print Driver Manifest",
+                "✈️ Airport Sign",
+            ]
+        )
+        self.print_actions_combo.activated.connect(
+            self._handle_print_action_menu
+        )
+
         self.airport_sign_btn = QPushButton("✈️ Airport Sign")
         self.airport_sign_btn.clicked.connect(self.generate_airport_sign)
 
@@ -166,14 +195,7 @@ class CharterFormWidget(QWidget):
         header_layout.addWidget(self.save_btn)
         header_layout.addWidget(self.new_btn)
         header_layout.addWidget(self.send_quote_btn)
-        header_layout.addWidget(self.print_btn)
-        header_layout.addWidget(self.print_invoice_btn)
-        header_layout.addWidget(self.airport_sign_btn)
-        header_layout.addWidget(self.print_dispatch_btn)
-        header_layout.addWidget(self.print_guest_invoice_btn)
-        header_layout.addWidget(self.print_driver_sheet_btn)
-        header_layout.addWidget(self.print_client_beverage_list_btn)
-        header_layout.addWidget(self.print_driver_manifest_btn)
+        header_layout.addWidget(self.print_actions_combo)
         layout.addLayout(header_layout)
 
         # ===== SCROLLABLE FORM AREA =====
@@ -227,6 +249,9 @@ class CharterFormWidget(QWidget):
         charter_lookup_tab = QWidget()
         charter_lookup_layout = QVBoxLayout()
         self.enhanced_charter_widget = EnhancedCharterListWidget(self.db)
+        self.enhanced_charter_widget.print_run_sheet_signal.connect(
+            self._handle_lookup_print_run_sheet
+        )
         charter_lookup_layout.addWidget(self.enhanced_charter_widget)
         charter_lookup_tab.setLayout(charter_lookup_layout)
         booking_tab_widget.addTab(charter_lookup_tab, "🔍 Charter Lookup")
@@ -246,6 +271,28 @@ class CharterFormWidget(QWidget):
         # Set the layout on the main widget
         self.setLayout(layout)
         self._install_enter_tab_filters()
+
+    def _handle_print_action_menu(self, index):
+        """Dispatch selected print action from header dropdown menu."""
+        actions = {
+            1: self.print_confirmation,
+            2: self.print_invoice,
+            3: self.print_run_sheet,
+            4: self.print_blank_run_sheet,
+            5: self.print_beverage_dispatch_order,
+            6: self.print_beverage_guest_invoice,
+            7: self.print_beverage_driver_sheet,
+            8: self.print_client_beverage_list,
+            9: self.print_driver_manifest,
+            10: self.generate_airport_sign,
+        }
+        action = actions.get(index)
+        try:
+            if action:
+                action()
+        finally:
+            # Reset prompt item after each selection.
+            self.print_actions_combo.setCurrentIndex(0)
 
     def _install_enter_tab_filters(self):
         """Install this widget as an event filter on
@@ -327,7 +374,7 @@ class CharterFormWidget(QWidget):
         self.route_table = QTableWidget()
         self.route_table.setColumnCount(5)
         self.route_table.setHorizontalHeaderLabels([
-            "Event Type", "Details", "at", "Time", "Driver Comments"])
+            "Event Type", "Destination / Description", "At/By", "Time", "Notes"])
         self.route_table.setMinimumHeight(260)
         self.route_table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows)
@@ -346,6 +393,7 @@ class CharterFormWidget(QWidget):
         self.route_table.setColumnWidth(1, 450)  # Details - wider
         self.route_table.setColumnWidth(2, 30)   # "at" label
         self.route_table.setColumnWidth(3, 80)   # Time
+        self.route_table.verticalHeader().setVisible(False)  # hide row numbers
 
         # Connect cell changes to recalculate billable time
         self.route_table.cellChanged.connect(self.calculate_route_billing)
@@ -1924,11 +1972,10 @@ class CharterFormWidget(QWidget):
         # Column 1: Details (empty)
         self.route_table.setItem(pickup_row, 1, QTableWidgetItem(""))
 
-        # Column 2: "at" label
-        at_label = QTableWidgetItem("at")
-        at_label.setFlags(at_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
-        at_label.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.route_table.setItem(pickup_row, 2, at_label)
+        # Column 2: at/by dropdown
+        at_by_combo_pu = QComboBox()
+        at_by_combo_pu.addItems(["at", "by"])
+        self.route_table.setCellWidget(pickup_row, 2, at_by_combo_pu)
 
         # Column 3: Time (Pickup time, editable)
         time_edit = QTimeEdit()
@@ -1962,11 +2009,10 @@ class CharterFormWidget(QWidget):
         # Column 1: Details (empty)
         self.route_table.setItem(dropoff_row, 1, QTableWidgetItem(""))
 
-        # Column 2: "at" label
-        at_label = QTableWidgetItem("at")
-        at_label.setFlags(at_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
-        at_label.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.route_table.setItem(dropoff_row, 2, at_label)
+        # Column 2: at/by dropdown
+        at_by_combo_do = QComboBox()
+        at_by_combo_do.addItems(["at", "by"])
+        self.route_table.setCellWidget(dropoff_row, 2, at_by_combo_do)
 
         # Column 3: Time (Drop-off time, editable)
         time_edit = QTimeEdit()
@@ -3883,7 +3929,7 @@ class CharterFormWidget(QWidget):
                     "Add Off-Duty Break",
                     (
                         f"Enter break hours to add to the most recent "
-                        "violating day (suggested: {default_break}h).\n"
+                        f"violating day (suggested: {default_break}h).\n"
                         "This will increase off-duty and reduce on-duty "
                         "for that day in the log."
                     ),
@@ -4149,16 +4195,16 @@ class CharterFormWidget(QWidget):
                 "</style></head><body>",
                 "<h2>Vehicle Inspection Form (Filled)</h2>",
                 f"<div class='row'><span class='lbl'>Reserve #:</span> "
-                "{reserve} &nbsp; <span class='lbl'>Driver:</span> "
-                "{driver}</div>",
+                f"{reserve} &nbsp; <span class='lbl'>Driver:</span> "
+                f"{driver}</div>",
                 f"<div class='row'><span class='lbl'>Vehicle #:</span> "
-                "{vehicle} &nbsp; <span class='lbl'>Plate:</span> "
-                "{plate}</div>",
+                f"{vehicle} &nbsp; <span class='lbl'>Plate:</span> "
+                f"{plate}</div>",
                 f"<div class='row'><span class='lbl'>Start Odo:</span> "
-                "{start_odo} &nbsp; <span class='lbl'>End Odo:</span> "
-                "{end_odo}</div>",
+                f"{start_odo} &nbsp; <span class='lbl'>End Odo:</span> "
+                f"{end_odo}</div>",
                 f"<div class='row'><span class='lbl'>Inspection "
-                "Status:</span> {insp_status}</div>",
+                f"Status:</span> {insp_status}</div>",
                 "<div class='row'><span class='lbl'>Defects:</span> ",
                 (
                     f"{cb(no_defects)} No Defects &nbsp; "
@@ -4182,8 +4228,8 @@ class CharterFormWidget(QWidget):
                     f"{'; '.join(exemptions) if exemptions else 'None'}</div>"
                 ),
                 f"<div class='row'><span class='lbl'>Signature:</span> "
-                "{signature} &nbsp; <span class='lbl'>Date:</span> "
-                "{insp_date}</div>",
+                f"{signature} &nbsp; <span class='lbl'>Date:</span> "
+                f"{insp_date}</div>",
                 "</body></html>"])
 
             ts = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -5009,20 +5055,222 @@ class CharterFormWidget(QWidget):
                 self, 'Form Error', f'Failed to open HOS form: {e}')
 
     def _print_daily_inspection_form(self):
-        """Open/print the daily trip inspection form template."""
+        """Open the blank daily trip inspection PDF template."""
         try:
-            form_path = os.path.join(
-                project_root, 'forms', 'Daily trip inspection record.docx')
-            if not os.path.exists(form_path):
+            template_path = r"L:\Confirmation\Daily trip inspection record.pdf"
+            if not os.path.exists(template_path):
                 QMessageBox.warning(
-                    self, 'Missing Form', f'Form not found:\n{form_path}')
+                    self,
+                    'Missing Form',
+                    f'Form not found:\n{template_path}')
                 return
-            self._open_file_default(form_path, print_mode=False)
+
+            self._open_file_default(template_path, print_mode=False)
         except Exception as e:
             QMessageBox.warning(
                 self,
                 'Form Error',
                 f'Failed to open inspection form: {e}')
+
+    def _get_selected_driver_name(self) -> str:
+        # Prefer canonical full name from employees by selected driver id.
+        if hasattr(self, 'driver_combo'):
+            employee_id = self.driver_combo.currentData()
+            if employee_id:
+                try:
+                    cur = self.db.get_cursor()
+                    cur.execute(
+                        """
+                        SELECT COALESCE(first_name, ''), COALESCE(last_name, '')
+                        FROM employees
+                        WHERE employee_id = %s
+                        """,
+                        (employee_id,),
+                    )
+                    row = cur.fetchone()
+                    cur.close()
+                    if row:
+                        full_name = f"{(row[0] or '').strip()} {(row[1] or '').strip()}".strip()
+                        if full_name:
+                            return full_name
+                except Exception:
+                    try:
+                        self.db.rollback()
+                    except Exception:
+                        pass
+
+        # Legacy fallback: resolve from driver code/text (e.g., Dr09).
+        legacy_code = ""
+        if hasattr(self, 'driver_combo'):
+            name = (self.driver_combo.currentText() or '').strip()
+            if name and name != '(None)':
+                legacy_code = name
+                # If it already looks like a full name, use it directly.
+                if " " in name:
+                    return name
+        if legacy_code:
+            try:
+                cur = self.db.get_cursor()
+                cur.execute(
+                    """
+                    SELECT COALESCE(first_name, ''), COALESCE(last_name, '')
+                    FROM employees
+                          WHERE lower(COALESCE(driver_code::text, '')) = lower(%s)
+                              OR lower(COALESCE(employee_number::text, '')) = lower(%s)
+                              OR lower(COALESCE(legacy_employee::text, '')) = lower(%s)
+                              OR lower(COALESCE(legacy_name::text, '')) = lower(%s)
+                              OR lower(COALESCE(name::text, '')) = lower(%s)
+                              OR lower(COALESCE(full_name::text, '')) = lower(%s)
+                    LIMIT 1
+                    """,
+                    (
+                        legacy_code,
+                        legacy_code,
+                        legacy_code,
+                        legacy_code,
+                        legacy_code,
+                        legacy_code,
+                    ),
+                )
+                row = cur.fetchone()
+                cur.close()
+                if row:
+                    full_name = f"{(row[0] or '').strip()} {(row[1] or '').strip()}".strip()
+                    if full_name:
+                        return full_name
+            except Exception:
+                try:
+                    self.db.rollback()
+                except Exception:
+                    pass
+            return legacy_code
+        if hasattr(self, 'inspection_signature_input'):
+            name = (self.inspection_signature_input.text() or '').strip()
+            if name:
+                return name
+        return 'Driver'
+
+    def _get_driver_code_for_inspection(self) -> str:
+        """Return the employee number / driver badge code for the driver number field."""
+        if hasattr(self, 'driver_combo'):
+            employee_id = self.driver_combo.currentData()
+            if employee_id:
+                try:
+                    cur = self.db.get_cursor()
+                    cur.execute(
+                        "SELECT COALESCE(employee_number::text, COALESCE(driver_code::text, '')) "
+                        "FROM employees WHERE employee_id = %s",
+                        (employee_id,),
+                    )
+                    row = cur.fetchone()
+                    cur.close()
+                    if row and (row[0] or '').strip():
+                        return row[0].strip()
+                except Exception:
+                    try:
+                        self.db.rollback()
+                    except Exception:
+                        pass
+            # Fallback: use the combo display text if it looks like a code
+            name = (self.driver_combo.currentText() or '').strip()
+            if name and name != '(None)' and ' ' not in name:
+                return name
+        return ''
+
+    def _get_inspection_date_parts_from_charter(self):
+        # Charter date should drive inspection date and be split as month/day/year.
+        if hasattr(self, 'charter_date_from'):
+            try:
+                d = self.charter_date_from.date()
+                return d.toString('MMMM'), d.toString('dd'), d.toString('yyyy')
+            except Exception:
+                pass
+        if hasattr(self, 'pickup_datetime'):
+            try:
+                d = self.pickup_datetime.date()
+                return d.toString('MMMM'), d.toString('dd'), d.toString('yyyy')
+            except Exception:
+                pass
+        if hasattr(self, 'inspection_date_input'):
+            existing = (self.inspection_date_input.text() or '').strip()
+            if existing:
+                try:
+                    dt = datetime.strptime(existing, '%m/%d/%Y')
+                    return dt.strftime('%B'), dt.strftime('%d'), dt.strftime('%Y')
+                except ValueError:
+                    pass
+        now = datetime.now()
+        return now.strftime('%B'), now.strftime('%d'), now.strftime('%Y')
+
+    def _get_shift_start_time_for_inspection(self) -> str:
+        # Time of inspection is the work shift start time.
+        for attr_name in ('on_duty_time_input', 'manual_start_input', 'inspection_time_input'):
+            widget = getattr(self, attr_name, None)
+            if widget is None:
+                continue
+            try:
+                text = (widget.text() or '').strip()
+                if text:
+                    return text
+            except Exception:
+                pass
+        if hasattr(self, 'base_time_from'):
+            try:
+                return self.base_time_from.time().toString('HH:mm')
+            except Exception:
+                pass
+        return datetime.now().strftime('%H:%M')
+
+    @staticmethod
+    def _normalize_hhmm(time_text: str) -> str:
+        text = (time_text or '').strip()
+        if not text:
+            return datetime.now().strftime('%H:%M')
+        if len(text) >= 5 and text[2] == ':':
+            return text[:5]
+        return text
+
+    def _get_vehicle_id_for_inspection(self) -> str:
+        if hasattr(self, 'vehicle_combo'):
+            vehicle_id = self.vehicle_combo.currentData()
+            if vehicle_id:
+                try:
+                    cur = self.db.get_cursor()
+                    cur.execute(
+                        "SELECT COALESCE(vehicle_number, '') FROM vehicles WHERE vehicle_id = %s",
+                        (vehicle_id,),
+                    )
+                    row = cur.fetchone()
+                    cur.close()
+                    if row and row[0]:
+                        return self._normalize_vehicle_number(str(row[0]))
+                except Exception:
+                    try:
+                        self.db.rollback()
+                    except Exception:
+                        pass
+        if hasattr(self, 'vehicle_number_input'):
+            vehicle_num = (self.vehicle_number_input.text() or '').strip()
+            if vehicle_num:
+                return self._normalize_vehicle_number(vehicle_num)
+        if hasattr(self, 'vehicle_combo'):
+            label = (self.vehicle_combo.currentText() or '').strip()
+            if label:
+                return self._normalize_vehicle_number(label.split(' - ')[0].strip())
+        return 'Vehicle'
+
+    @staticmethod
+    def _normalize_vehicle_number(value: str) -> str:
+        text = (value or '').strip()
+        upper = text.upper()
+        digits = ''.join(ch for ch in text if ch.isdigit())
+        if upper.startswith('LIMO') and digits:
+            return f"L-{digits.zfill(2)}"
+        if upper.startswith('L-') and digits:
+            return f"L-{digits.zfill(2)}"
+        if upper.startswith('L') and digits:
+            return f"L-{digits.zfill(2)}"
+        return text
 
     def _open_file_default(self, path, print_mode=False):
         """Open or print a file via OS default application."""
@@ -5193,11 +5441,10 @@ class CharterFormWidget(QWidget):
         # Column 1: Details (location/description) - editable
         self.route_table.setItem(row, 1, QTableWidgetItem(""))
 
-        # Column 2: "at" label (read-only)
-        at_label = QTableWidgetItem("at")
-        at_label.setFlags(at_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
-        at_label.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.route_table.setItem(row, 2, at_label)
+        # Column 2: at/by dropdown
+        at_by_combo = QComboBox()
+        at_by_combo.addItems(["at", "by"])
+        self.route_table.setCellWidget(row, 2, at_by_combo)
 
         # Column 3: Time (with QTimeEdit for editing)
         time_edit = QTimeEdit()
@@ -6026,6 +6273,30 @@ class CharterFormWidget(QWidget):
                 # ===== UPDATE EXISTING =====
                 out_of_town = self.out_of_town_checkbox.isChecked() if hasattr(
                     self, 'out_of_town_checkbox') else False
+                employee_id_val = (
+                    self.driver_combo.currentData()
+                    if hasattr(self, 'driver_combo') else None)
+                vehicle_id_val = (
+                    self.vehicle_combo.currentData()
+                    if hasattr(self, 'vehicle_combo') else None)
+                charter_type_val = (
+                    self.charter_type_combo.currentText()
+                    if hasattr(self, 'charter_type_combo') else None)
+                gratuity_pct_val = (
+                    self.gratuity_percent_input.value()
+                    if hasattr(self, 'gratuity_percent_input') else None)
+                nrr_amt_val = (
+                    self.nrr_received.value()
+                    if hasattr(self, 'nrr_received') else 0.0)
+                gst_exempt_val = (
+                    self.gst_exempt_checkbox.isChecked()
+                    if hasattr(self, 'gst_exempt_checkbox') else False)
+                client_notes_val = (
+                    self.client_notes_input.toPlainText()
+                    if hasattr(self, 'client_notes_input') else None)
+                booking_notes_val = (
+                    self.dispatcher_notes_input.toPlainText()
+                    if hasattr(self, 'dispatcher_notes_input') else None)
                 if has_charter_data:
                     cur.execute(
                         """
@@ -6033,11 +6304,19 @@ class CharterFormWidget(QWidget):
                         SET charter_date = %s,
                             pickup_time = %s,
                             passenger_count = %s,
-                            notes = %s,
                             status = %s,
                             client_id = %s,
                             is_out_of_town = %s,
                             charter_data = %s::jsonb,
+                            employee_id = COALESCE(%s, employee_id),
+                            vehicle_id = COALESCE(%s, vehicle_id),
+                            charter_type = COALESCE(%s, charter_type),
+                            gratuity_percent = COALESCE(%s, gratuity_percent),
+                            nrr_amount = %s,
+                            nrr_received = %s,
+                            gst_exempt = %s,
+                            client_notes = COALESCE(%s, client_notes),
+                            booking_notes = COALESCE(%s, booking_notes),
                             updated_at = NOW()
                         WHERE charter_id = %s
                         """,
@@ -6045,11 +6324,19 @@ class CharterFormWidget(QWidget):
                             charter_date_val,
                             pickup_time_val,
                             self.num_passengers.value(),
-                            "",
                             self.charter_status_combo.currentText(),
                             customer_data['client_id'],
                             out_of_town,
                             json.dumps(charter_data_payload),
+                            employee_id_val,
+                            vehicle_id_val,
+                            charter_type_val,
+                            gratuity_pct_val,
+                            nrr_amt_val,
+                            nrr_amt_val > 0,
+                            gst_exempt_val,
+                            client_notes_val,
+                            booking_notes_val,
                             self.charter_id,
                         ),
                     )
@@ -6060,10 +6347,18 @@ class CharterFormWidget(QWidget):
                         SET charter_date = %s,
                             pickup_time = %s,
                             passenger_count = %s,
-                            notes = %s,
                             status = %s,
                             client_id = %s,
                             is_out_of_town = %s,
+                            employee_id = COALESCE(%s, employee_id),
+                            vehicle_id = COALESCE(%s, vehicle_id),
+                            charter_type = COALESCE(%s, charter_type),
+                            gratuity_percent = COALESCE(%s, gratuity_percent),
+                            nrr_amount = %s,
+                            nrr_received = %s,
+                            gst_exempt = %s,
+                            client_notes = COALESCE(%s, client_notes),
+                            booking_notes = COALESCE(%s, booking_notes),
                             updated_at = NOW()
                         WHERE charter_id = %s
                         """,
@@ -6071,10 +6366,18 @@ class CharterFormWidget(QWidget):
                             charter_date_val,
                             pickup_time_val,
                             self.num_passengers.value(),
-                            "",
                             self.charter_status_combo.currentText(),
                             customer_data['client_id'],
                             out_of_town,
+                            employee_id_val,
+                            vehicle_id_val,
+                            charter_type_val,
+                            gratuity_pct_val,
+                            nrr_amt_val,
+                            nrr_amt_val > 0,
+                            gst_exempt_val,
+                            client_notes_val,
+                            booking_notes_val,
                             self.charter_id,
                         ),
                     )
@@ -6355,7 +6658,7 @@ class CharterFormWidget(QWidget):
             cur = self.db.get_cursor()
             cur.execute(
                 "SELECT reserve_number FROM charters"
-                f" WHERE charter_id = %s", (charter_id,))
+                " WHERE charter_id = %s", (charter_id,))
             row = cur.fetchone()
             return row[0] if row else None
         except Exception:
@@ -6459,6 +6762,14 @@ class CharterFormWidget(QWidget):
                 pass
             QMessageBox.warning(self, "Error", f"Failed to load charter: {e}")
 
+    def _handle_lookup_print_run_sheet(self, reserve_number: str):
+        """Open reserve from Charter Lookup and print its run sheet."""
+        if not reserve_number:
+            return
+        self.load_charter_by_reserve(reserve_number)
+        if self.charter_id:
+            self.print_run_sheet()
+
     def prefill_from_dispatch_row(self, booking_row):
         """Fast prefill from Dispatch Board row before canonical DB load.
 
@@ -6548,30 +6859,60 @@ class CharterFormWidget(QWidget):
             """)
             has_charter_data = bool(cur.fetchone()[0])
 
-            # Load charter with client info
-            if has_charter_data:
-                cur.execute("""
-                    SELECT c.reserve_number, c.charter_date, c.pickup_time,
-                           c.passenger_count, c.notes,
-                           c.status, c.client_id, c.charter_data
-                    FROM charters c
-                    WHERE c.charter_id = %s
-                """, (charter_id,))
-            else:
-                cur.execute("""
-                    SELECT c.reserve_number, c.charter_date, c.pickup_time,
-                           c.passenger_count, c.notes, c.status, c.client_id,
-                           NULL::jsonb AS charter_data
-                    FROM charters c
-                    WHERE c.charter_id = %s
-                """, (charter_id,))
+            # Load charter with all persisted fields.
+            # charter_data is optional — choose column at build time so
+            # PostgreSQL never sees a reference to a column that may
+            # not exist (CASE WHEN is still parsed/validated at plan time).
+            charter_data_col = "c.charter_data" if has_charter_data else "NULL::jsonb"
+            cur.execute(f"""
+                SELECT
+                    c.reserve_number,
+                    c.charter_date,
+                    c.pickup_time,
+                    c.passenger_count,
+                    c.notes,
+                    c.status,
+                    c.client_id,
+                    {charter_data_col},
+                    COALESCE(c.is_out_of_town, FALSE),
+                    c.employee_id,
+                    c.vehicle_id,
+                    COALESCE(c.charter_type, ''),
+                    COALESCE(c.hourly_rate, 0),
+                    COALESCE(c.gratuity_percent, 18.0),
+                    COALESCE(c.quoted_hours, 0),
+                    COALESCE(c.extra_time_rate, 0),
+                    COALESCE(c.standby_rate, 0),
+                    COALESCE(c.nrd_received, FALSE),
+                    COALESCE(c.nrd_amount, 0),
+                    COALESCE(c.nrd_method, ''),
+                    COALESCE(c.nrr_received, FALSE),
+                    COALESCE(c.nrr_amount, 0),
+                    COALESCE(c.gst_exempt, FALSE),
+                    COALESCE(c.gst_permit_number, ''),
+                    COALESCE(c.pickup_address, ''),
+                    COALESCE(c.dropoff_address, ''),
+                    c.do_time,
+                    c.dropoff_time
+                FROM charters c
+                WHERE c.charter_id = %s
+            """, (charter_id,))
 
             row = cur.fetchone()
             if row:
-                reserve_number, charter_date, pickup_time,
-                passenger_count, notes, status,
-                client_id, charter_data
-                is_out_of_town = False  # Column not in Neon schema
+                (reserve_number, charter_date, pickup_time,
+                 passenger_count, notes, status,
+                 client_id, charter_data,
+                 is_out_of_town,
+                 employee_id, vehicle_id,
+                 charter_type, hourly_rate, gratuity_percent,
+                 quoted_hours, extra_time_rate, standby_rate,
+                 nrd_received, nrd_amount, nrd_method,
+                 nrr_received_flag, nrr_amount,
+                 gst_exempt, gst_permit_number,
+                 pickup_address, dropoff_address,
+                 do_time, dropoff_time) = row
+                charter_data_json = charter_data  # consistent alias
 
                 # Load customer widget with data
                 self.customer_widget.set_charter_data(
@@ -6627,7 +6968,82 @@ class CharterFormWidget(QWidget):
                     self.out_of_town_checkbox.setChecked(
                         is_out_of_town or False)
 
-                # Load NRR and CC info from charter_data
+                # ── Vehicle & Driver ─────────────────────────────────────
+                if vehicle_id and hasattr(self, 'vehicle_combo'):
+                    for i in range(self.vehicle_combo.count()):
+                        if self.vehicle_combo.itemData(i) == vehicle_id:
+                            self.vehicle_combo.setCurrentIndex(i)
+                            break
+
+                if employee_id and hasattr(self, 'driver_combo'):
+                    for i in range(self.driver_combo.count()):
+                        if self.driver_combo.itemData(i) == employee_id:
+                            self.driver_combo.setCurrentIndex(i)
+                            break
+
+                # ── Charter type ──────────────────────────────────────────
+                if charter_type and hasattr(self, 'charter_type_combo'):
+                    idx = self.charter_type_combo.findText(
+                        charter_type, Qt.MatchFlag.MatchFixedString)
+                    if idx >= 0:
+                        self.charter_type_combo.setCurrentIndex(idx)
+
+                # ── Rates ─────────────────────────────────────────────────
+                if hasattr(self, 'hourly_rate_input'):
+                    self.hourly_rate_input.setValue(float(hourly_rate))
+                if hasattr(self, 'gratuity_percent_input'):
+                    self.gratuity_percent_input.setValue(
+                        float(gratuity_percent))
+                if hasattr(self, 'quoted_hours_input'):
+                    self.quoted_hours_input.setValue(float(quoted_hours))
+                if hasattr(self, 'extra_time_rate_input'):
+                    self.extra_time_rate_input.setValue(float(extra_time_rate))
+                if hasattr(self, 'standby_rate_input'):
+                    self.standby_rate_input.setValue(float(standby_rate))
+                if hasattr(self, 'nrr_deposit'):
+                    self.nrr_deposit.setText(
+                        f"{float(nrr_amount):.2f}" if nrr_amount else "")
+
+                # ── NRD ───────────────────────────────────────────────────
+                if hasattr(self, 'nrd_checkbox'):
+                    self.nrd_checkbox.setChecked(bool(nrd_received))
+                if hasattr(self, 'nrd_amount_input'):
+                    self.nrd_amount_input.setValue(float(nrd_amount))
+                if hasattr(self, 'nrd_method_combo'):
+                    if nrd_method:
+                        idx = self.nrd_method_combo.findText(nrd_method)
+                        if idx >= 0:
+                            self.nrd_method_combo.setCurrentIndex(idx)
+
+                # ── GST ───────────────────────────────────────────────────
+                if hasattr(self, 'gst_exempt_checkbox'):
+                    self.gst_exempt_checkbox.setChecked(bool(gst_exempt))
+                if hasattr(self, 'gst_permit_input'):
+                    self.gst_permit_input.setText(gst_permit_number or "")
+
+                # ── Addresses ─────────────────────────────────────────────
+                if hasattr(self, 'pickup_address_input') and pickup_address:
+                    self.pickup_address_input.setText(pickup_address)
+                if hasattr(self, 'dropoff_address_input') and dropoff_address:
+                    self.dropoff_address_input.setText(dropoff_address)
+
+                # ── On-duty / drop-off times ──────────────────────────────
+                if do_time and hasattr(self, 'on_duty_time'):
+                    try:
+                        from PyQt6.QtCore import QTime
+                        self.on_duty_time.setTime(
+                            QTime(do_time.hour, do_time.minute))
+                    except Exception:
+                        pass
+                if dropoff_time and hasattr(self, 'dropoff_time_input'):
+                    try:
+                        from PyQt6.QtCore import QTime
+                        self.dropoff_time_input.setTime(
+                            QTime(dropoff_time.hour, dropoff_time.minute))
+                    except Exception:
+                        pass
+
+                # Load run_type and CC info from charter_data JSON blob
                 if charter_data_json:
                     try:
                         payload = (charter_data_json if isinstance(
@@ -6639,11 +7055,6 @@ class CharterFormWidget(QWidget):
                             if idx >= 0:
                                 self.run_type_combo.setCurrentIndex(idx)
 
-                        # Load NRR
-                        nrr_amount = payload.get("nrr_received", 0.0)
-                        if hasattr(self, 'nrr_received'):
-                            self.nrr_received.setValue(float(nrr_amount))
-
                         # Load CC info (only last 4 visible after save)
                         cc_last4 = payload.get("cc_on_file_last4", "")
                         if cc_last4:
@@ -6653,7 +7064,7 @@ class CharterFormWidget(QWidget):
                             self.client_cc_full.clear()
                             self.client_cc_full.setEnabled(False)
                     except Exception as e:
-                        print(f"Error loading NRR/CC data: {e}")
+                        print(f"Error loading charter_data JSON: {e}")
 
                 # ✨ LOAD ROUTES & CHARGES & BEVERAGES ✨
                 # Use separate cursors to avoid aborting the main transaction
@@ -6910,6 +7321,73 @@ class CharterFormWidget(QWidget):
             self.gst_total.setText("$0.00")
             self.gross_total.setText("$0.00")
 
+    def _build_liability_terms_block(self, heading: str) -> str:
+        """Shared legal terms block used by confirmation and quote output."""
+        block = "=" * 80 + "\n"
+        block += f"{heading}\n"
+        block += "=" * 80 + "\n\n"
+
+        block += (
+            "1. Customer hereby verifies that the rental date, anticipated "
+            "times, number of people and billing information are correctly "
+            "stated.\n\n"
+        )
+        block += (
+            "2. Customer shall be liable for all damages to the limousine "
+            "sustained during Customer's charter, including all spills, "
+            "burns, rips, tears, or damage to the television, stereo or "
+            "other electrical or power equipment.\n\n"
+        )
+        block += (
+            "3. Customer shall pay a service charge of $200.00 to clean any "
+            "vomit in the limousine.\n\n"
+        )
+        block += (
+            "4. Customer shall not open any emergency exits, including the "
+            "sunroof/emergency escape hatch. Penalty is $850.00.\n\n"
+        )
+        block += (
+            "5. While the vehicle is in motion Customers shall refrain from "
+            "exiting the vehicle, or littering.\n\n"
+        )
+        block += (
+            "6. Arrow Limousine reserves the right, without any liability or "
+            "set-off to the amounts due the charter, to discharge any "
+            "passenger(s) who interferes with the safe operation of the "
+            "vehicle, vomits, or engages in any illegal conduct or activity."
+            "\n\n"
+        )
+        block += (
+            "7. Arrow Limousine shall not be liable for any damages arising "
+            "out of the inability to perform due to inclement weather, "
+            "mechanical difficulties, delays due to traffic conditions, or "
+            "any unforeseen events beyond the reasonable control of Arrow "
+            "Limousine.\n\n"
+        )
+        block += (
+            "8. Arrow Limousine shall not be the Bailee of any items left in "
+            "the Limousine, and shall not be responsible for the safe-keeping "
+            "of any such item.\n\n"
+        )
+        block += (
+            "9. Customer must pay a NON-REFUNDABLE retainer equal to two "
+            "hour vehicle rate, with the balance due prior to the charter "
+            "pickup.\n\n"
+        )
+        block += (
+            "10. Customer hereby authorizes Arrow Limousine to charge the "
+            "credit card on file for the full amount of the charter.\n\n"
+        )
+        block += "ACCEPTANCE OF TERMS\n\n"
+        block += (
+            "By agreeing to the discounted rate, the Client waives any "
+            "claims regarding vehicle age, cosmetic condition, climate "
+            "control irregularities (heating/air conditioning), or "
+            "non-essential amenities, as long as the service meets safety "
+            "and regulatory requirements.\n\n"
+        )
+        return block
+
     def print_confirmation(self):
         """
         Generate and print charter confirmation letter with liability clauses
@@ -7138,81 +7616,7 @@ class CharterFormWidget(QWidget):
                 text += "No client notes entered.\n\n"
 
             # ====== LIABILITY CLAUSES (CRITICAL - LEGAL PROTECTION) ======
-            text += "=" * 80 + "\n"
-            text += "LIABILITIES & TERMS\n"
-            text += "=" * 80 + "\n\n"
-
-            text += ("1. Customer hereby verifies "
-                     "that the rental date, anticipated "
-                "times, number of people and billing information are "
-                "correctly "
-                     "stated.\n\n")
-
-            text += ("2. Customer shall be liable "
-                     "for all damages to the limousine "
-                "sustained during Customer's charter, including all "
-                "spills, "
-                "burns, rips, tears, or damage to the television, stereo "
-                "or other "
-                     "electrical or power equipment.\n\n")
-
-            text += ("3. Customer shall pay a service "
-                     "charge of $200.00 to clean any "
-                     "vomit in the limousine.\n\n")
-
-            text += ("4. Customer shall not open any "
-                     "emergency exits, including the "
-                     "sunroof/emergency escape hatch. Penalty is $850.00.\n\n")
-
-            text += ("5. While the vehicle is in motion "
-                     "Customers shall refrain from "
-                     "exiting the vehicle, or littering.\n\n")
-
-            text += ("6. Arrow Limousine reserves the right, "
-                     "without any liability or "
-                "set-off to the amounts due the charter, to discharge any "
-                "passenger(s) who interferes with the safe operation of "
-                "the "
-                "vehicle, vomits, or engages in any illegal conduct or "
-                "activity.\n\n")
-
-            text += ("7. Arrow Limousine shall not be "
-                     "liable for any damages arising "
-                "out of the inability to perform due to inclement "
-                "weather, "
-                "mechanical difficulties, delays due to traffic "
-                "conditions, or "
-                "any unforeseen events beyond the reasonable control of "
-                "Arrow "
-                     "Limousine.\n\n")
-
-            text += ("8. Arrow Limousine shall not be "
-                     "the Bailee of any items left in "
-                "the Limousine, and shall not be responsible for the "
-                "safe-keeping "
-                     "of any such item.\n\n")
-
-            text += ("9. Customer must pay a "
-                     "NON-REFUNDABLE retainer equal to two hour "
-                "vehicle rate, with the balance due prior to the charter "
-                "pickup.\n\n")
-
-            text += ("10. Customer hereby authorizes "
-                      "Arrow Limousine to charge the "
-                "credit card on file for the full amount of the "
-                "charter.\n\n")
-
-            text += "ACCEPTANCE OF TERMS\n\n"
-
-            text += ("By agreeing to the discounted rate, "
-                     "the Client waives any claims "
-                "regarding vehicle age, cosmetic condition, climate "
-                "control "
-                "irregularities (heating/air conditioning), or "
-                "non-essential "
-                "amenities, as long as the service meets safety and "
-                "regulatory "
-                     "requirements.\n\n")
+            text += self._build_liability_terms_block("LIABILITIES & TERMS")
 
             text += "=" * 96 + "\n"
             text += "Thank you for your business.\n"
@@ -7222,6 +7626,12 @@ class CharterFormWidget(QWidget):
             text += "=" * 96 + "\n"
 
             self.show_print_dialog("Charter Confirmation Letter", text)
+
+            if (
+                hasattr(self, 'vehicle_inspection_checkbox')
+                and self.vehicle_inspection_checkbox.isChecked()
+            ):
+                self._print_daily_inspection_form()
 
         except Exception as e:
             QMessageBox.critical(
@@ -7574,7 +7984,8 @@ class CharterFormWidget(QWidget):
                 if options.get("split"):
                     free_hours = split_run_before + split_run_after
                     standby_hours = max(0, estimated_hours - free_hours)
-                    split_total = standby_hours * standby_rate
+                    standby_cost = standby_hours * standby_rate
+                    split_total = standby_cost
                     gst_split, net_split = GSTCalculator.calculate_gst(
                         split_total)
                     text += "OPTION 3: Split Run Rate (Driver Waiting)\n"
@@ -7628,81 +8039,7 @@ class CharterFormWidget(QWidget):
                 " prior to service time\n\n")
 
             # ====== LIABILITY CLAUSES (SAME AS CONFIRMATION) ======
-            text += "=" * 80 + "\n"
-            text += "LIABILITY & TERMS\n"
-            text += "=" * 80 + "\n\n"
-
-            text += ("1. Customer hereby verifies "
-                     "that the rental date, anticipated "
-                "times, number of people and billing information are "
-                "correctly "
-                     "stated.\n\n")
-
-            text += ("2. Customer shall be liable "
-                     "for all damages to the limousine "
-                "sustained during Customer's charter, including all "
-                "spills, "
-                "burns, rips, tears, or damage to the television, stereo "
-                "or other "
-                     "electrical or power equipment.\n\n")
-
-            text += ("3. Customer shall pay a service "
-                     "charge of $200.00 to clean any "
-                     "vomit in the limousine.\n\n")
-
-            text += ("4. Customer shall not open any "
-                     "emergency exits, including the "
-                     "sunroof/emergency escape hatch. Penalty is $850.00.\n\n")
-
-            text += ("5. While the vehicle is in motion "
-                     "Customers shall refrain from "
-                     "exiting the vehicle, or littering.\n\n")
-
-            text += ("6. Arrow Limousine reserves the right, "
-                     "without any liability or "
-                "set-off to the amounts due the charter, to discharge any "
-                "passenger(s) who interferes with the safe operation of "
-                "the "
-                "vehicle, vomits, or engages in any illegal conduct or "
-                "activity.\n\n")
-
-            text += ("7. Arrow Limousine shall not be "
-                     "liable for any damages arising "
-                "out of the inability to perform due to inclement "
-                "weather, "
-                "mechanical difficulties, delays due to traffic "
-                "conditions, or "
-                "any unforeseen events beyond the reasonable control of "
-                "Arrow "
-                     "Limousine.\n\n")
-
-            text += ("8. Arrow Limousine shall not be "
-                     "the Bailee of any items left in "
-                "the Limousine, and shall not be responsible for the "
-                "safe-keeping "
-                     "of any such item.\n\n")
-
-            text += ("9. Customer must pay a "
-                     "NON-REFUNDABLE retainer equal to two hour "
-                "vehicle rate, with the balance due prior to the charter "
-                "pickup.\n\n")
-
-            text += ("10. Customer hereby authorizes "
-                      "Arrow Limousine to charge the "
-                "credit card on file for the full amount of the "
-                "charter.\n\n")
-
-            text += "ACCEPTANCE OF TERMS\n\n"
-
-            text += ("By agreeing to the discounted rate, "
-                     "the Client waives any claims "
-                "regarding vehicle age, cosmetic condition, climate "
-                "control "
-                "irregularities (heating/air conditioning), or "
-                "non-essential "
-                "amenities, as long as the service meets safety and "
-                "regulatory "
-                     "requirements.\n\n")
+            text += self._build_liability_terms_block("LIABILITY & TERMS")
 
             text += "=" * 80 + "\n"
             text += (
@@ -7746,7 +8083,7 @@ class CharterFormWidget(QWidget):
                     self,
                     "Airport Sign Generated",
                     f"Airport sign created successfully!\n\nFile: "
-                    "{pdf_path}\n\nOpen now?",
+                    f"{pdf_path}\n\nOpen now?",
                     ((QMessageBox.StandardButton.Yes
              | QMessageBox.StandardButton.No)))
 
@@ -7795,9 +8132,10 @@ class CharterFormWidget(QWidget):
                 SELECT c.charter_id, c.reserve_number,
                 COALESCE(cl.company_name,
                          cl.client_name, 'Unknown') AS customer,
-                       c.primary_phone, c.email,
+                                             cl.primary_phone, cl.email,
                        c.charter_date, c.pickup_time,
-                       c.total_amount_due,
+                                             c.total_amount_due,
+                                             COALESCE(c.amount_paid, 0)
                 FROM charters c
                 LEFT JOIN clients cl ON c.client_id = cl.client_id
                 WHERE c.charter_id = %s
@@ -7810,6 +8148,15 @@ class CharterFormWidget(QWidget):
 
             (charter_id, reserve, customer, phone, email,
              charter_date, pickup_time, total_due, paid) = charter_data
+            # Derive payment status from amounts
+            _paid = float(paid or 0)
+            _due = float(total_due or 0)
+            if _due > 0 and _paid >= _due:
+                pay_status = "Paid in Full"
+            elif _paid > 0:
+                pay_status = "Partial"
+            else:
+                pay_status = "Unpaid"
             text = "═" * 90 + "\n"
             text += " " * 30 + "CHARTER INVOICE\n"
             text += " " * 25 + "Arrow Limousine Service\n"
@@ -8116,7 +8463,7 @@ class CharterFormWidget(QWidget):
             form.addRow("Amount:", amount_field)
 
             # GST calculation
-            gst_label = QLabel(f"${beverage_total * 0.05 / 1.05: .2f}")
+            gst_label = QLabel(f"${beverage_total * 0.05 / 1.05:.2f}")
             form.addRow("GST (5%):", gst_label)
 
             layout.addLayout(form)
@@ -8180,7 +8527,7 @@ class CharterFormWidget(QWidget):
                     amount * 0.05 / 1.05))
 
             self.db.commit()
-            message = f"✅ Child beverage invoice created for ${amount: .2f}"
+            message = f"✅ Child beverage invoice created for ${amount:.2f}"
             QMessageBox.information(self, "Success", message)
             dialog.accept()
 
@@ -8220,10 +8567,10 @@ class CharterFormWidget(QWidget):
             text += "📋 DRIVER BEVERAGE MANIFEST (LOADING CHECKLIST)\n"
             text += "═" * 96 + "\n"
             text += f"Charter ID: {self.charter_id or 'Unsaved'}\n"
-            text += f"Reserve Number: {self.reserve_number.text() if hasattr(
-        self, 'reserve_number') else ''}\n"
-            text += f"Customer: {self.customer_name.text() if hasattr(
-        self, 'customer_name') else ''}\n"
+            rn = self.reserve_number.text() if hasattr(self, 'reserve_number') else ''
+            cn = self.customer_name.text() if hasattr(self, 'customer_name') else ''
+            text += f"Reserve Number: {rn}\n"
+            text += f"Customer: {cn}\n"
             text += f"Printed: {datetime.now().strftime('%m/%d/%Y %H:%M')}\n\n"
 
             text += f"{'☐':<3} {'Item':<44} {'Qty':<6} {'Line Total':>12}\n"
@@ -8336,10 +8683,10 @@ class CharterFormWidget(QWidget):
         text += "🛒 CLIENT BEVERAGE LIST\n"
         text += "═" * 96 + "\n"
         text += f"Charter ID: {self.charter_id or 'Unsaved'}\n"
-        text += f"Reserve Number: {self.reserve_number.text() if hasattr(
-        self, 'reserve_number') else ''}\n"
-        text += f"Customer: {self.customer_name.text() if hasattr(
-        self, 'customer_name') else ''}\n"
+        _rn2 = self.reserve_number.text() if hasattr(self, 'reserve_number') else ''
+        _cn2 = self.customer_name.text() if hasattr(self, 'customer_name') else ''
+        text += f"Reserve Number: {_rn2}\n"
+        text += f"Customer: {_cn2}\n"
         text += f"Printed: {datetime.now().strftime('%m/%d/%Y %H:%M')}\n\n"
 
         text += (
@@ -8592,8 +8939,7 @@ class CharterFormWidget(QWidget):
                     f" ${unit_price:<9.2f} ${line_amount:<9.2f}\n")
 
             text += "─" * 70 + "\n"
-            text += f"Subtotal (before GST):            ${(subtotal -
-     gst_total):<35.2f}\n"
+            text += f"Subtotal (before GST):            ${subtotal - gst_total:<35.2f}\n"
             text += f"GST (5% included):                ${gst_total:<35.2f}\n"
             text += "═" * 70 + "\n"
             text += f"TOTAL DUE FROM GUEST:             ${subtotal:<35.2f}\n"
@@ -8768,8 +9114,7 @@ class CharterFormWidget(QWidget):
             filename, _ = QFileDialog.getSaveFileName(
                 self,
                 f"Save {title} as PDF",
-                f"{title.replace(' ',
-     '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                f"{title.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                 "PDF Files (*.pdf);;All Files (*)")
 
             if not filename:
@@ -8799,8 +9144,7 @@ class CharterFormWidget(QWidget):
             filename, _ = QFileDialog.getSaveFileName(
                 self,
                 f"Export {title} to CSV",
-                f"{title.replace(' ',
-     '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                f"{title.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 "CSV Files (*.csv);;All Files (*)")
 
             if not filename:
@@ -8831,8 +9175,7 @@ class CharterFormWidget(QWidget):
             filename, _ = QFileDialog.getSaveFileName(
                 self,
                 f"Export {title} to Word",
-                f"{title.replace(' ',
-     '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
+                f"{title.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
                 "Word Files (*.docx);;All Files (*)")
 
             if not filename:
@@ -8897,29 +9240,52 @@ class CharterFormWidget(QWidget):
 
             # Insert all routes from UI table
             for row_idx in range(self.route_table.rowCount()):
-                # Fallback: read from item() if cellWidget() missing
-                def _read_cell_text(table, r, c):
-                    w = table.cellWidget(r, c)
-                    if w and hasattr(w, 'text'):
-                        return w.text()
-                    itm = table.item(r, c)
-                    return itm.text() if itm else ""
+                # Read event type (col 0 — QComboBox or QTableWidgetItem)
+                w0 = self.route_table.cellWidget(row_idx, 0)
+                if w0 and hasattr(w0, 'currentData'):
+                    event_type_code = w0.currentData() or ""
+                elif w0 and hasattr(w0, 'currentText'):
+                    event_type_code = w0.currentText() or ""
+                else:
+                    itm = self.route_table.item(row_idx, 0)
+                    event_type_code = itm.data(
+                        Qt.ItemDataRole.UserRole) or (
+                        itm.text() if itm else "") or ""
 
-                pickup_loc = _read_cell_text(self.route_table, row_idx, 0)
-                pickup_time = _read_cell_text(self.route_table, row_idx, 1)
-                dropoff_loc = _read_cell_text(self.route_table, row_idx, 2)
-                dropoff_time = _read_cell_text(self.route_table, row_idx, 3)
+                # Col 1: Destination / Description
+                itm1 = self.route_table.item(row_idx, 1)
+                address = itm1.text() if itm1 else ""
+
+                # Col 2: At/By (QComboBox)
+                w2 = self.route_table.cellWidget(row_idx, 2)
+                at_by = w2.currentText() if w2 and hasattr(
+                    w2, 'currentText') else (
+                    self.route_table.item(row_idx, 2).text()
+                    if self.route_table.item(row_idx, 2) else "at")
+
+                # Col 3: Time (QTimeEdit)
+                w3 = self.route_table.cellWidget(row_idx, 3)
+                if w3 and hasattr(w3, 'time'):
+                    t = w3.time()
+                    stop_time = f"{t.hour():02d}:{t.minute():02d}"
+                else:
+                    itm3 = self.route_table.item(row_idx, 3)
+                    stop_time = itm3.text() if itm3 else ""
+
+                # Col 4: Notes
+                itm4 = self.route_table.item(row_idx, 4)
+                route_notes = itm4.text() if itm4 else ""
 
                 cur.execute(
                     """
                     INSERT INTO charter_routes
-                    (charter_id, sequence_order, pickup_location,
-                     pickup_time, dropoff_location, dropoff_time)
+                    (charter_id, route_sequence, event_type_code,
+                     address, stop_time, route_notes)
                     VALUES (%s, %s, %s, %s, %s, %s)
                     """,
                     (self.charter_id, row_idx + 1,
-                     pickup_loc, pickup_time,
-                     dropoff_loc, dropoff_time))
+                     event_type_code, address, stop_time or None,
+                     route_notes))
             print(
                 f"✅ Saved {self.route_table.rowCount()}"
                 f" routes for charter {self.charter_id}")
@@ -9209,7 +9575,7 @@ class CharterFormWidget(QWidget):
                     addr_item.setText(str(address or ""))
                     self.route_table.setItem(row_idx, 1, addr_item)
 
-                    # "at" label
+                    # "at" label (kept as item for legacy rows)
                     at_item = self.route_table.item(
                         row_idx, 2) or QTableWidgetItem("at")
                     at_item.setFlags(at_item.flags() & ~
@@ -9662,3 +10028,340 @@ class CharterFormWidget(QWidget):
             except Exception:
                 pass
             print(f"❌ Error loading beverages: {e}")
+
+    # =========================================================================
+    # RUN SHEET PDF (Print Run Sheet / Blank Run Sheet)
+    # =========================================================================
+
+    def _gather_run_sheet_data(self):
+        """Collect current form data into a dict for generate_charter_pdf()."""
+        customer_data = self.customer_widget.get_customer_data()
+
+        # ── Charter / date / time ──────────────────────────────────────────
+        reserve_number = customer_data.get("reserve_number") or ""
+        charter_date = ""
+        if hasattr(self, "charter_date_from"):
+            charter_date = self.charter_date_from.date().toString("yyyy-MM-dd")
+
+        pickup_time = ""
+        if hasattr(self, "base_time_from"):
+            pickup_time = self.base_time_from.time().toString("HH:mm")
+
+        dropoff_time = ""
+        if hasattr(self, "base_time_to"):
+            dropoff_time = self.base_time_to.time().toString("HH:mm")
+
+        status = ""
+        if hasattr(self, "charter_status_combo"):
+            status = self.charter_status_combo.currentText()
+
+        charter_type = ""
+        if hasattr(self, "charter_type_combo"):
+            charter_type = self.charter_type_combo.currentText()
+
+        quoted_hours = 0.0
+        if hasattr(self, "quoted_hours_input"):
+            quoted_hours = float(self.quoted_hours_input.value())
+
+        passenger_load = 0
+        if hasattr(self, "num_passengers"):
+            passenger_load = int(self.num_passengers.value())
+
+        # ── Vehicle / Driver ──────────────────────────────────────────────
+        vehicle_type_requested = ""
+        if hasattr(self, "vehicle_type_requested_combo"):
+            vehicle_type_requested = (
+                self.vehicle_type_requested_combo.currentText())
+
+        vehicle_id = ""
+        if hasattr(self, "vehicle_combo"):
+            vehicle_id = self.vehicle_combo.currentText()
+
+        driver_name = ""
+        employee_number = ""
+        if hasattr(self, "driver_combo"):
+            driver_name = self.driver_combo.currentText()
+            emp_id = self.driver_combo.currentData()
+            if emp_id:
+                try:
+                    cur = self.db.get_cursor()
+                    cur.execute(
+                        "SELECT employee_number FROM employees "
+                        "WHERE employee_id = %s",
+                        (emp_id,))
+                    row = cur.fetchone()
+                    if row:
+                        employee_number = str(row[0] or "")
+                except Exception:
+                    pass
+
+        # ── Client info ───────────────────────────────────────────────────
+        client_name = customer_data.get("client_name") or ""
+        address_raw = customer_data.get("address") or ""
+        phone = customer_data.get("phone") or ""
+        email = customer_data.get("email") or ""
+
+        # ── Notes ─────────────────────────────────────────────────────────
+        notes = ""
+        if hasattr(self, "client_notes_input"):
+            notes = self.client_notes_input.toPlainText()
+        if not notes and hasattr(self, "dispatcher_notes_input"):
+            notes = self.dispatcher_notes_input.toPlainText()
+
+        # ── Routes ────────────────────────────────────────────────────────
+        routes = []
+        if hasattr(self, "route_table"):
+            for row in range(self.route_table.rowCount()):
+                # Col 0: Event type (QComboBox or QTableWidgetItem)
+                event_widget = self.route_table.cellWidget(row, 0)
+                if event_widget and hasattr(event_widget, "currentText"):
+                    event_type_code = event_widget.currentText()
+                else:
+                    item0 = self.route_table.item(row, 0)
+                    event_type_code = item0.text() if item0 else ""
+
+                # Col 1: Address
+                item1 = self.route_table.item(row, 1)
+                address = item1.text() if item1 else ""
+
+                # Col 2: At/By (QComboBox or QTableWidgetItem)
+                ab_widget = self.route_table.cellWidget(row, 2)
+                if ab_widget and hasattr(ab_widget, "currentText"):
+                    at_by = ab_widget.currentText()
+                else:
+                    item2 = self.route_table.item(row, 2)
+                    at_by = item2.text() if item2 else "at"
+
+                # Col 3: Time (QTimeEdit or QTableWidgetItem)
+                time_widget = self.route_table.cellWidget(row, 3)
+                if time_widget and hasattr(time_widget, "time"):
+                    stop_time = time_widget.time().toString("HH:mm")
+                else:
+                    item3 = self.route_table.item(row, 3)
+                    stop_time = item3.text() if item3 else ""
+
+                # Col 4: Notes
+                item4 = self.route_table.item(row, 4)
+                route_notes = item4.text() if item4 else ""
+
+                if address or stop_time:
+                    routes.append({
+                        "event_type_code": event_type_code,
+                        "address": address,
+                        "at_by": at_by,
+                        "stop_time": stop_time,
+                        "route_notes": route_notes,
+                    })
+
+        # ── Charges ───────────────────────────────────────────────────────
+        charges = []
+        if hasattr(self, "charges_table"):
+            for row in range(self.charges_table.rowCount()):
+                desc_item = self.charges_table.item(row, 0)
+                total_item = self.charges_table.item(row, 2)
+                if desc_item and total_item:
+                    try:
+                        amount = float(
+                            total_item.text().replace("$", "").replace(",", "")
+                        )
+                    except Exception:
+                        amount = 0.0
+                    charges.append({
+                        "description": desc_item.text(),
+                        "amount": amount,
+                    })
+
+        # ── Totals ────────────────────────────────────────────────────────
+        total_amount_due = 0.0
+        if hasattr(self, "gross_total_display"):
+            try:
+                total_amount_due = float(
+                    self.gross_total_display.text()
+                    .replace("$", "").replace(",", "").split()[0]
+                )
+            except Exception:
+                pass
+
+        nrr_amount = 0.0
+        if hasattr(self, "nrr_received"):
+            nrr_amount = float(self.nrr_received.value())
+
+        total_payments = 0.0
+        if hasattr(self, "payments_table"):
+            for row in range(self.payments_table.rowCount()):
+                amt_item = self.payments_table.item(row, 2)
+                if amt_item:
+                    try:
+                        total_payments += float(
+                            amt_item.text().replace("$", "").replace(",", "")
+                        )
+                    except Exception:
+                        pass
+
+        # ── Beverages ─────────────────────────────────────────────────────
+        beverages = []
+        bev_items = (self.beverage_cart_data or {}).get("items") or []
+        for item in bev_items:
+            beverages.append({
+                "item_name": (
+                    item.get("name") or item.get("item_name") or ""),
+                "quantity": int(item.get("quantity") or 1),
+            })
+
+        # ── HOS last 14 days (for CDDL grid) ─────────────────────────────
+        hos_records = []
+        if hasattr(self, "hos_table"):
+            max_days = min(14, self.hos_table.columnCount())
+            for col in range(max_days):
+                off_item = self.hos_table.item(0, col)
+                on_item = self.hos_table.item(1, col)
+                total_item = self.hos_table.item(2, col)
+                hos_records.append(
+                    {
+                        "day": str(col + 1),
+                        "off_duty": off_item.text().strip() if off_item else "-",
+                        "on_duty": on_item.text().strip() if on_item else "-",
+                        "total_24h": total_item.text().strip() if total_item else "-",
+                    }
+                )
+
+        # ── Odometer (from DB if charter is saved) ────────────────────────
+        odometer_start = ""
+        odometer_end = ""
+        if self.charter_id:
+            try:
+                cur = self.db.get_cursor()
+                cur.execute(
+                    "SELECT odometer_start, odometer_end FROM charters "
+                    "WHERE charter_id = %s",
+                    (self.charter_id,),
+                )
+                odo_row = cur.fetchone()
+                if odo_row:
+                    odometer_start = str(odo_row[0] or "")
+                    odometer_end = str(odo_row[1] or "")
+            except Exception:
+                pass
+
+        return {
+            "reserve_number": reserve_number,
+            "charter_date": charter_date,
+            "pickup_time": pickup_time,
+            "dropoff_time": dropoff_time,
+            "status": status,
+            "charter_type": charter_type,
+            "quoted_hours": quoted_hours,
+            "passenger_load": passenger_load,
+            "vehicle_type_requested": vehicle_type_requested,
+            "vehicle_id": vehicle_id,
+            "vehicle_number": vehicle_id,
+            "driver_name": driver_name,
+            "employee_number": employee_number,
+            "workshift_start": pickup_time,
+            "client_name": client_name,
+            "address_line1": address_raw,
+            "phone": phone,
+            "email": email,
+            "notes": notes,
+            "routes": routes,
+            "charges": charges,
+            "beverages": beverages,
+            "hos_records": hos_records,
+            "total_amount_due": total_amount_due,
+            "nrr_amount": nrr_amount,
+            "total_paid": total_payments,
+            "odometer_start": odometer_start,
+            "odometer_end": odometer_end,
+        }
+
+    def _open_pdf_bytes(self, pdf_bytes, filename="run_sheet.pdf"):
+        """Write PDF bytes to a temp file and open with the system viewer."""
+        import tempfile
+        import subprocess
+        with tempfile.NamedTemporaryFile(
+                delete=False, suffix=".pdf",
+                prefix=filename.replace(".pdf", "_")) as f:
+            f.write(pdf_bytes)
+            tmp_path = f.name
+        subprocess.Popen(
+            ["cmd", "/c", "start", "", tmp_path],
+            shell=False,
+            creationflags=0x00000008,  # DETACHED_PROCESS
+        )
+
+    def print_run_sheet(self):
+        """Generate and open run sheet PDF filled with current charter data."""
+        import sys
+        import os
+        if not self.charter_id:
+            QMessageBox.warning(
+                self, "Warning",
+                "Please save the charter first before printing the run sheet.")
+            return
+        try:
+            # Add project root to path so we can import pdf_generator
+            proj_root = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), os.pardir))
+            if proj_root not in sys.path:
+                sys.path.insert(0, proj_root)
+            from modern_backend.app.services.pdf_generator import (
+                generate_charter_pdf)
+            data = self._gather_run_sheet_data()
+            pdf_bytes = generate_charter_pdf(data)
+            reserve = data.get("reserve_number") or str(self.charter_id)
+            self._open_pdf_bytes(pdf_bytes, f"run_sheet_{reserve}.pdf")
+        except Exception as e:
+            import traceback
+            QMessageBox.critical(
+                self, "PDF Error",
+                f"Failed to generate run sheet:\n{e}\n\n"
+                f"{traceback.format_exc()[:500]}")
+
+    def print_blank_run_sheet(self):
+        """Generate and open a blank run sheet PDF for pencil fill."""
+        import sys
+        import os
+        try:
+            proj_root = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), os.pardir))
+            if proj_root not in sys.path:
+                sys.path.insert(0, proj_root)
+            from modern_backend.app.services.pdf_generator import (
+                generate_charter_pdf)
+            # Minimal data — leaves all fields blank for manual fill
+            data = {
+                "reserve_number": "",
+                "charter_date": "",
+                "pickup_time": "",
+                "dropoff_time": "",
+                "status": "",
+                "charter_type": "",
+                "quoted_hours": None,
+                "passenger_load": None,
+                "vehicle_type_requested": "",
+                "vehicle_id": "",
+                "vehicle_number": "",
+                "driver_name": "",
+                "employee_number": "",
+                "workshift_start": "",
+                "client_name": "",
+                "address_line1": "",
+                "phone": "",
+                "email": "",
+                "notes": "",
+                "routes": [],
+                "charges": [],
+                "beverages": [],
+                "total_amount_due": 0.0,
+                "nrr_amount": 0.0,
+                "total_paid": 0.0,
+            }
+            pdf_bytes = generate_charter_pdf(data)
+            self._open_pdf_bytes(pdf_bytes, "run_sheet_blank.pdf")
+        except Exception as e:
+            import traceback
+            QMessageBox.critical(
+                self, "PDF Error",
+                f"Failed to generate blank run sheet:\n{e}\n\n"
+                f"{traceback.format_exc()[:500]}")
+
