@@ -1,0 +1,107 @@
+{
+  "generated_at": "2026-04-30T22:11:00",
+  "workspace": "l:\\limo",
+  "source": "consolidated + direct probe revalidation for previously timeout-prone targets",
+  "notes": [
+    "ManageBankingWidget fixed and passing",
+    "EmployeeManagementWidget fixed and passing",
+    "ManageCashBoxWidget fixed and passing",
+    "Charter/Fleet/FinancialDashboard revalidated via direct probes"
+  ],
+  "total": 13,
+  "pass": 13,
+  "fail": 0,
+  "results": [
+    {
+      "module": "desktop_app.mega_menu_widget",
+      "class_name": "MegaMenuWidget",
+      "status": "PASS",
+      "strategy": "no_args",
+      "error": null
+    },
+    {
+      "module": "desktop_app.report_explorer_widget",
+      "class_name": "ReportExplorerWidget",
+      "status": "PASS",
+      "strategy": "no_args",
+      "error": null
+    },
+    {
+      "module": "desktop_app.employee_management_widget",
+      "class_name": "EmployeeManagementWidget",
+      "status": "PASS",
+      "strategy": "db",
+      "error": null
+    },
+    {
+      "module": "desktop_app.vehicle_management_widget",
+      "class_name": "VehicleManagementWidget",
+      "status": "PASS",
+      "strategy": "db",
+      "error": null
+    },
+    {
+      "module": "desktop_app.dispatch_management_widget",
+      "class_name": "DispatchManagementWidget",
+      "status": "PASS",
+      "strategy": "db",
+      "error": null
+    },
+    {
+      "module": "desktop_app.document_management_widget",
+      "class_name": "DocumentManagementWidget",
+      "status": "PASS",
+      "strategy": "db",
+      "error": null
+    },
+    {
+      "module": "desktop_app.charter_form_widget",
+      "class_name": "CharterFormWidget",
+      "status": "PASS",
+      "strategy": "db",
+      "error": null
+    },
+    {
+      "module": "desktop_app.manage_banking_widget",
+      "class_name": "ManageBankingWidget",
+      "status": "PASS",
+      "strategy": "db",
+      "error": null
+    },
+    {
+      "module": "desktop_app.manage_cash_box_widget",
+      "class_name": "ManageCashBoxWidget",
+      "status": "PASS",
+      "strategy": "db",
+      "error": null
+    },
+    {
+      "module": "desktop_app.report_management_widget",
+      "class_name": "ReportManagementWidget",
+      "status": "PASS",
+      "strategy": "db",
+      "error": null
+    },
+    {
+      "module": "desktop_app.roe_form_widget",
+      "class_name": "ROEFormWidget",
+      "status": "PASS",
+      "strategy": "db",
+      "error": null
+    },
+    {
+      "module": "desktop_app.dashboard_classes",
+      "class_name": "FleetManagementWidget",
+      "status": "PASS",
+      "strategy": "db",
+      "error": null
+    },
+    {
+      "module": "desktop_app.dashboard_classes",
+      "class_name": "FinancialDashboardWidget",
+      "status": "PASS",
+      "strategy": "db",
+      "error": null
+    }
+  ]
+}

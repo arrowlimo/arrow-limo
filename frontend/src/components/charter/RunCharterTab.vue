@@ -197,10 +197,28 @@
       <!-- Save Actions -->
       <div class="save-actions">
         <button @click="saveCharter" class="btn-save">💾 Save Charter</button>
-        <button @click="saveAndInvoice" class="btn-invoice">📄 Save & Generate Invoice</button>
-        <button @click="saveAndPrint" class="btn-print">🖨️ Save & Print</button>
-        <button @click="printConfirmation" class="btn-print">📋 Print Confirmation</button>
-        <button @click="emailConfirmation" class="btn-print">📧 Email Confirmation</button>
+        <button @click="saveAndInvoice" class="btn-invoice">📄 Save & Invoice</button>
+
+        <!-- Print / Email dropdown -->
+        <div class="print-menu-wrapper" ref="printMenuWrapper">
+          <button class="btn-print print-menu-trigger" @click="togglePrintMenu">
+            🖨️ Print / Email
+            <span class="print-menu-caret" :class="{ open: printMenuOpen }">▾</span>
+          </button>
+          <div v-if="printMenuOpen" class="print-menu-dropdown">
+            <button class="print-menu-item" @click="onPrintMenuItem('run-sheet')">
+              🖨️ Run Charter (Driver Sheet)
+            </button>
+            <button class="print-menu-item" @click="onPrintMenuItem('confirmation')">
+              📋 Confirmation Letter (Client)
+            </button>
+            <div class="print-menu-divider"></div>
+            <button class="print-menu-item" @click="onPrintMenuItem('email-confirmation')">
+              📧 Email Confirmation Letter
+            </button>
+          </div>
+        </div>
+
         <button v-if="currentCharter" @click="deleteCharter" class="btn-delete">🗑️ Delete Charter</button>
       </div>
     </div>
@@ -208,7 +226,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import ClientDetailsSection from './ClientDetailsSection.vue'
 import DispatchSection from './DispatchSection.vue'
 import RoutingTable from './RoutingTable.vue'
@@ -223,6 +241,38 @@ import AccountingDetailsSection from './AccountingDetailsSection.vue'
 
 // State
 const searchQuery = ref('')
+
+// Print menu
+const printMenuOpen = ref(false)
+const printMenuWrapper = ref(null)
+
+function togglePrintMenu() {
+  printMenuOpen.value = !printMenuOpen.value
+}
+
+function closePrintMenu() {
+  printMenuOpen.value = false
+}
+
+async function onPrintMenuItem(action) {
+  closePrintMenu()
+  if (action === 'run-sheet') {
+    await saveAndPrint()
+  } else if (action === 'confirmation') {
+    printConfirmation()
+  } else if (action === 'email-confirmation') {
+    emailConfirmation()
+  }
+}
+
+function onClickOutsidePrintMenu(e) {
+  if (printMenuWrapper.value && !printMenuWrapper.value.contains(e.target)) {
+    closePrintMenu()
+  }
+}
+
+onMounted(() => document.addEventListener('mousedown', onClickOutsidePrintMenu))
+onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutsidePrintMenu))
 const searchResults = ref([])
 const currentCharter = ref(null)
 
@@ -1188,6 +1238,66 @@ watch(() => charterForm.value.out_of_town, (isOutOfTown) => {
 
 .btn-delete:hover {
   background: #f56565;
+}
+
+/* ── Print / Email dropdown ───────────────────────────────────────── */
+.print-menu-wrapper {
+  position: relative;
+}
+
+.print-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.print-menu-caret {
+  display: inline-block;
+  transition: transform 0.2s;
+  font-size: 0.8em;
+  line-height: 1;
+}
+
+.print-menu-caret.open {
+  transform: rotate(180deg);
+}
+
+.print-menu-dropdown {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  min-width: 240px;
+  background: white;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  z-index: 200;
+  overflow: hidden;
+}
+
+.print-menu-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #2d3748;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.print-menu-item:hover {
+  background: #ebf4ff;
+  color: #2b6cb0;
+}
+
+.print-menu-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 4px 0;
 }
 
 @media (max-width: 1200px) {
