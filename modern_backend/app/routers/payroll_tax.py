@@ -141,12 +141,47 @@ async def get_t4_entry(
         cur.execute(
             """
             SELECT 
-                COALESCE(SUM(gross_pay), 0) as box14,
+                COALESCE(
+                    SUM(
+                        GREATEST(
+                            COALESCE(gross_pay, 0)
+                            - COALESCE(expense_reimbursement, 0),
+                            0
+                        )
+                    ),
+                    0
+                ) as box14,
                 COALESCE(SUM(cpp), 0) as box16,
                 COALESCE(SUM(ei), 0) as box18,
                 COALESCE(SUM(tax_withheld), 0) as box22,
-                COALESCE(SUM(ei_insurable), 0) as box24,
-                COALESCE(SUM(cpp_pensionable), 0) as box26,
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN COALESCE(ei_insurable, 0) > 0
+                                THEN ei_insurable
+                            ELSE GREATEST(
+                                COALESCE(gross_pay, 0)
+                                - COALESCE(expense_reimbursement, 0),
+                                0
+                            )
+                        END
+                    ),
+                    0
+                ) as box24,
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN COALESCE(cpp_pensionable, 0) > 0
+                                THEN cpp_pensionable
+                            ELSE GREATEST(
+                                COALESCE(gross_pay, 0)
+                                - COALESCE(expense_reimbursement, 0),
+                                0
+                            )
+                        END
+                    ),
+                    0
+                ) as box26,
                 COALESCE(SUM(commissions), 0) as box44,
                 COALESCE(SUM(other_remuneration), 0) as box46,
                 COALESCE(SUM(union_dues), 0) as box52
