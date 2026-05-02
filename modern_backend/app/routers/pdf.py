@@ -840,14 +840,29 @@ def get_employee_t4_pdf(
         cur.execute(
             """
             SELECT
-                COALESCE(SUM(gross_pay), 0) as box14,
+                COALESCE(
+                    SUM(
+                        GREATEST(
+                            COALESCE(gross_pay, 0)
+                            - COALESCE(expense_reimbursement, 0),
+                            0
+                        )
+                    ),
+                    0
+                ) as box14,
                 COALESCE(SUM(cpp), 0) as box16,
                 COALESCE(SUM(ei), 0) as box18,
                 COALESCE(SUM(tax), 0) as box22,
                 COALESCE(SUM(CASE WHEN ei_insurable_earnings > 0 THEN
-                ei_insurable_earnings ELSE gross_pay END), 0) as box24,
+                ei_insurable_earnings ELSE GREATEST(
+                    COALESCE(gross_pay, 0) - COALESCE(expense_reimbursement, 0),
+                    0
+                ) END), 0) as box24,
                 COALESCE(SUM(CASE WHEN cpp_pensionable_earnings > 0 THEN
-                cpp_pensionable_earnings ELSE gross_pay END), 0) as box26,
+                cpp_pensionable_earnings ELSE GREATEST(
+                    COALESCE(gross_pay, 0) - COALESCE(expense_reimbursement, 0),
+                    0
+                ) END), 0) as box26,
                 COALESCE(SUM(commission), 0) as box44,
                 COALESCE(SUM(union_dues), 0) as box52
             FROM driver_payroll
@@ -928,14 +943,29 @@ def preview_employee_t4_pdf(
         cur.execute(
             """
             SELECT
-                COALESCE(SUM(gross_pay), 0) as box14,
+                COALESCE(
+                    SUM(
+                        GREATEST(
+                            COALESCE(gross_pay, 0)
+                            - COALESCE(expense_reimbursement, 0),
+                            0
+                        )
+                    ),
+                    0
+                ) as box14,
                 COALESCE(SUM(cpp), 0) as box16,
                 COALESCE(SUM(ei), 0) as box18,
                 COALESCE(SUM(tax), 0) as box22,
                 COALESCE(SUM(CASE WHEN ei_insurable_earnings > 0 THEN
-                ei_insurable_earnings ELSE gross_pay END), 0) as box24,
+                ei_insurable_earnings ELSE GREATEST(
+                    COALESCE(gross_pay, 0) - COALESCE(expense_reimbursement, 0),
+                    0
+                ) END), 0) as box24,
                 COALESCE(SUM(CASE WHEN cpp_pensionable_earnings > 0 THEN
-                cpp_pensionable_earnings ELSE gross_pay END), 0) as box26,
+                cpp_pensionable_earnings ELSE GREATEST(
+                    COALESCE(gross_pay, 0) - COALESCE(expense_reimbursement, 0),
+                    0
+                ) END), 0) as box26,
                 COALESCE(SUM(commission), 0) as box44,
                 COALESCE(SUM(union_dues), 0) as box52
             FROM driver_payroll

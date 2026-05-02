@@ -77,6 +77,42 @@ function Get-RequirementsHash([string]$InstallRootPath) {
     return (Get-FileHash -Path $requirementsPath -Algorithm SHA256).Hash
 }
 
+function ConvertFrom-JsonLenient([string]$JsonText) {
+    try {
+        return $JsonText | ConvertFrom-Json
+    } catch {
+        # Allow common human-edited JSON issue: trailing commas before } or ]
+        $sanitized = [System.Text.RegularExpressions.Regex]::Replace(
+            $JsonText,
+            ',\s*(?=[}\]])',
+            '',
+            [System.Text.RegularExpressions.RegexOptions]::Multiline
+        )
+
+        return $sanitized | ConvertFrom-Json
+    }
+}
+
+function Read-JsonFileLenient([string]$PathValue, [switch]$WriteBackIfSanitized) {
+    $raw = Get-Content $PathValue -Raw
+    try {
+        return $raw | ConvertFrom-Json
+    } catch {
+        $sanitized = [System.Text.RegularExpressions.Regex]::Replace(
+            $raw,
+            ',\s*(?=[}\]])',
+            '',
+            [System.Text.RegularExpressions.RegexOptions]::Multiline
+        )
+
+        $obj = ConvertFrom-JsonLenient -JsonText $sanitized
+        if ($WriteBackIfSanitized) {
+            Set-Content -Path $PathValue -Value ($obj | ConvertTo-Json -Depth 8) -Encoding UTF8
+        }
+        return $obj
+    }
+}
+
 function Test-PythonRepairRequired([string]$InstallRootPath, [string]$PythonExe) {
     $requirementsHash = Get-RequirementsHash -InstallRootPath $InstallRootPath
     if (-not $requirementsHash) {
@@ -89,7 +125,7 @@ function Test-PythonRepairRequired([string]$InstallRootPath, [string]$PythonExe)
     }
 
     try {
-        $stamp = Get-Content $stampPath -Raw | ConvertFrom-Json
+        $stamp = Read-JsonFileLenient -PathValue $stampPath -WriteBackIfSanitized
     } catch {
         return $true
     }
