@@ -1,7 +1,0 @@
-CRA Top-25 Resolution Summary
-Total items: 25
-RESOLVED_LEDGER: 4
-RESOLVED_BANKING: 19
-PARTIAL: 2
-UNRESOLVED: 0
-UNRESOLVED txn_ids: (none)

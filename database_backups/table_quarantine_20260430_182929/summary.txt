@@ -1,7 +1,0 @@
-mode=DRY_RUN
-timestamp=2026-04-30T18:29:29.028149
-candidate_count=1
-moved_count=0
-skipped_fk_count=1
-manifest=l:\limo\database_backups\table_quarantine_20260430_182929\manifest.json
-rollback=l:\limo\database_backups\table_quarantine_20260430_182929\rollback.sql

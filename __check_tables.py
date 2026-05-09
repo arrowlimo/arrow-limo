@@ -1,10 +1,14 @@
 import os, re, psycopg2
 from pathlib import Path
 
+pwd = os.environ.get("DB_PASSWORD")
+if not pwd:
+    raise RuntimeError("DB_PASSWORD not set")
+
 conn = psycopg2.connect(
     host='ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech',
     port=5432, database='neondb', user='neondb_owner',
-    password='npg_rlL0yK9pvfCW', sslmode='require'
+    password=pwd, sslmode='require'
 )
 cur = conn.cursor()
 cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name")

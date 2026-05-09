@@ -1,6 +1,0 @@
-table=public.chart_of_accounts
-attempted=16
-inserted=0
-skipped=16
-inserted_codes=
-skipped_reason=exact code already exists: 1080,1085,1090,1095,1310,1325,1375,1398,1399,16400,16410,16420,16430,16440,16450,16460

@@ -1,7 +1,0 @@
-mode=APPLY
-timestamp=2026-04-30T18:29:20.069420
-candidate_count=19
-moved_count=18
-skipped_fk_count=1
-manifest=l:\limo\database_backups\table_quarantine_20260430_182920\manifest.json
-rollback=l:\limo\database_backups\table_quarantine_20260430_182920\rollback.sql

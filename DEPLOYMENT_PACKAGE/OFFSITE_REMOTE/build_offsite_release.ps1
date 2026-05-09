@@ -112,6 +112,9 @@ Copy-Item (Join-Path $runtimeDir "START_ARROW_LIMO_OFFSITE.bat") (Join-Path $sta
 Copy-Item (Join-Path $runtimeDir "Bootstrap-Prereqs.ps1") (Join-Path $stageDir "Bootstrap-Prereqs.ps1") -Force
 Copy-Item (Join-Path $runtimeDir "Configure-OffsiteInstall.ps1") (Join-Path $stageDir "Configure-OffsiteInstall.ps1") -Force
 Copy-Item (Join-Path $runtimeDir "Apply-OffsiteUpdate.ps1") (Join-Path $stageDir "Apply-OffsiteUpdate.ps1") -Force
+Copy-Item (Join-Path $runtimeDir "Install-OffsiteFromZip.ps1") (Join-Path $stageDir "Install-OffsiteFromZip.ps1") -Force
+Copy-Item (Join-Path $runtimeDir "Install-OffsiteSelfHeal.ps1") (Join-Path $stageDir "Install-OffsiteSelfHeal.ps1") -Force
+Copy-Item (Join-Path $runtimeDir "support-apps.json") (Join-Path $stageDir "support-apps.json") -Force
 
 Copy-Tree $prereqDir (Join-Path $stageDir "prerequisites")
 

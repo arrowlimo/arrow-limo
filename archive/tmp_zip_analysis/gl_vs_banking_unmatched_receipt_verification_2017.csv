@@ -1,8 +1,0 @@
-gl_date,gl_chq,gl_vendor,gl_amount,gl_account,verification,bank_txn_id,bank_txn_date,bank_debit,bank_desc,bank_check,receipt_id,receipt_date,receipt_vendor,receipt_amount,receipt_source,notes
-2017-01-16,cash,Fibrenew,1575.00,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
-2017-02-27,cash,Fibrenew,1300.00,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
-2017-03-15,cash,Fibrenew,472.50,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
-2017-04-13,cash,Fibrenew,3150.00,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
-2017-05-15,cash,Fibrenew,700.00,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
-2017-09-07,cash,WCB,1400.00,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,
-2017-11-15,cash,Fibrenew,682.50,1090 Bank Shareholder,NO_BANK_EVIDENCE,,,,,,,,,,,

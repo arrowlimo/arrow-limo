@@ -1,6 +1,0 @@
-Medium-Confidence 8362->1615 Lag Review Set
-==========================================================
-Total lag-aware source rows: 40
-Already-applied high-confidence rows excluded: 4
-Medium-confidence review rows (unique <=30d + future lag): 3
-DB updates performed: 0 (review-only output)

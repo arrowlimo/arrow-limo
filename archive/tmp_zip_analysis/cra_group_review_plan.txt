@@ -1,5 +1,0 @@
-CRA Group Review Plan
-total_items=73
-top_5_years_by_unresolved_count=2016:48, 2017:42, 2013:26, 2012:16, 2014:8
-first_10_txn_ids_to_review=14594, 14597, 14603, 14612, 14613, 14618, 14623, 14636, 14642, 14645
-estimated_effort_buckets=quick:73, medium:0, deep:0

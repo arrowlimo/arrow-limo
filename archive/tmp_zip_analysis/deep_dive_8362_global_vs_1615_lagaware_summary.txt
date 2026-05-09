@@ -1,9 +1,0 @@
-8362 Global/Amex vs 1615 Lag-Aware Match Summary
-====================================================================
-1615 account variants used: 1615
-Source rows checked (8362 Global/Amex): 40
-Rows with >=1 same-side/same-amount candidate within abs 7d: 5
-Rows with >=1 same-side/same-amount candidate within abs 30d: 16
-Rows with >=1 same-side/same-amount candidate within abs 90d: 19
-Rows with >=1 same-side/same-amount candidate within abs 120d: 19
-Rows with >=1 FUTURE (lag 0..120d) candidate: 14

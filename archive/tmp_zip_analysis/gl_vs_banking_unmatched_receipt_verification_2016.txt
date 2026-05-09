@@ -1,8 +1,0 @@
-Unmatched GL->Bank Verification (with receipt evidence)
-==========================================================================================
-Rows verified: 22
-- NO_BANK_EVIDENCE: 22
-
-Detailed rows
-------------------------------------------------------------------------------------------
-2016-01-24 | Telus Communications | CHQ:dd | 2163.38 | NO_BANK_EVIDENCE | bank:   | receipt:  

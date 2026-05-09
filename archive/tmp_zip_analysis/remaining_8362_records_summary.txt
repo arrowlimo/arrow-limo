@@ -1,4 +1,0 @@
-Remaining 8362 Records Export
-=============================================
-Total rows exported: 13499
-0228362: 13499
