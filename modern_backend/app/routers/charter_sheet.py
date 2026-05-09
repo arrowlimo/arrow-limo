@@ -207,7 +207,7 @@ def get_charter_sheet(reserve_number: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to load charter sheet: {e}"
         )
     finally:

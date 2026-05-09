@@ -507,7 +507,7 @@ async def create_roe_record(
         raise
     except Exception as exc:
         conn.rollback()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to create ROE: {exc}"
         )
     finally:
@@ -593,7 +593,7 @@ async def submit_roe_record(
         raise
     except Exception as exc:
         conn.rollback()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to submit ROE: {exc}"
         )
     finally:

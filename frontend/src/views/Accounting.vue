@@ -460,7 +460,7 @@ async function loadAccountingData() {
   isLoading.value = true;
   try {
     // Build query with year filter for much faster loading
-    let query = 'http://127.0.0.1:8001/api/receipts-simple/';
+    let query = '/api/receipts-simple/';
     const params = [];
     
     if (workingYear.value !== 'all') {
@@ -492,14 +492,28 @@ async function loadAccountingData() {
       is_driver_personal: r.is_driver_personal ?? false
     }));
 
-    // Dashboard stats - placeholder since we don't have an aggregation endpoint yet
-    stats.value = {
-      monthlyRevenue: 0,
-      monthlyExpenses: receiptsData.reduce((sum, r) => sum + (parseFloat(r.gross_amount) || 0), 0),
-      monthlyProfit: 0,
-      outstandingReceivables: 0,
-      gstOwed: 0
-    };
+    // Dashboard stats from backend accounting endpoint.
+    try {
+      const statsResp = await fetch('/api/accounting/stats');
+      if (statsResp.ok) {
+        const s = await statsResp.json();
+        stats.value = {
+          monthlyRevenue: Number(s.monthly_revenue || 0),
+          monthlyExpenses: Number(s.monthly_expenses || 0),
+          monthlyProfit: Number(s.monthly_profit || 0),
+          outstandingReceivables: Number(s.outstanding_receivables || 0),
+          gstOwed: Number(s.gst_owed || 0)
+        };
+      }
+    } catch (_e) {
+      stats.value = {
+        monthlyRevenue: 0,
+        monthlyExpenses: receiptsData.reduce((sum, r) => sum + (parseFloat(r.gross_amount) || 0), 0),
+        monthlyProfit: 0,
+        outstandingReceivables: 0,
+        gstOwed: 0
+      };
+    }
     // Fetch invoices from backend API
     try {
       const invoicesResp = await fetch('/api/invoices');
@@ -509,6 +523,7 @@ async function loadAccountingData() {
         const raw = Array.isArray(invoicesData) ? invoicesData : (invoicesData.results || []);
         invoices.value = raw.map(inv => ({
           id: inv.invoice_id || inv.id || inv.invoice_number || Math.random(),
+          charter_id: inv.charter_id || null,
           invoice_number: inv.invoice_number || inv.id || '',
           client_name: inv.client_name || inv.client || '',
           date: inv.invoice_date || inv.date || '',
@@ -523,10 +538,21 @@ async function loadAccountingData() {
     } catch (e) {
       invoices.value = [];
     }
-    gstData.value = {
-      collected: 0,
-      paid: 0
-    };
+    try {
+      const gstResp = await fetch('/api/accounting/gst/summary');
+      if (gstResp.ok) {
+        const g = await gstResp.json();
+        gstData.value = {
+          collected: Number(g.collected || 0),
+          paid: Number(g.paid || 0)
+        };
+      }
+    } catch (_e) {
+      gstData.value = {
+        collected: 0,
+        paid: 0
+      };
+    }
     dataLoaded.value = true;
   } catch (error) {
     console.error('Error loading accounting data:', error);
@@ -556,14 +582,26 @@ function formatStatus(status) {
 }
 
 function viewInvoice(invoice) {
-  console.log('View invoice:', invoice)
-  // TODO: Open invoice detail view
+  if (invoice?.charter_id) {
+    window.open(`/api/charters/${invoice.charter_id}/invoice-pdf`, '_blank')
+    return
+  }
+  alert('No linked charter for this invoice.')
 }
 
-function markPaid(invoice) {
-  console.log('Mark paid:', invoice)
-  // TODO: Update invoice status to paid
-  invoice.status = 'paid'
+async function markPaid(invoice) {
+  if (!invoice?.id) return
+  try {
+    const resp = await fetch(`/api/invoices/${invoice.id}/mark-paid`, {
+      method: 'PUT'
+    })
+    if (!resp.ok) throw new Error(`Request failed (${resp.status})`)
+    invoice.status = 'paid'
+    dataLoaded.value = false
+    await loadAccountingData()
+  } catch (err) {
+    alert(`Failed to mark paid: ${err.message || err}`)
+  }
 }
 
 async function addReceipt() {
@@ -577,7 +615,7 @@ async function addReceipt() {
     // Save each component as a separate receipt
     try {
       for (const component of splitComponents.value) {
-        await fetch('http://127.0.0.1:8001/api/receipts-simple/', {
+        await fetch('/api/receipts-simple/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -593,6 +631,7 @@ async function addReceipt() {
           })
         })
       }
+      dataLoaded.value = false
       await loadAccountingData()
       cancelReceiptForm()
     } catch (err) {
@@ -602,7 +641,7 @@ async function addReceipt() {
   } else {
     // Regular single receipt
     try {
-      await fetch('http://127.0.0.1:8001/api/receipts-simple/', {
+      await fetch('/api/receipts-simple/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -617,6 +656,7 @@ async function addReceipt() {
           is_driver_personal: false
         })
       })
+      dataLoaded.value = false
       await loadAccountingData()
       cancelReceiptForm()
     } catch (err) {
@@ -667,8 +707,7 @@ function cancelReceiptForm() {
 }
 
 function uploadReceipts() {
-  console.log('Upload receipts')
-  // TODO: Implement file upload
+  window.location.href = '/documents'
 }
 
 // Split Receipts Search Methods
@@ -702,30 +741,70 @@ async function searchSplitReceipts() {
 }
 
 function editSplitReceipt(receiptId) {
-  console.log('Edit split receipt:', receiptId)
-  // Could open the receipt in the form for editing
-  alert(`Edit receipt #${receiptId} - feature coming soon`)
+  selectedReceiptForSplit.value = receiptId
+  showSplitDisplay.value = true
+  activeTab.value = 'receipts'
 }
 
 function viewBankingTransaction(transactionId) {
-  console.log('View banking transaction:', transactionId)
-  // Could navigate to banking tab and highlight this transaction
-  alert(`View banking transaction #${transactionId} - feature coming soon`)
+  activeTab.value = 'banking'
+  window.open('/api/reconciliation/banking-receipt-report', '_blank')
 }
 
 function generateGstReport() {
-  console.log('Generate GST report for period:', selectedGstPeriod.value)
-  // TODO: Generate and download GST report
+  const net = Number(gstData.value.collected || 0) - Number(gstData.value.paid || 0)
+  const body = [
+    `GST Report (${selectedGstPeriod.value})`,
+    `Generated: ${new Date().toISOString()}`,
+    `Collected: ${Number(gstData.value.collected || 0).toFixed(2)}`,
+    `Paid: ${Number(gstData.value.paid || 0).toFixed(2)}`,
+    `Net Owed: ${net.toFixed(2)}`,
+  ].join('\n')
+  const blob = new Blob([body], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `gst_report_${selectedGstPeriod.value}_${new Date().toISOString().slice(0,10)}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
-function generateReport(reportType) {
-  console.log('Generate report:', reportType)
-  // TODO: Generate and download report
+async function generateReport(reportType) {
+  let endpoint = ''
+  if (reportType === 'profit-loss' || reportType === 'expense-analysis' || reportType === 'tax-summary') {
+    endpoint = '/api/accounting/reports/profit-loss'
+  } else if (reportType === 'cash-flow') {
+    endpoint = '/api/accounting/reports/cash-flow'
+  } else if (reportType === 'ar-aging') {
+    endpoint = '/api/accounting/reports/ar-aging'
+  } else if (reportType === 'balance-sheet') {
+    endpoint = '/api/reports/pl-summary'
+  }
+
+  if (!endpoint) {
+    alert(`No report mapping for ${reportType}`)
+    return
+  }
+
+  try {
+    const resp = await fetch(endpoint)
+    if (!resp.ok) throw new Error(`Request failed (${resp.status})`)
+    const payload = await resp.json()
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${reportType}_${new Date().toISOString().slice(0,10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    alert(`Failed to generate report: ${err.message || err}`)
+  }
 }
 
 async function loadGLAccounts() {
   try {
-    const response = await fetch('http://127.0.0.1:8001/api/table-management/chart-of-accounts')
+    const response = await fetch('/api/table-management/chart-of-accounts')
     if (response.ok) {
       const accounts = await response.json()
       glAccounts.value = accounts.filter(acc => acc.is_active)

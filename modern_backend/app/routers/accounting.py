@@ -145,7 +145,7 @@ def get_gst_summary(
     # GST Collected (from invoices)
     cur.execute(
         """
-        SELECT COALESCE(SUM(gst), 0)
+        SELECT COALESCE(SUM(COALESCE(gst_amount, 0)), 0)
         FROM invoices
         WHERE invoice_date >= %s AND invoice_date <= %s
     """,

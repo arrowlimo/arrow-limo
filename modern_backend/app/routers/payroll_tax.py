@@ -10,8 +10,7 @@ Handles:
 
 import logging
 import xml.etree.ElementTree as ET
-from datetime import datetime
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -219,7 +218,7 @@ async def get_t4_entry(
 
     except Exception as e:
         logger.error(f"Error retrieving T4: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 @router.post("/t4")
@@ -378,7 +377,7 @@ async def save_t4_entry(entry: T4Entry, conn=Depends(get_connection)):
     except Exception as e:
         conn.rollback()
         logger.error(f"Error saving T4: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 @router.get("/t4/{employee_id}/{tax_year}/pdf")
@@ -438,7 +437,7 @@ async def generate_t4_pdf(
         # Create PDF in memory
         buffer = BytesIO()
         c = canvas.Canvas(buffer, pagesize=letter)
-        width, height = letter
+        _width, height = letter
 
         # Title
         c.setFont("Helvetica-Bold", 16)
@@ -485,7 +484,7 @@ async def generate_t4_pdf(
 
     except Exception as e:
         logger.error(f"Error generating T4 PDF: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 @router.get("/t4/{tax_year}/xml")
@@ -620,7 +619,7 @@ async def export_t4_xml(tax_year: int, conn=Depends(get_connection)):
             content=xml_payload,
             media_type="application/xml",
             headers={
-                "Content-Disposition": f"attachment;"
+                "Content-Disposition": "attachment;"
                 "filename=t4_{tax_year}_submission.xml"
             },
         )
@@ -676,7 +675,7 @@ async def get_payroll_entry(
 
     except Exception as e:
         logger.error(f"Error retrieving payroll: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 @router.post("/payroll")
@@ -766,7 +765,7 @@ async def save_payroll_entry(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error saving payroll: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 # ============================================================================
@@ -824,7 +823,7 @@ async def get_employee_work_history(
 
     except Exception as e:
         logger.error(f"Error getting work history: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 @router.get("/employee-monthly-summary/{employee_id}/{year}")
@@ -896,7 +895,7 @@ async def get_employee_monthly_summary(
 
     except Exception as e:
         logger.error(f"Error getting monthly summary: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 @router.get("/available-periods/{employee_id}/{year}")
@@ -921,7 +920,7 @@ async def get_available_periods(
 
     except Exception as e:
         logger.error(f"Error getting periods: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 @router.post("/auto-match-charters")
@@ -955,7 +954,7 @@ async def auto_match_charters(payload: dict, conn=Depends(get_connection)):
         charters = cur.fetchall()
         matched_count = 0
 
-        for charter_id, charter_date, amount in charters:
+        for charter_id, _charter_date, amount in charters:
             # Create payroll entry linking charter
             cur.execute(
                 """
@@ -976,7 +975,7 @@ async def auto_match_charters(payload: dict, conn=Depends(get_connection)):
     except Exception as e:
         conn.rollback()
         logger.error(f"Error autom matching charters: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 @router.post("/match-charter/{charter_id}/{employee_id}")
@@ -1007,7 +1006,7 @@ async def match_single_charter(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error matching charter: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 @router.post("/month-end-balance")
@@ -1086,7 +1085,7 @@ async def month_end_balance(payload: dict, conn=Depends(get_connection)):
 
     except Exception as e:
         logger.error(f"Error generating month-end balance: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 @router.get("/generate-paystub/{employee_id}/{period}")
@@ -1172,4 +1171,4 @@ async def generate_paystub(
 
     except Exception as e:
         logger.error(f"Error generating pay stub: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904

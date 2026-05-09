@@ -1,3 +1,5 @@
+import contextlib
+
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
@@ -55,10 +57,8 @@ def preview_allocations(transaction_id: int):
             ],
         }
     finally:
-        try:
+        with contextlib.suppress(Exception):
             conn.close()
-        except Exception:
-            pass
 
 
 @router.post("/{transaction_id}/allocate")
@@ -152,7 +152,5 @@ def allocate_banking_to_receipts(transaction_id: int, req: AllocationRequest):
         conn.rollback()
         return {"status": "error", "error": str(e)}
     finally:
-        try:
+        with contextlib.suppress(Exception):
             conn.close()
-        except Exception:
-            pass

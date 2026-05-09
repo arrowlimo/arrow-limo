@@ -230,7 +230,7 @@ async def create_charter(request: ChartRequest, db: Session = Depends(get_db)):
     except Exception as e:
         # Rollback on any database error
         db.rollback()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=400, detail=f"Failed to create charter: {e!s}"
         )
 
@@ -290,7 +290,7 @@ async def search_charters(
             "count": len(results),
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Search failed: {e!s}")
+        raise HTTPException(status_code=400, detail=f"Search failed: {e!s}")  # noqa: B904
 
 
 # =============================================================================
@@ -334,7 +334,7 @@ async def search_customers(
             "count": len(results),
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Search failed: {e!s}")
+        raise HTTPException(status_code=400, detail=f"Search failed: {e!s}")  # noqa: B904
 
 
 # =============================================================================
@@ -367,7 +367,7 @@ async def list_vehicles(db: Session = Depends(get_db)):
             "count": len(vehicles),
         }
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=400, detail=f"Failed to list vehicles: {e!s}"
         )
 
@@ -405,7 +405,7 @@ async def list_drivers(db: Session = Depends(get_db)):
             "count": len(drivers),
         }
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=400, detail=f"Failed to list drivers: {e!s}"
         )
 

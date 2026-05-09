@@ -40,8 +40,8 @@ class RouteItem(BaseModel):
         try:
             time.fromisoformat(v)
             return v
-        except ValueError:
-            raise ValueError("time24 must be in HH:MM format")
+        except ValueError as e:
+            raise ValueError("time24 must be in HH:MM format") from e
 
 
 class ChartRequest(BaseModel):
@@ -142,8 +142,8 @@ class ChartRequest(BaseModel):
         try:
             time.fromisoformat(v)
             return v
-        except ValueError:
-            raise ValueError("pickup_time must be in HH:MM format")
+        except ValueError as e:
+            raise ValueError("pickup_time must be in HH:MM format") from e
 
     @validator("status")
     def validate_status(cls, v):

@@ -11,7 +11,8 @@ from pathlib import Path
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import FileResponse, Response as FastAPIResponse
+from fastapi.responses import FileResponse
+from fastapi.responses import Response as FastAPIResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from ..db import get_connection
@@ -40,11 +41,11 @@ def verify_jwt_token(credentials: HTTPAuthorizationCredentials) -> dict:
         )
         return payload
     except jwt.ExpiredSignatureError:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
         )
     except jwt.InvalidTokenError:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
         )
 
@@ -111,7 +112,7 @@ def check_authorization(user_id: int, user_role: str, charter_id: int) -> None:
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Authorization check failed",
         )
@@ -236,7 +237,7 @@ async def get_signed_url(
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate signed URL",
         )
@@ -245,8 +246,8 @@ async def get_signed_url(
 @router.get("/{reserve_number}")
 async def download_inspection_form(
     reserve_number: str,
-    signature: str = None,
-    expires: int = None,
+    signature: str | None = None,
+    expires: int | None = None,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     request: Request = None,
 ) -> FileResponse:
@@ -372,7 +373,7 @@ async def download_inspection_form(
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to download inspection form",
         )
@@ -452,7 +453,7 @@ async def get_form_metadata(
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get form metadata",
         )

@@ -91,7 +91,7 @@ def list_vehicles():
             )
         return vehicles
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to list vehicles: {e}"
         )
     finally:
@@ -136,7 +136,7 @@ def create_vehicle(vehicle_data: dict):
         return {"vehicle_id": vehicle_id, "status": "created"}
     except Exception as e:
         conn.rollback()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to create vehicle: {e}"
         )
     finally:

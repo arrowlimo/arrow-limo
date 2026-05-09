@@ -1,7 +1,14 @@
 import psycopg
 import os
+import sys
 from datetime import datetime
+from pathlib import Path
+
+from dotenv import load_dotenv
 from tabulate import tabulate
+
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env", override=False)
 
 # Tables to check
 TABLES = [
@@ -38,10 +45,12 @@ def test_local_db():
     
     try:
         conn = psycopg.connect(
-            host="localhost",
-            port=5432,
-            database="almsdata",
-            user="postgres"
+            host=os.environ.get("LOCAL_DB_HOST", "localhost"),
+            port=int(os.environ.get("LOCAL_DB_PORT", "5432")),
+            database=os.environ.get("LOCAL_DB_NAME", "almsdata"),
+            user=os.environ.get("LOCAL_DB_USER", "postgres"),
+            password=os.environ.get("LOCAL_DB_PASSWORD", ""),
+            sslmode=os.environ.get("LOCAL_DB_SSLMODE", "prefer") or "prefer",
         )
         print("✓ Connection successful to LOCAL database")
         
@@ -88,7 +97,7 @@ def test_neon_db(neon_url):
         return None
     
     try:
-        print(f"Attempting connection to Neon...")
+        print("Attempting connection to Neon...")
         conn = psycopg.connect(neon_url)
         print("✓ Connection successful to NEON database")
         
@@ -96,6 +105,29 @@ def test_neon_db(neon_url):
         results = get_table_counts(conn, "NEON")
         conn.close()
         
+        return results
+    except Exception as e:
+        print(f"✗ Connection failed: {e}")
+        return None
+
+
+def test_neon_from_env():
+    """Test Neon database connection from explicit env vars."""
+    print("\n" + "=" * 80)
+    print("TESTING NEON DATABASE (env vars)")
+    print("=" * 80)
+    try:
+        conn = psycopg.connect(
+            host=os.environ.get("NEON_DB_HOST", os.environ.get("DB_HOST", "")),
+            port=int(os.environ.get("NEON_DB_PORT", os.environ.get("DB_PORT", "5432"))),
+            database=os.environ.get("NEON_DB_NAME", os.environ.get("DB_NAME", "neondb")),
+            user=os.environ.get("NEON_DB_USER", os.environ.get("DB_USER", "")),
+            password=os.environ.get("NEON_DB_PASSWORD", os.environ.get("DB_PASSWORD", "")),
+            sslmode=os.environ.get("NEON_DB_SSLMODE", os.environ.get("DB_SSLMODE", "require")) or "require",
+        )
+        print("✓ Connection successful to NEON database")
+        results = get_table_counts(conn, "NEON")
+        conn.close()
         return results
     except Exception as e:
         print(f"✗ Connection failed: {e}")
@@ -158,19 +190,19 @@ def compare_results(local_results, neon_results):
     print(f"\nVerification completed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 def main():
-    print(f"\nArrow Limo System - Database Verification Pass")
+    print("\nArrow Limo System - Database Verification Pass")
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
     
-    # Step 1: Test LOCAL
-    local_results = test_local_db()
-    
-    # Step 2: Check for Neon
-    neon_url = check_neon_env()
-    
-    # Step 3: Test NEON if available
-    neon_results = None
-    if neon_url:
-        neon_results = test_neon_db(neon_url)
+    run_local = "--local" in sys.argv
+
+    # Default: Neon primary. Use --local for emergency verification only.
+    neon_results = test_neon_from_env()
+    if not neon_results:
+        neon_url = check_neon_env()
+        if neon_url:
+            neon_results = test_neon_db(neon_url)
+
+    local_results = test_local_db() if run_local else None
     
     # Step 4: Compare and display results
     compare_results(local_results, neon_results)
