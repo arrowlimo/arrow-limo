@@ -1,6 +1,0 @@
-8362 Global/Amex vs 1615 Presence Check
-============================================================
-Source rows checked (8362 Global/Amex): 40
-Likely already in 1615 (<=3 days, same side+amount): 0
-Ambiguous multiple 1615 matches: 0
-No 1615 match within 3 days: 40

@@ -1,6 +1,0 @@
-processing_priority,classification_bucket,gl_target_hint,recommended_step,row_count,total_amount
-1,employee_reimbursement_likely,liability_reimbursement_queue,post reimbursement or owner-draw mapping; no bank link expected,245,25794.08
-2,fuel_cash_likely,expense_fuel_cash_queue,batch post as fuel cash expenses; verify GST coding,430,19317.80
-3,vehicle_maintenance_cash_likely,expense_vehicle_maintenance_cash_queue,post to vehicle maintenance cash expenses,23,3385.34
-4,liquor_cash_likely,policy_review_liquor_cash_queue,review policy/tax treatment before posting,310,21790.74
-5,petty_cash_business_likely,expense_petty_cash_queue,manual classify and post,559,56206.13

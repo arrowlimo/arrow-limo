@@ -1,6 +1,7 @@
 param(
     [string]$InstallRoot = "C:\Program Files\ArrowLimoOffsite",
-    [string]$PayloadRoot = (Join-Path $PSScriptRoot "payload")
+    [string]$PayloadRoot = (Join-Path $PSScriptRoot "payload"),
+    [switch]$FullReplace
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,7 +36,7 @@ $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $backupDir = Join-Path $backupRoot $timestamp
 New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
 
-foreach ($name in @("desktop_app", "modern_backend", "frontend", "prerequisites", "launcher.py", "START_ARROW_LIMO_OFFSITE.bat", "Bootstrap-Prereqs.ps1", "Configure-OffsiteInstall.ps1")) {
+foreach ($name in @("desktop_app", "modern_backend", "frontend", "prerequisites", "launcher.py", "START_ARROW_LIMO_OFFSITE.bat", "Bootstrap-Prereqs.ps1", "Configure-OffsiteInstall.ps1", "Install-OffsiteFromZip.ps1", "Install-OffsiteSelfHeal.ps1", "support-apps.json")) {
     $installedPath = Join-Path $InstallRoot $name
     if (Test-Path $installedPath) {
         if ((Get-Item $installedPath).PSIsContainer) {
@@ -49,11 +50,14 @@ foreach ($name in @("desktop_app", "modern_backend", "frontend", "prerequisites"
 foreach ($name in @("desktop_app", "modern_backend", "frontend", "prerequisites")) {
     $source = Join-Path $PayloadRoot $name
     if (Test-Path $source) {
+        if ($FullReplace -and (Test-Path (Join-Path $InstallRoot $name))) {
+            Remove-Tree (Join-Path $InstallRoot $name)
+        }
         Copy-Tree $source (Join-Path $InstallRoot $name)
     }
 }
 
-foreach ($name in @("launcher.py", "START_ARROW_LIMO_OFFSITE.bat", "Bootstrap-Prereqs.ps1", "Configure-OffsiteInstall.ps1")) {
+foreach ($name in @("launcher.py", "START_ARROW_LIMO_OFFSITE.bat", "Bootstrap-Prereqs.ps1", "Configure-OffsiteInstall.ps1", "Install-OffsiteFromZip.ps1", "Install-OffsiteSelfHeal.ps1", "support-apps.json")) {
     $source = Join-Path $PayloadRoot $name
     if (Test-Path $source) {
         Copy-Item $source (Join-Path $InstallRoot $name) -Force

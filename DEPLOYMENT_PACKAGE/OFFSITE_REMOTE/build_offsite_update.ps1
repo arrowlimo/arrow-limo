@@ -36,6 +36,9 @@ Copy-Item (Join-Path $runtimeDir "launcher.py") (Join-Path $payloadDir "launcher
 Copy-Item (Join-Path $runtimeDir "START_ARROW_LIMO_OFFSITE.bat") (Join-Path $payloadDir "START_ARROW_LIMO_OFFSITE.bat") -Force
 Copy-Item (Join-Path $runtimeDir "Bootstrap-Prereqs.ps1") (Join-Path $payloadDir "Bootstrap-Prereqs.ps1") -Force
 Copy-Item (Join-Path $runtimeDir "Configure-OffsiteInstall.ps1") (Join-Path $payloadDir "Configure-OffsiteInstall.ps1") -Force
+Copy-Item (Join-Path $runtimeDir "Install-OffsiteFromZip.ps1") (Join-Path $payloadDir "Install-OffsiteFromZip.ps1") -Force
+Copy-Item (Join-Path $runtimeDir "Install-OffsiteSelfHeal.ps1") (Join-Path $payloadDir "Install-OffsiteSelfHeal.ps1") -Force
+Copy-Item (Join-Path $runtimeDir "support-apps.json") (Join-Path $payloadDir "support-apps.json") -Force
 
 if ($includeRuntimeEffective) {
     Copy-Tree (Join-Path $repoRoot ".venv") (Join-Path $payloadDir ".venv")

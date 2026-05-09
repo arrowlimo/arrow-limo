@@ -1,8 +1,0 @@
-Unmatched GL->Bank Verification (with receipt evidence)
-==========================================================================================
-Rows verified: 7
-- NO_BANK_EVIDENCE: 7
-
-Detailed rows
-------------------------------------------------------------------------------------------
-2017-01-16 | Fibrenew | CHQ:cash | 1575.00 | NO_BANK_EVIDENCE | bank:   | receipt:  

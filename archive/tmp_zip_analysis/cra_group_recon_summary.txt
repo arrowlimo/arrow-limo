@@ -1,8 +1,0 @@
-total_groups: 15946
-groups_with_usable_date_amount: 15873
-matched_L1: 621
-matched_L2: 10152
-matched_L3: 5100
-unmatched_groups: 73
-ADD: 0
-REVIEW_MAPPING: 73
