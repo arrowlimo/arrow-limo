@@ -1,6 +1,8 @@
 from datetime import date, timedelta
-import itertools
-import psycopg2
+
+import os
+
+import os
 
 TARGETS = [
     (date(2012, 4, 2), 4067.00),
@@ -18,7 +20,7 @@ TARGETS = [
     (date(2012, 4, 27), 3330.88),
 ]
 
-conn = psycopg2.connect(host="localhost", port=5432, dbname="almsdata", user="postgres", password="ArrowLimousine")
+conn = psycopg2.connect(host=os.getenv('DB_HOST', os.getenv('NEON_DB_HOST', 'ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech')), port=5432, dbname=os.getenv('DB_NAME', os.getenv('NEON_DB_NAME', 'neondb')), user=os.getenv('DB_USER', os.getenv('NEON_DB_USER', 'neondb_owner')), password=os.getenv('DB_PASSWORD', os.getenv('NEON_DB_PASSWORD', '')))
 cur = conn.cursor()
 
 print("date,target,match_type,matched_sum,components")

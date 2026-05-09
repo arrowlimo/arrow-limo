@@ -59,10 +59,10 @@ def _is_internal_transfer_credit_mismatch(row):
 
 
 conn = psycopg2.connect(
-    host="localhost",
+    host=os.getenv('DB_HOST', os.getenv('NEON_DB_HOST', 'ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech')),
     port=5432,
-    dbname="almsdata",
-    user="postgres",
+    dbname=os.getenv('DB_NAME', os.getenv('NEON_DB_NAME', 'neondb')),
+    user=os.getenv('DB_USER', os.getenv('NEON_DB_USER', 'neondb_owner')),
     password=DB_PASSWORD,
 )
 cur = conn.cursor(cursor_factory=RealDictCursor)

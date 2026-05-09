@@ -364,7 +364,7 @@ def update_charter_route(
     if not route_dict:
         raise HTTPException(status_code=400, detail="no_fields_to_update")
 
-    sets = ", ".join([f"{k} = %s" for k in route_dict.keys()])
+    sets = ", ".join([f"{k} = %s" for k in route_dict])
     params: list[Any] = [*list(route_dict.values()), route_id, charter_id]
 
     with _db_cursor() as cur:

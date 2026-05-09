@@ -361,7 +361,7 @@ export default {
       }
 
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/charters/search?q=${encodeURIComponent(form.value.reserve_number)}&limit=1`);
+        const response = await fetch(`/api/charters/search?q=${encodeURIComponent(form.value.reserve_number)}&limit=1`);
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
 
@@ -383,7 +383,7 @@ export default {
     const recordPayment = async () => {
       loading.value = true;
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/received-payments/', {
+        const response = await fetch('/api/received-payments/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(form.value)
@@ -409,7 +409,7 @@ export default {
     const loadRecentPayments = async () => {
       loading.value = true;
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/received-payments/search?limit=100');
+        const response = await fetch('/api/received-payments/search?limit=100');
         if (!response.ok) throw new Error('Failed to fetch');
         payments.value = await response.json();
 
@@ -443,9 +443,43 @@ export default {
       gstAmount.value = 0;
     };
 
-    const editPayment = (payment) => {
-      // TODO: Implement edit functionality
-      alert('Edit functionality coming soon');
+    const editPayment = async (payment) => {
+      const amountRaw = prompt('Amount', String(payment.amount ?? ''));
+      if (amountRaw === null) return;
+      const paymentDate = prompt('Payment Date (YYYY-MM-DD)', String(payment.payment_date ?? '').slice(0, 10));
+      if (paymentDate === null) return;
+      const paymentMethod = prompt('Payment Method', String(payment.payment_method ?? 'cheque'));
+      if (paymentMethod === null) return;
+      const chequeNumber = prompt('Cheque Number (optional)', String(payment.cheque_number ?? ''));
+      if (chequeNumber === null) return;
+      const notes = prompt('Notes (optional)', String(payment.notes ?? ''));
+      if (notes === null) return;
+
+      try {
+        const amount = Number.parseFloat(amountRaw);
+        if (!Number.isFinite(amount) || amount <= 0) {
+          alert('Amount must be a positive number.');
+          return;
+        }
+        const response = await fetch(`/api/received-payments/${payment.payment_id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount,
+            payment_date: paymentDate,
+            payment_method: paymentMethod,
+            cheque_number: chequeNumber || null,
+            notes: notes || null,
+          })
+        });
+        if (!response.ok) throw new Error('Failed to fetch');
+        successMessage.value = 'Payment updated';
+        setTimeout(() => successMessage.value = '', 3000);
+        await loadRecentPayments();
+      } catch (error) {
+        console.error('Failed to edit payment:', error);
+        alert('Failed to update payment.');
+      }
     };
 
     const deletePayment = async (payment) => {
@@ -454,7 +488,7 @@ export default {
       }
 
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/received-payments/${payment.payment_id}`, {
+        const response = await fetch(`/api/received-payments/${payment.payment_id}`, {
           method: 'DELETE'
         });
         if (!response.ok) throw new Error('Failed to fetch');

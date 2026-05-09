@@ -1,3 +1,5 @@
+import contextlib
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 
@@ -149,7 +151,5 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
         conn.rollback()
         return {"status": "error", "error": str(e)}
     finally:
-        try:
+        with contextlib.suppress(Exception):
             conn.close()
-        except Exception:
-            pass

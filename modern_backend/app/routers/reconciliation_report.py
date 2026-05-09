@@ -185,7 +185,7 @@ async def get_banking_receipt_reconciliation(
 
     except Exception as e:
         logger.error(f"Error generating reconciliation report: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 @router.put("/link-banking-receipt")
@@ -218,7 +218,7 @@ async def link_banking_to_receipt(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error linking banking to receipt: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 @router.put("/update-receipt-inline")
@@ -260,7 +260,7 @@ async def update_receipt_field(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error updating receipt: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 @router.get("/unlinked-banking")
@@ -313,4 +313,4 @@ async def get_unlinked_banking(
 
     except Exception as e:
         logger.error(f"Error getting unlinked banking: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904

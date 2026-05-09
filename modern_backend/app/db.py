@@ -98,8 +98,8 @@ def get_connection():
                         cur.execute("SET search_path TO public")
                     conn.commit()
                     return conn
-                except Exception:
-                    raise e
+                except Exception as err:
+                    raise e from err
             continue
 
     raise psycopg2.OperationalError(

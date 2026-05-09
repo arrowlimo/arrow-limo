@@ -1,6 +1,36 @@
-import psycopg2
+import os
+from pathlib import Path
 
-conn = psycopg2.connect(host="localhost", port=5432, dbname="almsdata", user="postgres", password="ArrowLimousine")
+import psycopg2
+from dotenv import load_dotenv
+
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env", override=False)
+
+
+def _connect():
+    target = os.getenv("DB_TARGET", os.getenv("ALMS_DEFAULT_DB_TARGET", "neon"))
+    if str(target).lower().strip() == "local":
+        return psycopg2.connect(
+            host=os.getenv("LOCAL_DB_HOST", "localhost"),
+            port=int(os.getenv("LOCAL_DB_PORT", "5432")),
+            dbname=os.getenv("LOCAL_DB_NAME", "almsdata"),
+            user=os.getenv("LOCAL_DB_USER", "postgres"),
+            password=os.getenv("LOCAL_DB_PASSWORD", ""),
+            sslmode=os.getenv("LOCAL_DB_SSLMODE", "prefer") or "prefer",
+        )
+
+    return psycopg2.connect(
+        host=os.getenv("NEON_DB_HOST", os.getenv("DB_HOST", "")),
+        port=int(os.getenv("NEON_DB_PORT", os.getenv("DB_PORT", "5432"))),
+        dbname=os.getenv("NEON_DB_NAME", os.getenv("DB_NAME", "neondb")),
+        user=os.getenv("NEON_DB_USER", os.getenv("DB_USER", "")),
+        password=os.getenv("NEON_DB_PASSWORD", os.getenv("DB_PASSWORD", "")),
+        sslmode=os.getenv("NEON_DB_SSLMODE", os.getenv("DB_SSLMODE", "require")) or "require",
+    )
+
+
+conn = _connect()
 conn.set_session(readonly=True)
 cur = conn.cursor()
 

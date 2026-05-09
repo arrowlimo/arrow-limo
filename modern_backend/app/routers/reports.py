@@ -32,8 +32,10 @@ def export(
             return None
         try:
             return datetime.fromisoformat(s)
-        except Exception:
-            raise HTTPException(status_code=400, detail="invalid_date_format")
+        except Exception as exc:
+            raise HTTPException(
+                status_code=400, detail="invalid_date_format"
+            ) from exc
 
     end = parse_date(end_date) or datetime.now()
     start = parse_date(start_date) or (end - timedelta(days=365))
@@ -85,8 +87,10 @@ def _parse_iso_date(
         return fallback
     try:
         return datetime.fromisoformat(value)
-    except Exception:
-        raise HTTPException(status_code=400, detail="invalid_date_format")
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400, detail="invalid_date_format"
+        ) from exc
 
 
 def _has_column(conn, table: str, column: str) -> bool:
@@ -235,10 +239,7 @@ def _build_legacy_ops_select(conn) -> tuple[str, str | None]:
 
 
 def _to_csv_response(rows: list[dict[str, Any]], filename: str) -> Response:
-    if not rows:
-        headers = []
-    else:
-        headers = list(rows[0].keys())
+    headers = [] if not rows else list(rows[0].keys())
 
     buffer = io.StringIO()
     writer = csv.writer(buffer)
@@ -323,7 +324,7 @@ def legacy_ops_report(
 
         items: list[dict[str, Any]] = []
         for row in rows:
-            record = dict(zip(col_names, row))
+            record = dict(zip(col_names, row, strict=False))
             if hasattr(record.get("order_date"), "isoformat"):
                 record["order_date"] = record["order_date"].isoformat()
             record["amount"] = float(record.get("amount") or 0)
@@ -505,7 +506,7 @@ def long_trip_report(
 
         items: list[dict[str, Any]] = []
         for row in rows:
-            rec = dict(zip(col_names, row))
+            rec = dict(zip(col_names, row, strict=False))
             if hasattr(rec.get("order_date"), "isoformat"):
                 rec["order_date"] = rec["order_date"].isoformat()
             for f in (
@@ -618,7 +619,7 @@ def invoiced_charges_report(
 
         items: list[dict[str, Any]] = []
         for row in rows:
-            rec = dict(zip(col_names, row))
+            rec = dict(zip(col_names, row, strict=False))
             if hasattr(rec.get("charter_date"), "isoformat"):
                 rec["charter_date"] = rec["charter_date"].isoformat()
             for f in ("rate", "amount", "gst_amount"):
@@ -732,7 +733,7 @@ def driver_pay_report(
 
         items: list[dict[str, Any]] = []
         for row in rows:
-            rec = dict(zip(col_names, row))
+            rec = dict(zip(col_names, row, strict=False))
             if hasattr(rec.get("order_date"), "isoformat"):
                 rec["order_date"] = rec["order_date"].isoformat()
             for f in (
@@ -832,7 +833,7 @@ def fleet_report(
         rows = cur.fetchall()
         col_names = [d[0] for d in cur.description]
 
-    items: list[dict[str, Any]] = [dict(zip(col_names, row)) for row in rows]
+    items: list[dict[str, Any]] = [dict(zip(col_names, row, strict=False)) for row in rows]
     totals = {"count": len(items)}
 
     grouped: list[dict[str, Any]] = []
@@ -943,7 +944,7 @@ def client_activity_report(
 
         items: list[dict[str, Any]] = []
         for row in rows:
-            rec = dict(zip(col_names, row))
+            rec = dict(zip(col_names, row, strict=False))
             if hasattr(rec.get("order_date"), "isoformat"):
                 rec["order_date"] = rec["order_date"].isoformat()
             for f in ("amount", "paid_amount", "balance"):
@@ -1029,7 +1030,7 @@ def payment_list_report(
 
     items: list[dict[str, Any]] = []
     for row in rows:
-        rec = dict(zip(col_names, row))
+        rec = dict(zip(col_names, row, strict=False))
         if hasattr(rec.get("payment_date"), "isoformat"):
             rec["payment_date"] = rec["payment_date"].isoformat()
         rec["amount"] = float(rec.get("amount") or 0)
@@ -1139,7 +1140,7 @@ def aged_receivables_report(
 
         items: list[dict[str, Any]] = []
         for row in rows:
-            rec = dict(zip(col_names, row))
+            rec = dict(zip(col_names, row, strict=False))
             if hasattr(rec.get("order_date"), "isoformat"):
                 rec["order_date"] = rec["order_date"].isoformat()
             for f in ("amount", "paid_amount", "balance"):
@@ -1231,7 +1232,7 @@ def income_summary_report(
 
     items: list[dict[str, Any]] = []
     for row in rows:
-        rec = dict(zip(col_names, row))
+        rec = dict(zip(col_names, row, strict=False))
         if hasattr(rec.get("transaction_date"), "isoformat"):
             rec["transaction_date"] = rec["transaction_date"].isoformat()
         for f in ("gross_amount", "gst_collected", "net_amount"):
@@ -1360,7 +1361,7 @@ def short_trip_report(
 
         items: list[dict[str, Any]] = []
         for row in rows:
-            rec = dict(zip(col_names, row))
+            rec = dict(zip(col_names, row, strict=False))
             if hasattr(rec.get("order_date"), "isoformat"):
                 rec["order_date"] = rec["order_date"].isoformat()
             for f in ("amount", "paid_amount", "balance"):
@@ -1509,7 +1510,7 @@ def journals(
             ORDER BY date, id
             LIMIT %s OFFSET %s
             """,
-            params + [limit, offset],
+            [*params, limit, offset],
         )
         rows = cur.fetchall()
 
@@ -2938,7 +2939,7 @@ def cra_audit_export(
                 f" FROM general_ledger{date_filter}",
                 date_params,
             )
-            min_date, max_date, total_txns = cur.fetchone()
+            _min_date, _max_date, _total_txns = cur.fetchone()
 
             readme = """CRA AUDIT EXPORT FROM ALMSDATA DATABASE
 {'=' * 70}

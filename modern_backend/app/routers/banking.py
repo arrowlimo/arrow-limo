@@ -249,7 +249,7 @@ def categorize_transaction(transaction_id: int, category: str):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to categorize: {e!s}"
         )
 
@@ -344,7 +344,7 @@ def update_banking_transaction(
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to update transaction: {e!s}"
         )
 

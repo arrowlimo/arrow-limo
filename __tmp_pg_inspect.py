@@ -1,8 +1,31 @@
+import os
+from pathlib import Path
+
 import psycopg2
+from dotenv import load_dotenv
 from psycopg2 import sql
 
-params = dict(dbname='almsdata', user='postgres', password='ArrowLimousine')
-hosts = ['192.168.1.176', 'localhost']
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env", override=False)
+
+target = os.getenv("DB_TARGET", os.getenv("ALMS_DEFAULT_DB_TARGET", "neon"))
+if str(target).lower().strip() == "local":
+    params = dict(
+        dbname=os.getenv("LOCAL_DB_NAME", "almsdata"),
+        user=os.getenv("LOCAL_DB_USER", "postgres"),
+        password=os.getenv("LOCAL_DB_PASSWORD", ""),
+        sslmode=os.getenv("LOCAL_DB_SSLMODE", "prefer") or "prefer",
+    )
+    hosts = [os.getenv("LOCAL_DB_HOST", "localhost")]
+else:
+    params = dict(
+        dbname=os.getenv("NEON_DB_NAME", os.getenv("DB_NAME", "neondb")),
+        user=os.getenv("NEON_DB_USER", os.getenv("DB_USER", "")),
+        password=os.getenv("NEON_DB_PASSWORD", os.getenv("DB_PASSWORD", "")),
+        sslmode=os.getenv("NEON_DB_SSLMODE", os.getenv("DB_SSLMODE", "require")) or "require",
+    )
+    hosts = [os.getenv("NEON_DB_HOST", os.getenv("DB_HOST", ""))]
+
 conn = None
 used_host = None
 for host in hosts:

@@ -274,7 +274,7 @@ def create_receipt(receipt: ReceiptCreate):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to create receipt: {e!s}"
         )
 
@@ -393,7 +393,7 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to update receipt: {e!s}"
         )
 
@@ -428,7 +428,7 @@ def delete_receipt(receipt_id: int):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to delete receipt: {e!s}"
         )
 

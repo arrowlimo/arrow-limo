@@ -146,7 +146,7 @@ def save_chart_of_accounts(data: list[ChartOfAccountRow]):
         return {"status": "success", "rows_saved": len(data)}
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 # ========== RECEIPT CATEGORIES ==========
@@ -223,7 +223,7 @@ def save_receipt_categories(data: list[ReceiptCategoryRow]):
         return {"status": "success", "rows_saved": len(data)}
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 # ========== CHARTER TYPES ==========
@@ -286,7 +286,7 @@ def save_charter_types(data: list[CharterTypeRow]):
         return {"status": "success", "rows_saved": len(data)}
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 # ========== VEHICLE PRICING ==========
@@ -365,7 +365,7 @@ def save_vehicle_pricing(data: list[VehiclePricingRow]):
         return {"status": "success", "rows_saved": len(data)}
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
 # ========== BEVERAGES ==========
@@ -449,4 +449,4 @@ def save_beverages(data: list[BeverageRow]):
         return {"status": "success", "rows_saved": len(data)}
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904

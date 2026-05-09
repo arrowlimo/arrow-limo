@@ -77,7 +77,7 @@ def list_employees():
             )
         return employees
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to list employees: {e}"
         )
     finally:
@@ -121,7 +121,7 @@ def list_drivers():
             )
         return drivers
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to list drivers: {e}"
         )
     finally:
@@ -168,7 +168,7 @@ def get_employee(employee_id: int):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to get employee: {e}"
         )
     finally:
@@ -281,7 +281,7 @@ def create_employee(employee_data: dict):
         return {"employee_id": employee_id, "status": status}
     except Exception as e:
         conn.rollback()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to create employee: {e}"
         )
     finally:

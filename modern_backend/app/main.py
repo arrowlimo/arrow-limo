@@ -2,10 +2,7 @@ import os
 import time
 import uuid
 
-# Load environment variables from .env file FIRST
 from dotenv import load_dotenv
-
-load_dotenv()
 
 # Force rebuild: 2026-01-30 14:35:00 UTC - Login endpoint deployment
 from fastapi import Depends, FastAPI, Request
@@ -33,8 +30,8 @@ from .routers import bookings as bookings_router
 from .routers import charges as charges_router
 from .routers import charter_sheet as charter_sheet_router
 from .routers import charters as charters_router
-from .routers import customers as customers_router
 from .routers import continuous_employment as continuous_employment_router
+from .routers import customers as customers_router
 from .routers import driver_auth as driver_auth_router
 from .routers import employees as employees_router
 from .routers import file_storage as file_storage_router
@@ -42,10 +39,10 @@ from .routers import inspection_forms as inspection_forms_router
 from .routers import invoices as invoices_router
 from .routers import metrics as metrics_router
 from .routers import payments as payments_router
+from .routers import payroll_compliance as payroll_compliance_router
 from .routers import payroll_tax as payroll_tax_router
 from .routers import pdf as pdf_router
 from .routers import pricing as pricing_router
-from .routers import payroll_compliance as payroll_compliance_router
 from .routers import receipts as receipts_router
 from .routers import receipts_linked_display as receipts_linked_display_router
 from .routers import receipts_simple as receipts_simple_router
@@ -56,7 +53,12 @@ from .routers import t2_returns as t2_returns_router
 from .routers import table_management as table_management_router
 from .routers import vehicles as vehicles_router
 from .routers import vendor_standardization as vendor_standardization_router
+from .routes import cheque_books as cheque_books_router
+from .routes import received_payments as received_payments_router
 from .settings import get_settings
+
+# Load environment variables from .env before settings resolution.
+load_dotenv()
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name)
@@ -66,9 +68,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")
 if SENTRY_DSN:
     try:
         import sentry_sdk  # type: ignore
-        from sentry_sdk.integrations.fastapi import FastApiIntegration  #
-
-        type: ignore
+        from sentry_sdk.integrations.fastapi import FastApiIntegration  # type: ignore
 
         sentry_sdk.init(
             dsn=SENTRY_DSN,
@@ -88,9 +88,7 @@ if OTEL_EXPORTER_OTLP_ENDPOINT:
         )
         from opentelemetry.sdk.resources import Resource  # type: ignore
         from opentelemetry.sdk.trace import TracerProvider  # type: ignore
-        from opentelemetry.sdk.trace.export import BatchSpanProcessor  # type: 
-
-        ignore
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor  # type: ignore
 
         resource = Resource.create({"service.name": settings.app_name})
         provider = TracerProvider(resource=resource)
@@ -269,15 +267,9 @@ app.include_router(
     bank_audit_reconciliation_router.router, dependencies=[finance_roles]
 )  # Bank account reconciliation for auditors
 
-# Import and include cheque books router
-from .routes import cheque_books as cheque_books_router
-
 app.include_router(
     cheque_books_router.router, dependencies=[finance_roles]
 )  # Cheque book management
-
-# Import and include received payments router
-from .routes import received_payments as received_payments_router
 
 app.include_router(
     received_payments_router.router, dependencies=[finance_roles]

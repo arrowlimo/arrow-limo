@@ -50,7 +50,7 @@ def verify_user_credentials(username: str, password: str) -> dict:
         user = cur.fetchone()
 
         if user:
-            user_id, uname, email, role, pwd_hash, perms, status = user
+            user_id, uname, _email, role, pwd_hash, perms, status = user
 
             # Check status
             if status and status.lower() != "active":

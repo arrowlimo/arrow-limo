@@ -3,13 +3,20 @@ PDF Generation Endpoints
 """
 
 import json
-from typing import Any
-from typing import Annotated
+from datetime import datetime
+from io import BytesIO
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, HTTPException, Path
+from fastapi import APIRouter, Body, HTTPException, Path, Query
 from fastapi.responses import StreamingResponse
+from pypdf import PdfReader, PdfWriter
 
 from ..db import cursor
+from ..services.pdf_generator import (
+    generate_charter_pdf,
+    generate_confirmation_letter_pdf,
+    generate_t4_pdf,
+)
 from ..services.pdf_layout_settings import (
     apply_pdf_layout_preset,
     default_pdf_layout_settings,
@@ -17,11 +24,6 @@ from ..services.pdf_layout_settings import (
     pdf_layout_settings_schema,
     reset_pdf_layout_settings,
     save_pdf_layout_settings,
-)
-from ..services.pdf_generator import (
-    generate_charter_pdf,
-    generate_confirmation_letter_pdf,
-    generate_t4_pdf,
 )
 
 router = APIRouter(prefix="/api", tags=["pdf"])
@@ -63,7 +65,7 @@ def update_pdf_layout_settings(
     try:
         return save_pdf_layout_settings(settings_patch)
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to save layout settings: {e!s}"
         )
 
@@ -79,7 +81,7 @@ def reset_pdf_settings_to_default():
     try:
         return reset_pdf_layout_settings()
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to reset layout settings: {e!s}"
         )
 
@@ -98,9 +100,9 @@ def apply_pdf_layout_settings_preset(
     try:
         return apply_pdf_layout_preset(preset_name)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))  # noqa: B904
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to apply preset: {e!s}"
         )
 
@@ -179,7 +181,7 @@ def _resolve_client_details(cur, charter_data: dict) -> None:
         return
 
     columns = [desc[0] for desc in cur.description]
-    for key, value in dict(zip(columns, row)).items():
+    for key, value in dict(zip(columns, row, strict=False)).items():
         if not charter_data.get(key):
             charter_data[key] = value
 
@@ -207,7 +209,7 @@ def _resolve_vehicle_details(cur, charter_data: dict) -> None:
         return
 
     columns = [desc[0] for desc in cur.description]
-    vehicle = dict(zip(columns, row))
+    vehicle = dict(zip(columns, row, strict=False))
     charter_data.setdefault("vehicle_number", vehicle.get("vehicle_number"))
     charter_data.setdefault("license_plate", vehicle.get("license_plate"))
     charter_data.setdefault("passenger_capacity", vehicle.get("passenger_capacity"))
@@ -247,7 +249,7 @@ def _resolve_driver_details(cur, charter_data: dict) -> None:
         return
 
     columns = [desc[0] for desc in cur.description]
-    driver = dict(zip(columns, row))
+    driver = dict(zip(columns, row, strict=False))
     if not charter_data.get("driver_name"):
         charter_data["driver_name"] = driver.get("full_name")
     if not charter_data.get("driver"):
@@ -277,7 +279,7 @@ def _load_beverage_items(cur, charter_data: dict) -> list[dict[str, Any]]:
             (charter_id,),
         )
         beverage_columns = [desc[0] for desc in cur.description]
-        beverages = [dict(zip(beverage_columns, row)) for row in cur.fetchall()]
+        beverages = [dict(zip(beverage_columns, row, strict=False)) for row in cur.fetchall()]
         if beverages:
             return beverages
 
@@ -311,7 +313,7 @@ def _load_beverage_items(cur, charter_data: dict) -> list[dict[str, Any]]:
         tuple(order_ids),
     )
     beverage_columns = [desc[0] for desc in cur.description]
-    return [dict(zip(beverage_columns, row)) for row in cur.fetchall()]
+    return [dict(zip(beverage_columns, row, strict=False)) for row in cur.fetchall()]
 
 
 def _build_payload_routes(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -487,6 +489,16 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
             if _column_exists(cur, "charters", "exchange_of_services_details")
             else "NULL::jsonb AS exchange_of_services_details"
         )
+        payment_method_select = (
+            "c.payment_method"
+            if _column_exists(cur, "charters", "payment_method")
+            else "NULL::text AS payment_method"
+        )
+        payment_deleted_filter = (
+            "AND deleted_at IS NULL"
+            if _column_exists(cur, "payments", "deleted_at")
+            else ""
+        )
 
         cur.execute(
             f"""
@@ -526,7 +538,7 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
                 c.booking_notes,
                 c.payment_status,
                 c.amount_paid,
-                c.payment_method,
+                {payment_method_select},
                 c.driver_hours_worked,
                 c.driver_hourly_rate,
                 c.workshift_start,
@@ -592,7 +604,7 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
             raise HTTPException(status_code=404, detail="Charter not found")
 
         columns = [desc[0] for desc in cur.description]
-        charter_data = dict(zip(columns, record))
+        charter_data = dict(zip(columns, record, strict=False))
         _normalize_exchange_details(charter_data)
         _resolve_driver_details(cur, charter_data)
         _resolve_vehicle_details(cur, charter_data)
@@ -618,7 +630,7 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
         )
         route_columns = [desc[0] for desc in cur.description]
         charter_data["routes"] = [
-            dict(zip(route_columns, row)) for row in cur.fetchall()
+            dict(zip(route_columns, row, strict=False)) for row in cur.fetchall()
         ]
 
         cur.execute(
@@ -641,26 +653,26 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
         )
         charge_columns = [desc[0] for desc in cur.description]
         charter_data["charges"] = [
-            dict(zip(charge_columns, row)) for row in cur.fetchall()
+            dict(zip(charge_columns, row, strict=False)) for row in cur.fetchall()
         ]
 
         if not charter_data["charges"]:
             charter_data["charges"] = _build_payload_charges(charter_data)
 
         cur.execute(
-            """
+                        f"""
             SELECT payment_label, payment_method, amount, payment_date, notes,
             reference_number
             FROM payments
             WHERE charter_id = %s
-              AND deleted_at IS NULL
+                            {payment_deleted_filter}
             ORDER BY payment_date, payment_id
-            """,
+                        """,
             (charter_id,),
         )
         payment_columns = [desc[0] for desc in cur.description]
         charter_data["payments"] = [
-            dict(zip(payment_columns, row)) for row in cur.fetchall()
+            dict(zip(payment_columns, row, strict=False)) for row in cur.fetchall()
         ]
 
         charter_data["beverages"] = _load_beverage_items(cur, charter_data)
@@ -688,7 +700,7 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
             prior = cur.fetchone()
             if prior:
                 pcols = [d[0] for d in cur.description]
-                prior_dict = dict(zip(pcols, prior))
+                prior_dict = dict(zip(pcols, prior, strict=False))
                 charter_data["is_second_trip"] = True
                 charter_data["prior_trip_charter_id"] = prior_dict.get(
                     "charter_id"
@@ -715,6 +727,132 @@ def _stream_pdf_response(
     )
 
 
+def _parse_charter_id_csv(charter_ids_csv: str) -> list[int]:
+    ids: list[int] = []
+    seen: set[int] = set()
+    for part in str(charter_ids_csv or "").split(","):
+        value = part.strip()
+        if not value:
+            continue
+        try:
+            cid = int(value)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid charter ID: {value}",
+            ) from exc
+        if cid <= 0:
+            continue
+        if cid in seen:
+            continue
+        seen.add(cid)
+        ids.append(cid)
+    if not ids:
+        raise HTTPException(
+            status_code=400,
+            detail="Provide at least one valid charter ID",
+        )
+    return ids
+
+
+def _generate_multi_invoice_pdf(charter_ids: list[int]) -> bytes:
+    writer = PdfWriter()
+
+    for charter_id in charter_ids:
+        charter_data = _load_charter_pdf_data(charter_id)
+        pdf_bytes = generate_charter_pdf(charter_data)
+        reader = PdfReader(BytesIO(pdf_bytes))
+        for page in reader.pages:
+            writer.add_page(page)
+
+    out = BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
+
+def _load_charter_basic_context(charter_id: int) -> dict[str, Any]:
+    with cursor() as cur:
+        cur.execute(
+            """
+            SELECT
+                c.charter_id,
+                c.reserve_number,
+                c.charter_date,
+                COALESCE(cl.client_name, cl.company_name, '') AS client_name,
+                COALESCE(c.driver, '') AS driver_name,
+                COALESCE(
+                    NULLIF(TRIM(COALESCE(c.vehicle, '')), ''),
+                    NULLIF(TRIM(COALESCE(v.vehicle_number, '')), ''),
+                    NULLIF(TRIM(COALESCE(v.license_plate, '')), ''),
+                    ''
+                ) AS vehicle,
+                COALESCE(c.pickup_address, '') AS pickup_address,
+                COALESCE(c.dropoff_address, '') AS dropoff_address
+            FROM charters c
+            LEFT JOIN clients cl ON cl.client_id = c.client_id
+            LEFT JOIN vehicles v ON v.vehicle_id = c.vehicle_id
+            WHERE c.charter_id = %s
+            LIMIT 1
+            """,
+            (charter_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Charter not found")
+        cols = [d[0] for d in (cur.description or [])]
+        return dict(zip(cols, row, strict=False))
+
+
+def _load_charter_beverage_snapshot(charter_id: int) -> list[dict[str, Any]]:
+    with cursor() as cur:
+        cur.execute(
+            """
+            SELECT
+                item_name,
+                quantity,
+                unit_our_cost,
+                line_cost,
+                unit_price_charged,
+                line_amount_charged,
+                deposit_per_unit
+            FROM charter_beverages
+            WHERE charter_id = %s
+            ORDER BY item_name
+            """,
+            (charter_id,),
+        )
+        cols = [d[0] for d in (cur.description or [])]
+        return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
+
+
+def _simple_lines_pdf(title: str, lines: list[str]) -> bytes:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.units import inch
+    from reportlab.pdfgen import canvas
+
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=letter)
+    width, height = letter
+    y = height - 0.75 * inch
+
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(0.75 * inch, y, title)
+    y -= 0.30 * inch
+    c.setFont("Helvetica", 9)
+
+    for line in lines:
+        if y < 0.75 * inch:
+            c.showPage()
+            y = height - 0.75 * inch
+            c.setFont("Helvetica", 9)
+        c.drawString(0.75 * inch, y, str(line)[:120])
+        y -= 0.18 * inch
+
+    c.save()
+    buf.seek(0)
+    return buf.getvalue()
+
+
 @router.get("/charters/{charter_id}/invoice-pdf")
 def get_charter_invoice_pdf(charter_id: int = Path(...)):
     """Generate and download charter invoice as PDF."""
@@ -723,7 +861,7 @@ def get_charter_invoice_pdf(charter_id: int = Path(...)):
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"PDF generation failed: {e!s}"
         )
 
@@ -742,7 +880,7 @@ def preview_charter_invoice_pdf(charter_id: int = Path(...)):
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"PDF generation failed: {e!s}"
         )
 
@@ -753,6 +891,189 @@ def preview_charter_invoice_pdf(charter_id: int = Path(...)):
     )
 
 
+@router.get("/charters/multi-invoice-pdf")
+def get_multi_charter_invoice_pdf(
+    charter_ids: Annotated[str, Query(...)],
+    inline: Annotated[bool, Query()] = True,
+):
+    """Generate one PDF containing multiple charter invoices."""
+    parsed_ids = _parse_charter_id_csv(charter_ids)
+
+    try:
+        pdf_bytes = _generate_multi_invoice_pdf(parsed_ids)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(  # noqa: B904
+            status_code=500,
+            detail=f"Multi-invoice PDF generation failed: {e!s}",
+        )
+
+    filename = f"Multi_Invoice_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    return _stream_pdf_response(pdf_bytes, filename, inline=inline)
+
+
+@router.get("/charters/{charter_id}/blank-run-sheet-pdf")
+def get_blank_run_sheet_pdf(charter_id: int = Path(...)):
+    """Generate a blank run sheet shell for manual use."""
+    ctx = _load_charter_basic_context(charter_id)
+    payload = {
+        "charter_id": ctx.get("charter_id"),
+        "reserve_number": ctx.get("reserve_number"),
+        "client_name": ctx.get("client_name"),
+        "charter_date": ctx.get("charter_date"),
+        "vehicle": ctx.get("vehicle"),
+        "driver": ctx.get("driver_name"),
+        "pickup_address": ctx.get("pickup_address"),
+        "dropoff_address": ctx.get("dropoff_address"),
+        "routes": [],
+        "charges": [],
+        "payments": [],
+        "quoted_hours": None,
+    }
+    try:
+        pdf_bytes = generate_charter_pdf(payload)
+    except Exception as e:
+        raise HTTPException(  # noqa: B904
+            status_code=500, detail=f"Blank run sheet generation failed: {e!s}"
+        )
+    reserve_number = str(ctx.get("reserve_number") or charter_id)
+    return _stream_pdf_response(
+        pdf_bytes,
+        f"Blank_Run_Sheet_{reserve_number}.pdf",
+        inline=True,
+    )
+
+
+@router.get("/charters/{charter_id}/airport-sign-pdf")
+def get_airport_sign_pdf(charter_id: int = Path(...)):
+    """Generate a printable airport sign from charter context."""
+    ctx = _load_charter_basic_context(charter_id)
+    client_name = str(ctx.get("client_name") or "GUEST").strip() or "GUEST"
+    reserve = str(ctx.get("reserve_number") or charter_id)
+    lines = [
+        f"RESERVE: {reserve}",
+        "",
+        "ARROW LIMOUSINE",
+        "",
+        client_name.upper(),
+        "",
+        f"DATE: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+    ]
+    pdf_bytes = _simple_lines_pdf("Airport Sign", lines)
+    return _stream_pdf_response(pdf_bytes, f"Airport_Sign_{reserve}.pdf", inline=True)
+
+
+@router.get("/charters/{charter_id}/driver-manifest-pdf")
+def get_driver_manifest_pdf(charter_id: int = Path(...)):
+    """Generate driver beverage manifest with checkbox-style rows."""
+    ctx = _load_charter_basic_context(charter_id)
+    items = _load_charter_beverage_snapshot(charter_id)
+    reserve = str(ctx.get("reserve_number") or charter_id)
+
+    lines = [
+        f"Charter ID: {charter_id}",
+        f"Reserve: {reserve}",
+        f"Client: {ctx.get('client_name') or ''}",
+        f"Driver: {ctx.get('driver_name') or ''}",
+        f"Vehicle: {ctx.get('vehicle') or ''}",
+        "",
+        "Driver Beverage Manifest (check items as loaded)",
+        "",
+    ]
+    if items:
+        for idx, item in enumerate(items, start=1):
+            name = str(item.get("item_name") or "")
+            qty = int(float(item.get("quantity") or 0))
+            lines.append(f"[ ] {idx}. {name}  Qty: {qty}")
+    else:
+        lines.append("No beverage items found for this charter.")
+
+    lines.extend(
+        [
+            "",
+            "Driver Name (Print): ______________________________",
+            "Driver Signature: _________________________________",
+        ]
+    )
+    pdf_bytes = _simple_lines_pdf("Driver Manifest", lines)
+    return _stream_pdf_response(pdf_bytes, f"Driver_Manifest_{reserve}.pdf", inline=True)
+
+
+@router.get("/charters/{charter_id}/beverage-dispatch-pdf")
+def get_beverage_dispatch_pdf(charter_id: int = Path(...)):
+    """Generate internal beverage dispatch order (our costs)."""
+    ctx = _load_charter_basic_context(charter_id)
+    items = _load_charter_beverage_snapshot(charter_id)
+    reserve = str(ctx.get("reserve_number") or charter_id)
+
+    total_cost = 0.0
+    lines = [
+        f"Charter ID: {charter_id}",
+        f"Reserve: {reserve}",
+        f"Client: {ctx.get('client_name') or ''}",
+        f"Driver: {ctx.get('driver_name') or ''}",
+        f"Vehicle: {ctx.get('vehicle') or ''}",
+        "",
+        "Internal Dispatch Order (wholesale costs)",
+        "",
+    ]
+
+    if items:
+        for item in items:
+            name = str(item.get("item_name") or "")
+            qty = int(float(item.get("quantity") or 0))
+            each = float(item.get("unit_our_cost") or 0.0)
+            line_cost = float(item.get("line_cost") or (qty * each))
+            total_cost += line_cost
+            lines.append(f"[ ] {name} | Qty {qty} | Cost ${each:.2f} | Total ${line_cost:.2f}")
+        lines.append("")
+        lines.append(f"TOTAL COST TO PURCHASE: ${total_cost:.2f}")
+    else:
+        lines.append("No beverage items found for this charter.")
+
+    pdf_bytes = _simple_lines_pdf("Beverage Dispatch Order", lines)
+    return _stream_pdf_response(pdf_bytes, f"Dispatch_Order_{reserve}.pdf", inline=True)
+
+
+@router.get("/charters/{charter_id}/beverage-guest-invoice-pdf")
+def get_beverage_guest_invoice_pdf(charter_id: int = Path(...)):
+    """Generate guest-facing beverage invoice from charter snapshot."""
+    ctx = _load_charter_basic_context(charter_id)
+    items = _load_charter_beverage_snapshot(charter_id)
+    reserve = str(ctx.get("reserve_number") or charter_id)
+
+    subtotal = 0.0
+    gst_total = 0.0
+    lines = [
+        f"Charter ID: {charter_id}",
+        f"Reserve: {reserve}",
+        f"Client: {ctx.get('client_name') or ''}",
+        "",
+        "Guest Beverage Invoice",
+        "",
+    ]
+
+    if items:
+        for item in items:
+            name = str(item.get("item_name") or "")
+            qty = int(float(item.get("quantity") or 0))
+            each = float(item.get("unit_price_charged") or 0.0)
+            line_total = float(item.get("line_amount_charged") or (qty * each))
+            subtotal += line_total
+            gst_total += (line_total * 0.05 / 1.05) if line_total else 0.0
+            lines.append(f"{name} | Qty {qty} | Price ${each:.2f} | Line ${line_total:.2f}")
+        lines.append("")
+        lines.append(f"Subtotal (before GST): ${subtotal - gst_total:.2f}")
+        lines.append(f"GST included (5%): ${gst_total:.2f}")
+        lines.append(f"TOTAL DUE: ${subtotal:.2f}")
+    else:
+        lines.append("No beverage items found for this charter.")
+
+    pdf_bytes = _simple_lines_pdf("Beverage Guest Invoice", lines)
+    return _stream_pdf_response(pdf_bytes, f"Beverage_Invoice_{reserve}.pdf", inline=True)
+
+
 @router.get("/charters/{charter_id}/confirmation-letter-pdf")
 def get_confirmation_letter_pdf(charter_id: int = Path(...)):
     """Generate client-facing confirmation letter PDF from live charter data."""
@@ -761,7 +1082,7 @@ def get_confirmation_letter_pdf(charter_id: int = Path(...)):
     try:
         pdf_bytes = generate_confirmation_letter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"PDF generation failed: {e!s}"
         )
 
@@ -779,7 +1100,7 @@ def get_run_sheet_pdf_from_payload(
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"PDF generation failed: {e!s}"
         )
 
@@ -796,7 +1117,7 @@ def preview_run_sheet_pdf_from_payload(
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"PDF generation failed: {e!s}"
         )
 
@@ -891,7 +1212,7 @@ def get_employee_t4_pdf(
     try:
         pdf_bytes = generate_t4_pdf(employee_data, t4_data, tax_year)
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"T4 PDF generation failed: {e!s}"
         )
 
@@ -900,7 +1221,7 @@ def get_employee_t4_pdf(
         iter([pdf_bytes]),
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f"attachment;"
+            "Content-Disposition": "attachment;"
             "filename=T4_{tax_year}_{employee_data.get('full_name',"
             "'Employee').replace(' ', '_')}.pdf"
         },
@@ -993,7 +1314,7 @@ def preview_employee_t4_pdf(
     try:
         pdf_bytes = generate_t4_pdf(employee_data, t4_data, tax_year)
     except Exception as e:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"T4 PDF generation failed: {e!s}"
         )
 

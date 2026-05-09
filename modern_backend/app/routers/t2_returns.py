@@ -4,7 +4,6 @@ Endpoints for T2 return management, schedule data entry, and tax calculations
 """
 
 from datetime import date, datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -293,12 +292,12 @@ async def create_t2_return(data: T2ReturnCreate, conn=Depends(get_connection)):
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         cur.close()
 
 
-@router.get("/returns/{tax_year}", response_model=Optional[T2ReturnMetadata])
+@router.get("/returns/{tax_year}", response_model=T2ReturnMetadata | None)
 async def get_t2_return(tax_year: int, conn=Depends(get_connection)):
     """Get T2 return for a specific tax year"""
     cur = conn.cursor()
@@ -422,7 +421,7 @@ async def save_schedule_125(
         }
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         cur.close()
 
@@ -520,7 +519,7 @@ async def save_schedule_100(
         return {"success": True}
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         cur.close()
 
@@ -595,7 +594,7 @@ async def calculate_tax(data: TaxCalculation, conn=Depends(get_connection)):
                 status_code=404, detail=f"Tax rates not found for {tax_year}"
             )
 
-        fed_sbd, fed_general, ab_sbd, ab_general, sbd_limit = rates
+        fed_sbd, fed_general, ab_sbd, ab_general, _sbd_limit = rates
 
         # Calculate general income (anything above SBD limit)
         general_income = max(
@@ -653,7 +652,7 @@ async def calculate_tax(data: TaxCalculation, conn=Depends(get_connection)):
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         cur.close()
 
@@ -694,7 +693,7 @@ async def update_t2_return(
         return {"success": True, "message": "T2 return updated"}
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         cur.close()
 
@@ -785,7 +784,7 @@ async def transition_t2_status(
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         cur.close()
 
@@ -857,7 +856,7 @@ async def add_t2_adjustment(
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         cur.close()
 

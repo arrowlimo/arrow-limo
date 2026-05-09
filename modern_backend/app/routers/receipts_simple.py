@@ -509,7 +509,7 @@ def link_receipt_to_banking(receipt_id: int, transaction_id: int):
                 status_code=404, detail="Banking transaction not found"
             )
 
-        debit_amt, credit_amt, description = bank_row
+        debit_amt, _credit_amt, description = bank_row
 
         # Determine transaction type
         banking_trans_type = (
@@ -569,7 +569,7 @@ def link_receipt_to_banking(receipt_id: int, transaction_id: int):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(status_code=500, detail=f"Failed to link: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Failed to link: {e!s}")  # noqa: B904
 
 
 @router.post("/", status_code=201)
@@ -722,7 +722,7 @@ def create_receipt(receipt: SimpleReceiptCreate):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to create receipt: {e!s}"
         )
 
@@ -1024,6 +1024,6 @@ def update_receipt(receipt_id: int, receipt: SimpleReceiptCreate):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to update receipt: {e!s}"
         )

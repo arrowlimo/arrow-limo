@@ -130,10 +130,9 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
                 payment_method,
                 payment_key,
                 notes,
-                deposit_type,
                 last_updated
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, NOW()
+                %s, %s, %s, %s, %s, %s, NOW()
             )
             RETURNING payment_id, created_at
         """,
@@ -144,7 +143,6 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
                 payment.payment_method,
                 payment.cheque_number,  # Store cheque# in payment_key
                 _build_notes(payment),
-                payment.deposit_type,
             ),
         )
 
@@ -203,7 +201,7 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
     finally:
         cur.close()
         conn.close()
@@ -274,12 +272,12 @@ async def search_received_payments(
                 p.payment_key as cheque_number,
                 p.notes,
                 p.charter_id,
-                p.deposit_type,
+                'payment' as deposit_type,
                 p.created_at,
                 c.reserve_number,
-                c.customer_name,
-                c.pickup_date as charter_date,
-                c.total_amount as charter_amount
+                c.client_display_name as customer_name,
+                c.charter_date as charter_date,
+                COALESCE(c.total_amount_due, c.grand_total, c.subtotal) as charter_amount
             FROM payments p
             LEFT JOIN charters c ON p.charter_id = c.charter_id
             WHERE {where_sql}
@@ -328,7 +326,7 @@ async def search_received_payments(
         return payments
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
     finally:
         cur.close()
         conn.close()
@@ -414,7 +412,7 @@ async def update_received_payment(
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
     finally:
         cur.close()
         conn.close()
@@ -453,7 +451,7 @@ async def delete_received_payment(payment_id: int):
 
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
     finally:
         cur.close()
         conn.close()

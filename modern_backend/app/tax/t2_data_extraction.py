@@ -4,10 +4,10 @@ Extracts revenue, expenses, and balance sheet data for T2 return generation.
 """
 
 import os
+import re
 import sys
 from datetime import date
 from decimal import Decimal
-import re
 
 import psycopg2
 

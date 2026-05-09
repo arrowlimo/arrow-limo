@@ -68,41 +68,42 @@ def get_invoices(
     query = """
         SELECT
             i.invoice_id,
-            i.charter_id,
-            i.customer_id,
+            c.charter_id,
+            c.client_id AS customer_id,
             COALESCE(
-                c.customer_name,
-                cust.company_name,
-                cust.first_name || ' ' || cust.last_name
+                c.client_display_name,
+                cl.client_name,
+                cl.company_name,
+                ''
             ) as customer_name,
             i.invoice_number,
             i.invoice_date,
             i.due_date,
-            i.amount,
-            i.gst,
-            (i.amount + i.gst) as total,
+            (COALESCE(i.subtotal_taxable, 0) + COALESCE(i.subtotal_non_taxable, 0)) as amount,
+            COALESCE(i.gst_amount, 0) as gst,
+            COALESCE(i.invoice_total, 0) as total,
             CASE
-                WHEN i.paid_date IS NOT NULL THEN 'paid'
+                WHEN COALESCE(i.paid, false) = true OR LOWER(COALESCE(i.invoice_status, '')) = 'paid' THEN 'paid'
                 WHEN i.due_date < CURRENT_DATE THEN 'overdue'
                 ELSE 'unpaid'
             END as status,
-            i.paid_date,
-            i.description,
+            NULL::date as paid_date,
+            i.notes as description,
             i.created_at
         FROM invoices i
-        LEFT JOIN charters c ON i.charter_id = c.charter_id
-        LEFT JOIN customers cust ON i.customer_id = cust.customer_id
+        LEFT JOIN charters c ON c.reserve_number = i.reserve_number
+        LEFT JOIN clients cl ON cl.client_id = c.client_id
         WHERE 1=1
     """
     params = []
 
     if status:
         if status == "paid":
-            query += " AND i.paid_date IS NOT NULL"
+            query += " AND (COALESCE(i.paid, false) = true OR LOWER(COALESCE(i.invoice_status, '')) = 'paid')"
         elif status == "unpaid":
-            query += " AND i.paid_date IS NULL AND i.due_date >= CURRENT_DATE"
+            query += " AND COALESCE(i.paid, false) = false AND i.due_date >= CURRENT_DATE"
         elif status == "overdue":
-            query += " AND i.paid_date IS NULL AND i.due_date < CURRENT_DATE"
+            query += " AND COALESCE(i.paid, false) = false AND i.due_date < CURRENT_DATE"
 
     if start_date:
         query += " AND i.invoice_date >= %s"
@@ -111,7 +112,7 @@ def get_invoices(
         query += " AND i.invoice_date <= %s"
         params.append(end_date)
     if customer_id:
-        query += " AND i.customer_id = %s"
+        query += " AND c.client_id = %s"
         params.append(customer_id)
 
     query += (
@@ -158,30 +159,31 @@ def get_invoice(invoice_id: int):
         """
         SELECT
             i.invoice_id,
-            i.charter_id,
-            i.customer_id,
+            c.charter_id,
+            c.client_id AS customer_id,
             COALESCE(
-                c.customer_name,
-                cust.company_name,
-                cust.first_name || ' ' || cust.last_name
+                c.client_display_name,
+                cl.client_name,
+                cl.company_name,
+                ''
             ) as customer_name,
             i.invoice_number,
             i.invoice_date,
             i.due_date,
-            i.amount,
-            i.gst,
-            (i.amount + i.gst) as total,
+            (COALESCE(i.subtotal_taxable, 0) + COALESCE(i.subtotal_non_taxable, 0)) as amount,
+            COALESCE(i.gst_amount, 0) as gst,
+            COALESCE(i.invoice_total, 0) as total,
             CASE
-                WHEN i.paid_date IS NOT NULL THEN 'paid'
+                WHEN COALESCE(i.paid, false) = true OR LOWER(COALESCE(i.invoice_status, '')) = 'paid' THEN 'paid'
                 WHEN i.due_date < CURRENT_DATE THEN 'overdue'
                 ELSE 'unpaid'
             END as status,
-            i.paid_date,
-            i.description,
+            NULL::date as paid_date,
+            i.notes as description,
             i.created_at
         FROM invoices i
-        LEFT JOIN charters c ON i.charter_id = c.charter_id
-        LEFT JOIN customers cust ON i.customer_id = cust.customer_id
+        LEFT JOIN charters c ON c.reserve_number = i.reserve_number
+        LEFT JOIN clients cl ON cl.client_id = c.client_id
         WHERE i.invoice_id = %s
     """,
         (invoice_id,),
@@ -223,22 +225,49 @@ def create_invoice(invoice: InvoiceCreate):
     cur = conn.cursor()
 
     try:
+        reserve_number = None
+        if invoice.charter_id is not None:
+            cur.execute(
+                "SELECT reserve_number FROM charters WHERE charter_id = %s",
+                (invoice.charter_id,),
+            )
+            row = cur.fetchone()
+            reserve_number = row[0] if row else None
+
         cur.execute(
             """
             INSERT INTO invoices (
-                charter_id, customer_id, invoice_number, invoice_date,
-                due_date, amount, gst, description, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                reserve_number,
+                invoice_number,
+                invoice_date,
+                due_date,
+                subtotal_taxable,
+                gst_amount,
+                subtotal_non_taxable,
+                invoice_total,
+                total_payments,
+                balance_due,
+                paid,
+                invoice_status,
+                notes,
+                created_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             RETURNING invoice_id
         """,
             (
-                invoice.charter_id,
-                invoice.customer_id,
+                reserve_number,
                 invoice.invoice_number,
                 invoice.invoice_date,
                 invoice.due_date,
                 invoice.amount,
                 invoice.gst,
+                Decimal("0"),
+                invoice.amount + invoice.gst,
+                Decimal("0"),
+                invoice.amount + invoice.gst,
+                False,
+                "unpaid",
                 invoice.description,
             ),
         )
@@ -258,7 +287,7 @@ def create_invoice(invoice: InvoiceCreate):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to create invoice: {e!s}"
         )
 
@@ -280,26 +309,36 @@ def update_invoice(invoice_id: int, invoice: InvoiceUpdate):
             updates.append("due_date = %s")
             params.append(invoice.due_date)
         if invoice.amount is not None:
-            updates.append("amount = %s")
+            updates.append("subtotal_taxable = %s")
             params.append(invoice.amount)
         if invoice.gst is not None:
-            updates.append("gst = %s")
+            updates.append("gst_amount = %s")
             params.append(invoice.gst)
         if invoice.description is not None:
-            updates.append("description = %s")
+            updates.append("notes = %s")
             params.append(invoice.description)
         if invoice.status is not None:
             if invoice.status == "paid":
-                updates.append("paid_date = CURRENT_DATE")
+                updates.append("paid = true")
+                updates.append("invoice_status = 'paid'")
             elif invoice.status == "unpaid":
-                updates.append("paid_date = NULL")
+                updates.append("paid = false")
+                updates.append("invoice_status = 'unpaid'")
+
+        if invoice.amount is not None or invoice.gst is not None:
+            updates.append(
+                "invoice_total = COALESCE(subtotal_taxable, 0) + "
+                "COALESCE(subtotal_non_taxable, 0) + COALESCE(gst_amount, 0)"
+            )
+            updates.append(
+                "balance_due = GREATEST((COALESCE(subtotal_taxable, 0) + COALESCE(subtotal_non_taxable, 0) + COALESCE(gst_amount, 0)) - COALESCE(total_payments, 0), 0)"
+            )
 
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")
 
         params.append(invoice_id)
-        query = f"UPDATE invoices SET {
-            ', '.join(updates)}  WHERE invoice_id = %s"
+        query = f"UPDATE invoices SET {', '.join(updates)} WHERE invoice_id = %s"
 
         cur.execute(query, params)
 
@@ -323,7 +362,7 @@ def update_invoice(invoice_id: int, invoice: InvoiceUpdate):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to update invoice: {e!s}"
         )
 
@@ -341,7 +380,9 @@ def mark_invoice_paid(invoice_id: int, paid_date: date | None = None):
         cur.execute(
             """
             UPDATE invoices
-            SET paid_date = %s
+            SET paid = true,
+                invoice_status = 'paid',
+                finalized_at = COALESCE(finalized_at, %s)
             WHERE invoice_id = %s
         """,
             (paid_date, invoice_id),
@@ -367,7 +408,7 @@ def mark_invoice_paid(invoice_id: int, paid_date: date | None = None):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to mark invoice as paid: {e!s}"
         )
 
@@ -403,7 +444,7 @@ def delete_invoice(invoice_id: int):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to delete invoice: {e!s}"
         )
 
@@ -416,13 +457,13 @@ def get_invoice_stats():
 
     cur.execute("""
         SELECT
-            COUNT(*) FILTER (WHERE paid_date IS NULL) as unpaid_count,
-            COUNT(*) FILTER (WHERE paid_date IS NOT NULL) as paid_count,
-            COUNT(*) FILTER (WHERE paid_date IS NULL AND due_date <
+            COUNT(*) FILTER (WHERE COALESCE(paid, false) = false) as unpaid_count,
+            COUNT(*) FILTER (WHERE COALESCE(paid, false) = true) as paid_count,
+            COUNT(*) FILTER (WHERE COALESCE(paid, false) = false AND due_date <
             CURRENT_DATE) as overdue_count,
-            SUM(amount + gst) FILTER (WHERE paid_date IS NULL) as
+            SUM(COALESCE(balance_due, 0)) FILTER (WHERE COALESCE(paid, false) = false) as
             outstanding_amount,
-            SUM(amount + gst) FILTER (WHERE paid_date IS NOT NULL) as
+            SUM(COALESCE(invoice_total, 0)) FILTER (WHERE COALESCE(paid, false) = true) as
             paid_amount
         FROM invoices
     """)

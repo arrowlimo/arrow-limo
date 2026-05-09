@@ -7,8 +7,34 @@
       <template v-else-if="booking">
         <h2>Booking #{{ booking.reserve_number }}</h2>
         <div class="charter-actions" style="margin: 0.5rem 0 1rem;">
-          <button class="secondary" @click="openCharterInvoicePrint" :disabled="!booking.charter_id">
-            Print Charter Sheet
+          <button class="secondary" @click="openSingleInvoicePrint" :disabled="!booking.charter_id">
+            Print Single Invoice PDF
+          </button>
+          <button class="secondary" @click="openBlankRunSheetPrint" :disabled="!booking.charter_id">
+            Print Blank Run Sheet
+          </button>
+          <button class="secondary" @click="openAirportSignPrint" :disabled="!booking.charter_id">
+            Airport Sign
+          </button>
+          <button class="secondary" @click="openDriverManifestPrint" :disabled="!booking.charter_id">
+            Driver Manifest
+          </button>
+          <button class="secondary" @click="openDispatchOrderPrint" :disabled="!booking.charter_id">
+            Dispatch Order
+          </button>
+          <button class="secondary" @click="openGuestBeverageInvoicePrint" :disabled="!booking.charter_id">
+            Beverage Guest Invoice
+          </button>
+        </div>
+        <div class="charter-actions multi-invoice-actions" style="margin: 0.25rem 0 1rem;">
+          <input
+            v-model="multiInvoiceCharterIds"
+            type="text"
+            placeholder="Charter IDs: 19883,19884"
+            class="multi-invoice-input"
+          />
+          <button class="secondary" @click="openMultiInvoicePrint">
+            Print Multi Invoice PDF
           </button>
         </div>
         <ul>
@@ -83,6 +109,7 @@ const beverages = ref([])
 const bevLoading = ref(false)
 const bevInvoiceSeparately = ref(false)
 const newBev = ref({ name: '', price: 0, qty: 1 })
+const multiInvoiceCharterIds = ref('')
 
 async function fetchBooking(id) {
   loading.value = true
@@ -91,6 +118,9 @@ async function fetchBooking(id) {
     const res = await fetch(`/api/bookings/${id}`)
     if (!res.ok) throw new Error('Booking not found')
     booking.value = await res.json()
+    if (booking.value?.charter_id && !multiInvoiceCharterIds.value.trim()) {
+      multiInvoiceCharterIds.value = String(booking.value.charter_id)
+    }
     // Load beverage orders for this charter
     await loadBeverages()
   } catch (e) {
@@ -153,10 +183,59 @@ function openPrint() {
   window.open(url, '_blank')
 }
 
-function openCharterInvoicePrint() {
+function openSingleInvoicePrint() {
   if (!booking.value?.charter_id) return
   const url = `/api/charters/${booking.value.charter_id}/invoice-pdf`
   window.open(url, '_blank')
+}
+
+function openBlankRunSheetPrint() {
+  if (!booking.value?.charter_id) return
+  const url = `/api/charters/${booking.value.charter_id}/blank-run-sheet-pdf`
+  window.open(url, '_blank')
+}
+
+function openAirportSignPrint() {
+  if (!booking.value?.charter_id) return
+  const url = `/api/charters/${booking.value.charter_id}/airport-sign-pdf`
+  window.open(url, '_blank')
+}
+
+function openDriverManifestPrint() {
+  if (!booking.value?.charter_id) return
+  const url = `/api/charters/${booking.value.charter_id}/driver-manifest-pdf`
+  window.open(url, '_blank')
+}
+
+function openDispatchOrderPrint() {
+  if (!booking.value?.charter_id) return
+  const url = `/api/charters/${booking.value.charter_id}/beverage-dispatch-pdf`
+  window.open(url, '_blank')
+}
+
+function openGuestBeverageInvoicePrint() {
+  if (!booking.value?.charter_id) return
+  const url = `/api/charters/${booking.value.charter_id}/beverage-guest-invoice-pdf`
+  window.open(url, '_blank')
+}
+
+function openMultiInvoicePrint() {
+  const ids = String(multiInvoiceCharterIds.value || '')
+    .split(',')
+    .map(v => Number.parseInt(v.trim(), 10))
+    .filter(v => Number.isFinite(v) && v > 0)
+
+  const uniqueIds = [...new Set(ids)]
+  if (!uniqueIds.length) {
+    toast.error('Enter at least one valid charter ID')
+    return
+  }
+
+  const params = new URLSearchParams({
+    charter_ids: uniqueIds.join(','),
+    inline: 'true'
+  })
+  window.open(`/api/charters/multi-invoice-pdf?${params.toString()}`, '_blank')
 }
 </script>
 
@@ -173,6 +252,8 @@ function openCharterInvoicePrint() {
 .beverage-table th, .beverage-table td { padding: 0.5rem; border-bottom: 1px solid #eee; }
 .bev-actions { display:flex; gap: 0.75rem; align-items:center; margin-top: 0.75rem; }
 .bev-add { display:flex; gap: 0.5rem; align-items:center; margin-top: 0.75rem; }
+.multi-invoice-actions { gap: 0.5rem; align-items: center; }
+.multi-invoice-input { min-width: 260px; }
 .link { background:none; border:none; color:#0a58ca; cursor:pointer; padding:0; }
 .link.danger { color:#c62828; }
 </style>

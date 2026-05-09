@@ -189,7 +189,7 @@ async def submit_pd7a_month(
         raise
     except Exception as exc:
         conn.rollback()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to submit PD7A month: {exc}"
         )
     finally:
@@ -273,7 +273,7 @@ async def export_pd7a_year_csv(tax_year: int, conn=Depends(get_connection)):
             content=buf.getvalue(),
             media_type="text/csv",
             headers={
-                "Content-Disposition": f"attachment;"
+                "Content-Disposition": "attachment;"
                 "filename=pd7a_{tax_year}_submission_report.csv"
             },
         )

@@ -40,7 +40,7 @@ def lock_charter(charter_id: int, db_cursor) -> None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to lock charter: {e!s}",
-        )
+        ) from e
 
 
 def unlock_charter(charter_id: int, db_cursor) -> None:
@@ -54,4 +54,4 @@ def unlock_charter(charter_id: int, db_cursor) -> None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to unlock charter: {e!s}",
-        )
+        ) from e

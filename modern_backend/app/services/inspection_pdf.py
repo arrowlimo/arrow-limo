@@ -4,11 +4,11 @@ Produces a blank, printable DVIR-style form for Arrow Limo drivers.
 """
 
 from io import BytesIO
+
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
-
 
 # Checklist sections — each item: (label, indent_level)
 CHECKLIST_SECTIONS = [

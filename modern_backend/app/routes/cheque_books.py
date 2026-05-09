@@ -95,12 +95,12 @@ async def get_cheque_books_summary():
                     WHEN category IS NULL OR category = ''
                     THEN 1 END) as uncategorized,
                 SUM(debit_amount) as total_amount,
-                MIN(CAST(REGEXP_REPLACE(
+                MIN(CAST(NULLIF(REGEXP_REPLACE(
                     vendor_extracted, '[^0-9]', '', 'g'
-                ) AS INTEGER)) as min_cheque,
-                MAX(CAST(REGEXP_REPLACE(
+                ), '') AS INTEGER)) as min_cheque,
+                MAX(CAST(NULLIF(REGEXP_REPLACE(
                     vendor_extracted, '[^0-9]', '', 'g'
-                ) AS INTEGER)) as max_cheque,
+                ), '') AS INTEGER)) as max_cheque,
                 COUNT(CASE
                     WHEN check_recipient IS NULL
                       OR check_recipient = 'Unknown'
@@ -136,7 +136,7 @@ async def get_cheque_books_summary():
         return summaries
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
     finally:
         cur.close()
         conn.close()
@@ -272,7 +272,7 @@ async def search_cheques(search: ChequeSearchRequest):
         return cheques
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
     finally:
         cur.close()
         conn.close()
@@ -352,7 +352,7 @@ async def update_cheque(transaction_id: int, update: ChequeUpdateRequest):
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
     finally:
         cur.close()
         conn.close()
@@ -444,7 +444,7 @@ async def bulk_update_cheques(updates: list[ChequeUpdateRequest]):
 
     except Exception as e:
         conn.rollback()
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Bulk update failed: {e!s}"
         )
     finally:

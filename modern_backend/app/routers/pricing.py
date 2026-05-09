@@ -81,7 +81,7 @@ def get_all_pricing_defaults():
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to load pricing: {e}"
-        )
+        ) from e
     finally:
         cur.close()
         conn.close()
@@ -133,7 +133,7 @@ def get_pricing_by_vehicle(vehicle_type: str):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to load pricing: {e}"
-        )
+        ) from e
     finally:
         cur.close()
         conn.close()
@@ -143,7 +143,7 @@ def get_pricing_by_vehicle(vehicle_type: str):
 def calculate_quotes(request: QuoteRequest):
     """
     Calculate 3 quote options for a charter:
-    1. Hourly rate (e.g., $195/hr × 6 hours = $1170)
+    1. Hourly rate (e.g., $195/hr x 6 hours = $1170)
     2. Package rate (e.g., 6hr package $1170 + extra time $150/hr)
     3. Split run (e.g., 1.5hr before + 1.5hr after = 3hr free,
     OR 3hr standby @ $25/hr)
@@ -210,7 +210,7 @@ def calculate_quotes(request: QuoteRequest):
                     "total_before_gratuity": round(hourly_total, 2),
                     "gratuity_amount": gratuity_amt,
                     "total_with_gratuity": total_with_tip,
-                    "calculation_notes": f"${hourly['hourly_rate']:.2f}/hr ×"
+                    "calculation_notes": f"${hourly['hourly_rate']:.2f}/hr x"
                     "{quoted_hours} hours = ${hourly_total:.2f}. Extra time:"
                     "${hourly['extra_time_rate']:.2f}/hr",
                 }
@@ -237,7 +237,7 @@ def calculate_quotes(request: QuoteRequest):
                     total_with_tip = total + gratuity_amt
 
                 extra_note = (
-                    f" + {extra_hours}hr extra @"
+                    f" + {extra_hours}hr extra @ "
                     f"${pkg['extra_time_rate']:.2f}/hr = ${extra_cost:.2f}"
                     if extra_hours > 0
                     else ""
@@ -254,9 +254,10 @@ def calculate_quotes(request: QuoteRequest):
                         "total_before_gratuity": round(total, 2),
                         "gratuity_amount": gratuity_amt,
                         "total_with_gratuity": total_with_tip,
-                        "calculation_notes": f"{pkg_hours}hr package"
-                        "${pkg['package_rate']:.2f}{extra_note}. Total:"
-                        "${total:.2f}",
+                        "calculation_notes": (
+                            f"{pkg_hours}hr package ${pkg['package_rate']:.2f}"
+                            f"{extra_note}. Total: ${total:.2f}"
+                        ),
                     }
                 )
 
@@ -280,12 +281,16 @@ def calculate_quotes(request: QuoteRequest):
                 total_with_tip = standby_cost + gratuity_amt
 
             if standby_hours > 0:
-                calc_note = f"{before_hrs} hr before + {after_hrs} hr after = {
-                    free_hours} hr free. {standby_hours} hr standby @ ${
-                    split['standby_rate']: .2f} /hr = ${standby_cost: .2f} "
+                calc_note = (
+                    f"{before_hrs} hr before + {after_hrs} hr after = "
+                    f"{free_hours} hr free. {standby_hours} hr standby @ "
+                    f"${split['standby_rate']:.2f}/hr = ${standby_cost:.2f}"
+                )
             else:
-                calc_note = f"{before_hrs} hr before + {after_hrs} hr after = {
-                    free_hours} hr (within free time, no charge) "
+                calc_note = (
+                    f"{before_hrs} hr before + {after_hrs} hr after = "
+                    f"{free_hours} hr (within free time, no charge)"
+                )
 
             quotes.append(
                 {
@@ -320,7 +325,7 @@ def calculate_quotes(request: QuoteRequest):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to calculate quotes: {e}"
-        )
+        ) from e
     finally:
         cur.close()
         conn.close()
@@ -355,7 +360,7 @@ def get_charter_types():
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to load charter types: {e}"
-        )
+        ) from e
     finally:
         cur.close()
         conn.close()

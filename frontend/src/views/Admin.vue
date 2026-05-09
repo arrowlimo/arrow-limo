@@ -289,6 +289,19 @@
           </label>
         </div>
 
+        <div class="pdf-preview-controls">
+          <label for="multi-invoice-charter-ids">Multi Invoice Charter IDs</label>
+          <input
+            id="multi-invoice-charter-ids"
+            v-model="multiInvoiceCharterIds"
+            type="text"
+            placeholder="19883,19884,19885"
+          />
+          <button @click="openMultiInvoicePdfInNewTab" class="btn-primary" :disabled="busy.multiInvoicePreview">
+            {{ busy.multiInvoicePreview ? 'Building…' : 'Open Multi Invoice PDF' }}
+          </button>
+        </div>
+
         <textarea
           v-model="pdfLayoutJson"
           class="pdf-layout-textarea"
@@ -508,6 +521,7 @@ const busy = ref({
   pdfLayoutReset: false,
   pdfLayoutPreset: false,
   pdfLayoutPreview: false,
+  multiInvoicePreview: false,
   createBackup: false,
   restoreBackup: false,
   downloadBackup: false,
@@ -542,6 +556,7 @@ const pdfLayoutJson = ref('')
 const pdfLayoutSchemaJson = ref('')
 const selectedPdfPreset = ref('default')
 const previewCharterId = ref('19883')
+const multiInvoiceCharterIds = ref('19883,19884')
 const pdfPreviewUrl = ref('')
 const autoPreviewOnSave = ref(true)
 
@@ -651,6 +666,37 @@ function openPdfLayoutPreviewInNewTab() {
     window.open(buildPdfPreviewUrl(), '_blank', 'noopener')
   } catch (error) {
     toast.error(error.message || 'Failed to open preview')
+  }
+}
+
+function buildMultiInvoiceUrl() {
+  const ids = String(multiInvoiceCharterIds.value || '')
+    .split(',')
+    .map(v => Number.parseInt(v.trim(), 10))
+    .filter(v => Number.isFinite(v) && v > 0)
+
+  const uniqueIds = [...new Set(ids)]
+  if (!uniqueIds.length) {
+    throw new Error('Enter at least one valid Charter ID for multi-invoice PDF')
+  }
+
+  const params = new URLSearchParams({
+    charter_ids: uniqueIds.join(','),
+    inline: 'true'
+  })
+  return `/api/charters/multi-invoice-pdf?${params.toString()}`
+}
+
+async function openMultiInvoicePdfInNewTab() {
+  if (busy.value.multiInvoicePreview) return
+  busy.value.multiInvoicePreview = true
+  try {
+    const url = buildMultiInvoiceUrl()
+    window.open(url, '_blank', 'noopener')
+  } catch (error) {
+    toast.error(error.message || 'Failed to open multi-invoice PDF')
+  } finally {
+    busy.value.multiInvoicePreview = false
   }
 }
 

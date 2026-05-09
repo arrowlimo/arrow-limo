@@ -350,7 +350,7 @@ export default {
     const loadBankSummaries = async () => {
       loading.value = true;
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/cheque-books/summary');
+        const response = await fetch('/api/cheque-books/summary');
         if (!response.ok) throw new Error('Failed to fetch');
         bankSummaries.value = await response.json();
       } catch (error) {
@@ -370,7 +370,7 @@ export default {
     const searchCheques = async () => {
       loading.value = true;
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/cheque-books/search', {
+        const response = await fetch('/api/cheque-books/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(searchForm.value)
@@ -432,7 +432,7 @@ export default {
 
     const loadGLAccounts = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/table-management/chart-of-accounts');
+        const response = await fetch('/api/table-management/chart-of-accounts');
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
         glAccounts.value = data.filter(acc => acc.is_active);
@@ -451,7 +451,7 @@ export default {
           ...update.changes
         }));
         
-        const response = await fetch('http://127.0.0.1:8000/api/cheque-books/bulk-update', {
+        const response = await fetch('/api/cheque-books/bulk-update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates)
@@ -466,8 +466,8 @@ export default {
           await searchCheques();
         }
         
-        if (response.data.errors && response.data.errors.length > 0) {
-          console.warn('Some updates failed:', response.data.errors);
+        if (data.errors && data.errors.length > 0) {
+          console.warn('Some updates failed:', data.errors);
         }
       } catch (error) {
         console.error('Bulk update failed:', error);
@@ -498,7 +498,7 @@ export default {
       
       loading.value = true;
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/cheque-books/${editingCheque.value.transaction_id}`, {
+        const response = await fetch(`/api/cheque-books/${editingCheque.value.transaction_id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
