@@ -164,7 +164,7 @@ const stats = ref({
 
 async function loadVehicles() {
   try {
-    const res = await authFetch('/api/vehicles')
+    const res = await authFetch('/api/vehicles/')
     if (res.ok) {
       vehicles.value = await res.json()
       calculateStats()
