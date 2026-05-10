@@ -19,15 +19,15 @@ services:
     
     # Environment variables
     envVars:
-      # Database - Points to Neon
+      # Database - Points to Neon (set via Render dashboard)
       - key: DB_HOST
-        value: ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech
+        sync: false
       - key: DB_NAME
-        value: neondb
+        sync: false
       - key: DB_USER
-        value: neondb_owner
+        sync: false
       - key: DB_PASSWORD
-        value: npg_rlL0yK9pvfCW
+        sync: false
       - key: DB_SSLMODE
         value: require
       - key: DB_CHANNEL_BINDING
@@ -59,12 +59,11 @@ services:
       - key: MAX_LOGIN_ATTEMPTS
         value: "5"
       - key: LOGIN_LOCKOUT_MINUTES
-        value: 15
+        value: "15"
       
-      # Square (production keys)
+      # Square (production keys - set via Render dashboard)
       - key: SQUARE_ACCESS_TOKEN
         sync: false
-        # Provide in Render dashboard
       - key: SQUARE_ENV
         value: production
     
