@@ -319,7 +319,7 @@ export default {
     
     async loadDrivers() {
       try {
-        const response = await authFetch('/api/employees?role=driver');
+        const response = await authFetch('/api/employees/?role=driver');
         const data = await response.json();
         this.drivers = data;
       } catch (error) {
@@ -329,7 +329,7 @@ export default {
     
     async loadVehicles() {
       try {
-        const response = await authFetch('/api/vehicles');
+        const response = await authFetch('/api/vehicles/');
         const data = await response.json();
         this.vehicles = data;
       } catch (error) {
