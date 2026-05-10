@@ -489,6 +489,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { toast } from '@/toast/toastStore'
+import { authFetch } from '@/utils/authFetch'
 
 const activeTab = ref('overview')
 const showAddUserForm = ref(false)
@@ -567,7 +568,7 @@ const filteredLogs = computed(() => {
 
 async function fetchJson(url, options = {}) {
   const requestHeaders = options.headers ? { ...options.headers } : {}
-  const response = await fetch(url, {
+  const response = await authFetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -740,41 +741,38 @@ async function applyPdfLayoutPreset() {
 
 async function loadSystemData() {
   try {
-    // Load system stats - mock data for now
+    const [bookingsRes, customersRes, employeesRes] = await Promise.all([
+      authFetch('/api/bookings'),
+      authFetch('/api/customers'),
+      authFetch('/api/employees/')
+    ])
+
+    const bookings = bookingsRes.ok ? await bookingsRes.json() : []
+    const customers = customersRes.ok ? await customersRes.json() : []
+    const employeesData = employeesRes.ok ? await employeesRes.json() : []
+
     systemStats.value = {
-      totalBookings: 1247,
-      activeCustomers: 89,
-      totalEmployees: 12,
-      monthlyRevenue: 45280
+      totalBookings: Array.isArray(bookings) ? bookings.length : 0,
+      activeCustomers: Array.isArray(customers) ? customers.length : 0,
+      totalEmployees: Array.isArray(employeesData) ? employeesData.length : 0,
+      monthlyRevenue: 0
     }
 
-    // Load recent activity
-    recentActivity.value = [
-      { id: 1, icon: '📅', description: 'New booking created by customer #123', timestamp: '2 minutes ago' },
-      { id: 2, icon: '👤', description: 'New employee added: John Doe', timestamp: '15 minutes ago' },
-      { id: 3, icon: '💰', description: 'Payment received from customer #456', timestamp: '1 hour ago' },
-      { id: 4, icon: '🚐', description: 'Vehicle #3 completed maintenance', timestamp: '2 hours ago' },
-      { id: 5, icon: '📊', description: 'Monthly report generated', timestamp: '4 hours ago' }
-    ]
-
-    // Load users
-    users.value = [
-      { id: 1, username: 'admin', email: 'admin@limo.com', role: 'admin', department: 'operations', status: 'active', last_login: '2025-09-17' },
-      { id: 2, username: 'dispatcher1', email: 'dispatch@limo.com', role: 'dispatcher', department: 'dispatch', status: 'active', last_login: '2025-09-17' },
-      { id: 3, username: 'accountant1', email: 'accounting@limo.com', role: 'accountant', department: 'accounting', status: 'active', last_login: '2025-09-16' },
-      { id: 4, username: 'driver1', email: 'driver1@limo.com', role: 'driver', department: 'operations', status: 'active', last_login: '2025-09-17' }
-    ]
-
-    // Load logs
-    logs.value = [
-      { id: 1, timestamp: '2025-09-17 14:30:15', level: 'info', message: 'System backup completed successfully' },
-      { id: 2, timestamp: '2025-09-17 14:25:10', level: 'warning', message: 'Low disk space warning: 85% used' },
-      { id: 3, timestamp: '2025-09-17 14:20:05', level: 'error', message: 'Failed to send email notification to customer #789' },
-      { id: 4, timestamp: '2025-09-17 14:15:00', level: 'info', message: 'Database optimization completed' },
-      { id: 5, timestamp: '2025-09-17 14:10:30', level: 'info', message: 'User login: dispatcher1' }
-    ]
+    recentActivity.value = []
+    users.value = []
+    logs.value = []
   } catch (error) {
     console.error('Error loading system data:', error)
+    systemStats.value = {
+      totalBookings: 0,
+      activeCustomers: 0,
+      totalEmployees: 0,
+      monthlyRevenue: 0
+    }
+    recentActivity.value = []
+    users.value = []
+    logs.value = []
+    toast.error(error?.message || 'Failed to load admin data')
   }
 }
 

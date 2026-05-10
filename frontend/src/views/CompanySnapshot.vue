@@ -286,6 +286,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useToast } from 'vue-toastification'
+import { authFetch } from '@/utils/authFetch'
 
 const toast = useToast()
 
@@ -471,7 +472,7 @@ async function loadData() {
       if (customEnd.value) params.set('end_date', customEnd.value)
     }
 
-    const resp = await fetch(`/api/reports/company-snapshot?${params}`)
+    const resp = await authFetch(`/api/reports/company-snapshot?${params}`)
     if (!resp.ok) throw new Error(`Failed to load data: ${resp.status}`)
 
     const data = await resp.json()
@@ -483,281 +484,20 @@ async function loadData() {
   } catch (error) {
     console.error('Load error:', error)
     toast.error('Failed to load company snapshot: ' + (error?.message || error))
-    
-    // Load sample data for demo
-    loadSampleData()
+    reportData.value = []
+    grandTotals.value = null
+    totals.value = {
+      revenue: 0,
+      expenses: 0,
+      profit: 0,
+      profitMargin: 0,
+      revenueChange: 0,
+      expensesChange: 0,
+      charters: 0,
+      activeVehicles: 0
+    }
   } finally {
     loading.value = false
-  }
-}
-
-// Sample data structure for demonstration
-function loadSampleData() {
-  reportData.value = [
-    {
-      id: 'revenue',
-      name: 'REVENUE',
-      icon: '💰',
-      amount: 1250000,
-      count: 1840,
-      percent: 100,
-      avgAmount: 679.35,
-      level: 0,
-      isTotal: true,
-      children: [
-        {
-          id: 'charter-revenue',
-          name: 'Charter Services',
-          icon: '🚐',
-          amount: 980000,
-          count: 1520,
-          percent: 78.4,
-          avgAmount: 644.74,
-          level: 1,
-          isSubtotal: true,
-          children: [
-            {
-              id: 'wedding-charters',
-              name: 'Wedding Charters',
-              amount: 450000,
-              count: 180,
-              percent: 36,
-              avgAmount: 2500,
-              level: 2,
-              accountNumber: '4010',
-              children: []
-            },
-            {
-              id: 'corporate-charters',
-              name: 'Corporate Charters',
-              amount: 320000,
-              count: 640,
-              percent: 25.6,
-              avgAmount: 500,
-              level: 2,
-              accountNumber: '4020',
-              children: []
-            },
-            {
-              id: 'airport-transfers',
-              name: 'Airport Transfers',
-              amount: 210000,
-              count: 700,
-              percent: 16.8,
-              avgAmount: 300,
-              level: 2,
-              accountNumber: '4030',
-              children: []
-            }
-          ]
-        },
-        {
-          id: 'other-revenue',
-          name: 'Other Revenue',
-          icon: '📌',
-          amount: 270000,
-          count: 320,
-          percent: 21.6,
-          avgAmount: 843.75,
-          level: 1,
-          isSubtotal: true,
-          children: [
-            {
-              id: 'fuel-surcharge',
-              name: 'Fuel Surcharge',
-              amount: 180000,
-              count: 280,
-              percent: 14.4,
-              avgAmount: 642.86,
-              level: 2,
-              accountNumber: '4100',
-              children: []
-            },
-            {
-              id: 'gratuities',
-              name: 'Gratuities',
-              amount: 90000,
-              count: 40,
-              percent: 7.2,
-              avgAmount: 2250,
-              level: 2,
-              accountNumber: '4110',
-              children: []
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'expenses',
-      name: 'EXPENSES',
-      icon: '💸',
-      amount: 820000,
-      count: 3240,
-      percent: 100,
-      avgAmount: 253.09,
-      level: 0,
-      isTotal: true,
-      children: [
-        {
-          id: 'payroll',
-          name: 'Payroll & Benefits',
-          icon: '👥',
-          amount: 420000,
-          count: 480,
-          percent: 51.2,
-          avgAmount: 875,
-          level: 1,
-          isSubtotal: true,
-          children: [
-            {
-              id: 'driver-wages',
-              name: 'Driver Wages',
-              amount: 280000,
-              count: 240,
-              percent: 34.1,
-              avgAmount: 1166.67,
-              level: 2,
-              accountNumber: '5010',
-              children: []
-            },
-            {
-              id: 'benefits',
-              name: 'Employee Benefits',
-              amount: 140000,
-              count: 240,
-              percent: 17.1,
-              avgAmount: 583.33,
-              level: 2,
-              accountNumber: '5020',
-              children: []
-            }
-          ]
-        },
-        {
-          id: 'vehicle-costs',
-          name: 'Vehicle Operating Costs',
-          icon: '🚗',
-          amount: 250000,
-          count: 1840,
-          percent: 30.5,
-          avgAmount: 135.87,
-          level: 1,
-          isSubtotal: true,
-          children: [
-            {
-              id: 'fuel',
-              name: 'Fuel',
-              amount: 120000,
-              count: 840,
-              percent: 14.6,
-              avgAmount: 142.86,
-              level: 2,
-              accountNumber: '5110',
-              children: []
-            },
-            {
-              id: 'maintenance',
-              name: 'Maintenance & Repairs',
-              amount: 90000,
-              count: 600,
-              percent: 11,
-              avgAmount: 150,
-              level: 2,
-              accountNumber: '5120',
-              children: []
-            },
-            {
-              id: 'insurance',
-              name: 'Vehicle Insurance',
-              amount: 40000,
-              count: 400,
-              percent: 4.9,
-              avgAmount: 100,
-              level: 2,
-              accountNumber: '5130',
-              children: []
-            }
-          ]
-        },
-        {
-          id: 'overhead',
-          name: 'Operating Overhead',
-          icon: '🏢',
-          amount: 150000,
-          count: 920,
-          percent: 18.3,
-          avgAmount: 163.04,
-          level: 1,
-          isSubtotal: true,
-          children: [
-            {
-              id: 'office-rent',
-              name: 'Office Rent',
-              amount: 60000,
-              count: 12,
-              percent: 7.3,
-              avgAmount: 5000,
-              level: 2,
-              accountNumber: '5210',
-              children: []
-            },
-            {
-              id: 'utilities',
-              name: 'Utilities',
-              amount: 30000,
-              count: 360,
-              percent: 3.7,
-              avgAmount: 83.33,
-              level: 2,
-              accountNumber: '5220',
-              children: []
-            },
-            {
-              id: 'office-supplies',
-              name: 'Office Supplies',
-              amount: 20000,
-              count: 240,
-              percent: 2.4,
-              avgAmount: 83.33,
-              level: 2,
-              accountNumber: '5230',
-              children: []
-            },
-            {
-              id: 'advertising',
-              name: 'Advertising & Marketing',
-              amount: 40000,
-              count: 308,
-              percent: 4.9,
-              avgAmount: 129.87,
-              level: 2,
-              accountNumber: '5240',
-              children: []
-            }
-          ]
-        }
-      ]
-    }
-  ]
-
-  grandTotals.value = {
-    name: '',
-    amount: 430000, // profit
-    count: 5080,
-    percent: 100,
-    avgAmount: 0
-  }
-
-  totals.value = {
-    revenue: 1250000,
-    expenses: 820000,
-    profit: 430000,
-    profitMargin: 34.4,
-    revenueChange: 12.5,
-    expensesChange: 8.2,
-    charters: 1840,
-    activeVehicles: 27
   }
 }
 

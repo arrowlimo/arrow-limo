@@ -228,6 +228,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { toast } from '@/toast/toastStore'
 import FileUpload from '@/components/FileUpload.vue'
+import { authFetch } from '@/utils/authFetch'
 
 const showForm = ref(false)
 const showFiles = ref(false)
@@ -253,6 +254,27 @@ const newEmployee = ref({
   hourly_rate: 0,
   status: 'active'
 })
+
+function normalizeEmployee(raw) {
+  const first = String(raw?.first_name || '').trim()
+  const last = String(raw?.last_name || '').trim()
+  const display = String(raw?.display || '').trim()
+  const name = display || `${first} ${last}`.trim() || 'Unknown'
+  const category = String(raw?.employee_type || raw?.employee_category || '').trim()
+  const isDriver = category.toLowerCase().includes('driver')
+  return {
+    id: raw?.employee_id,
+    employee_id: String(raw?.employee_id ?? ''),
+    name,
+    department: isDriver ? 'Operations' : (category || 'Administration'),
+    position: category || (isDriver ? 'Driver' : 'Staff'),
+    phone: raw?.phone || '-',
+    email: raw?.email || '-',
+    hire_date: raw?.hire_date || null,
+    hourly_rate: Number.parseFloat(raw?.hourly_rate || 0) || 0,
+    status: raw?.status || 'active'
+  }
+}
 
 const filteredEmployees = computed(() => {
   let filtered = employees.value
@@ -280,55 +302,18 @@ const filteredEmployees = computed(() => {
 
 async function loadEmployees() {
   try {
-    const response = await fetch('/api/employees')
-    if (response.ok) {
-      employees.value = await response.json()
-      calculateStats()
-    } else {
-      console.error('Failed to load employees:', response.status)
-      // Add some mock data for demonstration
-      employees.value = [
-        {
-          id: 1,
-          employee_id: 'EMP001',
-          name: 'John Smith',
-          department: 'Operations',
-          position: 'Senior Driver',
-          phone: '(555) 123-4567',
-          email: 'john.smith@company.com',
-          hire_date: '2020-01-15',
-          hourly_rate: 25.00,
-          status: 'active'
-        },
-        {
-          id: 2,
-          employee_id: 'EMP002',
-          name: 'Sarah Johnson',
-          department: 'Administration',
-          position: 'Dispatcher',
-          phone: '(555) 234-5678',
-          email: 'sarah.johnson@company.com',
-          hire_date: '2019-06-01',
-          hourly_rate: 22.50,
-          status: 'active'
-        },
-        {
-          id: 3,
-          employee_id: 'EMP003',
-          name: 'Mike Wilson',
-          department: 'Operations',
-          position: 'Driver',
-          phone: '(555) 345-6789',
-          email: 'mike.wilson@company.com',
-          hire_date: '2021-03-10',
-          hourly_rate: 20.00,
-          status: 'active'
-        }
-      ]
-      calculateStats()
-    }
+    const response = await authFetch('/api/employees/')
+    if (!response.ok) throw new Error(`Failed to load employees (${response.status})`)
+    const rawEmployees = await response.json()
+    employees.value = Array.isArray(rawEmployees)
+      ? rawEmployees.map(normalizeEmployee)
+      : []
+    calculateStats()
   } catch (error) {
     console.error('Error loading employees:', error)
+    employees.value = []
+    calculateStats()
+    toast.error(error?.message || 'Failed to load employees')
   }
 }
 
@@ -380,23 +365,33 @@ function viewPayroll(employee) {
 
 async function addEmployee() {
   try {
-    // TODO: Implement API call to add employee
-    console.log('Adding employee:', newEmployee.value)
-    
-    // For now, add locally for demonstration
-    const newEmp = { 
-      ...newEmployee.value, 
-      id: employees.value.length + 1,
-      hourly_rate: parseFloat(newEmployee.value.hourly_rate)
+    const name = String(newEmployee.value.name || '').trim()
+    const [firstName, ...rest] = name.split(/\s+/)
+    const payload = {
+      first_name: firstName || name,
+      last_name: rest.join(' ') || '',
+      employee_category: newEmployee.value.position || newEmployee.value.department || 'staff',
+      hire_date: newEmployee.value.hire_date || null,
+      email: newEmployee.value.email || null,
+      phone: newEmployee.value.phone || null
     }
-    employees.value.push(newEmp)
-    calculateStats()
+
+    const res = await authFetch('/api/employees/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '')
+      throw new Error(detail || `Failed to add employee (${res.status})`)
+    }
+
     cancelForm()
-    
+    await loadEmployees()
     toast.success('Employee added successfully!')
   } catch (error) {
     console.error('Error adding employee:', error)
-    toast.error('Failed to add employee')
+    toast.error(error?.message || 'Failed to add employee')
   }
 }
 
@@ -464,7 +459,7 @@ async function loadPayrollSummary() {
   payrollError.value = ''
   try {
     const url = `/api/employee/${selectedEmployee.value.id || selectedEmployee.value.employee_id}/payroll_summary?start_date=${encodeURIComponent(payStart.value)}&end_date=${encodeURIComponent(payEnd.value)}`
-    const res = await fetch(url)
+    const res = await authFetch(url)
     if (!res.ok) throw new Error(await res.text())
     const data = await res.json()
     payrollSummary.value = data.payroll_summary || {}

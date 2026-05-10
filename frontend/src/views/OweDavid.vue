@@ -214,6 +214,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { toast } from '@/toast/toastStore'
+import { authFetch } from '@/utils/authFetch'
 
 const showPaymentForm = ref(false)
 const showExpenseForm = ref(false)
@@ -303,57 +304,17 @@ const monthlySummary = computed(() => {
 
 async function loadOweDavidData() {
   try {
-    // Load from API - for now using mock data
-    transactions.value = [
-      {
-        id: 1,
-        date: '2025-09-01',
-        type: 'expense',
-        category: 'fuel',
-        description: 'Gas for vehicle #3',
-        amount: 125.50,
-        running_balance: 125.50,
-        reference: 'Receipt #001',
-        status: 'pending'
-      },
-      {
-        id: 2,
-        date: '2025-09-05',
-        type: 'expense',
-        category: 'maintenance',
-        description: 'Oil change for fleet',
-        amount: 280.00,
-        running_balance: 405.50,
-        reference: 'Receipt #002',
-        status: 'pending'
-      },
-      {
-        id: 3,
-        date: '2025-09-10',
-        type: 'payment',
-        category: null,
-        description: 'Payment to David',
-        amount: 300.00,
-        running_balance: 105.50,
-        reference: 'E-Transfer #12345',
-        status: 'completed'
-      },
-      {
-        id: 4,
-        date: '2025-09-15',
-        type: 'expense',
-        category: 'personal',
-        description: 'Personal advance',
-        amount: 200.00,
-        running_balance: 305.50,
-        reference: '',
-        status: 'pending'
-      }
-    ]
-
+    const res = await authFetch('/api/owe-david/transactions')
+    if (!res.ok) throw new Error(`Failed to load transactions (${res.status})`)
+    const data = await res.json()
+    transactions.value = Array.isArray(data) ? data : (Array.isArray(data?.transactions) ? data.transactions : [])
+    recalculateBalances()
     calculateStats()
   } catch (error) {
     console.error('Error loading Owe David data:', error)
+    transactions.value = []
+    calculateStats()
+    toast.error(error?.message || 'Failed to load Owe David data')
   }
 }
 
