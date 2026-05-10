@@ -137,13 +137,18 @@ async function fetchLatestBooking() {
   try {
     const res = await authFetch('/api/bookings')
     if (!res.ok) throw new Error(`Failed to load bookings (${res.status})`)
-    const rows = await res.json()
+    const payload = await res.json()
+    const rows = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.bookings)
+        ? payload.bookings
+        : []
     if (!Array.isArray(rows) || rows.length === 0) {
       booking.value = null
       return
     }
-    const latest = rows.find(r => r?.id || r?.reserve_number) || rows[0]
-    const id = latest?.id || latest?.reserve_number
+    const latest = rows.find(r => r?.charter_id || r?.id || r?.reserve_number) || rows[0]
+    const id = latest?.charter_id || latest?.id || latest?.reserve_number
     if (!id) {
       booking.value = null
       return
