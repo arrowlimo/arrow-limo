@@ -294,7 +294,7 @@ async function onBeverageSearch() {
   // Fetch clients via search endpoint
   let clients = [];
   try {
-    const res = await fetch(`/api/clients/search?query=${encodeURIComponent(query)}&limit=10`);
+    const res = await fetch(`/api/customers/search?query=${encodeURIComponent(query)}&limit=10`);
     if (res.ok) {
       const data = await res.json();
       clients = (data.results || []).map(c => ({

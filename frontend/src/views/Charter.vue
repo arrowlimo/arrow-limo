@@ -171,7 +171,7 @@ function removeBeverage(index) {
 }
 
 onMounted(() => {
-  const id = route.query.id
+  const id = route.query.id || route.params.id
   if (id) fetchBooking(id)
 })
 
