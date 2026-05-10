@@ -176,6 +176,7 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import BookingForm from '../components/BookingForm.vue'
 import { formatDate, dateOnly } from '@/utils/dateFormatter'
+import { authFetch } from '@/utils/authFetch'
 
 export default {
   name: 'Dispatch',
@@ -282,7 +283,7 @@ export default {
 
     async loadBookings() {
       try {
-        const response = await fetch('/api/bookings');
+        const response = await authFetch('/api/bookings');
         const data = await response.json();
         // API returns { bookings: [...] }
         this.bookings = Array.isArray(data) ? data : (data.bookings || []);
@@ -318,7 +319,7 @@ export default {
     
     async loadDrivers() {
       try {
-        const response = await fetch('/api/employees?role=driver');
+        const response = await authFetch('/api/employees?role=driver');
         const data = await response.json();
         this.drivers = data;
       } catch (error) {
@@ -328,7 +329,7 @@ export default {
     
     async loadVehicles() {
       try {
-        const response = await fetch('/api/vehicles');
+        const response = await authFetch('/api/vehicles');
         const data = await response.json();
         this.vehicles = data;
       } catch (error) {

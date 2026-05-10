@@ -99,6 +99,7 @@
 import { ref, onMounted } from 'vue'
 import { toast } from '@/toast/toastStore'
 import { useRoute, useRouter } from 'vue-router'
+import { authFetch } from '@/utils/authFetch'
 
 const route = useRoute()
 const router = useRouter()
@@ -115,7 +116,7 @@ async function fetchBooking(id) {
   loading.value = true
   error.value = ""
   try {
-    const res = await fetch(`/api/bookings/${id}`)
+    const res = await authFetch(`/api/bookings/${id}`)
     if (!res.ok) throw new Error('Booking not found')
     booking.value = await res.json()
     if (booking.value?.charter_id && !multiInvoiceCharterIds.value.trim()) {
@@ -134,7 +135,7 @@ async function loadBeverages() {
   if (!booking.value?.charter_id) return
   bevLoading.value = true
   try {
-    const res = await fetch(`/api/charter/${booking.value.charter_id}/beverage_orders`)
+    const res = await authFetch(`/api/charter/${booking.value.charter_id}/beverage_orders`)
     if (res.ok) {
       const data = await res.json()
       beverages.value = data.beverage_orders || []
@@ -147,12 +148,12 @@ async function saveBeverages() {
   if (!booking.value?.charter_id) return
   try {
     const payloadOrders = beverages.value.filter(b => (b.qty || 0) > 0)
-    await fetch(`/api/charter/${booking.value.charter_id}/beverage_orders`, {
+    await authFetch(`/api/charter/${booking.value.charter_id}/beverage_orders`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ beverage_orders: payloadOrders })
     })
     if (bevInvoiceSeparately.value) {
-      await fetch('/api/beverage_orders/invoice_separately', {
+      await authFetch('/api/beverage_orders/invoice_separately', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ charter_id: booking.value.charter_id, invoice_separately: true })
       })

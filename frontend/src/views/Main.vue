@@ -344,7 +344,7 @@ async function saveBeverageOrders() {
 async function invoiceBeveragesSeparately(separately = true) {
   if (!selectedBeverageTarget.value || selectedBeverageTarget.value.type !== 'charter') return
   try {
-    await fetch('/api/beverage_orders/invoice_separately', {
+    await authFetch('/api/beverage_orders/invoice_separately', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ charter_id: selectedBeverageTarget.value.charter_id, invoice_separately: separately })
@@ -660,7 +660,7 @@ const displayValue = (row, field) => {
 // Fetch reserve numbers for dropdown
 const fetchReserveNumbers = async () => {
   try {
-    const response = await fetch('/api/reserve-numbers')
+    const response = await authFetch('/api/reserve-numbers')
     if (response.ok) {
       reserveNumbers.value = await response.json()
     } else {
