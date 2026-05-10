@@ -311,11 +311,11 @@ LOGIN_HTML = """<!DOCTYPE html>
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    """Serve user login page (works for any user role)"""
+    """Route browser login requests to the SPA login page."""
     session_token = request.cookies.get("session_token")
     if session_token and get_session(session_token):
-        return RedirectResponse(url="/auth/dashboard", status_code=302)
-    return LOGIN_HTML
+        return RedirectResponse(url="/", status_code=302)
+    return RedirectResponse(url="/login", status_code=302)
 
 
 @router.get("/auto-login-check")
@@ -452,7 +452,7 @@ async def dashboard(request: Request):
     session_token = request.cookies.get("session_token")
     session = get_session(session_token)
     if not session:
-        return RedirectResponse(url="/auth/login", status_code=302)
+        return RedirectResponse(url="/login", status_code=302)
 
     employee_id = session["employee_id"]
     user_name = session["name"]
@@ -487,7 +487,7 @@ async def dashboard(request: Request):
 async def logout(response: Response):
     """Logout user and clear session"""
     response.delete_cookie("session_token")
-    return RedirectResponse(url="/auth/login", status_code=302)
+    return RedirectResponse(url="/login", status_code=302)
 
 
 @router.post("/logout")
