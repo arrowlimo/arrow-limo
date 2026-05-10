@@ -4,6 +4,7 @@
 .env.*
 passwords.txt
 .env.backup
+*.secret
 !*.example
 
 # PostgreSQL setup scripts with hardcoded passwords (SECURITY RISK - LOCAL ONLY)
