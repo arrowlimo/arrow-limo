@@ -589,19 +589,13 @@ async def export_t4_xml(tax_year: int, conn=Depends(get_connection)):
             )[:9]
 
             amts = ET.SubElement(slip, "T4_AMT")
-            ET.SubElement(amts, "empt_incamt").text = f"{
-                float(box14 or 0): .2f} "
-            ET.SubElement(amts, "cpp_cntrb_amt").text = f"{
-                float(box16 or 0): .2f} "
-            ET.SubElement(amts, "empe_eip_amt").text = f"{
-                float(box18 or 0): .2f} "
+            ET.SubElement(amts, "empt_incamt").text = f"{float(box14 or 0):.2f}"
+            ET.SubElement(amts, "cpp_cntrb_amt").text = f"{float(box16 or 0):.2f}"
+            ET.SubElement(amts, "empe_eip_amt").text = f"{float(box18 or 0):.2f}"
             if float(box22 or 0) > 0:
-                ET.SubElement(amts, "itx_ddct_amt").text = f"{
-                    float(box22 or 0): .2f} "
-            ET.SubElement(amts, "ei_insu_ern_amt").text = f"{
-                float(box24 or 0): .2f} "
-            ET.SubElement(amts, "cpp_qpp_ern_amt").text = f"{
-                float(box26 or 0): .2f} "
+                ET.SubElement(amts, "itx_ddct_amt").text = f"{float(box22 or 0):.2f}"
+            ET.SubElement(amts, "ei_insu_ern_amt").text = f"{float(box24 or 0):.2f}"
+            ET.SubElement(amts, "cpp_qpp_ern_amt").text = f"{float(box26 or 0):.2f}"
 
             tot_income += float(box14 or 0)
             tot_cpp += float(box16 or 0)
