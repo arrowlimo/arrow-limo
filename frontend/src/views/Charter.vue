@@ -131,6 +131,32 @@ async function fetchBooking(id) {
   }
 }
 
+async function fetchLatestBooking() {
+  loading.value = true
+  error.value = ''
+  try {
+    const res = await authFetch('/api/bookings')
+    if (!res.ok) throw new Error(`Failed to load bookings (${res.status})`)
+    const rows = await res.json()
+    if (!Array.isArray(rows) || rows.length === 0) {
+      booking.value = null
+      return
+    }
+    const latest = rows.find(r => r?.id || r?.reserve_number) || rows[0]
+    const id = latest?.id || latest?.reserve_number
+    if (!id) {
+      booking.value = null
+      return
+    }
+    await fetchBooking(id)
+    router.replace({ path: `/charter/${id}` })
+  } catch (e) {
+    error.value = e.message || String(e)
+  } finally {
+    loading.value = false
+  }
+}
+
 async function loadBeverages() {
   if (!booking.value?.charter_id) return
   bevLoading.value = true
@@ -173,7 +199,11 @@ function removeBeverage(index) {
 
 onMounted(() => {
   const id = route.query.id || route.params.id
-  if (id) fetchBooking(id)
+  if (id) {
+    fetchBooking(id)
+  } else {
+    fetchLatestBooking()
+  }
 })
 
 function openPrint() {
@@ -184,40 +214,47 @@ function openPrint() {
   window.open(url, '_blank')
 }
 
+async function openPdfWithAuth(url) {
+  try {
+    const res = await authFetch(url)
+    if (!res.ok) throw new Error(`Print failed (${res.status})`)
+    const blob = await res.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    window.open(blobUrl, '_blank', 'noopener')
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000)
+  } catch (e) {
+    toast.error(e?.message || 'Failed to open PDF')
+  }
+}
+
 function openSingleInvoicePrint() {
   if (!booking.value?.charter_id) return
-  const url = `/api/charters/${booking.value.charter_id}/invoice-pdf`
-  window.open(url, '_blank')
+  openPdfWithAuth(`/api/charters/${booking.value.charter_id}/invoice-pdf`)
 }
 
 function openBlankRunSheetPrint() {
   if (!booking.value?.charter_id) return
-  const url = `/api/charters/${booking.value.charter_id}/blank-run-sheet-pdf`
-  window.open(url, '_blank')
+  openPdfWithAuth(`/api/charters/${booking.value.charter_id}/blank-run-sheet-pdf`)
 }
 
 function openAirportSignPrint() {
   if (!booking.value?.charter_id) return
-  const url = `/api/charters/${booking.value.charter_id}/airport-sign-pdf`
-  window.open(url, '_blank')
+  openPdfWithAuth(`/api/charters/${booking.value.charter_id}/airport-sign-pdf`)
 }
 
 function openDriverManifestPrint() {
   if (!booking.value?.charter_id) return
-  const url = `/api/charters/${booking.value.charter_id}/driver-manifest-pdf`
-  window.open(url, '_blank')
+  openPdfWithAuth(`/api/charters/${booking.value.charter_id}/driver-manifest-pdf`)
 }
 
 function openDispatchOrderPrint() {
   if (!booking.value?.charter_id) return
-  const url = `/api/charters/${booking.value.charter_id}/beverage-dispatch-pdf`
-  window.open(url, '_blank')
+  openPdfWithAuth(`/api/charters/${booking.value.charter_id}/beverage-dispatch-pdf`)
 }
 
 function openGuestBeverageInvoicePrint() {
   if (!booking.value?.charter_id) return
-  const url = `/api/charters/${booking.value.charter_id}/beverage-guest-invoice-pdf`
-  window.open(url, '_blank')
+  openPdfWithAuth(`/api/charters/${booking.value.charter_id}/beverage-guest-invoice-pdf`)
 }
 
 function openMultiInvoicePrint() {
@@ -236,7 +273,7 @@ function openMultiInvoicePrint() {
     charter_ids: uniqueIds.join(','),
     inline: 'true'
   })
-  window.open(`/api/charters/multi-invoice-pdf?${params.toString()}`, '_blank')
+  openPdfWithAuth(`/api/charters/multi-invoice-pdf?${params.toString()}`)
 }
 </script>
 
