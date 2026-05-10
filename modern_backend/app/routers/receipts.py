@@ -367,8 +367,7 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
         params.append("api_user")
 
         params.append(receipt_id)
-        query = f"UPDATE receipts SET {
-            ', '.join(updates)}  WHERE receipt_id = %s"
+        query = f"UPDATE receipts SET {', '.join(updates)} WHERE receipt_id = %s"
 
         cur.execute(query, params)
 
