@@ -37,6 +37,7 @@ from .routers import file_storage as file_storage_router
 from .routers import inspection_forms as inspection_forms_router
 from .routers import invoices as invoices_router
 from .routers import metrics as metrics_router
+from .routers import owe_david as owe_david_router
 from .routers import payments as payments_router
 from .routers import payroll_compliance as payroll_compliance_router
 from .routers import payroll_tax as payroll_tax_router
@@ -236,6 +237,9 @@ app.include_router(
 app.include_router(vehicles_router.router, dependencies=[ops_roles])
 app.include_router(employees_router.router, dependencies=[admin_roles])
 app.include_router(customers_router.router, dependencies=[authenticated_user])
+app.include_router(
+    owe_david_router.router, dependencies=[authenticated_user]
+)  # David account tracking
 app.include_router(pricing_router.router, dependencies=[ops_roles])
 app.include_router(table_management_router.router, dependencies=[admin_roles])
 app.include_router(

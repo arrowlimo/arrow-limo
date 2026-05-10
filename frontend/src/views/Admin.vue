@@ -743,7 +743,7 @@ async function loadSystemData() {
   try {
     const [bookingsRes, customersRes, employeesRes] = await Promise.all([
       authFetch('/api/bookings'),
-      authFetch('/api/customers'),
+      authFetch('/api/customers/'),
       authFetch('/api/employees/')
     ])
 
