@@ -146,6 +146,7 @@ import { ref, computed, onMounted } from 'vue'
 import { toast } from '@/toast/toastStore'
 import VehicleForm from '../components/VehicleForm.vue'
 import FileUpload from '@/components/FileUpload.vue'
+import { authFetch } from '@/utils/authFetch'
 
 const showForm = ref(false)
 const showFiles = ref(false)
@@ -163,7 +164,7 @@ const stats = ref({
 
 async function loadVehicles() {
   try {
-    const res = await fetch('/api/vehicles')
+    const res = await authFetch('/api/vehicles')
     if (res.ok) {
       vehicles.value = await res.json()
       calculateStats()
