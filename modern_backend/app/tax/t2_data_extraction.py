@@ -688,8 +688,7 @@ def main():
         )
         print(
             f"  Accounts Receivable:   "
-            f"${package['balance_sheet']['assets']
-             ['accounts_receivable']:>15,.2f}"
+            f"${package['balance_sheet']['assets']['accounts_receivable']:>15,.2f}"
         )
         print(
             f"  Total Assets:          "
@@ -697,13 +696,11 @@ def main():
         )
         print(
             f"  Accounts Payable:      "
-            f"${package['balance_sheet']['liabilities']
-             ['accounts_payable']:>15,.2f}"
+            f"${package['balance_sheet']['liabilities']['accounts_payable']:>15,.2f}"
         )
         print(
             f"  Retained Earnings:     "
-            f"${package['balance_sheet']['equity']
-             ['retained_earnings']:>15,.2f}"
+            f"${package['balance_sheet']['equity']['retained_earnings']:>15,.2f}"
         )
 
         if package["tax_rates"]:
