@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y \
 # Install Node.js for frontend build
 RUN apt-get update && apt-get install -y nodejs npm && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY requirements.txt .
+# Copy backend requirements
+COPY modern_backend/requirements.txt ./requirements.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
