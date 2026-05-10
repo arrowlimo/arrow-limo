@@ -3375,11 +3375,11 @@ def get_company_snapshot(
             """
             SELECT
                 COUNT(*) as charter_count,
-                COALESCE(SUM(gross_amount), 0) as total_revenue,
+                COALESCE(SUM(grand_total), 0) as total_revenue,
                 COALESCE(SUM(paid_amount), 0) as paid_revenue,
-                COALESCE(SUM(balance), 0) as outstanding_revenue
+                COALESCE(SUM(balance_owing), 0) as outstanding_revenue
             FROM charters
-            WHERE pickup_date BETWEEN %s AND %s
+            WHERE charter_date BETWEEN %s AND %s
         """,
             (start_dt.date(), end_dt.date()),
         )

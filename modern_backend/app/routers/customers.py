@@ -71,15 +71,15 @@ def list_all_customers():
             SELECT 
                 cl.client_id,
                 cl.client_name,
-                cl.client_type,
-                cl.phone,
+                cl.account_type,
+                cl.primary_phone,
                 cl.email,
                 cl.company_name,
                 cl.is_gst_exempt,
                 MAX(c.charter_date) as last_booking_date
             FROM clients cl
             LEFT JOIN charters c ON cl.client_id = c.client_id
-            GROUP BY cl.client_id, cl.client_name, cl.client_type, cl.phone, 
+            GROUP BY cl.client_id, cl.client_name, cl.account_type, cl.primary_phone, 
                      cl.email, cl.company_name, cl.is_gst_exempt
             ORDER BY cl.client_name
             """)
