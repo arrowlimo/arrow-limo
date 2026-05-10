@@ -15,6 +15,12 @@ module.exports = defineConfig({
         changeOrigin: true,
         ws: false,
         pathRewrite: { '^/api': '/api' }
+      },
+      '/auth': {
+        target: 'http://127.0.0.1:8001',
+        changeOrigin: true,
+        ws: false,
+        pathRewrite: { '^/auth': '/auth' }
       }
     }
   }
