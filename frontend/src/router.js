@@ -35,6 +35,7 @@ const routes = [
   },
   { path: '/dispatch', component: Dispatch, meta: { requiresAuth: true } },
   { path: '/charter', component: Charter, meta: { requiresAuth: true } },
+  { path: '/charter/:id', component: Charter, meta: { requiresAuth: true } },
   { path: '/quote-generator', component: QuoteGenerator, meta: { requiresAuth: true } },
   { path: '/vehicles', component: Vehicles, meta: { requiresAuth: true } },
   { path: '/employees', component: Employees, meta: { requiresAuth: true } },
