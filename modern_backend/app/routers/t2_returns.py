@@ -685,8 +685,10 @@ async def update_t2_return(
         updates.append("updated_at = NOW()")
         params.append(return_id)
 
-        query = f"UPDATE t2_return_metadata SET {
-            ', '.join(updates)}  WHERE return_id = %s"
+        query = (
+            "UPDATE t2_return_metadata SET "
+            f"{', '.join(updates)} WHERE return_id = %s"
+        )
         cur.execute(query, params)
 
         conn.commit()
