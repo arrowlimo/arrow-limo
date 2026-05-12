@@ -1,11 +1,49 @@
+from datetime import date, timedelta
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import cursor, get_connection
 
 router = APIRouter(prefix="/api", tags=["charges"])
+
+
+def _audit_actor(request: Request | None) -> AuditEventActor:
+    if request is None:
+        return AuditEventActor(actor_type="system", username="system")
+    username = request.headers.get("X-User-Name") or request.headers.get(
+        "X-User"
+    )
+    role = request.headers.get("X-User-Role")
+    user_id = request.headers.get("X-User-Id")
+    if not username:
+        username = request.headers.get("X-Forwarded-User")
+    return AuditEventActor(
+        actor_type="user" if username else "service",
+        user_id=user_id,
+        username=username,
+        role=role,
+    )
+
+
+def _load_charge_snapshot(cur, charge_id: int) -> dict[str, Any] | None:
+    cur.execute(
+        """
+        SELECT charge_id, charter_id, charge_type, amount, description,
+               created_at
+        FROM charter_charges
+        WHERE charge_id = %s
+        """,
+        (charge_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return None
+    cols = [d[0] for d in (cur.description or [])]
+    return dict(zip(cols, row, strict=False))
 
 
 class ChargeCreate(BaseModel):
@@ -40,7 +78,11 @@ def list_charges(charter_id: int) -> dict[str, Any]:
 
 
 @router.post("/charters/{charter_id}/charges", status_code=201)
-def create_charge(charter_id: int, body: ChargeCreate) -> dict[str, Any]:
+def create_charge(
+    charter_id: int,
+    body: ChargeCreate,
+    request: Request,
+) -> dict[str, Any]:
     with cursor() as cur:
         cur.execute(
             """
@@ -57,17 +99,45 @@ def create_charge(charter_id: int, body: ChargeCreate) -> dict[str, Any]:
             raise HTTPException(status_code=500, detail="insert_failed")
         cols = [d[0] for d in (cur.description or [])]
         item = dict(zip(cols, row, strict=False))
+
+        ensure_audit_storage(cur.connection)
+        record_audit_event(
+            cur.connection,
+            AuditEvent(
+                module="charges",
+                entity_type="charter_charge",
+                entity_id=str(item["charge_id"]),
+                action="create_charge",
+                source="api",
+                actor=_audit_actor(request),
+                before=None,
+                after=item,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Charter charge created",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
     return {"charge": item}
 
 
 @router.patch("/charges/{charge_id}")
-def update_charge(charge_id: int, body: ChargeUpdate) -> dict[str, Any]:
+def update_charge(
+    charge_id: int,
+    body: ChargeUpdate,
+    request: Request,
+) -> dict[str, Any]:
     updates = {k: v for k, v in body.model_dump(exclude_none=True).items()}
     if not updates:
         raise HTTPException(status_code=400, detail="no_fields")
     sets = ", ".join([f"{k} = %s" for k in updates])
     values = [*list(updates.values()), charge_id]
     with cursor() as cur:
+        before_snapshot = _load_charge_snapshot(cur, charge_id)
+        if not before_snapshot:
+            raise HTTPException(status_code=404, detail="not_found")
+
         cur.execute(
             f"UPDATE charter_charges SET {sets} WHERE charge_id = %s"
             f"RETURNING charge_id, charter_id, charge_type, amount,"
@@ -79,18 +149,62 @@ def update_charge(charge_id: int, body: ChargeUpdate) -> dict[str, Any]:
             raise HTTPException(status_code=404, detail="not_found")
         cols = [d[0] for d in (cur.description or [])]
         item = dict(zip(cols, row, strict=False))
+
+        ensure_audit_storage(cur.connection)
+        record_audit_event(
+            cur.connection,
+            AuditEvent(
+                module="charges",
+                entity_type="charter_charge",
+                entity_id=str(charge_id),
+                action="update_charge",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=item,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Charter charge updated",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
     return {"charge": item}
 
 
 @router.delete("/charges/{charge_id}")
-def delete_charge(charge_id: int) -> dict[str, Any]:
+def delete_charge(charge_id: int, request: Request) -> dict[str, Any]:
     with cursor() as cur:
+        before_snapshot = _load_charge_snapshot(cur, charge_id)
+        if not before_snapshot:
+            raise HTTPException(status_code=404, detail="not_found")
+
         cur.execute(
             "DELETE FROM charter_charges WHERE charge_id = %s", (charge_id,)
         )
         deleted = cur.rowcount
         if not deleted:
             raise HTTPException(status_code=404, detail="not_found")
+
+        ensure_audit_storage(cur.connection)
+        record_audit_event(
+            cur.connection,
+            AuditEvent(
+                module="charges",
+                entity_type="charter_charge",
+                entity_id=str(charge_id),
+                action="delete_charge",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=None,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Charter charge deleted",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
     return {"deleted": True}
 
 

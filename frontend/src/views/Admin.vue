@@ -759,7 +759,7 @@ async function loadSystemData() {
     }
 
     recentActivity.value = []
-    users.value = []
+    if (!Array.isArray(users.value)) users.value = []
     logs.value = []
   } catch (error) {
     console.error('Error loading system data:', error)
@@ -770,7 +770,7 @@ async function loadSystemData() {
       monthlyRevenue: 0
     }
     recentActivity.value = []
-    users.value = []
+    if (!Array.isArray(users.value)) users.value = []
     logs.value = []
     toast.error(error?.message || 'Failed to load admin data')
   }
@@ -792,6 +792,7 @@ function addUser() {
   }
   
   users.value.push(user)
+  localStorage.setItem('admin_users', JSON.stringify(users.value))
   cancelAddUser()
   toast.success('User added successfully!')
   busy.value.addUser = false
@@ -808,9 +809,21 @@ function cancelAddUser() {
 }
 
 function editUser(user) {
-  console.log('Edit user:', user)
-  // TODO: Implement user editing
-  toast.info('User editing not yet implemented')
+  const username = prompt('Username', user.username || '')
+  if (username === null) return
+  const email = prompt('Email', user.email || '')
+  if (email === null) return
+  const role = prompt('Role (admin/manager/dispatcher/driver/accountant)', user.role || '')
+  if (role === null) return
+  const department = prompt('Department', user.department || '')
+  if (department === null) return
+
+  user.username = username.trim()
+  user.email = email.trim()
+  user.role = role.trim() || user.role
+  user.department = department.trim()
+  localStorage.setItem('admin_users', JSON.stringify(users.value))
+  toast.success('User updated successfully')
 }
 
 function toggleUserStatus(user) {
@@ -818,6 +831,7 @@ function toggleUserStatus(user) {
   busyRow.value[user.id] = true
   setTimeout(() => {
     user.status = user.status === 'active' ? 'inactive' : 'active'
+    localStorage.setItem('admin_users', JSON.stringify(users.value))
     toast.success(`User ${user.username} ${user.status === 'active' ? 'enabled' : 'disabled'}`)
     busyRow.value[user.id] = false
   }, 400)
@@ -828,6 +842,7 @@ function deleteUser(user) {
     busyRow.value[user.id] = true
     setTimeout(() => {
       users.value = users.value.filter(u => u.id !== user.id)
+      localStorage.setItem('admin_users', JSON.stringify(users.value))
       toast.success('User deleted successfully!')
       busyRow.value[user.id] = false
     }, 400)
@@ -835,8 +850,7 @@ function deleteUser(user) {
 }
 
 function saveSettings() {
-  console.log('Save settings:', settings.value)
-  // TODO: Save to backend
+  localStorage.setItem('admin_settings', JSON.stringify(settings.value))
   toast.success('Settings saved successfully!')
 }
 
@@ -862,53 +876,116 @@ function generateReport(reportType) {
   const key = `report_${reportType}`
   if (busy.value[key]) return
   busy.value[key] = true
-  console.log('Generate report:', reportType)
-  setTimeout(() => {
-    toast.info(`${reportType} report generation not yet implemented`)
+  try {
+    const payload = {
+      report_type: reportType,
+      generated_at: new Date().toISOString(),
+      system_stats: systemStats.value,
+      users_count: users.value.length,
+      settings: settings.value
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `${reportType}-report-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
+    toast.success(`${reportType} report generated`)
+  } finally {
     busy.value[key] = false
-  }, 600)
+  }
 }
 
 function createBackup() {
   if (busy.value.createBackup) return
   busy.value.createBackup = true
-  console.log('Creating backup...')
-  setTimeout(() => {
-    toast.info('Backup creation not yet implemented')
+  try {
+    const backup = {
+      created_at: new Date().toISOString(),
+      users: users.value,
+      settings: settings.value,
+      logs: logs.value,
+      recent_activity: recentActivity.value
+    }
+    const text = JSON.stringify(backup)
+    localStorage.setItem('admin_backup_latest', text)
+    lastBackup.value = new Date().toLocaleString()
+    backupSize.value = `${(new Blob([text]).size / 1024).toFixed(1)} KB`
+    toast.success('Backup created successfully')
+  } catch (error) {
+    toast.error(error?.message || 'Failed to create backup')
+  } finally {
     busy.value.createBackup = false
-  }, 1000)
+  }
 }
 
 function restoreBackup() {
   if (confirm('Are you sure you want to restore from backup? This will overwrite current data.')) {
     if (busy.value.restoreBackup) return
     busy.value.restoreBackup = true
-    console.log('Restoring backup...')
-    setTimeout(() => {
-      toast.info('Backup restoration not yet implemented')
+    try {
+      const backupText = localStorage.getItem('admin_backup_latest')
+      if (!backupText) throw new Error('No local backup found')
+      const backup = JSON.parse(backupText)
+      users.value = Array.isArray(backup.users) ? backup.users : users.value
+      settings.value = backup.settings ? { ...settings.value, ...backup.settings } : settings.value
+      logs.value = Array.isArray(backup.logs) ? backup.logs : logs.value
+      recentActivity.value = Array.isArray(backup.recent_activity) ? backup.recent_activity : recentActivity.value
+      localStorage.setItem('admin_users', JSON.stringify(users.value))
+      localStorage.setItem('admin_settings', JSON.stringify(settings.value))
+      toast.success('Backup restored successfully')
+    } catch (error) {
+      toast.error(error?.message || 'Failed to restore backup')
+    } finally {
       busy.value.restoreBackup = false
-    }, 1200)
+    }
   }
 }
 
 function downloadBackup() {
   if (busy.value.downloadBackup) return
   busy.value.downloadBackup = true
-  console.log('Downloading backup...')
-  setTimeout(() => {
-    toast.info('Backup download not yet implemented')
+  try {
+    const backupText = localStorage.getItem('admin_backup_latest')
+    if (!backupText) throw new Error('No backup available to download')
+    const blob = new Blob([backupText], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `admin-backup-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
+    toast.success('Backup downloaded')
+  } catch (error) {
+    toast.error(error?.message || 'Failed to download backup')
+  } finally {
     busy.value.downloadBackup = false
-  }, 800)
+  }
 }
 
 function runMaintenance(taskType) {
   if (busy.value.maintenance[taskType]) return
   busy.value.maintenance[taskType] = true
-  console.log('Running maintenance task:', taskType)
-  setTimeout(() => {
-    toast.info(`${taskType} maintenance task not yet implemented`)
+  try {
+    if (taskType === 'cleanup') {
+      logs.value = logs.value.slice(0, 200)
+    }
+    if (taskType === 'logs') {
+      refreshLogs()
+    }
+    if (taskType === 'verify') {
+      const errors = []
+      if (!settings.value.companyName) errors.push('companyName missing')
+      if (!settings.value.notificationEmail) errors.push('notificationEmail missing')
+      if (errors.length) throw new Error(`Verification failed: ${errors.join(', ')}`)
+    }
+    toast.success(`${taskType} maintenance task completed`)
+  } catch (error) {
+    toast.error(error?.message || `Failed maintenance task: ${taskType}`)
+  } finally {
     busy.value.maintenance[taskType] = false
-  }, 900)
+  }
 }
 
 function refreshLogs() {
@@ -936,21 +1013,42 @@ function clearLogs() {
 function exportUsers() {
   if (busy.value.exportUsers) return
   busy.value.exportUsers = true
-  console.log('Exporting users...')
-  setTimeout(() => {
-    toast.info('User export not yet implemented')
+  try {
+    const headers = ['id', 'username', 'email', 'role', 'department', 'status', 'last_login']
+    const rows = [headers.join(',')]
+    for (const user of users.value) {
+      rows.push(headers.map((h) => `"${String(user?.[h] ?? '').replace(/"/g, '""')}"`).join(','))
+    }
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `users-export-${new Date().toISOString().slice(0, 10)}.csv`
+    anchor.click()
+    URL.revokeObjectURL(url)
+    toast.success('Users exported')
+  } finally {
     busy.value.exportUsers = false
-  }, 700)
+  }
 }
 
 function loadUsers() {
   if (busy.value.loadUsers) return
   busy.value.loadUsers = true
-  console.log('Loading users...')
-  setTimeout(() => {
-    loadSystemData()
-    busy.value.loadUsers = false
-  }, 400)
+  try {
+    const saved = localStorage.getItem('admin_users')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      users.value = Array.isArray(parsed) ? parsed : []
+    }
+  } catch (error) {
+    console.error('Failed to load local users:', error)
+  } finally {
+    setTimeout(() => {
+      loadSystemData()
+      busy.value.loadUsers = false
+    }, 150)
+  }
 }
 
 function formatRole(role) {
@@ -974,6 +1072,19 @@ function formatDate(dateString) {
 }
 
 onMounted(() => {
+  try {
+    const savedSettings = localStorage.getItem('admin_settings')
+    if (savedSettings) {
+      settings.value = { ...settings.value, ...JSON.parse(savedSettings) }
+    }
+    const savedUsers = localStorage.getItem('admin_users')
+    if (savedUsers) {
+      const parsedUsers = JSON.parse(savedUsers)
+      users.value = Array.isArray(parsedUsers) ? parsedUsers : []
+    }
+  } catch (error) {
+    console.error('Failed to restore admin local state:', error)
+  }
   loadSystemData()
   loadPdfLayoutSettings()
   loadPdfLayoutSchema()

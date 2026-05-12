@@ -1,8 +1,11 @@
 import contextlib
+from datetime import date
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(prefix="/receipts", tags=["receipts-split"])
@@ -21,11 +24,22 @@ def _choose_amount_and_column(row: dict) -> tuple[float, str]:
     return 0.0, "expense"
 
 
+def _audit_actor(request: Request) -> AuditEventActor:
+    user = getattr(request.state, "current_user", None) or {}
+    return AuditEventActor(
+        actor_type="user" if user else "service",
+        user_id=str(user.get("user_id") or user.get("employee_id") or "") or None,
+        username=user.get("username") or user.get("name"),
+        role=user.get("role"),
+    )
+
+
 @router.post("/{receipt_id}/auto-split")
-def auto_split_receipt(receipt_id: int, req: SplitRequest):
+def auto_split_receipt(receipt_id: int, req: SplitRequest, request: Request):
     conn = get_connection()
     try:
         cur = conn.cursor()
+        ensure_audit_storage(conn)
         cur.execute(
             """
             SELECT receipt_id, vendor_name, canonical_vendor,
@@ -137,6 +151,32 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest):
             f"UPDATE receipts SET {amt_col}=%s, parent_receipt_id=%s WHERE"
             f"receipt_id=%s",
             (base, receipt_id, receipt_id),
+        )
+
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="receipts_split",
+                entity_type="receipt",
+                entity_id=str(receipt_id),
+                action="auto_split_receipt",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={
+                    "base": base,
+                    "fee": fee,
+                    "fee_receipt_id": fee_id,
+                    "amount_column": amt_col,
+                },
+                evidence_links=[f"receipts:{receipt_id}"]
+                + ([f"receipts:{fee_id}"] if fee_id else []),
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="Receipt auto-split applied",
+            ),
+            ensure_storage=False,
+            commit=False,
         )
         conn.commit()
         return {

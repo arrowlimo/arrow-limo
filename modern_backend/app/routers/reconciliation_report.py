@@ -4,15 +4,35 @@ Displays all banking transactions linked to receipts with easy editing
 """
 
 import logging
-from datetime import date
+from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(prefix="/api/reconciliation", tags=["reconciliation"])
 logger = logging.getLogger(__name__)
+
+
+def _audit_actor(request: Request | None) -> AuditEventActor:
+    if request is None:
+        return AuditEventActor(actor_type="system", username="system")
+    username = request.headers.get("X-User-Name") or request.headers.get(
+        "X-User"
+    )
+    role = request.headers.get("X-User-Role")
+    user_id = request.headers.get("X-User-Id")
+    if not username:
+        username = request.headers.get("X-Forwarded-User")
+    return AuditEventActor(
+        actor_type="user" if username else "service",
+        user_id=user_id,
+        username=username,
+        role=role,
+    )
 
 
 class ReconciliationLine(BaseModel):
@@ -190,7 +210,10 @@ async def get_banking_receipt_reconciliation(
 
 @router.put("/link-banking-receipt")
 async def link_banking_to_receipt(
-    banking_id: int, receipt_id: int, conn=Depends(get_connection)
+    banking_id: int,
+    receipt_id: int,
+    request: Request,
+    conn=Depends(get_connection),
 ):
     """Link a banking transaction to a receipt"""
     try:
@@ -204,6 +227,29 @@ async def link_banking_to_receipt(
             WHERE receipt_id = %s
         """,
             (banking_id, receipt_id),
+        )
+
+        ensure_audit_storage(conn)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="reconciliation_report",
+                entity_type="receipt",
+                entity_id=str(receipt_id),
+                action="link_banking_to_receipt",
+                source="api",
+                actor=_audit_actor(request),
+                before={"receipt_id": receipt_id},
+                after={
+                    "receipt_id": receipt_id,
+                    "banking_transaction_id": banking_id,
+                },
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Linked banking transaction to receipt",
+            ),
+            ensure_storage=False,
+            commit=False,
         )
 
         conn.commit()
@@ -223,7 +269,11 @@ async def link_banking_to_receipt(
 
 @router.put("/update-receipt-inline")
 async def update_receipt_field(
-    receipt_id: int, field: str, value: str, conn=Depends(get_connection)
+    receipt_id: int,
+    field: str,
+    value: str,
+    request: Request,
+    conn=Depends(get_connection),
 ):
     """Update a receipt field inline from report"""
     try:
@@ -252,6 +302,31 @@ async def update_receipt_field(
         """
 
         cur.execute(update_sql, (value, receipt_id))
+
+        ensure_audit_storage(conn)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="reconciliation_report",
+                entity_type="receipt",
+                entity_id=str(receipt_id),
+                action="update_receipt_field_inline",
+                source="api",
+                actor=_audit_actor(request),
+                before={"receipt_id": receipt_id, "field": field},
+                after={
+                    "receipt_id": receipt_id,
+                    "field": field,
+                    "value": value,
+                },
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Receipt inline field update",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+
         conn.commit()
         cur.close()
 

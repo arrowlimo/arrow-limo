@@ -64,15 +64,9 @@ class CharterPDFForm:
         y = self._draw_beverages_and_notes(pdf, page_left, content_width, y)
         y = self._draw_driver_and_vehicle(pdf, page_left, content_width, y)
 
-        # Keep policies readable for route-heavy charters by moving them
-        # to a fresh page when remaining space is too small.
-        if y < 220:
-            pdf.showPage()
-            y = self.height - 0.45 * inch
-
-        y = self._draw_policies_terms(pdf, page_left, content_width, y - 6)
+        # Run sheet should end with signature only (no policies block).
         pdf.setFont("Helvetica", 8)
-        signature_y = max(18, y - 10)
+        signature_y = 0.45 * inch
         pdf.drawString(
             page_left + 5,
             signature_y,
@@ -1621,6 +1615,80 @@ def generate_charter_pdf(charter_data):
     return form.generate()
 
 
+def _parse_route_sort_minutes(value: Any) -> int | None:
+    """Parse route stop times into minutes since midnight for stable ordering."""
+    if value is None:
+        return None
+
+    if hasattr(value, "hour") and hasattr(value, "minute"):
+        try:
+            return int(value.hour) * 60 + int(value.minute)
+        except Exception:
+            return None
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    sample = text.replace("T", " ")
+    patterns = (
+        "%H:%M:%S",
+        "%H:%M",
+        "%I:%M:%S %p",
+        "%I:%M %p",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+    )
+    for pattern in patterns:
+        try:
+            dt = datetime.strptime(sample, pattern)
+            return dt.hour * 60 + dt.minute
+        except Exception:
+            continue
+
+    if " " in sample:
+        trailing = sample.rsplit(" ", 1)[-1]
+        for pattern in ("%H:%M:%S", "%H:%M", "%I:%M:%S %p", "%I:%M %p"):
+            try:
+                dt = datetime.strptime(trailing, pattern)
+                return dt.hour * 60 + dt.minute
+            except Exception:
+                continue
+
+    return None
+
+
+def _sorted_routes_for_itinerary(routes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Sort itinerary rows chronologically, with sequence/index as stable fallback."""
+
+    def _sequence(route: dict[str, Any], fallback: int) -> int:
+        try:
+            return int(route.get("route_sequence") or fallback)
+        except Exception:
+            return fallback
+
+    sorted_pairs = sorted(
+        enumerate(routes),
+        key=lambda pair: (
+            _parse_route_sort_minutes(
+                pair[1].get("stop_time")
+                or pair[1].get("pickup_time")
+                or pair[1].get("dropoff_time")
+            )
+            is None,
+            _parse_route_sort_minutes(
+                pair[1].get("stop_time")
+                or pair[1].get("pickup_time")
+                or pair[1].get("dropoff_time")
+            )
+            or 0,
+            _sequence(pair[1], pair[0]),
+            pair[0],
+        ),
+    )
+    return [route for _idx, route in sorted_pairs]
+
+
 class ConfirmationLetterPDF:
     """
     Generate a client-facing confirmation letter that mirrors the legacy
@@ -1792,13 +1860,17 @@ class ConfirmationLetterPDF:
         if not v:
             return ""
         try:
-            s = str(v)
-            if ":" in s:
+            s = str(v).strip()
+            if not s:
+                return ""
+            # Already 24h time string like HH:MM(:SS)
+            if ":" in s and s[:2].isdigit():
                 parts = s.split(":")
-                h, m = int(parts[0]), int(parts[1])
-                suffix = "AM" if h < 12 else "PM"
-                h12 = h % 12 or 12
-                return f"{h12}:{m:02d}:00 {suffix}"
+                if len(parts) >= 2:
+                    return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+            # Fallback for datetime-like strings
+            dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+            return dt.strftime("%H:%M")
         except Exception:
             pass
         return str(v)
@@ -2108,7 +2180,7 @@ class ConfirmationLetterPDF:
         pdf.setFont(self._f(bold=True), 9.5)
         pdf.drawString(lm, y, "Itinerary:")
         y -= 13
-        routes = d.get("routes") or []
+        routes = _sorted_routes_for_itinerary(d.get("routes") or [])
         if routes:
             pdf.setFont("Helvetica", 9)
             charter_pickup = self._fmt_time(d.get("pickup_time"))
@@ -2124,14 +2196,19 @@ class ConfirmationLetterPDF:
                 # Clean embedded carriage returns / newlines from address
                 addr = " ".join(str(raw_addr).replace("\r", "\n").split("\n")).strip()
                 t = self._fmt_time(route.get("stop_time"))
+                at_by = self._s(route.get("at_by"), "at").strip().lower() or "at"
+                notes = self._s(route.get("route_notes"), "")
                 # Fall back to charter-level times when stop_time is blank
                 if not t:
                     if idx == 0:
                         t = charter_pickup
                     elif idx == len(routes) - 1:
                         t = charter_dropoff
-                t_part = f"{t},  " if t else ""
-                line = f"{etype},  {t_part}{addr}"
+                line = f"{etype},  {addr}"
+                if t:
+                    line += f",  {at_by} {t}"
+                if notes:
+                    line += f",  Notes: {notes}"
                 lines = simpleSplit(line, self._f(), 9, cw - 12)
                 for ln in lines:
                     pdf.drawString(lm + 12, y, ln)
@@ -2159,18 +2236,45 @@ class ConfirmationLetterPDF:
         col_widths = [3.9 * inch, 0.85 * inch, 0.9 * inch, 0.85 * inch]
 
         _unit_map = {
-            "service": "Flat", "flat": "Flat", "hourly": "Hour", "hour": "Hour",
+            "service": "Flat", "flat": "Flat", "hourly": "Hourly", "hour": "Hourly",
             "fuel_surcharge": "Hour", "fuel": "Flat", "gratuity": "Flat",
             "tax": "%", "gst": "%", "hst": "%", "misc": "Flat",
         }
         table_data = [["Description", "Unit", "Rate", "Amount"]]
         for ch in charges:
             desc = self._s(ch.get("description") or ch.get("charge_type"), "")
+            meta_match = re.search(
+                r"\s\[calc:(Fixed|Percent|Hourly):([0-9.]+)\]$",
+                desc,
+                re.IGNORECASE,
+            )
+            calc_type = (meta_match.group(1).lower() if meta_match else "")
+            if meta_match:
+                desc = re.sub(
+                    r"\s\[calc:(Fixed|Percent|Hourly):([0-9.]+)\]$",
+                    "",
+                    desc,
+                    flags=re.IGNORECASE,
+                ).strip()
             ct_raw = str(ch.get("charge_type") or "").lower().strip()
             unit = _unit_map.get(ct_raw, "Flat")
             rate_val = ch.get("rate") or 0
+            amount_val = ch.get("amount") or 0
+            if calc_type == "hourly":
+                unit = "Hourly"
+            elif calc_type == "percent":
+                unit = "%"
+            elif ct_raw in {"", "service", "flat"}:
+                try:
+                    rv = float(rate_val or 0)
+                    av = float(amount_val or 0)
+                    # If amount and rate differ, this is usually a per-hour style row.
+                    if rv > 0 and abs(av - rv) > 0.009:
+                        unit = "Hourly"
+                except Exception:
+                    pass
             rate = self._fmt_currency(rate_val) if float(rate_val) != 0 else ""
-            amt = self._fmt_currency(ch.get("amount") or 0)
+            amt = self._fmt_currency(amount_val)
             if not desc and amt == "0.00":
                 continue
             table_data.append([desc, unit, rate, amt])
@@ -2327,6 +2431,154 @@ def generate_confirmation_letter_pdf(charter_data: dict[str, Any]) -> bytes:
     return ConfirmationLetterPDF(charter_data).generate()
 
 
+class QuoteLetterPDF(ConfirmationLetterPDF):
+    """Generate a quote-style letter that mirrors confirmation styling without policy clauses."""
+
+    def generate(self) -> bytes:
+        self._register_fonts()
+        pdf = canvas.Canvas(self.buffer, pagesize=LETTER)
+        d = self.d
+        lm, cw = self.lm, self.cw
+
+        y = self.height - self.tm
+        y = self._draw_letterhead(pdf, y)
+        y -= 8
+
+        client = self._s(
+            d.get("client_display_name") or d.get("client_name"),
+            "Client",
+        )
+        quote_no = self._s(d.get("reserve_number") or d.get("charter_id"), "QUOTE")
+        charter_date = self._fmt_date(d.get("charter_date"))
+        pickup_time = self._fmt_time(d.get("pickup_time") or d.get("actual_pickup_time"))
+        dropoff_time = self._fmt_time(d.get("dropoff_time") or d.get("actual_dropoff_time"))
+        vehicle = self._s(
+            d.get("vehicle_description") or d.get("vehicle") or d.get("vehicle_type"),
+            "TBD",
+        )
+
+        def ensure_space(min_y: float):
+            nonlocal y
+            if y < min_y:
+                self._draw_footer(pdf, 1)
+                pdf.showPage()
+                y = self.height - self.tm
+                y = self._draw_letterhead(pdf, y)
+                y -= 8
+
+        pdf.setFont(self._f(), 9.5)
+        pdf.drawString(lm, y, f"Dear {client}:")
+        y -= 14
+
+        intro = (
+            "Thank you for requesting a quote from Arrow Limousine & Sedan Services Ltd. "
+            "And Party Bus Red Deer. We have the following transportation options for you:"
+        )
+        y = self._draw_wrapped(pdf, lm, y, cw, intro, size=9.5, lh=13)
+        y -= 4
+
+        label_txt = "Your Quote Number is "
+        note_txt = "Please quote this number when calling us."
+        pdf.setFont(self._f(), 9.5)
+        pdf.drawString(lm, y, label_txt)
+        lbl_w = pdfmetrics.stringWidth(label_txt, self._f(), 9.5)
+        pdf.setFont(self._f(bold=True), 9.5)
+        pdf.drawString(lm + lbl_w, y, quote_no)
+        q_w = pdfmetrics.stringWidth(quote_no, self._f(bold=True), 9.5)
+        pdf.setFont(self._f(italic=True), 8.5)
+        pdf.drawString(lm + lbl_w + q_w + 8, y, note_txt)
+        y -= 14
+
+        pdf.setFont(self._f(), 9.5)
+        date_line = f"Date for the requested charter: {charter_date}"
+        if pickup_time or dropoff_time:
+            date_line += f" at Time: {pickup_time or '-'} to {dropoff_time or '-'}"
+        pdf.drawString(lm, y, date_line)
+        y -= 13
+        pdf.drawString(lm, y, f"Type of Vehicle: {vehicle}")
+        y -= 16
+
+        options = d.get("quote_options") or []
+        default_itinerary = d.get("quote_itinerary_lines") or []
+        if not options:
+            options = [
+                {
+                    "title": "Suggested Itinerary: 1",
+                    "itinerary_lines": default_itinerary,
+                    "rate_heading": "Suggested rate:",
+                    "rate_line": "Please contact us for a custom quote.",
+                    "gratuity_line": "",
+                    "total_line": "",
+                }
+            ]
+
+        for idx, opt in enumerate(options, start=1):
+            ensure_space(self.bm + 170)
+
+            title = self._s(opt.get("title"), f"Suggested Itinerary: {idx}")
+            pdf.setFont(self._f(bold=True), 9.5)
+            pdf.drawString(lm, y, title)
+            y -= 12
+
+            itinerary_lines = opt.get("itinerary_lines") or default_itinerary
+            pdf.setFont(self._f(), 9)
+            if itinerary_lines:
+                for line in itinerary_lines:
+                    ensure_space(self.bm + 120)
+                    wrapped = simpleSplit(str(line), self._f(), 9, cw - 12)
+                    for wline in wrapped:
+                        pdf.drawString(lm + 12, y, wline)
+                        y -= 11
+            else:
+                pdf.drawString(lm + 12, y, "No itinerary details provided.")
+                y -= 11
+
+            y -= 4
+            pdf.setFont(self._f(bold=True), 9.5)
+            pdf.drawString(lm, y, self._s(opt.get("rate_heading"), "Suggested rate:"))
+            y -= 12
+            pdf.setFont(self._f(), 9)
+
+            rate_line = self._s(opt.get("rate_line"), "")
+            if rate_line:
+                y = self._draw_wrapped(pdf, lm + 12, y, cw - 12, rate_line, size=9, lh=11)
+
+            gratuity_line = self._s(opt.get("gratuity_line"), "")
+            if gratuity_line:
+                y = self._draw_wrapped(pdf, lm + 12, y, cw - 12, gratuity_line, size=9, lh=11)
+
+            total_line = self._s(opt.get("total_line"), "")
+            if total_line:
+                pdf.setFont(self._f(bold=True), 9)
+                y = self._draw_wrapped(pdf, lm + 12, y, cw - 12, total_line, font=self._f(bold=True), size=9, lh=11)
+
+            y -= 8
+
+        placed_by = self._s(d.get("quote_requested_by") or client, "")
+        if placed_by:
+            ensure_space(self.bm + 70)
+            pdf.setFont(self._f(), 9)
+            pdf.drawString(lm, y, f"Your quote was requested by {placed_by}.")
+            y -= 14
+
+        closing = (
+            "This quote is provided for planning purposes and may be adjusted based on final trip "
+            "timing, routing, and service details at booking."
+        )
+        y = self._draw_wrapped(pdf, lm, y, cw, closing, size=9, lh=11)
+        y -= 6
+        y = self._draw_wrapped(pdf, lm, y, cw, "Thank you for considering Arrow Limousine & Sedan Services Ltd.", size=9.5, lh=12)
+
+        self._draw_footer(pdf, 1)
+        pdf.save()
+        return self.buffer.getvalue()
+
+
+def generate_quote_letter_pdf(charter_data: dict[str, Any]) -> bytes:
+    """Generate a client-facing quote letter PDF without policy clauses."""
+    return QuoteLetterPDF(charter_data).generate()
+
+
 def _safe_text(v: Any, default: str = "") -> str:
     if v is None:
         return default
@@ -2357,13 +2609,12 @@ def _fmt_time_12h(v: Any) -> str:
     if not s:
         return ""
     try:
-        parts = s.split(":")
-        if len(parts) >= 2:
-            h = int(parts[0])
-            m = int(parts[1])
-            suffix = "AM" if h < 12 else "PM"
-            h12 = h % 12 or 12
-            return f"{h12}:{m:02d}:00 {suffix}"
+        if ":" in s and s[:2].isdigit():
+            parts = s.split(":")
+            if len(parts) >= 2:
+                return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        return dt.strftime("%H:%M")
     except Exception:
         pass
     return s
@@ -2397,7 +2648,7 @@ def _build_confirmation_template_values(charter_data: dict[str, Any]) -> dict[st
         d.get("vehicle_description") or d.get("vehicle") or d.get("vehicle_type")
     )
 
-    routes = d.get("routes") or []
+    routes = _sorted_routes_for_itinerary(d.get("routes") or [])
     route_lines: list[str] = []
     pickup_address = _safe_text(d.get("pickup_address"))
     dropoff_address = _safe_text(d.get("dropoff_address"))
@@ -2410,11 +2661,15 @@ def _build_confirmation_template_values(charter_data: dict[str, Any]) -> dict[st
             event = _safe_text(route.get("event_type_code") or route.get("event_type"), "Stop")
             t = _fmt_time_12h(route.get("stop_time") or route.get("pickup_time") or route.get("dropoff_time"))
             addr = _safe_text(route.get("address") or route.get("pickup_location") or route.get("dropoff_location"))
+            at_by = _safe_text(route.get("at_by"), "at").lower() or "at"
+            notes = _safe_text(route.get("route_notes"))
             parts = [event]
-            if t:
-                parts.append(t)
             if addr:
                 parts.append(addr)
+            if t:
+                parts.append(f"{at_by} {t}")
+            if notes:
+                parts.append(f"Notes: {notes}")
             route_lines.append(", ".join(parts))
 
     if not route_lines:
@@ -2478,10 +2733,7 @@ def _generate_confirmation_from_template(
 
     # Build ordered route/charge helpers for repeated template example fields.
     d = charter_data or {}
-    routes = sorted(
-        d.get("routes") or [],
-        key=lambda r: int(r.get("route_sequence") or 0),
-    )
+    routes = _sorted_routes_for_itinerary(d.get("routes") or [])
     route_times = [
         _fmt_time_12h(
             r.get("stop_time") or r.get("pickup_time") or r.get("dropoff_time")
@@ -2502,12 +2754,16 @@ def _generate_confirmation_from_template(
         stop_time = _fmt_time_12h(
             r.get("stop_time") or r.get("pickup_time") or r.get("dropoff_time")
         )
+        at_by = _safe_text(r.get("at_by"), "at").lower() or "at"
         address = _safe_text(r.get("address") or r.get("pickup_location") or r.get("dropoff_location"))
+        notes = _safe_text(r.get("route_notes"))
         parts = [event]
-        if stop_time:
-            parts.append(stop_time)
         if address:
             parts.append(address)
+        if stop_time:
+            parts.append(f"{at_by} {stop_time}")
+        if notes:
+            parts.append(f"Notes: {notes}")
         route_lines.append(", ".join(parts))
 
     charges = d.get("charges") or []

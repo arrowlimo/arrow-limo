@@ -6,15 +6,27 @@ Vendor Standardization Tool - identify and clean up vendor names
 - Track standardization history
 """
 
+from datetime import date
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(prefix="/api/vendors", tags=["vendors"])
 logger = logging.getLogger(__name__)
+
+
+def _service_actor() -> AuditEventActor:
+    return AuditEventActor(
+        actor_type="service",
+        user_id=None,
+        username="vendor_standardization_api",
+        role="service",
+    )
 
 
 class VendorInfo(BaseModel):
@@ -131,6 +143,7 @@ async def merge_vendor_names(
     Result: All receipts with any source vendor name → "SHELL CANADA"
     """
     try:
+        ensure_audit_storage(conn)
         if not merge_request.source_vendors or not merge_request.target_vendor:
             raise ValueError("Must provide source_vendors and target_vendor")
 
@@ -170,6 +183,30 @@ async def merge_vendor_names(
                 ),
             )
 
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="vendor_standardization",
+                entity_type="vendor_name",
+                entity_id=canonical_name,
+                action="merge_vendors",
+                source="api",
+                correlation_id=None,
+                actor=_service_actor(),
+                before=None,
+                after={
+                    "source_vendors": merge_request.source_vendors,
+                    "target_vendor": canonical_name,
+                    "affected_receipts": affected_rows,
+                },
+                evidence_links=["receipts"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="Vendor merge standardization",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+
         conn.commit()
         cur.close()
 
@@ -203,6 +240,7 @@ async def capitalize_all_vendors(
     Example: "shell canada" → "SHELL CANADA"
     """
     try:
+        ensure_audit_storage(conn)
         cur = conn.cursor()
 
         if dry_run:
@@ -245,6 +283,27 @@ async def capitalize_all_vendors(
             """)
 
             affected = cur.rowcount
+
+            record_audit_event(
+                conn,
+                AuditEvent(
+                    module="vendor_standardization",
+                    entity_type="vendor_name",
+                    entity_id="all",
+                    action="capitalize_all_vendors",
+                    source="api",
+                    correlation_id=None,
+                    actor=_service_actor(),
+                    before=None,
+                    after={"dry_run": False, "affected_receipts": affected},
+                    evidence_links=["receipts"],
+                    retention_until=date(date.today().year + 6, 12, 31),
+                    note="Bulk vendor capitalization",
+                ),
+                ensure_storage=False,
+                commit=False,
+            )
+
             conn.commit()
             cur.close()
 
@@ -330,6 +389,7 @@ async def bulk_standardize_vendors(
     ]
     """
     try:
+        ensure_audit_storage(conn)
         total_affected = 0
         applied = []
         errors = []
@@ -396,6 +456,30 @@ async def bulk_standardize_vendors(
                 )
 
         if not dry_run:
+            record_audit_event(
+                conn,
+                AuditEvent(
+                    module="vendor_standardization",
+                    entity_type="vendor_name",
+                    entity_id="bulk",
+                    action="bulk_standardize_vendors",
+                    source="api",
+                    correlation_id=None,
+                    actor=_service_actor(),
+                    before=None,
+                    after={
+                        "dry_run": False,
+                        "corrections_processed": len(applied),
+                        "corrections_with_errors": len(errors),
+                        "total_affected_receipts": total_affected,
+                    },
+                    evidence_links=["receipts"],
+                    retention_until=date(date.today().year + 6, 12, 31),
+                    note="Bulk vendor standardization",
+                ),
+                ensure_storage=False,
+                commit=False,
+            )
             conn.commit()
 
         cur.close()

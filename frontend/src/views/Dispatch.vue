@@ -170,10 +170,7 @@
 </template>
 
 <script>
-import FullCalendar from '@fullcalendar/vue3'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import timeGridPlugin from '@fullcalendar/timegrid'
-import interactionPlugin from '@fullcalendar/interaction'
+import { defineAsyncComponent } from 'vue'
 import BookingForm from '../components/BookingForm.vue'
 import { formatDate, dateOnly } from '@/utils/dateFormatter'
 import { authFetch } from '@/utils/authFetch'
@@ -182,10 +179,11 @@ export default {
   name: 'Dispatch',
   components: {
     BookingForm,
-    FullCalendar
+    FullCalendar: defineAsyncComponent(() => import('@fullcalendar/vue3'))
   },
   data() {
     return {
+      calendarPluginsLoaded: false,
       viewMode: 'table',
       searchText: '',
       statusFilter: '',
@@ -206,7 +204,7 @@ export default {
         activeRoutes: 0
       },
       calendarOptions: {
-        plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+        plugins: [],
         initialView: 'dayGridMonth',
         headerToolbar: {
           left: 'prev,next today',
@@ -261,6 +259,14 @@ export default {
   },
   
   watch: {
+    viewMode: {
+      immediate: true,
+      async handler(next) {
+        if (next === 'calendar') {
+          await this.ensureCalendarPluginsLoaded()
+        }
+      }
+    },
     filteredBookings: {
       handler() {
         if (this.viewMode === 'calendar') {
@@ -271,6 +277,20 @@ export default {
     }
   },
   methods: {
+    async ensureCalendarPluginsLoaded() {
+      if (this.calendarPluginsLoaded) return
+      const [dayGrid, timeGrid, interaction] = await Promise.all([
+        import('@fullcalendar/daygrid'),
+        import('@fullcalendar/timegrid'),
+        import('@fullcalendar/interaction')
+      ])
+      this.calendarOptions = {
+        ...this.calendarOptions,
+        plugins: [dayGrid.default, timeGrid.default, interaction.default]
+      }
+      this.calendarPluginsLoaded = true
+    },
+
     truncateText(text, maxLength) {
       if (!text) return '';
       return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
@@ -294,17 +314,30 @@ export default {
     },
 
     calculateStats() {
-      this.stats.activeBookings = this.bookings.filter(b => 
-        ['assigned', 'active'].includes(b.status)
-      ).length;
+      const activeStatuses = ['assigned', 'active', 'in progress'];
+      const activeBookings = this.bookings.filter(b =>
+        activeStatuses.includes(String(b.status || '').toLowerCase())
+      );
+      const pendingBookings = this.bookings.filter(b =>
+        String(b.status || '').toLowerCase() === 'pending'
+      );
 
-      this.stats.pendingAssignments = this.bookings.filter(b => 
-        b.status === 'pending'
-      ).length;
+      const availableFleet = this.vehicles.filter(v =>
+        String(v.status || '').toLowerCase() !== 'retired'
+      );
+      const assignedVehicleIds = new Set(
+        activeBookings
+          .map(b => b.vehicle_booked_id || b.vehicle_id)
+          .filter(Boolean)
+      );
 
-      // Placeholder values - these would come from actual API calls
-      this.stats.availableVehicles = 12;
-      this.stats.activeRoutes = 8;
+      this.stats.activeBookings = activeBookings.length;
+      this.stats.pendingAssignments = pendingBookings.length;
+      this.stats.availableVehicles = Math.max(
+        availableFleet.length - assignedVehicleIds.size,
+        0
+      );
+      this.stats.activeRoutes = activeBookings.length;
     },
 
     onBookingSaved() {
@@ -332,6 +365,7 @@ export default {
         const response = await authFetch('/api/vehicles/');
         const data = await response.json();
         this.vehicles = data;
+        this.calculateStats();
       } catch (error) {
         console.error('Error loading vehicles:', error);
       }

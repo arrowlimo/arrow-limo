@@ -9,6 +9,18 @@ from ..db import cursor
 router = APIRouter(prefix="/api", tags=["dashboard"])
 
 
+def _existing_columns(cur, table_name: str) -> set[str]:
+    cur.execute(
+        """
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = %s
+        """,
+        (table_name,),
+    )
+    return {row[0] for row in cur.fetchall()}
+
+
 @router.get("/dashboard")
 def get_dashboard_metrics(
     date_filter: str = Query(
@@ -31,6 +43,23 @@ def get_dashboard_metrics(
     try:
         with cursor() as cur:
             today = datetime.now().date()
+            charter_cols = _existing_columns(cur, "charters")
+            vehicle_cols = _existing_columns(cur, "vehicles")
+            employee_cols = _existing_columns(cur, "employees")
+
+            if "closed" in charter_cols:
+                open_expr = "COALESCE(c.closed, FALSE) = FALSE"
+            elif "locked" in charter_cols:
+                open_expr = "COALESCE(c.locked, FALSE) = FALSE"
+            else:
+                open_expr = "TRUE"
+
+            if "cancelled" in charter_cols:
+                not_cancelled_expr = "COALESCE(c.cancelled, FALSE) = FALSE"
+            elif "status" in charter_cols:
+                not_cancelled_expr = "LOWER(COALESCE(c.status, '')) != 'cancelled'"
+            else:
+                not_cancelled_expr = "TRUE"
 
             # Calculate date range based on filter
             if date_filter == "today":
@@ -64,7 +93,7 @@ def get_dashboard_metrics(
             # Open charters (not closed)
             query = (
                 "SELECT COUNT(*) FROM charters "
-                "WHERE closed = FALSE AND cancelled = FALSE"
+                f"WHERE {open_expr} AND {not_cancelled_expr}"
             )
             params = []
             if start_date and end_date:
@@ -84,8 +113,9 @@ def get_dashboard_metrics(
                     FROM payments
                     GROUP BY reserve_number
                 ) p ON c.reserve_number = p.reserve_number
-                WHERE c.closed = FALSE AND c.cancelled = FALSE
+                WHERE
             """
+            query += f" {open_expr} AND {not_cancelled_expr}"
             params = []
             if start_date and end_date:
                 query += """ AND c.charter_date BETWEEN %s AND %s"""
@@ -105,8 +135,11 @@ def get_dashboard_metrics(
                         FROM payments
                         GROUP BY reserve_number
                     ) p ON c.reserve_number = p.reserve_number
-                    WHERE c.closed = FALSE AND c.cancelled = FALSE
-                    AND (c.total_amount_due - COALESCE(p.total_paid, 0)) > 0
+                        WHERE
+            """
+            query += f" {open_expr} AND {not_cancelled_expr}"
+            query += """
+                AND (c.total_amount_due - COALESCE(p.total_paid, 0)) > 0
             """
             if start_date and end_date:
                 query += """ AND c.charter_date BETWEEN %s AND %s"""
@@ -118,33 +151,66 @@ def get_dashboard_metrics(
             balance_owing_count = cur.fetchone()[0] or 0
 
             # Vehicle warnings (maintenance overdue or no recent inspection)
-            cur.execute("""
-                SELECT COUNT(*) FROM vehicles v
-                WHERE v.status != 'retired'
-                AND (
-                    v.next_maintenance_date IS NOT NULL AND
-                    v.next_maintenance_date < CURRENT_DATE
-                    OR v.last_inspection_date IS NULL
-                    OR v.last_inspection_date <
-                        CURRENT_DATE - INTERVAL '6 months'
+            vehicle_predicates: list[str] = []
+            if "status" in vehicle_cols:
+                vehicle_predicates.append("COALESCE(v.status, '') != 'retired'")
+            if "next_maintenance_date" in vehicle_cols:
+                vehicle_predicates.append(
+                    "(v.next_maintenance_date IS NOT NULL AND v.next_maintenance_date < CURRENT_DATE)"
                 )
-            """)
-            vehicle_warning = cur.fetchone()[0] or 0
+            if "last_inspection_date" in vehicle_cols:
+                vehicle_predicates.append(
+                    "(v.last_inspection_date IS NULL OR v.last_inspection_date < CURRENT_DATE - INTERVAL '6 months')"
+                )
+
+            if vehicle_predicates:
+                base_filter = "TRUE"
+                if "status" in vehicle_cols:
+                    base_filter = "COALESCE(v.status, '') != 'retired'"
+                warning_filter = " OR ".join(
+                    p for p in vehicle_predicates if p != base_filter
+                )
+                if warning_filter:
+                    cur.execute(
+                        f"""
+                        SELECT COUNT(*) FROM vehicles v
+                        WHERE {base_filter} AND ({warning_filter})
+                        """
+                    )
+                    vehicle_warning = cur.fetchone()[0] or 0
+                else:
+                    vehicle_warning = 0
+            else:
+                vehicle_warning = 0
 
             # Driver warnings (not certified, documents expiring, etc)
-            cur.execute("""
-                SELECT COUNT(*) FROM employees e
-                WHERE e.employee_type = 'driver'
-                AND e.status = 'active'
-                AND (
-                    e.driver_license_expiry IS NULL
-                    OR e.driver_license_expiry <
-                        CURRENT_DATE + INTERVAL '30 days'
-                    OR e.medical_certificate_expiry IS NULL
-                    OR e.medical_certificate_expiry < CURRENT_DATE
+            employee_base: list[str] = []
+            if "employee_type" in employee_cols:
+                employee_base.append("LOWER(COALESCE(e.employee_type, '')) = 'driver'")
+            if "status" in employee_cols:
+                employee_base.append("LOWER(COALESCE(e.status, 'active')) = 'active'")
+            base_where = " AND ".join(employee_base) if employee_base else "TRUE"
+
+            driver_predicates: list[str] = []
+            if "driver_license_expiry" in employee_cols:
+                driver_predicates.append(
+                    "(e.driver_license_expiry IS NULL OR e.driver_license_expiry < CURRENT_DATE + INTERVAL '30 days')"
                 )
-            """)
-            driver_warning = cur.fetchone()[0] or 0
+            if "medical_certificate_expiry" in employee_cols:
+                driver_predicates.append(
+                    "(e.medical_certificate_expiry IS NULL OR e.medical_certificate_expiry < CURRENT_DATE)"
+                )
+
+            if driver_predicates:
+                cur.execute(
+                    f"""
+                    SELECT COUNT(*) FROM employees e
+                    WHERE {base_where} AND ({' OR '.join(driver_predicates)})
+                    """
+                )
+                driver_warning = cur.fetchone()[0] or 0
+            else:
+                driver_warning = 0
 
             return {
                 "open_quotes": open_quotes,

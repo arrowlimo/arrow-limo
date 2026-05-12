@@ -10,6 +10,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(
@@ -242,6 +244,15 @@ def _ensure_roe_columns(conn):
         cur.close()
 
 
+def _service_actor() -> AuditEventActor:
+    return AuditEventActor(
+        actor_type="service",
+        user_id=None,
+        username="continuous_employment_api",
+        role="service",
+    )
+
+
 @router.get("/roe")
 async def list_roe_records(conn: Annotated[object, Depends(get_connection)]):
     _ensure_roe_columns(conn)
@@ -432,6 +443,7 @@ async def create_roe_record(
     _ensure_roe_columns(conn)
     cur = conn.cursor()
     try:
+        ensure_audit_storage(conn)
         cur.execute(
             "SELECT full_name FROM employees WHERE employee_id = %s",
             (payload.employee_id,),
@@ -494,6 +506,31 @@ async def create_roe_record(
             "UPDATE employee_roe_records SET roe_number = %s WHERE id = %s",
             (roe_number, roe_id),
         )
+
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="continuous_employment",
+                entity_type="roe_record",
+                entity_id=str(roe_id),
+                action="roe_created",
+                source="api",
+                correlation_id=None,
+                actor=_service_actor(),
+                before=None,
+                after={
+                    "employee_id": payload.employee_id,
+                    "termination_date": payload.termination_date.isoformat(),
+                    "reason_code": (payload.reason_code or "K").strip().upper(),
+                    "roe_number": roe_number,
+                },
+                evidence_links=[f"employee_roe_records:{roe_id}"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="ROE created",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
 
         return {
@@ -530,6 +567,7 @@ async def submit_roe_record(
     _ensure_roe_columns(conn)
     cur = conn.cursor()
     try:
+        ensure_audit_storage(conn)
         row = _load_roe_row(cur, roe_id)
         if not row:
             raise HTTPException(status_code=404, detail=ROE_NOT_FOUND)
@@ -581,6 +619,29 @@ async def submit_roe_record(
                 ((payload.submitted_by or "web_app").strip(), sub_ref, roe_id),
             )
 
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="continuous_employment",
+                entity_type="roe_record",
+                entity_id=str(roe_id),
+                action="roe_submitted",
+                source="api",
+                correlation_id=None,
+                actor=_service_actor(),
+                before={"roe_status": row[10] if row else None},
+                after={
+                    "roe_status": "submitted",
+                    "submission_reference": sub_ref,
+                    "submitted_by": (payload.submitted_by or "web_app").strip(),
+                },
+                evidence_links=[f"employee_roe_records:{roe_id}"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="ROE submitted",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
         return {
             "success": True,

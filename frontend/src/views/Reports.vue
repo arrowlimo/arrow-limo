@@ -26,7 +26,7 @@
           </div>
           <p>Comprehensive revenue breakdown by period, client, and service type</p>
           <div class="report-params">
-            <label>Period:</label>
+            <span class="field-label">Period:</span>
             <select v-model="revenueParams.period">
               <option value="monthly">Monthly</option>
               <option value="quarterly">Quarterly</option>
@@ -55,14 +55,14 @@
           </div>
           <p>GST collected, paid, and year-end reconciliation reports</p>
           <div class="report-params">
-            <label>Report Type:</label>
+            <span class="field-label">Report Type:</span>
             <select v-model="gstParams.type">
               <option value="collected">GST Collected</option>
               <option value="paid">GST Paid (Input Tax)</option>
               <option value="year-end">Year-End Reconciliation</option>
               <option value="extraction">GST Extraction Report</option>
             </select>
-            <label>Year:</label>
+            <span class="field-label">Year:</span>
             <select v-model="gstParams.year">
               <option value="2025">2025</option>
               <option value="2024">2024</option>
@@ -86,7 +86,7 @@
           </div>
           <p>Payment trends, outstanding amounts, and collection reports</p>
           <div class="report-params">
-            <label>Analysis Type:</label>
+            <span class="field-label">Analysis Type:</span>
             <select v-model="paymentParams.type">
               <option value="trends">Payment Trends</option>
               <option value="outstanding">Outstanding Balances</option>
@@ -111,13 +111,13 @@
           </div>
           <p>Detailed expense categorization and receipt reconciliation</p>
           <div class="report-params">
-            <label>Report Year:</label>
+            <span class="field-label">Report Year:</span>
             <select v-model="expenseParams.year">
               <option value="2025">2025</option>
               <option value="2024">2024</option>
               <option value="2019">2019</option>
             </select>
-            <label>Detail Level:</label>
+            <span class="field-label">Detail Level:</span>
             <select v-model="expenseParams.detail">
               <option value="summary">Summary</option>
               <option value="detailed">Detailed</option>
@@ -148,14 +148,14 @@
           </div>
           <p>Comprehensive charter performance and booking analysis</p>
           <div class="report-params">
-            <label>Analysis Type:</label>
+            <span class="field-label">Analysis Type:</span>
             <select v-model="charterParams.type">
               <option value="detailed">Detailed Charter Report</option>
               <option value="mega">Mega Charter Report</option>
               <option value="client-specific">Client-Specific Analysis</option>
               <option value="wtf-analysis">Problem Charter Analysis</option>
             </select>
-            <label>Date Range:</label>
+            <span class="field-label">Date Range:</span>
             <input v-model="charterParams.startDate" type="date" />
             <input v-model="charterParams.endDate" type="date" />
           </div>
@@ -176,14 +176,14 @@
           </div>
           <p>Driver hours, payroll, and performance metrics</p>
           <div class="report-params">
-            <label>Report Type:</label>
+            <span class="field-label">Report Type:</span>
             <select v-model="driverParams.type">
               <option value="basic">Basic Driver Report</option>
               <option value="with-charters">Driver with Charters</option>
               <option value="with-wcb">Driver with WCB</option>
               <option value="performance">Performance Metrics</option>
             </select>
-            <label>Period:</label>
+            <span class="field-label">Period:</span>
             <select v-model="driverParams.period">
               <option value="monthly">Monthly</option>
               <option value="quarterly">Quarterly</option>
@@ -207,14 +207,14 @@
           </div>
           <p>Vehicle usage, maintenance, and efficiency reports</p>
           <div class="report-params">
-            <label>Vehicle Filter:</label>
+            <span class="field-label">Vehicle Filter:</span>
             <select v-model="fleetParams.vehicle">
               <option value="all">All Vehicles</option>
               <option value="sedans">Sedans</option>
               <option value="suvs">SUVs</option>
               <option value="vans">Vans</option>
             </select>
-            <label>Metric:</label>
+            <span class="field-label">Metric:</span>
             <select v-model="fleetParams.metric">
               <option value="utilization">Utilization Rate</option>
               <option value="mileage">Mileage Analysis</option>
@@ -239,14 +239,14 @@
           </div>
           <p>Booking patterns, seasonal trends, and demand forecasting</p>
           <div class="report-params">
-            <label>Trend Type:</label>
+            <span class="field-label">Trend Type:</span>
             <select v-model="bookingParams.type">
               <option value="seasonal">Seasonal Patterns</option>
               <option value="client-trends">Client Booking Trends</option>
               <option value="demand-forecast">Demand Forecasting</option>
               <option value="route-analysis">Route Analysis</option>
             </select>
-            <label>Time Frame:</label>
+            <span class="field-label">Time Frame:</span>
             <select v-model="bookingParams.timeFrame">
               <option value="12months">Last 12 Months</option>
               <option value="24months">Last 24 Months</option>
@@ -277,7 +277,7 @@
           </div>
           <p>Workers' Compensation Board reporting and compliance tracking</p>
           <div class="report-params">
-            <label>Report Type:</label>
+            <span class="field-label">Report Type:</span>
             <select v-model="wcbParams.type">
               <option value="payment-search">Payment Search</option>
               <option value="coverage-report">Coverage Report</option>
@@ -302,7 +302,7 @@
           </div>
           <p>Vehicle safety inspections and maintenance compliance</p>
           <div class="report-params">
-            <label>Inspection Type:</label>
+            <span class="field-label">Inspection Type:</span>
             <select v-model="inspectionParams.type">
               <option value="safety">Safety Inspections</option>
               <option value="maintenance">Maintenance Records</option>
@@ -330,7 +330,7 @@
           </div>
           <p>Driver license expiration and renewal tracking</p>
           <div class="report-params">
-            <label>License Type:</label>
+            <span class="field-label">License Type:</span>
             <select v-model="licenseParams.type">
               <option value="all">All Licenses</option>
               <option value="class-4">Class 4 Licenses</option>
@@ -355,7 +355,7 @@
           </div>
           <p>Insurance policy tracking and coverage analysis</p>
           <div class="report-params">
-            <label>Coverage Type:</label>
+            <span class="field-label">Coverage Type:</span>
             <select v-model="insuranceParams.type">
               <option value="vehicle">Vehicle Insurance</option>
               <option value="liability">Liability Coverage</option>
@@ -380,13 +380,13 @@
           </div>
           <p>Generate official CRA audit format export (XML) for tax compliance and government audits</p>
           <div class="report-params">
-            <label>Date Range:</label>
+            <span class="field-label">Date Range:</span>
             <div class="date-range">
               <input v-model="craParams.startDate" type="date" placeholder="Start Date" />
               <span style="padding: 0 8px;">to</span>
               <input v-model="craParams.endDate" type="date" placeholder="End Date" />
             </div>
-            <label style="margin-top: 12px;">Export Type:</label>
+            <span class="field-label field-label-spaced">Export Type:</span>
             <select v-model="craParams.exportType">
               <option value="full">Full Export (All Files)</option>
               <option value="transactions">Transactions Only</option>
@@ -394,7 +394,7 @@
             </select>
             <div class="info-box" style="margin-top: 12px;">
               <strong>Includes:</strong> Accounts, Vendors, Employees, Transactions, Trial Balance<br>
-              <strong>Format:</strong> XML (QuickBooks compatible)<br>
+              <strong>Format:</strong> XML (audit-compatible)<br>
               <strong>Records:</strong> 128,786 transactions • 757 vendors • 55 employees
             </div>
           </div>
@@ -410,56 +410,56 @@
       </div>
     </div>
 
-    <!-- QuickBooks Export Dashboard -->
-    <div v-if="activeCategory === 'quickbooks'" class="report-section">
-      <h2>📗 QuickBooks Export Dashboard</h2>
+    <!-- Accounting Export Dashboard -->
+    <div v-if="activeCategory === 'accounting-exports'" class="report-section">
+      <h2>📗 Accounting Export Dashboard</h2>
       
-      <div class="qb-intro-card">
-        <h3>💼 QuickBooks Integration</h3>
-        <p>Export your ALMS data in QuickBooks-compatible format for seamless import into QuickBooks Desktop.</p>
-        <p><strong>All column names match QuickBooks format</strong> - no manual mapping required!</p>
+      <div class="accounting-intro-card">
+        <h3>💼 Accounting System Integration</h3>
+        <p>Export your ALMS data in accounting-compatible format for seamless import into your reporting system.</p>
+        <p><strong>Column names are export-ready</strong> to minimize manual mapping.</p>
       </div>
 
-      <div class="qb-status-bar" v-if="qbExportStatus">
-        <div v-if="qbExportStatus.status === 'ready'" class="status-ready">
-          ✅ QuickBooks export views ready: {{ qbExportStatus.total_views }} views available
+      <div class="accounting-status-bar" v-if="accountingExportStatus">
+        <div v-if="accountingExportStatus.status === 'ready'" class="status-ready">
+          ✅ Accounting export views ready: {{ accountingExportStatus.total_views }} views available
         </div>
-        <div v-else-if="qbExportStatus.status === 'not_initialized'" class="status-error">
-          ⚠️ QuickBooks export views not initialized. Run migration script first.
+        <div v-else-if="accountingExportStatus.status === 'not_initialized'" class="status-error">
+          ⚠️ Accounting export views not initialized. Run migration script first.
         </div>
         <div v-else class="status-loading">
-          ⏳ Loading QuickBooks export status...
+          ⏳ Loading export status...
         </div>
       </div>
 
       <!-- Export All Section -->
-      <div class="qb-export-all-section">
+      <div class="accounting-export-all-section">
         <div class="report-card highlight-card">
           <div class="report-header">
-            <h3>📦 Export All QuickBooks Data</h3>
+            <h3>📦 Export All Accounting Data</h3>
             <span class="report-type">Complete Package</span>
           </div>
-          <p>Export all data tables in a single ZIP file for complete QuickBooks import</p>
+          <p>Export all data tables in a single ZIP file for complete accounting import</p>
           
           <div class="report-params">
-            <label>Date Range (Optional - applies to dated tables):</label>
+            <span class="field-label">Date Range (Optional - applies to dated tables):</span>
             <div class="date-range">
-              <input v-model="qbParams.startDate" type="date" placeholder="Start Date" />
+              <input v-model="accountingParams.startDate" type="date" placeholder="Start Date" />
               <span style="padding: 0 8px;">to</span>
-              <input v-model="qbParams.endDate" type="date" placeholder="End Date" />
+              <input v-model="accountingParams.endDate" type="date" placeholder="End Date" />
             </div>
             <div class="info-box" style="margin-top: 12px;">
               <strong>Includes:</strong> Chart of Accounts, Customers, Vendors, Employees, Journal Entries, A/R Aging, P&L, Balance Sheet, Vehicles, Invoices<br>
               <strong>Format:</strong> CSV files in ZIP archive<br>
-              <strong>Ready for:</strong> Direct import into QuickBooks Desktop
+              <strong>Ready for:</strong> Direct import into accounting tools
             </div>
           </div>
           
           <div class="report-actions">
-            <button @click="exportAllQuickBooks()" class="btn-generate highlight-btn" :disabled="isGenerating['qb-export-all']">
-              {{ isGenerating['qb-export-all'] ? 'Generating…' : '📦 Export All Data (ZIP)' }}
+            <button @click="exportAllAccountingData()" class="btn-generate highlight-btn" :disabled="isGenerating['accounting-export-all']">
+              {{ isGenerating['accounting-export-all'] ? 'Generating…' : '📦 Export All Data (ZIP)' }}
             </button>
-            <button @click="refreshQBStatus()" class="btn-export">
+            <button @click="refreshAccountingExportStatus()" class="btn-export">
               🔄 Refresh Status
             </button>
           </div>
@@ -476,11 +476,11 @@
             <span class="report-type">Setup</span>
           </div>
           <p>Account structure with types, numbers, and descriptions</p>
-          <div class="qb-record-count" v-if="getQBViewInfo('qb_export_chart_of_accounts')">
-            {{ getQBViewInfo('qb_export_chart_of_accounts').record_count.toLocaleString() }} accounts
+          <div class="accounting-record-count" v-if="getAccountingViewInfo('qb_export_chart_of_accounts')">
+            {{ getAccountingViewInfo('qb_export_chart_of_accounts').record_count.toLocaleString() }} accounts
           </div>
           <div class="report-actions">
-            <button @click="exportQBView('qb_export_chart_of_accounts')" class="btn-export" :disabled="isExporting['qb_export_chart_of_accounts']">
+            <button @click="exportAccountingView('qb_export_chart_of_accounts')" class="btn-export" :disabled="isExporting['qb_export_chart_of_accounts']">
               {{ isExporting['qb_export_chart_of_accounts'] ? 'Exporting…' : '📥 Export CSV' }}
             </button>
           </div>
@@ -493,17 +493,17 @@
             <span class="report-type">Transactions</span>
           </div>
           <p>Complete transaction history with debits and credits</p>
-          <div class="qb-record-count" v-if="getQBViewInfo('qb_export_general_journal')">
-            {{ getQBViewInfo('qb_export_general_journal').record_count.toLocaleString() }} transactions
+          <div class="accounting-record-count" v-if="getAccountingViewInfo('qb_export_general_journal')">
+            {{ getAccountingViewInfo('qb_export_general_journal').record_count.toLocaleString() }} transactions
           </div>
           <div class="report-params">
             <div class="date-range-compact">
-              <input v-model="qbIndividualDates.journal.startDate" type="date" placeholder="From" />
-              <input v-model="qbIndividualDates.journal.endDate" type="date" placeholder="To" />
+              <input v-model="accountingIndividualDates.journal.startDate" type="date" placeholder="From" />
+              <input v-model="accountingIndividualDates.journal.endDate" type="date" placeholder="To" />
             </div>
           </div>
           <div class="report-actions">
-            <button @click="exportQBView('qb_export_general_journal', qbIndividualDates.journal)" class="btn-export" :disabled="isExporting['qb_export_general_journal']">
+            <button @click="exportAccountingView('qb_export_general_journal', accountingIndividualDates.journal)" class="btn-export" :disabled="isExporting['qb_export_general_journal']">
               {{ isExporting['qb_export_general_journal'] ? 'Exporting…' : '📥 Export CSV' }}
             </button>
           </div>
@@ -516,11 +516,11 @@
             <span class="report-type">Master Data</span>
           </div>
           <p>Complete customer contact information and account numbers</p>
-          <div class="qb-record-count" v-if="getQBViewInfo('qb_export_customers')">
-            {{ getQBViewInfo('qb_export_customers').record_count.toLocaleString() }} customers
+          <div class="accounting-record-count" v-if="getAccountingViewInfo('qb_export_customers')">
+            {{ getAccountingViewInfo('qb_export_customers').record_count.toLocaleString() }} customers
           </div>
           <div class="report-actions">
-            <button @click="exportQBView('qb_export_customers')" class="btn-export" :disabled="isExporting['qb_export_customers']">
+            <button @click="exportAccountingView('qb_export_customers')" class="btn-export" :disabled="isExporting['qb_export_customers']">
               {{ isExporting['qb_export_customers'] ? 'Exporting…' : '📥 Export CSV' }}
             </button>
           </div>
@@ -533,11 +533,11 @@
             <span class="report-type">Master Data</span>
           </div>
           <p>Supplier and vendor contact information</p>
-          <div class="qb-record-count" v-if="getQBViewInfo('qb_export_vendors')">
-            {{ getQBViewInfo('qb_export_vendors').record_count.toLocaleString() }} vendors
+          <div class="accounting-record-count" v-if="getAccountingViewInfo('qb_export_vendors')">
+            {{ getAccountingViewInfo('qb_export_vendors').record_count.toLocaleString() }} vendors
           </div>
           <div class="report-actions">
-            <button @click="exportQBView('qb_export_vendors')" class="btn-export" :disabled="isExporting['qb_export_vendors']">
+            <button @click="exportAccountingView('qb_export_vendors')" class="btn-export" :disabled="isExporting['qb_export_vendors']">
               {{ isExporting['qb_export_vendors'] ? 'Exporting…' : '📥 Export CSV' }}
             </button>
           </div>
@@ -550,11 +550,11 @@
             <span class="report-type">Payroll</span>
           </div>
           <p>Employee records for payroll setup</p>
-          <div class="qb-record-count" v-if="getQBViewInfo('qb_export_employees')">
-            {{ getQBViewInfo('qb_export_employees').record_count.toLocaleString() }} employees
+          <div class="accounting-record-count" v-if="getAccountingViewInfo('qb_export_employees')">
+            {{ getAccountingViewInfo('qb_export_employees').record_count.toLocaleString() }} employees
           </div>
           <div class="report-actions">
-            <button @click="exportQBView('qb_export_employees')" class="btn-export" :disabled="isExporting['qb_export_employees']">
+            <button @click="exportAccountingView('qb_export_employees')" class="btn-export" :disabled="isExporting['qb_export_employees']">
               {{ isExporting['qb_export_employees'] ? 'Exporting…' : '📥 Export CSV' }}
             </button>
           </div>
@@ -567,11 +567,11 @@
             <span class="report-type">Receivables</span>
           </div>
           <p>Customer balances by aging period (Current, 1-30, 31-60, 61-90)</p>
-          <div class="qb-record-count" v-if="getQBViewInfo('qb_export_ar_aging')">
-            {{ getQBViewInfo('qb_export_ar_aging').record_count.toLocaleString() }} customer balances
+          <div class="accounting-record-count" v-if="getAccountingViewInfo('qb_export_ar_aging')">
+            {{ getAccountingViewInfo('qb_export_ar_aging').record_count.toLocaleString() }} customer balances
           </div>
           <div class="report-actions">
-            <button @click="exportQBView('qb_export_ar_aging')" class="btn-export" :disabled="isExporting['qb_export_ar_aging']">
+            <button @click="exportAccountingView('qb_export_ar_aging')" class="btn-export" :disabled="isExporting['qb_export_ar_aging']">
               {{ isExporting['qb_export_ar_aging'] ? 'Exporting…' : '📥 Export CSV' }}
             </button>
           </div>
@@ -584,11 +584,11 @@
             <span class="report-type">Financial</span>
           </div>
           <p>Income and expense summary by account</p>
-          <div class="qb-record-count" v-if="getQBViewInfo('qb_export_profit_loss')">
-            {{ getQBViewInfo('qb_export_profit_loss').record_count.toLocaleString() }} line items
+          <div class="accounting-record-count" v-if="getAccountingViewInfo('qb_export_profit_loss')">
+            {{ getAccountingViewInfo('qb_export_profit_loss').record_count.toLocaleString() }} line items
           </div>
           <div class="report-actions">
-            <button @click="exportQBView('qb_export_profit_loss')" class="btn-export" :disabled="isExporting['qb_export_profit_loss']">
+            <button @click="exportAccountingView('qb_export_profit_loss')" class="btn-export" :disabled="isExporting['qb_export_profit_loss']">
               {{ isExporting['qb_export_profit_loss'] ? 'Exporting…' : '📥 Export CSV' }}
             </button>
           </div>
@@ -601,11 +601,11 @@
             <span class="report-type">Financial</span>
           </div>
           <p>Assets, liabilities, and equity by account</p>
-          <div class="qb-record-count" v-if="getQBViewInfo('qb_export_balance_sheet')">
-            {{ getQBViewInfo('qb_export_balance_sheet').record_count.toLocaleString() }} line items
+          <div class="accounting-record-count" v-if="getAccountingViewInfo('qb_export_balance_sheet')">
+            {{ getAccountingViewInfo('qb_export_balance_sheet').record_count.toLocaleString() }} line items
           </div>
           <div class="report-actions">
-            <button @click="exportQBView('qb_export_balance_sheet')" class="btn-export" :disabled="isExporting['qb_export_balance_sheet']">
+            <button @click="exportAccountingView('qb_export_balance_sheet')" class="btn-export" :disabled="isExporting['qb_export_balance_sheet']">
               {{ isExporting['qb_export_balance_sheet'] ? 'Exporting…' : '📥 Export CSV' }}
             </button>
           </div>
@@ -618,11 +618,11 @@
             <span class="report-type">Fixed Assets</span>
           </div>
           <p>Fleet vehicles for fixed asset tracking</p>
-          <div class="qb-record-count" v-if="getQBViewInfo('qb_export_vehicles')">
-            {{ getQBViewInfo('qb_export_vehicles').record_count.toLocaleString() }} vehicles
+          <div class="accounting-record-count" v-if="getAccountingViewInfo('qb_export_vehicles')">
+            {{ getAccountingViewInfo('qb_export_vehicles').record_count.toLocaleString() }} vehicles
           </div>
           <div class="report-actions">
-            <button @click="exportQBView('qb_export_vehicles')" class="btn-export" :disabled="isExporting['qb_export_vehicles']">
+            <button @click="exportAccountingView('qb_export_vehicles')" class="btn-export" :disabled="isExporting['qb_export_vehicles']">
               {{ isExporting['qb_export_vehicles'] ? 'Exporting…' : '📥 Export CSV' }}
             </button>
           </div>
@@ -635,17 +635,17 @@
             <span class="report-type">Billing</span>
           </div>
           <p>Customer invoices with payment status</p>
-          <div class="qb-record-count" v-if="getQBViewInfo('qb_export_invoices')">
-            {{ getQBViewInfo('qb_export_invoices').record_count.toLocaleString() }} invoices
+          <div class="accounting-record-count" v-if="getAccountingViewInfo('qb_export_invoices')">
+            {{ getAccountingViewInfo('qb_export_invoices').record_count.toLocaleString() }} invoices
           </div>
           <div class="report-params">
             <div class="date-range-compact">
-              <input v-model="qbIndividualDates.invoices.startDate" type="date" placeholder="From" />
-              <input v-model="qbIndividualDates.invoices.endDate" type="date" placeholder="To" />
+              <input v-model="accountingIndividualDates.invoices.startDate" type="date" placeholder="From" />
+              <input v-model="accountingIndividualDates.invoices.endDate" type="date" placeholder="To" />
             </div>
           </div>
           <div class="report-actions">
-            <button @click="exportQBView('qb_export_invoices', qbIndividualDates.invoices)" class="btn-export" :disabled="isExporting['qb_export_invoices']">
+            <button @click="exportAccountingView('qb_export_invoices', accountingIndividualDates.invoices)" class="btn-export" :disabled="isExporting['qb_export_invoices']">
               {{ isExporting['qb_export_invoices'] ? 'Exporting…' : '📥 Export CSV' }}
             </button>
           </div>
@@ -653,11 +653,11 @@
       </div>
 
       <!-- Import Instructions -->
-      <div class="qb-import-instructions">
-        <h3>📖 QuickBooks Import Instructions</h3>
+      <div class="accounting-import-instructions">
+        <h3>📖 Import Instructions</h3>
         <ol>
           <li>Export the data you need using the buttons above</li>
-          <li>Open QuickBooks Desktop</li>
+          <li>Open your accounting application</li>
           <li>Go to <strong>File → Utilities → Import → Excel Files</strong></li>
           <li>Select the CSV file you downloaded</li>
           <li>Follow the import wizard (column names already match!)</li>
@@ -673,6 +673,93 @@
           </ul>
         </div>
       </div>
+
+      <div class="accounting-admin-grid">
+        <div class="accounting-admin-card">
+          <h3>🧩 GL Classification Rules</h3>
+          <p>Create and maintain rules to organize ledger rows by pattern and assign GL codes.</p>
+
+          <div class="rule-form-grid">
+            <input v-model="ruleForm.rule_name" type="text" placeholder="Rule name" />
+            <select v-model="ruleForm.match_field">
+              <option value="name">Name</option>
+              <option value="memo_description">Memo</option>
+              <option value="account_name">Account Name</option>
+              <option value="supplier">Supplier</option>
+              <option value="customer">Customer</option>
+              <option value="employee">Employee</option>
+              <option value="transaction_type">Transaction Type</option>
+            </select>
+            <input v-model="ruleForm.match_pattern" type="text" placeholder="Pattern (contains match)" />
+            <input v-model="ruleForm.gl_code" type="text" placeholder="GL code" />
+            <input v-model="ruleForm.account_type" type="text" placeholder="Account type (optional)" />
+            <input v-model.number="ruleForm.sort_order" type="number" min="0" max="10000" placeholder="Sort order" />
+            <label class="inline-toggle">
+              <input v-model="ruleForm.is_active" type="checkbox" /> Active
+            </label>
+          </div>
+
+          <div class="report-actions" style="margin-top: 12px;">
+            <button @click="saveAccountingRule" class="btn-generate" :disabled="isSavingRule">
+              {{ isSavingRule ? 'Saving…' : (editingRuleId ? 'Update Rule' : 'Create Rule') }}
+            </button>
+            <button @click="resetRuleForm" class="btn-export">
+              Clear
+            </button>
+          </div>
+
+          <div class="rules-list">
+            <div v-if="!accountingRules.length" class="rules-empty">No rules yet.</div>
+            <div v-for="rule in accountingRules" :key="rule.rule_id" class="rule-item">
+              <div class="rule-main">
+                <strong>{{ rule.rule_name }}</strong>
+                <span class="rule-pill">{{ rule.match_field }}</span>
+                <span class="rule-pill">{{ rule.match_pattern }}</span>
+                <span class="rule-pill">GL {{ rule.gl_code }}</span>
+              </div>
+              <div class="rule-actions">
+                <button @click="startEditRule(rule)" class="btn-load">Edit</button>
+                <button @click="deleteAccountingRule(rule.rule_id)" class="btn-delete">Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="accounting-admin-card">
+          <h3>🛠 Bulk Reclassify</h3>
+          <p>Move data and correct GL/account assignments in bulk.</p>
+
+          <div class="form-group">
+            <span class="field-label">Receipt IDs (comma-separated)</span>
+            <input v-model="reclassifyForm.receipt_ids" type="text" placeholder="e.g. 101,102,103" />
+          </div>
+          <div class="form-group">
+            <span class="field-label">GL Code</span>
+            <input v-model="reclassifyForm.gl_code" type="text" placeholder="e.g. 4100" />
+          </div>
+          <button @click="applyReceiptReclassify" class="btn-generate" :disabled="isApplyingReclassify">
+            {{ isApplyingReclassify ? 'Applying…' : 'Apply to Receipts' }}
+          </button>
+
+          <hr style="margin: 18px 0; border: none; border-top: 1px solid #e9ecef;" />
+
+          <div class="form-group">
+            <span class="field-label">Ledger Row IDs (comma-separated)</span>
+            <input v-model="reclassifyForm.ledger_ids" type="text" placeholder="e.g. 501,502,503" />
+          </div>
+          <div class="form-group">
+            <span class="field-label">Account Name (optional)</span>
+            <input v-model="reclassifyForm.account_name" type="text" placeholder="e.g. Fuel Expense" />
+          </div>
+          <div class="form-group">
+            <span class="field-label">Account Type (optional)</span>
+            <input v-model="reclassifyForm.account_type" type="text" placeholder="e.g. Expense" />
+          </div>
+          <button @click="applyLedgerReclassify" class="btn-generate" :disabled="isApplyingReclassify">
+            {{ isApplyingReclassify ? 'Applying…' : 'Apply to Ledger Rows' }}
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Custom Reports -->
@@ -683,12 +770,12 @@
         <h3>Build Custom Report</h3>
         <div class="builder-form">
           <div class="form-group">
-            <label>Report Name:</label>
+            <span class="field-label">Report Name:</span>
             <input v-model="customReport.name" type="text" placeholder="Enter report name" />
           </div>
           
           <div class="form-group">
-            <label>Data Source:</label>
+            <span class="field-label">Data Source:</span>
             <select v-model="customReport.dataSource">
               <option value="">Select Data Source</option>
               <option value="charters">Charters</option>
@@ -701,7 +788,7 @@
           </div>
           
           <div class="form-group">
-            <label>Fields to Include:</label>
+            <span class="field-label">Fields to Include:</span>
             <div class="field-checkboxes">
               <label v-for="field in getAvailableFields()" :key="field.id">
                 <input v-model="customReport.fields" :value="field.id" type="checkbox" />
@@ -711,7 +798,7 @@
           </div>
           
           <div class="form-group">
-            <label>Filters:</label>
+            <span class="field-label">Filters:</span>
             <div class="filter-builder">
               <div v-for="(filter, index) in customReport.filters" :key="index" class="filter-row">
                 <select v-model="filter.field">
@@ -735,7 +822,7 @@
           </div>
           
           <div class="form-group">
-            <label>Sort By:</label>
+            <span class="field-label">Sort By:</span>
             <select v-model="customReport.sortBy">
               <option value="">No Sorting</option>
               <option v-for="field in getAvailableFields()" :key="field.id" :value="field.id">
@@ -808,10 +895,24 @@
         </div>
         
         <div v-else-if="reportOutput.type === 'chart'" class="chart-output">
-          <div class="chart-placeholder">
-            📊 Chart visualization would appear here
-            <br>Chart Type: {{ reportOutput.chartType }}
-            <br>Data Points: {{ reportOutput.data.length }}
+          <div v-if="chartPoints.length" class="mini-chart">
+            <div class="mini-chart-bars">
+              <div
+                v-for="point in chartPoints"
+                :key="point.label"
+                class="mini-chart-bar-wrap"
+              >
+                <div class="mini-chart-value">{{ point.value.toLocaleString() }}</div>
+                <div class="mini-chart-bar" :style="{ height: `${point.heightPct}%` }" :title="`${point.label}: ${point.value}`"></div>
+                <div class="mini-chart-label">{{ point.shortLabel }}</div>
+              </div>
+            </div>
+            <div class="mini-chart-meta">
+              {{ reportOutput.chartType }} • {{ chartPoints.length }} points
+            </div>
+          </div>
+          <div v-else class="chart-placeholder">
+            No chartable numeric data found for this report.
           </div>
         </div>
         
@@ -825,6 +926,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { authFetch } from '@/utils/authFetch'
 import { toast } from '@/toast/toastStore'
 
 const activeCategory = ref('financial')
@@ -834,7 +936,7 @@ const categories = [
   { id: 'financial', name: 'Financial', icon: '💰' },
   { id: 'operational', name: 'Operational', icon: '🚐' },
   { id: 'compliance', name: 'Compliance', icon: '📋' },
-  { id: 'quickbooks', name: 'QuickBooks', icon: '📗' },
+  { id: 'accounting-exports', name: 'Accounting Exports', icon: '📗' },
   { id: 'custom', name: 'Custom', icon: '⚙️' }
 ]
 
@@ -854,10 +956,10 @@ const insuranceParams = ref({ type: 'vehicle' })
 const craParams = ref({ startDate: '', endDate: '', exportType: 'full' })
 const craExportReady = ref(false)
 
-// QuickBooks export parameters
-const qbParams = ref({ startDate: '', endDate: '' })
-const qbExportStatus = ref(null)
-const qbIndividualDates = ref({
+// Accounting export parameters
+const accountingParams = ref({ startDate: '', endDate: '' })
+const accountingExportStatus = ref(null)
+const accountingIndividualDates = ref({
   journal: { startDate: '', endDate: '' },
   invoices: { startDate: '', endDate: '' }
 })
@@ -876,6 +978,62 @@ const savedReports = ref([])
 const isGenerating = ref({})
 const isExporting = ref({})
 const isSavingTemplate = ref(false)
+const accountingRules = ref([])
+const editingRuleId = ref(null)
+const isSavingRule = ref(false)
+const isApplyingReclassify = ref(false)
+const ruleForm = ref({
+  rule_name: '',
+  match_field: 'name',
+  match_pattern: '',
+  gl_code: '',
+  account_type: '',
+  sort_order: 100,
+  is_active: true,
+})
+const reclassifyForm = ref({
+  receipt_ids: '',
+  ledger_ids: '',
+  gl_code: '',
+  account_name: '',
+  account_type: '',
+})
+
+const chartPoints = computed(() => {
+  const output = reportOutput.value
+  if (!output || output.type !== 'chart' || !Array.isArray(output.data) || output.data.length === 0) {
+    return []
+  }
+
+  const sample = output.data[0] || {}
+  const keys = Object.keys(sample)
+  if (!keys.length) return []
+
+  const numericKey = keys.find((k) => typeof sample[k] === 'number') || keys[1]
+  const labelKey = keys.find((k) => k !== numericKey) || keys[0]
+
+  const raw = output.data
+    .map((row) => {
+      const value = Number(row[numericKey])
+      if (!Number.isFinite(value)) return null
+      const label = String(row[labelKey] ?? '')
+      return { label, value }
+    })
+    .filter(Boolean)
+    .slice(0, 24)
+
+  if (!raw.length) return []
+  const maxValue = Math.max(...raw.map((p) => Math.abs(p.value)), 1)
+  return raw.map((p) => ({
+    ...p,
+    shortLabel: p.label.length > 12 ? `${p.label.slice(0, 11)}…` : p.label,
+    heightPct: Math.max(6, Math.round((Math.abs(p.value) / maxValue) * 100)),
+  }))
+})
+
+const isAccountingReady = computed(() => {
+  return accountingExportStatus.value?.status === 'ready'
+})
 
 function getAvailableFields() {
   const fieldMap = {
@@ -990,7 +1148,8 @@ async function generateReport(reportType) {
 
     const [url, params] = builder()
     const qs = params.toString() ? `?${params.toString()}` : ''
-    const resp = await fetch(`${url}${qs}`)
+    const resp = await authFetch(`${url}${qs}`)
+    if (!resp) return
     if (!resp.ok) {
       const detail = await resp.text().catch(() => resp.statusText)
       throw new Error(`Server error ${resp.status}: ${detail}`)
@@ -1012,14 +1171,21 @@ async function generateReport(reportType) {
     }
 
     const columns = rows.length > 0 ? Object.keys(rows[0]) : []
-    const title = reportType.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    const title = reportType
+      .split('-')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ')
+
+    const chartableTypes = new Set(['booking-trends', 'revenue-analysis', 'payment-analysis'])
+    const outputType = chartableTypes.has(reportType) ? 'chart' : 'table'
 
     reportOutput.value = {
       title: `${title} (${rows.length} rows)`,
-      type: 'table',
+      type: outputType,
       columns,
       data: rows,
       meta: json.totals || json.summary || null,
+      reportType,
     }
     toast.success(`${title}: ${rows.length} rows loaded`)
   } catch (error) {
@@ -1030,62 +1196,92 @@ async function generateReport(reportType) {
   }
 }
 
+const SUPPORTED_EXPORT_REPORTS = new Set([
+  'revenue-analysis',
+  'payment-analysis',
+  'receipts-expenses',
+  'charter-analysis',
+  'fleet-utilization',
+  'booking-trends',
+])
+
+function applyExportDateParams(reportType, params) {
+  const today = new Date()
+  const toISO = (d) => new Date(d).toISOString().slice(0, 10)
+
+  const handlers = {
+    'revenue-analysis': () => {
+      if (
+        revenueParams.value.period === 'custom' &&
+        revenueParams.value.startDate &&
+        revenueParams.value.endDate
+      ) {
+        params.set('start_date', revenueParams.value.startDate)
+        params.set('end_date', revenueParams.value.endDate)
+      }
+    },
+    'receipts-expenses': () => {
+      const year = Number.parseInt(
+        String(expenseParams.value.year || today.getFullYear()),
+        10
+      )
+      params.set('start_date', `${year}-01-01`)
+      params.set('end_date', `${year}-12-31`)
+    },
+    'charter-analysis': () => {
+      if (charterParams.value.startDate) {
+        params.set('start_date', charterParams.value.startDate)
+      }
+      if (charterParams.value.endDate) {
+        params.set('end_date', charterParams.value.endDate)
+      }
+    },
+    'booking-trends': () => {
+      const end = today
+      const start = new Date(end)
+      start.setMonth(
+        start.getMonth() - (bookingParams.value.timeFrame === '24months' ? 24 : 12)
+      )
+      params.set('start_date', toISO(start))
+      params.set('end_date', toISO(end))
+    },
+    'fleet-utilization': () => {
+      if (charterParams.value?.startDate) {
+        params.set('start_date', charterParams.value.startDate)
+      }
+      if (charterParams.value?.endDate) {
+        params.set('end_date', charterParams.value.endDate)
+      }
+    },
+  }
+
+  const handler = handlers[reportType]
+  if (handler) {
+    handler()
+  }
+}
+
+function filenameFromResponse(resp, fallback = 'report.csv') {
+  const cd = resp.headers.get('Content-Disposition') || ''
+  const match = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(cd)
+  if (!match) return fallback
+  return decodeURIComponent(match[1] || match[2])
+}
+
 async function exportReport(reportType) {
   if (isExporting.value[reportType]) return
   isExporting.value = { ...isExporting.value, [reportType]: true }
   try {
-    // Map supported report types to query params
-    const supported = new Set([
-      'revenue-analysis',
-      'payment-analysis',
-      'receipts-expenses',
-      'charter-analysis',
-      'fleet-utilization',
-      'booking-trends'
-    ])
-    if (!supported.has(reportType)) {
+    if (!SUPPORTED_EXPORT_REPORTS.has(reportType)) {
       toast.info(`${reportType} export coming soon`)
       return
     }
 
-    const params = new URLSearchParams()
-    params.set('type', reportType)
-    params.set('format', 'csv') // CSV-first for now
+    const params = new URLSearchParams({ type: reportType, format: 'csv' })
+    applyExportDateParams(reportType, params)
 
-    // Date parameter helpers by report type
-    const today = new Date()
-    const toISO = (d) => new Date(d).toISOString().slice(0, 10)
-
-    if (reportType === 'revenue-analysis') {
-      if (revenueParams.value.period === 'custom' && revenueParams.value.startDate && revenueParams.value.endDate) {
-        params.set('start_date', revenueParams.value.startDate)
-        params.set('end_date', revenueParams.value.endDate)
-      }
-    } else if (reportType === 'payment-analysis') {
-      // default window handled server-side; no extra params for now
-    } else if (reportType === 'receipts-expenses') {
-      const year = parseInt(String(expenseParams.value.year || today.getFullYear()), 10)
-      params.set('start_date', `${year}-01-01`)
-      params.set('end_date', `${year}-12-31`)
-    } else if (reportType === 'charter-analysis') {
-      if (charterParams.value.startDate) params.set('start_date', charterParams.value.startDate)
-      if (charterParams.value.endDate) params.set('end_date', charterParams.value.endDate)
-    } else if (reportType === 'booking-trends') {
-      const tf = bookingParams.value.timeFrame
-      const end = today
-      let start = new Date(end)
-      if (tf === '24months') start.setMonth(start.getMonth() - 24)
-      else start.setMonth(start.getMonth() - 12)
-      params.set('start_date', toISO(start))
-      params.set('end_date', toISO(end))
-    } else if (reportType === 'fleet-utilization') {
-      // allow custom dates via charterParams if user set them
-      if (charterParams.value?.startDate) params.set('start_date', charterParams.value.startDate)
-      if (charterParams.value?.endDate) params.set('end_date', charterParams.value.endDate)
-    }
-
-    const url = `/api/reports/export?${params.toString()}`
-    const resp = await fetch(url)
+    const resp = await authFetch(`/api/reports/export?${params.toString()}`)
+    if (!resp) return
     if (!resp.ok) {
       let msg = `${reportType} export failed (${resp.status})`
       try {
@@ -1095,12 +1291,7 @@ async function exportReport(reportType) {
       throw new Error(msg)
     }
 
-    // Try to extract filename from headers
-    const cd = resp.headers.get('Content-Disposition') || ''
-    let filename = 'report.csv'
-    const m = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(cd)
-    if (m) filename = decodeURIComponent(m[1] || m[2])
-
+    const filename = filenameFromResponse(resp)
     const blob = await resp.blob()
     const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -1120,7 +1311,7 @@ async function exportReport(reportType) {
 }
 
 function printPreTripBlank() {
-  window.open('/api/inspection-forms/pre-trip-blank', '_blank')
+  globalThis.open('/api/inspection-forms/pre-trip-blank', '_blank')
 }
 
 // CRA Audit Export functions
@@ -1136,7 +1327,8 @@ async function generateCRAExport() {
     if (craParams.value.endDate) params.set('end_date', craParams.value.endDate)
     
     const url = `/api/reports/cra-audit-export?${params.toString()}`
-    const resp = await fetch(url)
+    const resp = await authFetch(url)
+    if (!resp) return
     
     if (!resp.ok) {
       let msg = `CRA export failed (${resp.status})`
@@ -1158,8 +1350,8 @@ async function generateCRAExport() {
     const blobUrl = URL.createObjectURL(blob)
     
     // Store for download button
-    window.craExportBlob = blobUrl
-    window.craExportFilename = filename
+    globalThis.craExportBlob = blobUrl
+    globalThis.craExportFilename = filename
     craExportReady.value = true
     
     toast.success(`CRA Export generated successfully! (${(blob.size / 1024 / 1024).toFixed(1)} MB)`)
@@ -1172,7 +1364,7 @@ async function generateCRAExport() {
 }
 
 async function downloadCRAExport() {
-  if (!craExportReady.value || !window.craExportBlob) {
+  if (!craExportReady.value || !globalThis.craExportBlob) {
     toast.error('Please generate the export first')
     return
   }
@@ -1181,8 +1373,8 @@ async function downloadCRAExport() {
   
   try {
     const a = document.createElement('a')
-    a.href = window.craExportBlob
-    a.download = window.craExportFilename || 'CRA_Audit_Export.zip'
+    a.href = globalThis.craExportBlob
+    a.download = globalThis.craExportFilename || 'CRA_Audit_Export.zip'
     document.body.appendChild(a)
     a.click()
     a.remove()
@@ -1196,32 +1388,37 @@ async function downloadCRAExport() {
   }
 }
 
-// QuickBooks Export functions
-async function refreshQBStatus() {
+// Accounting export functions
+async function refreshAccountingExportStatus() {
   try {
-    const resp = await fetch('/api/reports/quickbooks/views')
-    if (!resp.ok) throw new Error(`Failed to fetch QB status: ${resp.status}`)
+    const resp = await authFetch('/api/reports/accounting/views')
+    if (!resp) return
+    if (!resp.ok) throw new Error(`Failed to fetch export status: ${resp.status}`)
     
-    qbExportStatus.value = await resp.json()
+    accountingExportStatus.value = await resp.json()
     
-    if (qbExportStatus.value.status === 'ready') {
-      toast.success(`QuickBooks exports ready: ${qbExportStatus.value.total_views} views available`)
-    } else if (qbExportStatus.value.status === 'not_initialized') {
-      toast.warning('QuickBooks export views not initialized. Run migration script.')
+    if (accountingExportStatus.value.status === 'ready') {
+      toast.success(`Accounting exports ready: ${accountingExportStatus.value.total_views} views available`)
+    } else if (accountingExportStatus.value.status === 'not_initialized') {
+      toast.warning('Accounting export views not initialized. Run migration script.')
     }
   } catch (error) {
-    console.error('QB status error:', error)
-    toast.error('Failed to load QuickBooks status: ' + (error?.message || error))
+    console.error('Accounting status error:', error)
+    toast.error('Failed to load export status: ' + (error?.message || error))
   }
 }
 
-function getQBViewInfo(viewName) {
-  if (!qbExportStatus.value || !qbExportStatus.value.views) return null
-  return qbExportStatus.value.views.find(v => v.view_name === viewName)
+function getAccountingViewInfo(viewName) {
+  if (!accountingExportStatus.value || !accountingExportStatus.value.views) return null
+  return accountingExportStatus.value.views.find(v => v.view_name === viewName)
 }
 
-async function exportQBView(viewName, dateParams = null) {
+async function exportAccountingView(viewName, dateParams = null) {
   if (isExporting.value[viewName]) return
+  if (!isAccountingReady.value) {
+    toast.warning('Accounting export views are not initialized yet')
+    return
+  }
   isExporting.value = { ...isExporting.value, [viewName]: true }
   
   try {
@@ -1233,8 +1430,9 @@ async function exportQBView(viewName, dateParams = null) {
       if (dateParams.endDate) params.set('end_date', dateParams.endDate)
     }
     
-    const url = `/api/reports/quickbooks/export/${viewName}?${params.toString()}`
-    const resp = await fetch(url)
+    const url = `/api/reports/accounting/export/${viewName}?${params.toString()}`
+    const resp = await authFetch(url)
+    if (!resp) return
     
     if (!resp.ok) {
       let msg = `Export failed (${resp.status})`
@@ -1264,24 +1462,29 @@ async function exportQBView(viewName, dateParams = null) {
     
     toast.success(`Downloaded ${filename} (${(blob.size / 1024).toFixed(1)} KB)`)
   } catch (error) {
-    console.error('QB export error:', error)
+    console.error('Accounting export error:', error)
     toast.error('Export failed: ' + (error?.message || error))
   } finally {
     isExporting.value = { ...isExporting.value, [viewName]: false }
   }
 }
 
-async function exportAllQuickBooks() {
-  if (isGenerating.value['qb-export-all']) return
-  isGenerating.value = { ...isGenerating.value, 'qb-export-all': true }
+async function exportAllAccountingData() {
+  if (isGenerating.value['accounting-export-all']) return
+  if (!isAccountingReady.value) {
+    toast.warning('Accounting export views are not initialized yet')
+    return
+  }
+  isGenerating.value = { ...isGenerating.value, 'accounting-export-all': true }
   
   try {
     const params = new URLSearchParams()
-    if (qbParams.value.startDate) params.set('start_date', qbParams.value.startDate)
-    if (qbParams.value.endDate) params.set('end_date', qbParams.value.endDate)
+    if (accountingParams.value.startDate) params.set('start_date', accountingParams.value.startDate)
+    if (accountingParams.value.endDate) params.set('end_date', accountingParams.value.endDate)
     
-    const url = `/api/reports/quickbooks/export-all?${params.toString()}`
-    const resp = await fetch(url)
+    const url = `/api/reports/accounting/export-all?${params.toString()}`
+    const resp = await authFetch(url)
+    if (!resp) return
     
     if (!resp.ok) {
       let msg = `Export failed (${resp.status})`
@@ -1294,7 +1497,7 @@ async function exportAllQuickBooks() {
     
     // Extract filename from headers
     const cd = resp.headers.get('Content-Disposition') || ''
-    let filename = 'QuickBooks_Export.zip'
+    let filename = 'Accounting_Export.zip'
     const m = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(cd)
     if (m) filename = decodeURIComponent(m[1] || m[2])
     
@@ -1311,10 +1514,10 @@ async function exportAllQuickBooks() {
     
     toast.success(`Downloaded ${filename} (${(blob.size / 1024 / 1024).toFixed(1)} MB)`)
   } catch (error) {
-    console.error('QB export-all error:', error)
+    console.error('Accounting export-all error:', error)
     toast.error('Export failed: ' + (error?.message || error))
   } finally {
-    isGenerating.value = { ...isGenerating.value, 'qb-export-all': false }
+    isGenerating.value = { ...isGenerating.value, 'accounting-export-all': false }
   }
 }
 
@@ -1325,7 +1528,9 @@ function generateCustomReport() {
     return
   }
   
-  generateReport('custom-' + customReport.value.name.toLowerCase().replace(/\s+/g, '-'))
+  generateReport(
+    'custom-' + customReport.value.name.toLowerCase().split(/\s+/).join('-')
+  )
 }
 
 function saveCustomReport() {
@@ -1376,16 +1581,78 @@ function deleteSavedReport(report) {
   }
 }
 
+function toCsv(columns, rows) {
+  const esc = (v) => {
+    const s = v == null ? '' : String(v)
+    if (/[,"\n]/.test(s)) return `"${s.replaceAll('"', '""')}"`
+    return s
+  }
+  const header = columns.map(esc).join(',')
+  const body = rows.map((row) => columns.map((c) => esc(row[c])).join(',')).join('\n')
+  return `${header}\n${body}`
+}
+
+function downloadBlob(content, filename, type = 'text/plain;charset=utf-8') {
+  const blob = content instanceof Blob ? content : new Blob([content], { type })
+  const href = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = href
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(href)
+}
+
 function downloadReport() {
-  toast.info('Download functionality not yet implemented')
+  if (!reportOutput.value) {
+    toast.error('No report to download')
+    return
+  }
+  const slug = (reportOutput.value.title || 'report')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .join('-')
+
+  if (reportOutput.value.type === 'table' || reportOutput.value.type === 'chart') {
+    const csv = toCsv(reportOutput.value.columns || [], reportOutput.value.data || [])
+    downloadBlob(csv, `${slug || 'report'}.csv`, 'text/csv;charset=utf-8')
+    toast.success('Report downloaded')
+    return
+  }
+
+  if (reportOutput.value.content) {
+    downloadBlob(String(reportOutput.value.content), `${slug || 'report'}.txt`)
+    toast.success('Report downloaded')
+    return
+  }
+
+  toast.error('Nothing to download for this report')
 }
 
 function emailReport() {
-  toast.info('Email functionality not yet implemented')
+  if (!reportOutput.value) {
+    toast.error('No report selected')
+    return
+  }
+
+  const subject = `ALMS Report: ${reportOutput.value.title || 'Report'}`
+  const rowCount = Array.isArray(reportOutput.value.data) ? reportOutput.value.data.length : 0
+  const bodyLines = [
+    `Report: ${reportOutput.value.title || 'Report'}`,
+    `Type: ${reportOutput.value.type || 'table'}`,
+    `Rows: ${rowCount}`,
+    '',
+    'Downloaded from ALMS Reports Dashboard.',
+    'Attach the exported CSV from the Download button if needed.',
+  ]
+  const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`
+  globalThis.location.href = mailto
 }
 
 function printReport() {
-  window.print()
+  globalThis.print()
 }
 
 function closeReport() {
@@ -1396,6 +1663,172 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString()
 }
 
+async function loadAccountingRules() {
+  try {
+    const resp = await authFetch('/api/reports/accounting/rules')
+    if (!resp) return
+    if (!resp.ok) throw new Error(`Failed to load rules (${resp.status})`)
+    const json = await resp.json()
+    accountingRules.value = Array.isArray(json.items) ? json.items : []
+  } catch (error) {
+    console.error('Load accounting rules error:', error)
+    toast.error('Failed to load accounting rules')
+  }
+}
+
+function startEditRule(rule) {
+  editingRuleId.value = rule.rule_id
+  ruleForm.value = {
+    rule_name: rule.rule_name || '',
+    match_field: rule.match_field || 'name',
+    match_pattern: rule.match_pattern || '',
+    gl_code: rule.gl_code || '',
+    account_type: rule.account_type || '',
+    sort_order: Number(rule.sort_order || 100),
+    is_active: Boolean(rule.is_active),
+  }
+}
+
+function resetRuleForm() {
+  editingRuleId.value = null
+  ruleForm.value = {
+    rule_name: '',
+    match_field: 'name',
+    match_pattern: '',
+    gl_code: '',
+    account_type: '',
+    sort_order: 100,
+    is_active: true,
+  }
+}
+
+async function saveAccountingRule() {
+  if (isSavingRule.value) return
+  if (!ruleForm.value.rule_name || !ruleForm.value.match_pattern || !ruleForm.value.gl_code) {
+    toast.error('Rule name, match pattern, and GL code are required')
+    return
+  }
+
+  isSavingRule.value = true
+  try {
+    const method = editingRuleId.value ? 'PUT' : 'POST'
+    const url = editingRuleId.value
+      ? `/api/reports/accounting/rules/${editingRuleId.value}`
+      : '/api/reports/accounting/rules'
+
+    const resp = await authFetch(url, {
+      method,
+      body: JSON.stringify(ruleForm.value),
+    })
+    if (!resp) return
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => '')
+      throw new Error(detail || `Failed to save rule (${resp.status})`)
+    }
+
+    await loadAccountingRules()
+    resetRuleForm()
+    toast.success('Accounting rule saved')
+  } catch (error) {
+    console.error('Save accounting rule error:', error)
+    toast.error('Failed to save rule: ' + (error?.message || error))
+  } finally {
+    isSavingRule.value = false
+  }
+}
+
+async function deleteAccountingRule(ruleId) {
+  if (!confirm('Delete this accounting rule?')) return
+  try {
+    const resp = await authFetch(`/api/reports/accounting/rules/${ruleId}`, { method: 'DELETE' })
+    if (!resp) return
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => '')
+      throw new Error(detail || `Failed to delete rule (${resp.status})`)
+    }
+    await loadAccountingRules()
+    if (editingRuleId.value === ruleId) resetRuleForm()
+    toast.success('Accounting rule deleted')
+  } catch (error) {
+    console.error('Delete accounting rule error:', error)
+    toast.error('Failed to delete rule: ' + (error?.message || error))
+  }
+}
+
+function parseIds(input) {
+  return String(input || '')
+    .split(',')
+    .map((v) => Number(v.trim()))
+    .filter((n) => Number.isInteger(n) && n > 0)
+}
+
+async function applyReceiptReclassify() {
+  const receiptIds = parseIds(reclassifyForm.value.receipt_ids)
+  if (!receiptIds.length || !reclassifyForm.value.gl_code) {
+    toast.error('Enter receipt IDs and a GL code')
+    return
+  }
+  isApplyingReclassify.value = true
+  try {
+    const resp = await authFetch('/api/reports/accounting/reclassify/receipts', {
+      method: 'POST',
+      body: JSON.stringify({
+        receipt_ids: receiptIds,
+        gl_code: reclassifyForm.value.gl_code,
+      }),
+    })
+    if (!resp) return
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => '')
+      throw new Error(detail || `Failed to reclassify receipts (${resp.status})`)
+    }
+    const json = await resp.json()
+    toast.success(`Updated ${json.updated_count || 0} receipt rows`)
+  } catch (error) {
+    console.error('Receipt reclassify error:', error)
+    toast.error('Receipt reclassify failed: ' + (error?.message || error))
+  } finally {
+    isApplyingReclassify.value = false
+  }
+}
+
+async function applyLedgerReclassify() {
+  const ledgerIds = parseIds(reclassifyForm.value.ledger_ids)
+  if (!ledgerIds.length) {
+    toast.error('Enter ledger row IDs')
+    return
+  }
+  if (!reclassifyForm.value.gl_code && !reclassifyForm.value.account_name && !reclassifyForm.value.account_type) {
+    toast.error('Provide at least one field: GL code, account name, or account type')
+    return
+  }
+
+  isApplyingReclassify.value = true
+  try {
+    const resp = await authFetch('/api/reports/accounting/reclassify/ledger', {
+      method: 'POST',
+      body: JSON.stringify({
+        ledger_ids: ledgerIds,
+        gl_code: reclassifyForm.value.gl_code || null,
+        account_name: reclassifyForm.value.account_name || null,
+        account_type: reclassifyForm.value.account_type || null,
+      }),
+    })
+    if (!resp) return
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => '')
+      throw new Error(detail || `Failed to reclassify ledger rows (${resp.status})`)
+    }
+    const json = await resp.json()
+    toast.success(`Updated ${json.updated_count || 0} ledger rows`)
+  } catch (error) {
+    console.error('Ledger reclassify error:', error)
+    toast.error('Ledger reclassify failed: ' + (error?.message || error))
+  } finally {
+    isApplyingReclassify.value = false
+  }
+}
+
 onMounted(() => {
   // Load saved reports from localStorage or API
   const saved = localStorage.getItem('savedReports')
@@ -1403,8 +1836,9 @@ onMounted(() => {
     savedReports.value = JSON.parse(saved)
   }
   
-  // Load QuickBooks export status
-  refreshQBStatus()
+  // Load accounting export status
+  refreshAccountingExportStatus()
+  loadAccountingRules()
 })
 
 // Persist saved reports
@@ -1433,14 +1867,14 @@ watch(savedReports, (val) => {
 }
 
 .category-button:hover {
-  color: #007bff;
-  background: #f8f9fa;
+  color: #1e3a8a;
+  background: #eef2ff;
 }
 
 .category-button.active {
-  color: #007bff;
-  border-bottom-color: #007bff;
-  background: white;
+  color: #1e3a8a;
+  border-bottom-color: #1e3a8a;
+  background: #e0e7ff;
 }
 
 .report-section {
@@ -1476,8 +1910,8 @@ watch(savedReports, (val) => {
 }
 
 .report-type {
-  background: #007bff;
-  color: white;
+  background: #dbeafe;
+  color: #1e3a8a;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 0.8rem;
@@ -1494,7 +1928,7 @@ watch(savedReports, (val) => {
   margin-bottom: 20px;
 }
 
-.report-params label {
+.report-params label, .report-params .field-label {
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
@@ -1538,15 +1972,15 @@ watch(savedReports, (val) => {
   cursor: not-allowed;
 }
 
-.btn-generate { background: #28a745; color: white; }
-.btn-export { background: #17a2b8; color: white; }
+.btn-generate { background: #22c55e; color: #0f172a; }
+.btn-export { background: #38bdf8; color: #0f172a; }
 .btn-save { background: #ffc107; color: black; }
-.btn-load { background: #6c757d; color: white; }
-.btn-run { background: #007bff; color: white; }
-.btn-download { background: #28a745; color: white; }
-.btn-email { background: #fd7e14; color: white; }
-.btn-print { background: #6c757d; color: white; }
-.btn-close { background: #dc3545; color: white; }
+.btn-load { background: #94a3b8; color: #0f172a; }
+.btn-run { background: #60a5fa; color: #0f172a; }
+.btn-download { background: #22c55e; color: #0f172a; }
+.btn-email { background: #fb923c; color: #0f172a; }
+.btn-print { background: #94a3b8; color: #0f172a; }
+.btn-close { background: #f87171; color: #0f172a; }
 
 .custom-report-builder {
   background: white;
@@ -1564,7 +1998,7 @@ watch(savedReports, (val) => {
   margin-bottom: 25px;
 }
 
-.form-group label {
+.form-group label, .form-group .field-label {
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
@@ -1625,7 +2059,7 @@ watch(savedReports, (val) => {
   font-size: 0.9rem;
 }
 
-.btn-add { background: #28a745; color: white; }
+.btn-add { background: #22c55e; color: #0f172a; }
 .btn-remove { background: #dc3545; color: white; }
 
 .custom-report-actions {
@@ -1673,7 +2107,7 @@ watch(savedReports, (val) => {
   font-size: 0.8rem;
 }
 
-.report-actions {
+.saved-reports .report-actions {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1741,6 +2175,54 @@ watch(savedReports, (val) => {
   text-align: center;
 }
 
+.mini-chart {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.mini-chart-bars {
+  height: 360px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.mini-chart-bar-wrap {
+  min-width: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.mini-chart-bar {
+  width: 100%;
+  background: linear-gradient(180deg, #37b24d 0%, #2f9e44 100%);
+  border-radius: 6px 6px 0 0;
+}
+
+.mini-chart-value {
+  font-size: 0.75rem;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.mini-chart-label {
+  font-size: 0.75rem;
+  color: #343a40;
+  text-align: center;
+}
+
+.mini-chart-meta {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
 .text-output pre {
   background: #f8f9fa;
   padding: 20px;
@@ -1796,8 +2278,8 @@ h1, h2, h3 {
   color: #155724;
 }
 
-/* QuickBooks Dashboard Styles */
-.qb-intro-card {
+/* Accounting Export Dashboard Styles */
+.accounting-intro-card {
   background: linear-gradient(135deg, #2c7a2f 0%, #3ea643 100%);
   color: white;
   padding: 30px;
@@ -1806,20 +2288,20 @@ h1, h2, h3 {
   box-shadow: 0 4px 12px rgba(44, 122, 47, 0.3);
 }
 
-.qb-intro-card h3 {
+.accounting-intro-card h3 {
   color: white;
   margin-top: 0;
   margin-bottom: 15px;
   font-size: 1.5rem;
 }
 
-.qb-intro-card p {
+.accounting-intro-card p {
   color: rgba(255, 255, 255, 0.95);
   margin-bottom: 10px;
   font-size: 1rem;
 }
 
-.qb-status-bar {
+.accounting-status-bar {
   background: white;
   border-radius: 8px;
   padding: 15px 20px;
@@ -1850,11 +2332,11 @@ h1, h2, h3 {
   gap: 10px;
 }
 
-.qb-export-all-section {
+.accounting-export-all-section {
   margin-bottom: 30px;
 }
 
-.qb-record-count {
+.accounting-record-count {
   background: #e9f7ef;
   color: #2c7a2f;
   padding: 8px 12px;
@@ -1879,7 +2361,7 @@ h1, h2, h3 {
   font-size: 0.9rem;
 }
 
-.qb-import-instructions {
+.accounting-import-instructions {
   background: white;
   padding: 30px;
   border-radius: 12px;
@@ -1887,35 +2369,118 @@ h1, h2, h3 {
   margin-top: 40px;
 }
 
-.qb-import-instructions h3 {
+.accounting-import-instructions h3 {
   color: #2c7a2f;
   margin-top: 0;
   margin-bottom: 20px;
 }
 
-.qb-import-instructions ol {
+.accounting-import-instructions ol {
   margin-bottom: 20px;
   line-height: 2;
   font-size: 1rem;
 }
 
-.qb-import-instructions ol li {
+.accounting-import-instructions ol li {
   margin-bottom: 10px;
   color: #333;
 }
 
-.qb-import-instructions .info-box {
+.accounting-import-instructions .info-box {
   background: #fff8e1;
   border: 1px solid #ffc107;
   color: #856404;
 }
 
-.qb-import-instructions .info-box ul {
+.accounting-import-instructions .info-box ul {
   margin: 10px 0 0 0;
   padding-left: 20px;
 }
 
-.qb-import-instructions .info-box ul li {
+.accounting-import-instructions .info-box ul li {
   margin-bottom: 8px;
+}
+
+.accounting-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.accounting-admin-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.rule-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.rule-form-grid input,
+.rule-form-grid select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+}
+
+.inline-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.rules-list {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.rules-empty {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.rule-item {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rule-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.rule-pill {
+  background: #edf2ff;
+  color: #364fc7;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.78rem;
+}
+
+.rule-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-delete {
+  background: #dc3545;
+  color: #fff;
 }
 </style>

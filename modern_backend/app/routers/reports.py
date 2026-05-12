@@ -6,12 +6,132 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import cursor, get_connection
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
+
+
+class AccountingRuleUpsert(BaseModel):
+    rule_name: str = Field(min_length=2, max_length=120)
+    match_field: str = Field(min_length=2, max_length=64)
+    match_pattern: str = Field(min_length=1, max_length=255)
+    gl_code: str = Field(min_length=1, max_length=32)
+    account_type: str | None = Field(default=None, max_length=64)
+    sort_order: int = Field(default=100, ge=0, le=10000)
+    is_active: bool = True
+
+
+class ReceiptGLReclassifyRequest(BaseModel):
+    receipt_ids: list[int] = Field(min_length=1)
+    gl_code: str = Field(min_length=1, max_length=32)
+
+
+class LedgerReclassifyRequest(BaseModel):
+    ledger_ids: list[int] = Field(min_length=1)
+    gl_code: str | None = Field(default=None, max_length=32)
+    account_name: str | None = Field(default=None, max_length=255)
+    account_type: str | None = Field(default=None, max_length=64)
+
+
+def _ensure_accounting_rules_table(conn) -> None:
+    """Create accounting rules table lazily so CRUD endpoints are usable."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS accounting_gl_rules (
+                rule_id SERIAL PRIMARY KEY,
+                rule_name TEXT UNIQUE NOT NULL,
+                match_field TEXT NOT NULL,
+                match_pattern TEXT NOT NULL,
+                gl_code TEXT NOT NULL,
+                account_type TEXT NULL,
+                sort_order INTEGER NOT NULL DEFAULT 100,
+                is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_accounting_gl_rules_sort
+            ON accounting_gl_rules (is_active, sort_order, rule_id)
+            """
+        )
+    conn.commit()
+
+
+def _validate_rule_field(match_field: str) -> None:
+    allowed = {
+        "name",
+        "memo_description",
+        "account_name",
+        "supplier",
+        "customer",
+        "employee",
+        "transaction_type",
+    }
+    if match_field not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "invalid_match_field",
+                "allowed": sorted(allowed),
+            },
+        )
+
+
+def _audit_actor(request: Request | None) -> AuditEventActor:
+    if request is None:
+        return AuditEventActor(actor_type="system", username="system")
+    username = request.headers.get("X-User-Name") or request.headers.get(
+        "X-User"
+    )
+    role = request.headers.get("X-User-Role")
+    user_id = request.headers.get("X-User-Id")
+    if not username:
+        username = request.headers.get("X-Forwarded-User")
+    return AuditEventActor(
+        actor_type="user" if username else "service",
+        user_id=user_id,
+        username=username,
+        role=role,
+    )
+
+
+def _load_rule_snapshot(conn, rule_id: int) -> dict[str, Any] | None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT rule_id, rule_name, match_field, match_pattern,
+                   gl_code, account_type, sort_order, is_active,
+                   created_at, updated_at
+            FROM accounting_gl_rules
+            WHERE rule_id = %s
+            """,
+            (rule_id,),
+        )
+        row = cur.fetchone()
+    if not row:
+        return None
+    return {
+        "rule_id": int(row[0]),
+        "rule_name": row[1],
+        "match_field": row[2],
+        "match_pattern": row[3],
+        "gl_code": row[4],
+        "account_type": row[5],
+        "sort_order": int(row[6] or 0),
+        "is_active": bool(row[7]),
+        "created_at": row[8].isoformat() if hasattr(row[8], "isoformat") else None,
+        "updated_at": row[9].isoformat() if hasattr(row[9], "isoformat") else None,
+    }
 
 
 @router.get("/export")
@@ -2964,7 +3084,7 @@ EXPORTED FILES
 {'Transactions.xml - Transaction History' if export_type != 'summary' else ''}
 {'TrialBalance.xml - Balances' if export_type != 'transactions' else ''}
 
-FORMAT: XML (QuickBooks CRA audit export compatible)
+FORMAT: XML (CRA audit export compatible)
 CURRENCY: CAD (Canadian Dollars)
 DATE FORMAT: YYYY-MM-DD
 
@@ -3000,13 +3120,13 @@ Generated via Arrow Limousine Reports Dashboard
         conn.close()
 
 
-@router.get("/quickbooks/views")
-def get_quickbooks_export_views():
-    """Get list of available QuickBooks export views with record counts."""
+@router.get("/accounting/views")
+def get_accounting_export_views():
+    """Get list of available accounting export views with record counts."""
     conn = get_connection()
     cur = conn.cursor()
     try:
-        # Check if QuickBooks export views exist
+        # Check if accounting export views exist
         cur.execute(
             """
             SELECT table_name
@@ -3022,12 +3142,10 @@ def get_quickbooks_export_views():
             return {
                 "status": "not_initialized",
                 "message": (
-                    "QuickBooks export views not found."
+                    "Accounting export views not found."
                     " Run the migration script first."
                 ),
-                "migration_script": (
-                    "migrations/create_quickbooks_export_views.sql"
-                ),
+                "migration_script": "migrations/create_accounting_export_views.sql",
             }
 
         # Get record count for each view
@@ -3076,14 +3194,23 @@ def get_quickbooks_export_views():
         conn.close()
 
 
-@router.get("/quickbooks/export/{view_name}")
-def export_quickbooks_view(
+@router.get("/quickbooks/views")
+def deprecated_quickbooks_views():
+    """Deprecated endpoint retained for backwards compatibility."""
+    raise HTTPException(
+        status_code=410,
+        detail="deprecated_endpoint_use_/api/reports/accounting/views",
+    )
+
+
+@router.get("/accounting/export/{view_name}")
+def export_accounting_view(
     view_name: str,
     format: str = "csv",
     start_date: str | None = None,
     end_date: str | None = None,
 ):
-    """Export a specific QuickBooks view to CSV or Excel format."""
+    """Export a specific accounting view to CSV format."""
     conn = get_connection()
     cur = conn.cursor()
 
@@ -3180,18 +3307,30 @@ def export_quickbooks_view(
         conn.close()
 
 
-@router.get("/quickbooks/export-all")
-def export_all_quickbooks_views(
+@router.get("/quickbooks/export/{view_name}")
+def deprecated_quickbooks_export(view_name: str):
+    """Deprecated endpoint retained for backwards compatibility."""
+    raise HTTPException(
+        status_code=410,
+        detail=(
+            "deprecated_endpoint_use_/api/reports/accounting/export/"
+            f"{view_name}"
+        ),
+    )
+
+
+@router.get("/accounting/export-all")
+def export_all_accounting_views(
     start_date: str | None = None, end_date: str | None = None
 ):
-    """Export all QuickBooks views to a single ZIP file."""
+    """Export all accounting views to a single ZIP file."""
     import zipfile
 
     conn = get_connection()
     cur = conn.cursor()
 
     try:
-        # Get all QuickBooks export views
+        # Get all accounting export views
         cur.execute(
             """
             SELECT table_name
@@ -3206,7 +3345,7 @@ def export_all_quickbooks_views(
         if not views:
             return Response(
                 status_code=404,
-                content="No QuickBooks export views found",
+                content="No accounting export views found",
             )
 
         # Create temporary directory
@@ -3263,13 +3402,13 @@ def export_all_quickbooks_views(
             else:
                 date_range_text = ""
 
-            readme = f"""QUICKBOOKS EXPORT FROM ALMSDATA DATABASE
+            readme = f"""ACCOUNTING EXPORT FROM ALMSDATA DATABASE
 {'=' * 70}
 
 Export Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 Company: Arrow Limousine & Sedan Ltd.
 Database: almsdata (PostgreSQL)
-Export Type: QuickBooks CSV Import Format{date_range_text}
+Export Type: Accounting CSV Import Format{date_range_text}
 
 EXPORTED FILES
 {'=' * 70}
@@ -3293,16 +3432,16 @@ EXPORTED FILES
 
 IMPORT INSTRUCTIONS
 {'=' * 70}
-1. Open QuickBooks Desktop
+1. Open your accounting application
 2. Go to: File → Utilities → Import → Excel Files
 3. Select the CSV file you want to import
 4. Follow the import wizard
-5. Column names already match QuickBooks format
+5. Column names are pre-mapped for import
 
 Note: Import each file separately based on your needs.
 Start with Chart of Accounts, then Customers/Vendors, then Transactions.
 
-Generated via Arrow Limousine QuickBooks Dashboard
+Generated via Arrow Limousine Accounting Export Dashboard
 """
 
             with open(
@@ -3316,7 +3455,7 @@ Generated via Arrow Limousine QuickBooks Dashboard
                 date_suffix = f"_{start_date}_to_{end_date}"
 
             zip_filename = (
-                f"QuickBooks_Export_"
+                f"Accounting_Export_"
                 f"{datetime.now().strftime('%Y%m%d_%H%M%S')}{date_suffix}.zip"
             )
             zip_path = tmppath / zip_filename
@@ -3335,6 +3474,421 @@ Generated via Arrow Limousine QuickBooks Dashboard
 
     finally:
         cur.close()
+        conn.close()
+
+
+@router.get("/quickbooks/export-all")
+def deprecated_quickbooks_export_all():
+    """Deprecated endpoint retained for backwards compatibility."""
+    raise HTTPException(
+        status_code=410,
+        detail="deprecated_endpoint_use_/api/reports/accounting/export-all",
+    )
+
+
+@router.get("/accounting/rules")
+def list_accounting_rules():
+    """List accounting classification rules used to organize GL data."""
+    conn = get_connection()
+    try:
+        _ensure_accounting_rules_table(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT rule_id, rule_name, match_field, match_pattern,
+                       gl_code, account_type, sort_order, is_active,
+                       created_at, updated_at
+                FROM accounting_gl_rules
+                ORDER BY is_active DESC, sort_order, rule_id
+                """
+            )
+            rows = cur.fetchall()
+
+        items = [
+            {
+                "rule_id": r[0],
+                "rule_name": r[1],
+                "match_field": r[2],
+                "match_pattern": r[3],
+                "gl_code": r[4],
+                "account_type": r[5],
+                "sort_order": int(r[6] or 0),
+                "is_active": bool(r[7]),
+                "created_at": (
+                    r[8].isoformat() if hasattr(r[8], "isoformat") else None
+                ),
+                "updated_at": (
+                    r[9].isoformat() if hasattr(r[9], "isoformat") else None
+                ),
+            }
+            for r in rows
+        ]
+        return {"count": len(items), "items": items}
+    finally:
+        conn.close()
+
+
+@router.post("/accounting/rules")
+def create_accounting_rule(payload: AccountingRuleUpsert, request: Request):
+    """Create a new accounting classification rule."""
+    _validate_rule_field(payload.match_field)
+    conn = get_connection()
+    try:
+        _ensure_accounting_rules_table(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO accounting_gl_rules (
+                    rule_name, match_field, match_pattern, gl_code,
+                    account_type, sort_order, is_active
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING rule_id
+                """,
+                (
+                    payload.rule_name.strip(),
+                    payload.match_field,
+                    payload.match_pattern.strip(),
+                    payload.gl_code.strip(),
+                    payload.account_type.strip()
+                    if payload.account_type
+                    else None,
+                    payload.sort_order,
+                    payload.is_active,
+                ),
+            )
+            new_id = cur.fetchone()[0]
+
+        ensure_audit_storage(conn)
+        after_snapshot = _load_rule_snapshot(conn, int(new_id))
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="reports",
+                entity_type="accounting_rule",
+                entity_id=str(new_id),
+                action="create_accounting_rule",
+                source="api",
+                actor=_audit_actor(request),
+                before=None,
+                after=after_snapshot,
+                evidence_links=[],
+                retention_until=datetime.utcnow().date() + timedelta(days=365 * 7),
+                note="Accounting rule created",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+        conn.commit()
+        return {"status": "created", "rule_id": int(new_id)}
+    except Exception as exc:
+        conn.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail=f"failed_to_create_rule: {exc}",
+        ) from exc
+    finally:
+        conn.close()
+
+
+@router.put("/accounting/rules/{rule_id}")
+def update_accounting_rule(
+    rule_id: int,
+    payload: AccountingRuleUpsert,
+    request: Request,
+):
+    """Update an existing accounting classification rule."""
+    _validate_rule_field(payload.match_field)
+    conn = get_connection()
+    try:
+        _ensure_accounting_rules_table(conn)
+        before_snapshot = _load_rule_snapshot(conn, rule_id)
+        if not before_snapshot:
+            raise HTTPException(status_code=404, detail="rule_not_found")
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE accounting_gl_rules
+                SET rule_name = %s,
+                    match_field = %s,
+                    match_pattern = %s,
+                    gl_code = %s,
+                    account_type = %s,
+                    sort_order = %s,
+                    is_active = %s,
+                    updated_at = NOW()
+                WHERE rule_id = %s
+                RETURNING rule_id
+                """,
+                (
+                    payload.rule_name.strip(),
+                    payload.match_field,
+                    payload.match_pattern.strip(),
+                    payload.gl_code.strip(),
+                    payload.account_type.strip()
+                    if payload.account_type
+                    else None,
+                    payload.sort_order,
+                    payload.is_active,
+                    rule_id,
+                ),
+            )
+            updated = cur.fetchone()
+        if not updated:
+            raise HTTPException(status_code=404, detail="rule_not_found")
+
+        ensure_audit_storage(conn)
+        after_snapshot = _load_rule_snapshot(conn, rule_id)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="reports",
+                entity_type="accounting_rule",
+                entity_id=str(rule_id),
+                action="update_accounting_rule",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=after_snapshot,
+                evidence_links=[],
+                retention_until=datetime.utcnow().date() + timedelta(days=365 * 7),
+                note="Accounting rule updated",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+        conn.commit()
+        return {"status": "updated", "rule_id": int(rule_id)}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as exc:
+        conn.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail=f"failed_to_update_rule: {exc}",
+        ) from exc
+    finally:
+        conn.close()
+
+
+@router.delete("/accounting/rules/{rule_id}")
+def delete_accounting_rule(rule_id: int, request: Request):
+    """Delete accounting classification rule."""
+    conn = get_connection()
+    try:
+        _ensure_accounting_rules_table(conn)
+        before_snapshot = _load_rule_snapshot(conn, rule_id)
+        if not before_snapshot:
+            raise HTTPException(status_code=404, detail="rule_not_found")
+
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM accounting_gl_rules WHERE rule_id = %s",
+                (rule_id,),
+            )
+            deleted = cur.rowcount
+        if deleted == 0:
+            raise HTTPException(status_code=404, detail="rule_not_found")
+
+        ensure_audit_storage(conn)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="reports",
+                entity_type="accounting_rule",
+                entity_id=str(rule_id),
+                action="delete_accounting_rule",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=None,
+                evidence_links=[],
+                retention_until=datetime.utcnow().date() + timedelta(days=365 * 7),
+                note="Accounting rule deleted",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+        conn.commit()
+        return {"status": "deleted", "rule_id": int(rule_id)}
+    except HTTPException:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+@router.post("/accounting/reclassify/receipts")
+def reclassify_receipts_gl(payload: ReceiptGLReclassifyRequest, request: Request):
+    """Bulk update GL code for selected receipts."""
+    conn = get_connection()
+    try:
+        id_col = (
+            "receipt_id"
+            if _has_column(conn, "receipts", "receipt_id")
+            else "id"
+            if _has_column(conn, "receipts", "id")
+            else None
+        )
+        if not id_col:
+            raise HTTPException(
+                status_code=400,
+                detail="receipts_missing_primary_key",
+            )
+
+        gl_cols: list[str] = []
+        if _has_column(conn, "receipts", "gl_account_code"):
+            gl_cols.append("gl_account_code = %s")
+        if _has_column(conn, "receipts", "gl_code"):
+            gl_cols.append("gl_code = %s")
+
+        if not gl_cols:
+            raise HTTPException(
+                status_code=400,
+                detail="receipts_missing_gl_columns",
+            )
+
+        set_clause = ", ".join(gl_cols)
+        params: list[Any] = [payload.gl_code] * len(gl_cols)
+        params.append(payload.receipt_ids)
+
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+                UPDATE receipts
+                SET {set_clause}
+                WHERE {id_col} = ANY(%s)
+                """,
+                params,
+            )
+            updated = cur.rowcount
+
+        ensure_audit_storage(conn)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="reports",
+                entity_type="receipt",
+                entity_id="bulk",
+                action="reclassify_receipts_gl",
+                source="api",
+                actor=_audit_actor(request),
+                before={"receipt_ids": payload.receipt_ids},
+                after={
+                    "receipt_ids": payload.receipt_ids,
+                    "gl_code": payload.gl_code,
+                    "updated_count": int(updated),
+                },
+                evidence_links=[],
+                retention_until=datetime.utcnow().date() + timedelta(days=365 * 7),
+                note="Bulk receipt GL reclassification",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+        conn.commit()
+        return {
+            "status": "updated",
+            "updated_count": int(updated),
+            "gl_code": payload.gl_code,
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+@router.post("/accounting/reclassify/ledger")
+def reclassify_ledger_rows(payload: LedgerReclassifyRequest, request: Request):
+    """Bulk update account metadata for selected general_ledger rows."""
+    if not any([payload.gl_code, payload.account_name, payload.account_type]):
+        raise HTTPException(
+            status_code=400,
+            detail="at_least_one_field_required",
+        )
+
+    conn = get_connection()
+    try:
+        if not _has_column(conn, "general_ledger", "id"):
+            raise HTTPException(
+                status_code=400,
+                detail="general_ledger_missing_id",
+            )
+
+        updates: list[str] = []
+        params: list[Any] = []
+
+        if payload.gl_code is not None and _has_column(
+            conn, "general_ledger", "account"
+        ):
+            updates.append("account = %s")
+            params.append(payload.gl_code)
+        if payload.account_name is not None and _has_column(
+            conn, "general_ledger", "account_name"
+        ):
+            updates.append("account_name = %s")
+            params.append(payload.account_name)
+        if payload.account_type is not None and _has_column(
+            conn, "general_ledger", "account_type"
+        ):
+            updates.append("account_type = %s")
+            params.append(payload.account_type)
+
+        if not updates:
+            raise HTTPException(
+                status_code=400,
+                detail="target_columns_not_available",
+            )
+
+        params.append(payload.ledger_ids)
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+                UPDATE general_ledger
+                SET {', '.join(updates)}
+                WHERE id = ANY(%s)
+                """,
+                params,
+            )
+            updated = cur.rowcount
+
+        ensure_audit_storage(conn)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="reports",
+                entity_type="general_ledger",
+                entity_id="bulk",
+                action="reclassify_ledger_rows",
+                source="api",
+                actor=_audit_actor(request),
+                before={"ledger_ids": payload.ledger_ids},
+                after={
+                    "ledger_ids": payload.ledger_ids,
+                    "gl_code": payload.gl_code,
+                    "account_name": payload.account_name,
+                    "account_type": payload.account_type,
+                    "updated_count": int(updated),
+                },
+                evidence_links=[],
+                retention_until=datetime.utcnow().date() + timedelta(days=365 * 7),
+                note="Bulk ledger reclassification",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+        conn.commit()
+        return {
+            "status": "updated",
+            "updated_count": int(updated),
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    finally:
         conn.close()
 
 

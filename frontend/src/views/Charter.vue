@@ -10,8 +10,17 @@
           <button class="secondary" @click="openSingleInvoicePrint" :disabled="!booking.charter_id">
             Print Single Invoice PDF
           </button>
+          <button class="secondary" @click="emailSingleInvoice" :disabled="!booking.charter_id">
+            Email Single Invoice
+          </button>
           <button class="secondary" @click="openBlankRunSheetPrint" :disabled="!booking.charter_id">
             Print Blank Run Sheet
+          </button>
+          <button class="secondary" @click="openConfirmationLetterPrint" :disabled="!booking.charter_id">
+            Print Confirmation Letter
+          </button>
+          <button class="secondary" @click="emailConfirmationLetter" :disabled="!booking.charter_id">
+            Email Confirmation Letter
           </button>
           <button class="secondary" @click="openAirportSignPrint" :disabled="!booking.charter_id">
             Airport Sign
@@ -96,7 +105,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { toast } from '@/toast/toastStore'
 import { useRoute, useRouter } from 'vue-router'
 import { authFetch } from '@/utils/authFetch'
@@ -202,14 +211,23 @@ function removeBeverage(index) {
   beverages.value.splice(index, 1)
 }
 
-onMounted(() => {
+async function loadFromRoute() {
   const id = route.query.id || route.params.id
   if (id) {
-    fetchBooking(id)
+    await fetchBooking(id)
   } else {
-    fetchLatestBooking()
+    await fetchLatestBooking()
   }
-})
+}
+
+onMounted(loadFromRoute)
+
+watch(
+  () => [route.query.id, route.params.id],
+  async () => {
+    await loadFromRoute()
+  }
+)
 
 function openPrint() {
   const q = new URLSearchParams()
@@ -234,7 +252,12 @@ async function openPdfWithAuth(url) {
 
 function openSingleInvoicePrint() {
   if (!booking.value?.charter_id) return
-  openPdfWithAuth(`/api/charters/${booking.value.charter_id}/invoice-pdf`)
+  openPdfWithAuth(`/api/charters/${booking.value.charter_id}/invoice-pdf-preview`)
+}
+
+function openConfirmationLetterPrint() {
+  if (!booking.value?.charter_id) return
+  openPdfWithAuth(`/api/charters/${booking.value.charter_id}/confirmation-letter-pdf`)
 }
 
 function openBlankRunSheetPrint() {
@@ -279,6 +302,47 @@ function openMultiInvoicePrint() {
     inline: 'true'
   })
   openPdfWithAuth(`/api/charters/multi-invoice-pdf?${params.toString()}`)
+}
+
+function toMailto(recipient, subject, body) {
+  const safeRecipient = recipient || ''
+  return `mailto:${encodeURIComponent(safeRecipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+}
+
+function emailSingleInvoice() {
+  if (!booking.value?.charter_id) return
+  const recipient = booking.value?.email || ''
+  const reserve = booking.value?.reserve_number || booking.value?.charter_id
+  const invoiceUrl = `${window.location.origin}/api/charters/${booking.value.charter_id}/invoice-pdf-preview`
+  const subject = `Charter Invoice - ${reserve}`
+  const body = [
+    'Hi,',
+    '',
+    'Please find your charter invoice at the link below:',
+    invoiceUrl,
+    '',
+    'Thank you,',
+    'Arrow Limousine'
+  ].join('\n')
+  window.location.href = toMailto(recipient, subject, body)
+}
+
+function emailConfirmationLetter() {
+  if (!booking.value?.charter_id) return
+  const recipient = booking.value?.email || ''
+  const reserve = booking.value?.reserve_number || booking.value?.charter_id
+  const confirmationUrl = `${window.location.origin}/api/charters/${booking.value.charter_id}/confirmation-letter-pdf`
+  const subject = `Charter Confirmation - ${reserve}`
+  const body = [
+    'Hi,',
+    '',
+    'Please find your charter confirmation letter at the link below:',
+    confirmationUrl,
+    '',
+    'Thank you,',
+    'Arrow Limousine'
+  ].join('\n')
+  window.location.href = toMailto(recipient, subject, body)
 }
 </script>
 

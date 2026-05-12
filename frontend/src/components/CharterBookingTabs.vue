@@ -154,6 +154,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { authFetch } from '@/utils/authFetch'
 import RunCharterTab from './charter/RunCharterTab.vue'
 
 const route = useRoute()
@@ -186,9 +187,34 @@ const vehicleRates = {
 }
 
 // Methods
-function saveCharter(charterData) {
-  console.log('Saving charter:', charterData)
-  // TODO: API call to save charter
+async function saveCharter(charterData) {
+  try {
+    const payload = {
+      ...charterData,
+      passenger_load: charterData?.passenger_count || 1
+    }
+
+    const currentCharterId = currentCharter.value?.charter_id || currentCharter.value?.id
+    const response = currentCharterId
+      ? await authFetch(`/api/charters/${currentCharterId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+      : await authFetch('/api/bookings/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+
+    if (!response?.ok) {
+      throw new Error(`Save failed (${response?.status ?? 'unknown'})`)
+    }
+
+    currentCharter.value = await response.json()
+  } catch (error) {
+    console.error('Saving charter failed:', error)
+  }
 }
 
 function handleQuoteGenerated(quoteData) {
@@ -223,8 +249,26 @@ function calculateGrandTotal() {
 }
 
 function emailQuote() {
-  console.log('Emailing quote...')
-  // TODO: Implement email functionality
+  if (!generatedQuote.value) {
+    return
+  }
+
+  const customerName = generatedQuote.value?.charter?.clientName || 'Customer'
+  const charterDate = generatedQuote.value?.charter?.charterDate || 'TBD'
+  const total = calculateGrandTotal()
+  const subject = `Charter Quote - ${customerName} (${charterDate})`
+  const body = [
+    `Hi ${customerName},`,
+    '',
+    'Thank you for your charter request. Your quote has been prepared.',
+    `Estimated total: $${total}`,
+    '',
+    'Please reply to confirm or request changes.',
+    '',
+    'Arrow Limousine'
+  ].join('\n')
+
+  window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
 }
 
 function printQuote() {
@@ -246,8 +290,16 @@ onMounted(() => {
   // Load charter if editing existing
   const charterId = route.params.id
   if (charterId) {
-    // TODO: Load charter data
-    console.log('Loading charter:', charterId)
+    authFetch(`/api/bookings/${charterId}`)
+      .then((resp) => (resp?.ok ? resp.json() : null))
+      .then((data) => {
+        if (data) {
+          currentCharter.value = data
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load charter:', error)
+      })
   }
 })
 </script>

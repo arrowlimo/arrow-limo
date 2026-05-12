@@ -1,8 +1,11 @@
 from contextlib import contextmanager
+from datetime import date, timedelta
 from typing import Any
 
-from fastapi import APIRouter, Body, HTTPException, Path, Query
+from fastapi import APIRouter, Body, HTTPException, Path, Query, Request
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection, return_connection
 from ..models.charter_routes import (
     CharterRoute,
@@ -12,6 +15,47 @@ from ..models.charter_routes import (
 )
 
 router = APIRouter(prefix="/api", tags=["charters"])
+
+
+def _audit_actor(request: Request | None) -> AuditEventActor:
+    if request is None:
+        return AuditEventActor(actor_type="system", username="system")
+    username = request.headers.get("X-User-Name") or request.headers.get(
+        "X-User"
+    )
+    role = request.headers.get("X-User-Role")
+    user_id = request.headers.get("X-User-Id")
+    if not username:
+        username = request.headers.get("X-Forwarded-User")
+    return AuditEventActor(
+        actor_type="user" if username else "service",
+        user_id=user_id,
+        username=username,
+        role=role,
+    )
+
+
+def _fetch_charter(cur, charter_id: int) -> dict[str, Any] | None:
+    cur.execute("SELECT * FROM charters WHERE charter_id=%s", (charter_id,))
+    row = cur.fetchone()
+    if not row:
+        return None
+    cols = [d[0] for d in (cur.description or [])]
+    return dict(zip(cols, row, strict=False))
+
+
+def _fetch_route(
+    cur, charter_id: int, route_id: int
+) -> dict[str, Any] | None:
+    cur.execute(
+        "SELECT * FROM charter_routes WHERE route_id = %s AND charter_id = %s",
+        (route_id, charter_id),
+    )
+    row = cur.fetchone()
+    if not row:
+        return None
+    cols = [d[0] for d in (cur.description or [])]
+    return dict(zip(cols, row, strict=False))
 
 
 @contextmanager
@@ -174,6 +218,7 @@ def get_charter(
 
 @router.patch("/charters/{charter_id}")
 def update_charter(
+    request: Request,
     charter_id: int = Path(...),
     payload: dict[str, Any] | None = None,
 ):
@@ -197,16 +242,73 @@ def update_charter(
     sets = ", ".join([f"{k}=%s" for k in updates])
     params: list[Any] = [*list(updates.values()), charter_id]
     with _db_cursor() as cur:
+        before_snapshot = _fetch_charter(cur, charter_id)
+        if not before_snapshot:
+            raise HTTPException(status_code=404, detail="charter_not_found")
+
         cur.execute(f"UPDATE charters SET {sets} WHERE charter_id=%s", params)
         # Return the updated record
-        cur.execute(
-            "SELECT * FROM charters WHERE charter_id=%s", (charter_id,)
+        row = _fetch_charter(cur, charter_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="charter_not_found")
+
+        ensure_audit_storage(cur.connection)
+        record_audit_event(
+            cur.connection,
+            AuditEvent(
+                module="charters",
+                entity_type="charter",
+                entity_id=str(charter_id),
+                action="update_charter",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=row,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Charter updated through API",
+            ),
+            ensure_storage=False,
+            commit=False,
         )
-        row = cur.fetchone()
-        cols = [d[0] for d in (cur.description or [])]
-    if not row:
-        raise HTTPException(status_code=404, detail="charter_not_found")
-    return dict(zip(cols, row, strict=False))
+    return row
+
+
+@router.delete("/charters/{charter_id}", status_code=204)
+def delete_charter(
+    request: Request,
+    charter_id: int = Path(...),
+):
+    with _db_cursor() as cur:
+        before_snapshot = _fetch_charter(cur, charter_id)
+        if not before_snapshot:
+            raise HTTPException(status_code=404, detail="charter_not_found")
+
+        cur.execute("DELETE FROM charter_routes WHERE charter_id=%s", (charter_id,))
+        cur.execute("DELETE FROM charters WHERE charter_id=%s", (charter_id,))
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail="charter_not_found")
+
+        ensure_audit_storage(cur.connection)
+        record_audit_event(
+            cur.connection,
+            AuditEvent(
+                module="charters",
+                entity_type="charter",
+                entity_id=str(charter_id),
+                action="delete_charter",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=None,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Charter deleted through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+    return None
 
 
 # ==================== CHARTER ROUTES ENDPOINTS ====================
@@ -300,6 +402,7 @@ def get_charter_with_routes(
     status_code=201,
 )
 def create_charter_route(
+    request: Request,
     charter_id: int = Path(..., description="Charter ID"),
     route: CharterRouteCreate = Body(...),
 ):
@@ -347,14 +450,36 @@ def create_charter_route(
         )
         new_row = cur.fetchone()
         cols = [d[0] for d in (cur.description or [])]
+        route_record = dict(zip(cols, new_row, strict=False))
 
-    return dict(zip(cols, new_row, strict=False))
+        ensure_audit_storage(cur.connection)
+        record_audit_event(
+            cur.connection,
+            AuditEvent(
+                module="charters",
+                entity_type="charter_route",
+                entity_id=str(route_record.get("route_id", "")),
+                action="create_charter_route",
+                source="api",
+                actor=_audit_actor(request),
+                before=None,
+                after=route_record,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Charter route created through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+
+    return route_record
 
 
 @router.patch(
     "/charters/{charter_id}/routes/{route_id}", response_model=CharterRoute
 )
 def update_charter_route(
+    request: Request,
     charter_id: int = Path(..., description="Charter ID"),
     route_id: int = Path(..., description="Route ID"),
     route: CharterRouteUpdate = Body(...),
@@ -368,6 +493,10 @@ def update_charter_route(
     params: list[Any] = [*list(route_dict.values()), route_id, charter_id]
 
     with _db_cursor() as cur:
+        before_snapshot = _fetch_route(cur, charter_id, route_id)
+        if not before_snapshot:
+            raise HTTPException(status_code=404, detail="route_not_found")
+
         cur.execute(
             f"""
             UPDATE charter_routes 
@@ -381,17 +510,43 @@ def update_charter_route(
         if not updated_row:
             raise HTTPException(status_code=404, detail="route_not_found")
         cols = [d[0] for d in (cur.description or [])]
+        updated_record = dict(zip(cols, updated_row, strict=False))
 
-    return dict(zip(cols, updated_row, strict=False))
+        ensure_audit_storage(cur.connection)
+        record_audit_event(
+            cur.connection,
+            AuditEvent(
+                module="charters",
+                entity_type="charter_route",
+                entity_id=str(route_id),
+                action="update_charter_route",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=updated_record,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Charter route updated through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+
+    return updated_record
 
 
 @router.delete("/charters/{charter_id}/routes/{route_id}", status_code=204)
 def delete_charter_route(
+    request: Request,
     charter_id: int = Path(..., description="Charter ID"),
     route_id: int = Path(..., description="Route ID"),
 ):
     """Delete a charter route."""
     with _db_cursor() as cur:
+        before_snapshot = _fetch_route(cur, charter_id, route_id)
+        if not before_snapshot:
+            raise HTTPException(status_code=404, detail="route_not_found")
+
         cur.execute(
             "DELETE FROM charter_routes WHERE route_id = %s AND charter_id ="
             "%s",
@@ -399,6 +554,26 @@ def delete_charter_route(
         )
         if cur.rowcount == 0:
             raise HTTPException(status_code=404, detail="route_not_found")
+
+        ensure_audit_storage(cur.connection)
+        record_audit_event(
+            cur.connection,
+            AuditEvent(
+                module="charters",
+                entity_type="charter_route",
+                entity_id=str(route_id),
+                action="delete_charter_route",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=None,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Charter route deleted through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
     return None
 
 
@@ -406,6 +581,7 @@ def delete_charter_route(
     "/charters/{charter_id}/routes/reorder", response_model=list[CharterRoute]
 )
 def reorder_charter_routes(
+    request: Request,
     charter_id: int = Path(..., description="Charter ID"),
     sequence_map: dict[int, int] = Body(
         ..., description="Map of route_id to new sequence number"
@@ -418,6 +594,15 @@ def reorder_charter_routes(
     Example: {"123": 1, "124": 2, "125": 3}
     """
     with _db_cursor() as cur:
+        before_rows: list[dict[str, Any]] = []
+        cur.execute(
+            "SELECT * FROM charter_routes WHERE charter_id = %s ORDER BY route_sequence",
+            (charter_id,),
+        )
+        rows = cur.fetchall()
+        cols = [d[0] for d in (cur.description or [])]
+        before_rows = [dict(zip(cols, r, strict=False)) for r in rows]
+
         # Verify charter exists
         cur.execute(
             "SELECT charter_id FROM charters WHERE charter_id = %s",
@@ -462,5 +647,26 @@ def reorder_charter_routes(
         )
         rows = cur.fetchall()
         cols = [d[0] for d in (cur.description or [])]
+        updated_rows = [dict(zip(cols, r, strict=False)) for r in rows]
 
-    return [dict(zip(cols, r, strict=False)) for r in rows]
+        ensure_audit_storage(cur.connection)
+        record_audit_event(
+            cur.connection,
+            AuditEvent(
+                module="charters",
+                entity_type="charter_route",
+                entity_id=str(charter_id),
+                action="reorder_charter_routes",
+                source="api",
+                actor=_audit_actor(request),
+                before={"routes": before_rows},
+                after={"routes": updated_rows},
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Charter routes reordered through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+
+    return updated_rows

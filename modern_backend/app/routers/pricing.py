@@ -9,14 +9,27 @@ type
 split run)
 """
 
+from datetime import date
 from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(prefix="/api/pricing", tags=["pricing"])
+
+
+def _audit_actor(request: Request) -> AuditEventActor:
+    user = getattr(request.state, "current_user", None) or {}
+    return AuditEventActor(
+        actor_type="user" if user else "service",
+        user_id=str(user.get("user_id") or user.get("employee_id") or "") or None,
+        username=user.get("username") or user.get("name"),
+        role=user.get("role"),
+    )
 
 
 class QuoteRequest(BaseModel):
@@ -140,7 +153,7 @@ def get_pricing_by_vehicle(vehicle_type: str):
 
 
 @router.post("/calculate-quotes")
-def calculate_quotes(request: QuoteRequest):
+def calculate_quotes(request: QuoteRequest, http_request: Request):
     """
     Calculate 3 quote options for a charter:
     1. Hourly rate (e.g., $195/hr x 6 hours = $1170)
@@ -151,6 +164,7 @@ def calculate_quotes(request: QuoteRequest):
     conn = get_connection()
     cur = conn.cursor()
     try:
+        ensure_audit_storage(conn)
         # Get pricing defaults for this vehicle type
         cur.execute(
             """
@@ -307,7 +321,7 @@ def calculate_quotes(request: QuoteRequest):
                 }
             )
 
-        return {
+        response = {
             "vehicle_type": request.vehicle_type,
             "quoted_hours": quoted_hours,
             "include_gratuity": request.include_gratuity,
@@ -319,6 +333,33 @@ def calculate_quotes(request: QuoteRequest):
             "quotes": quotes,
             "count": len(quotes),
         }
+
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="pricing",
+                entity_type="quote_request",
+                entity_id=f"{request.vehicle_type}:{quoted_hours}",
+                action="pricing_quote_calculated",
+                source="api",
+                correlation_id=http_request.headers.get("X-Request-ID"),
+                actor=_audit_actor(http_request),
+                before=None,
+                after={
+                    "vehicle_type": request.vehicle_type,
+                    "quoted_hours": quoted_hours,
+                    "quote_count": len(quotes),
+                    "include_gratuity": request.include_gratuity,
+                },
+                evidence_links=[],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="Pricing quote calculation",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+        conn.commit()
+        return response
 
     except HTTPException:
         raise

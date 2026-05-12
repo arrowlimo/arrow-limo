@@ -13,10 +13,15 @@ import xml.etree.ElementTree as ET
 from datetime import date, datetime
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
+from ..schemas.common import StatusMessageResponse
+from ..schemas.payroll_tax import T4EntryResponse
+from ..utils.validation import validate_tax_year
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["payroll-tax"])
@@ -42,6 +47,16 @@ def _table_exists(conn, table_name: str) -> bool:
 
 def _using_legacy_t4_entries(conn) -> bool:
     return _table_exists(conn, "t4_entries")
+
+
+def _audit_actor(request: Request) -> AuditEventActor:
+    user = getattr(request.state, "current_user", None) or {}
+    return AuditEventActor(
+        actor_type="user" if user else "service",
+        user_id=str(user.get("user_id") or user.get("employee_id") or "") or None,
+        username=user.get("username") or user.get("name"),
+        role=user.get("role"),
+    )
 
 
 # ============================================================================
@@ -93,12 +108,13 @@ class PayrollEntry(BaseModel):
 # ============================================================================
 
 
-@router.get("/t4/{employee_id}/{tax_year}")
+@router.get("/t4/{employee_id}/{tax_year}", response_model=T4EntryResponse)
 async def get_t4_entry(
     employee_id: int, tax_year: int, conn=Depends(get_connection)
 ):
     """Retrieve T4 entry with auto-calculated values"""
     try:
+        validate_tax_year(tax_year)
         cur = conn.cursor()
 
         if _using_legacy_t4_entries(conn):
@@ -216,16 +232,24 @@ async def get_t4_entry(
             "notes": result[9] or "",
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error retrieving T4: {e}")
         raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
 
 
-@router.post("/t4")
-async def save_t4_entry(entry: T4Entry, conn=Depends(get_connection)):
+@router.post("/t4", response_model=StatusMessageResponse)
+async def save_t4_entry(
+    entry: T4Entry, request: Request, conn=Depends(get_connection)
+):
     """Save or update T4 entry"""
     try:
+        validate_tax_year(entry.tax_year)
         cur = conn.cursor()
+
+        ensure_audit_storage(conn)
+        action = "t4_entry_updated"
 
         if _using_legacy_t4_entries(conn):
             # Check if exists
@@ -236,6 +260,7 @@ async def save_t4_entry(entry: T4Entry, conn=Depends(get_connection)):
             )
 
             exists = cur.fetchone() is not None
+            action = "t4_entry_updated" if exists else "t4_entry_created"
 
             if exists:
                 cur.execute(
@@ -299,6 +324,7 @@ async def save_t4_entry(entry: T4Entry, conn=Depends(get_connection)):
                 (entry.employee_id, entry.tax_year),
             )
             row = cur.fetchone()
+            action = "t4_entry_updated" if row else "t4_entry_created"
 
             if row:
                 cur.execute(
@@ -371,6 +397,38 @@ async def save_t4_entry(entry: T4Entry, conn=Depends(get_connection)):
                     ),
                 )
 
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="payroll_tax",
+                entity_type="t4_entry",
+                entity_id=f"{entry.employee_id}:{entry.tax_year}",
+                action=action,
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={
+                    "employee_id": entry.employee_id,
+                    "tax_year": entry.tax_year,
+                    "box14": float(entry.box14),
+                    "box16": float(entry.box16),
+                    "box18": float(entry.box18),
+                    "box22": float(entry.box22),
+                    "box24": float(entry.box24),
+                    "box26": float(entry.box26),
+                    "box44": float(entry.box44),
+                    "box46": float(entry.box46),
+                    "box52": float(entry.box52),
+                },
+                evidence_links=[f"t4:{entry.employee_id}:{entry.tax_year}"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="T4 entry upsert audit record",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+
         conn.commit()
         return {"status": "success", "message": "T4 saved"}
 
@@ -386,6 +444,7 @@ async def generate_t4_pdf(
 ):
     """Generate T4 PDF"""
     try:
+        validate_tax_year(tax_year)
         from io import BytesIO
 
         from reportlab.lib.pagesizes import letter
@@ -492,6 +551,7 @@ async def export_t4_xml(tax_year: int, conn=Depends(get_connection)):
     """Export CRA-style T4 XML payload from employee_t4_records for a tax"
     "year."""
 
+    validate_tax_year(tax_year)
     cur = conn.cursor()
     try:
         cur.execute(
@@ -674,11 +734,14 @@ async def get_payroll_entry(
 
 @router.post("/payroll")
 async def save_payroll_entry(
-    entry: PayrollEntry, conn=Depends(get_connection)
+    entry: PayrollEntry, request: Request, conn=Depends(get_connection)
 ):
     """Save or update payroll entry"""
     try:
         cur = conn.cursor()
+
+        ensure_audit_storage(conn)
+        action = "payroll_entry_created"
 
         # Check if exists
         cur.execute(
@@ -688,6 +751,7 @@ async def save_payroll_entry(
         )
 
         exists = cur.fetchone() is not None
+        action = "payroll_entry_updated" if exists else "payroll_entry_created"
 
         if exists:
             cur.execute(
@@ -752,6 +816,43 @@ async def save_payroll_entry(
                     entry.notes,
                 ),
             )
+
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="payroll_tax",
+                entity_type="payroll_entry",
+                entity_id=f"{entry.employee_id}:{entry.year}:{entry.pay_period}",
+                action=action,
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={
+                    "employee_id": entry.employee_id,
+                    "year": entry.year,
+                    "pay_period": entry.pay_period,
+                    "regular_hours": float(entry.regular_hours),
+                    "hourly_rate": float(entry.hourly_rate),
+                    "ot_hours": float(entry.ot_hours),
+                    "ot_rate": float(entry.ot_rate),
+                    "base_salary": float(entry.base_salary),
+                    "bonus": float(entry.bonus),
+                    "gratuity": float(entry.gratuity),
+                    "other_benefits": float(entry.other_benefits),
+                    "cpp": float(entry.cpp),
+                    "ei": float(entry.ei),
+                    "income_tax": float(entry.income_tax),
+                },
+                evidence_links=[
+                    f"payroll_entries:{entry.employee_id}:{entry.year}:{entry.pay_period}"
+                ],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="Payroll entry upsert audit record",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
 
         conn.commit()
         return {"status": "success", "message": "Payroll saved"}
@@ -918,7 +1019,9 @@ async def get_available_periods(
 
 
 @router.post("/auto-match-charters")
-async def auto_match_charters(payload: dict, conn=Depends(get_connection)):
+async def auto_match_charters(
+    payload: dict, request: Request, conn=Depends(get_connection)
+):
     """Auto-match all unmatched charters for the employee in a period"""
     try:
         cur = conn.cursor()
@@ -929,6 +1032,8 @@ async def auto_match_charters(payload: dict, conn=Depends(get_connection)):
             raise HTTPException(
                 status_code=400, detail="Missing employee_id or period"
             )
+
+        ensure_audit_storage(conn)
 
         # Find unmatched charters for employee in period
         cur.execute(
@@ -964,6 +1069,26 @@ async def auto_match_charters(payload: dict, conn=Depends(get_connection)):
         conn.commit()
         cur.close()
 
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="payroll_tax",
+                entity_type="driver_payroll",
+                entity_id=f"{employee_id}:{period}",
+                action="charters_auto_matched",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={"employee_id": employee_id, "period": period, "matched": matched_count},
+                evidence_links=[f"driver_payroll:{employee_id}:{period}"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="Auto-match charters for payroll",
+            ),
+            ensure_storage=False,
+            commit=True,
+        )
+
         return {"status": "success", "matched": matched_count}
 
     except Exception as e:
@@ -974,11 +1099,16 @@ async def auto_match_charters(payload: dict, conn=Depends(get_connection)):
 
 @router.post("/match-charter/{charter_id}/{employee_id}")
 async def match_single_charter(
-    charter_id: int, employee_id: int, conn=Depends(get_connection)
+    charter_id: int,
+    employee_id: int,
+    request: Request,
+    conn=Depends(get_connection),
 ):
     """Link a single charter to an employee"""
     try:
         cur = conn.cursor()
+
+        ensure_audit_storage(conn)
 
         cur.execute(
             """
@@ -994,6 +1124,26 @@ async def match_single_charter(
 
         conn.commit()
         cur.close()
+
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="payroll_tax",
+                entity_type="driver_payroll",
+                entity_id=f"{employee_id}:{charter_id}",
+                action="charter_matched",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={"employee_id": employee_id, "charter_id": charter_id},
+                evidence_links=[f"driver_payroll:{employee_id}:{charter_id}"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="Single charter matched to employee payroll",
+            ),
+            ensure_storage=False,
+            commit=True,
+        )
 
         return {"status": "success"}
 

@@ -142,6 +142,8 @@
 
 <script setup>
 import { ref } from 'vue'
+const emit = defineEmits(['customer-saved'])
+
 const form = ref({
   client_type: 'Individual',
   account_number: '',
@@ -177,9 +179,43 @@ const form = ref({
   recovery_probability: '',
   notes: ''
 })
-function submitForm() {
-  // TODO: Connect to backend API
-  alert('Customer saved!')
+
+async function submitForm() {
+  if (!form.value.client_name?.trim()) {
+    alert('Client name is required.')
+    return
+  }
+
+  const payload = {
+    client_id: form.value.client_id || undefined,
+    client_name: form.value.client_name,
+    client_type: form.value.client_type,
+    primary_phone: form.value.phone,
+    phone: form.value.phone,
+    email: form.value.email,
+    company_name: form.value.company_name,
+    is_gst_exempt: form.value.is_gst_exempt
+  }
+
+  try {
+    const response = await fetch('/api/customers/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '')
+      throw new Error(detail || `Save failed (${response.status})`)
+    }
+
+    const saved = await response.json()
+    form.value.client_id = saved?.client_id || form.value.client_id
+    emit('customer-saved', saved)
+    alert('Customer saved!')
+  } catch (error) {
+    alert(`Failed to save customer: ${error?.message || 'Unknown error'}`)
+  }
 }
 </script>
 

@@ -5,12 +5,82 @@ Endpoints for T2 return management, schedule data entry, and tax calculations
 
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(prefix="/api/t2", tags=["T2 Corporate Tax"])
+
+
+def _audit_actor(request: Request) -> AuditEventActor:
+    user = getattr(request.state, "current_user", None) or {}
+    return AuditEventActor(
+        actor_type="user" if user else "service",
+        user_id=str(user.get("user_id") or user.get("employee_id") or "") or None,
+        username=user.get("username") or user.get("name"),
+        role=user.get("role"),
+    )
+
+
+def _ensure_tax_rate_for_year(conn, tax_year: int) -> None:
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "SELECT 1 FROM corporate_tax_rates WHERE tax_year = %s",
+            (tax_year,),
+        )
+        if cur.fetchone():
+            return
+
+        cur.execute(
+            """
+            SELECT federal_small_business_rate,
+                   federal_general_rate,
+                   alberta_small_business_rate,
+                   alberta_general_rate,
+                   small_business_limit,
+                   gst_rate,
+                   notes
+            FROM corporate_tax_rates
+            ORDER BY tax_year DESC
+            LIMIT 1
+            """
+        )
+        template = cur.fetchone()
+        if not template:
+            return
+
+        cur.execute(
+            """
+            INSERT INTO corporate_tax_rates (
+                tax_year,
+                federal_small_business_rate,
+                federal_general_rate,
+                alberta_small_business_rate,
+                alberta_general_rate,
+                small_business_limit,
+                gst_rate,
+                notes
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                tax_year,
+                template[0],
+                template[1],
+                template[2],
+                template[3],
+                template[4],
+                template[5],
+                template[6],
+            ),
+        )
+        conn.commit()
+    finally:
+        cur.close()
 
 
 # ============================================================================
@@ -229,10 +299,15 @@ async def get_tax_rate_by_year(tax_year: int, conn=Depends(get_connection)):
 
 
 @router.post("/returns", response_model=T2ReturnMetadata)
-async def create_t2_return(data: T2ReturnCreate, conn=Depends(get_connection)):
+async def create_t2_return(
+    data: T2ReturnCreate, request: Request, conn=Depends(get_connection)
+):
     """Create a new T2 return for a tax year"""
     cur = conn.cursor()
     try:
+        ensure_audit_storage(conn)
+        _ensure_tax_rate_for_year(conn, data.tax_year)
+
         # Check if return already exists
         cur.execute(
             "SELECT return_id FROM t2_return_metadata WHERE tax_year = %s",
@@ -268,6 +343,31 @@ async def create_t2_return(data: T2ReturnCreate, conn=Depends(get_connection)):
         )
 
         row = cur.fetchone()
+
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="t2_returns",
+                entity_type="t2_return",
+                entity_id=str(row[0]),
+                action="t2_return_created",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={
+                    "tax_year": data.tax_year,
+                    "corporation_name": data.corporation_name,
+                    "business_number": data.business_number,
+                    "fiscal_year_end": data.fiscal_year_end.isoformat(),
+                },
+                evidence_links=[f"t2_return_metadata:{row[0]}"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="T2 return created",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
 
         return T2ReturnMetadata(
@@ -343,11 +443,13 @@ async def get_t2_return(tax_year: int, conn=Depends(get_connection)):
 
 @router.post("/schedule125")
 async def save_schedule_125(
-    data: Schedule125Data, conn=Depends(get_connection)
+    data: Schedule125Data, request: Request, conn=Depends(get_connection)
 ):
     """Save Schedule 125 (Income Statement) data"""
     cur = conn.cursor()
     try:
+        ensure_audit_storage(conn)
+
         # Calculate totals
         total_revenue = data.charter_revenue + data.other_revenue
         total_expenses = (
@@ -411,6 +513,30 @@ async def save_schedule_125(
             (total_revenue, total_expenses, net_income, data.return_id),
         )
 
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="t2_returns",
+                entity_type="t2_return",
+                entity_id=str(data.return_id),
+                action="t2_schedule125_saved",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={
+                    "return_id": data.return_id,
+                    "total_revenue": total_revenue,
+                    "total_expenses": total_expenses,
+                    "net_income": net_income,
+                },
+                evidence_links=[f"t2_schedule_data:{data.return_id}:125"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="Schedule 125 saved",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
 
         return {
@@ -466,11 +592,12 @@ async def get_schedule_125(return_id: int, conn=Depends(get_connection)):
 
 @router.post("/schedule100")
 async def save_schedule_100(
-    data: Schedule100Data, conn=Depends(get_connection)
+    data: Schedule100Data, request: Request, conn=Depends(get_connection)
 ):
     """Save Schedule 100 (Balance Sheet) data"""
     cur = conn.cursor()
     try:
+        ensure_audit_storage(conn)
         lines = [
             ("100", "1000-B", "Cash - Beginning", data.cash_begin),
             ("100", "1000-E", "Cash - Ending", data.cash_end),
@@ -515,6 +642,25 @@ async def save_schedule_100(
                 (data.return_id, schedule, line_num, desc, amount),
             )
 
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="t2_returns",
+                entity_type="t2_return",
+                entity_id=str(data.return_id),
+                action="t2_schedule100_saved",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={"return_id": data.return_id},
+                evidence_links=[f"t2_schedule_data:{data.return_id}:100"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="Schedule 100 saved",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
         return {"success": True}
     except Exception as e:
@@ -561,10 +707,14 @@ async def get_schedule_100(return_id: int, conn=Depends(get_connection)):
 
 
 @router.post("/calculate-tax")
-async def calculate_tax(data: TaxCalculation, conn=Depends(get_connection)):
+async def calculate_tax(
+    data: TaxCalculation, request: Request, conn=Depends(get_connection)
+):
     """Calculate federal and provincial tax"""
     cur = conn.cursor()
     try:
+        ensure_audit_storage(conn)
+
         # Get return to find tax year
         cur.execute(
             "SELECT tax_year FROM t2_return_metadata WHERE return_id = %s",
@@ -632,6 +782,29 @@ async def calculate_tax(data: TaxCalculation, conn=Depends(get_connection)):
             ),
         )
 
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="t2_returns",
+                entity_type="t2_return",
+                entity_id=str(data.return_id),
+                action="t2_tax_calculated",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={
+                    "taxable_income": data.taxable_income,
+                    "small_business_income": data.small_business_income,
+                    "total_tax": total_tax,
+                },
+                evidence_links=[f"t2_return_metadata:{data.return_id}"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="T2 tax calculation saved",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
 
         return {
@@ -659,11 +832,15 @@ async def calculate_tax(data: TaxCalculation, conn=Depends(get_connection)):
 
 @router.patch("/returns/{return_id}")
 async def update_t2_return(
-    return_id: int, data: T2ReturnUpdate, conn=Depends(get_connection)
+    return_id: int,
+    data: T2ReturnUpdate,
+    request: Request,
+    conn=Depends(get_connection),
 ):
     """Update T2 return status or filing information"""
     cur = conn.cursor()
     try:
+        ensure_audit_storage(conn)
         updates = []
         params = []
 
@@ -691,6 +868,29 @@ async def update_t2_return(
         )
         cur.execute(query, params)
 
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="t2_returns",
+                entity_type="t2_return",
+                entity_id=str(return_id),
+                action="t2_return_updated",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={
+                    "status": data.status,
+                    "filed_date": data.filed_date.isoformat() if data.filed_date else None,
+                    "notes": data.notes,
+                },
+                evidence_links=[f"t2_return_metadata:{return_id}"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="T2 return patched",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
         return {"success": True, "message": "T2 return updated"}
     except Exception as e:
@@ -702,7 +902,10 @@ async def update_t2_return(
 
 @router.post("/returns/{return_id}/status-transition")
 async def transition_t2_status(
-    return_id: int, data: T2StatusTransition, conn=Depends(get_connection)
+    return_id: int,
+    data: T2StatusTransition,
+    request: Request,
+    conn=Depends(get_connection),
 ):
     """Apply a controlled T2 status transition and write adjustment-history"
     "audit row."""
@@ -715,6 +918,7 @@ async def transition_t2_status(
             detail="Invalid status. Use draft, ready, filed, or amended",
         )
 
+    ensure_audit_storage(conn)
     _ensure_t2_adjustment_table(conn)
     cur = conn.cursor()
     try:
@@ -774,6 +978,25 @@ async def transition_t2_status(
             ),
         )
 
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="t2_returns",
+                entity_type="t2_return",
+                entity_id=str(return_id),
+                action="t2_status_transitioned",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before={"status": old_status},
+                after={"status": new_status, "reason": data.reason},
+                evidence_links=[f"t2_return_metadata:{return_id}"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="T2 return status transition",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
         return {
             "success": True,
@@ -793,11 +1016,15 @@ async def transition_t2_status(
 
 @router.post("/returns/{return_id}/adjustments")
 async def add_t2_adjustment(
-    return_id: int, data: T2AdjustmentCreate, conn=Depends(get_connection)
+    return_id: int,
+    data: T2AdjustmentCreate,
+    request: Request,
+    conn=Depends(get_connection),
 ):
     """Record an amendment/adjustment row with optional notes and line"
     "reference."""
 
+    ensure_audit_storage(conn)
     _ensure_t2_adjustment_table(conn)
     cur = conn.cursor()
     try:
@@ -845,6 +1072,31 @@ async def add_t2_adjustment(
             (return_id,),
         )
 
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="t2_returns",
+                entity_type="t2_adjustment",
+                entity_id=str(int(created[0])),
+                action="t2_adjustment_added",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={
+                    "return_id": return_id,
+                    "adjustment_type": data.adjustment_type,
+                    "line_reference": data.line_reference,
+                    "old_amount": data.old_amount,
+                    "new_amount": data.new_amount,
+                },
+                evidence_links=[f"t2_return_adjustments:{int(created[0])}"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="T2 adjustment recorded",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
         return {
             "success": True,

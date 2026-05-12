@@ -3,13 +3,47 @@ FastAPI Router for Table Management
 Provides CRUD endpoints for master data tables
 """
 
+from datetime import date
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import cursor, get_connection
 
 router = APIRouter(prefix="/api/table-management", tags=["table-management"])
+
+
+def _service_actor() -> AuditEventActor:
+    return AuditEventActor(
+        actor_type="service",
+        user_id=None,
+        username="table_management_api",
+        role="service",
+    )
+
+
+def _record_table_event(conn, action: str, rows_saved: int) -> None:
+    record_audit_event(
+        conn,
+        AuditEvent(
+            module="table_management",
+            entity_type="master_table",
+            entity_id=action,
+            action=action,
+            source="api",
+            correlation_id=None,
+            actor=_service_actor(),
+            before=None,
+            after={"rows_saved": rows_saved},
+            evidence_links=[],
+            retention_until=date(date.today().year + 6, 12, 31),
+            note="Master table upsert",
+        ),
+        ensure_storage=False,
+        commit=False,
+    )
 
 
 # ========== MODELS ==========
@@ -56,12 +90,14 @@ class VehiclePricingRow(BaseModel):
 
 
 class BeverageRow(BaseModel):
-    beverage_id: int | None = None
-    name: str
+    item_id: int | None = None
+    item_name: str
     category: str | None = None
-    price: float = 0.0
-    stock_quantity: int = 0
-    is_active: bool = True
+    unit_price: float = 0.0
+    our_cost: float = 0.0
+    deposit_amount: float = 0.0
+    stock_quantity: int | None = None
+    description: str | None = None
 
 
 # ========== CHART OF ACCOUNTS ==========
@@ -102,6 +138,7 @@ def save_chart_of_accounts(data: list[ChartOfAccountRow]):
     """Save chart of accounts (upsert)"""
     conn = get_connection()
     try:
+        ensure_audit_storage(conn)
         with conn.cursor() as cur:
             for row in data:
                 if not row.account_code or not row.account_name:
@@ -142,6 +179,7 @@ def save_chart_of_accounts(data: list[ChartOfAccountRow]):
                         row.is_active,
                     ),
                 )
+        _record_table_event(conn, "save_chart_of_accounts", len(data))
         conn.commit()
         return {"status": "success", "rows_saved": len(data)}
     except Exception as e:
@@ -185,6 +223,7 @@ def save_receipt_categories(data: list[ReceiptCategoryRow]):
     """Save receipt categories (upsert)"""
     conn = get_connection()
     try:
+        ensure_audit_storage(conn)
         with conn.cursor() as cur:
             for row in data:
                 if not row.category_code or not row.category_name:
@@ -219,6 +258,7 @@ def save_receipt_categories(data: list[ReceiptCategoryRow]):
                         row.requires_employee,
                     ),
                 )
+        _record_table_event(conn, "save_receipt_categories", len(data))
         conn.commit()
         return {"status": "success", "rows_saved": len(data)}
     except Exception as e:
@@ -257,6 +297,7 @@ def save_charter_types(data: list[CharterTypeRow]):
     """Save charter types (upsert)"""
     conn = get_connection()
     try:
+        ensure_audit_storage(conn)
         with conn.cursor() as cur:
             for row in data:
                 if not row.type_code or not row.type_name:
@@ -282,6 +323,7 @@ def save_charter_types(data: list[CharterTypeRow]):
                         row.is_active,
                     ),
                 )
+        _record_table_event(conn, "save_charter_types", len(data))
         conn.commit()
         return {"status": "success", "rows_saved": len(data)}
     except Exception as e:
@@ -325,6 +367,7 @@ def save_vehicle_pricing(data: list[VehiclePricingRow]):
     """Save vehicle pricing defaults (upsert)"""
     conn = get_connection()
     try:
+        ensure_audit_storage(conn)
         with conn.cursor() as cur:
             for row in data:
                 if not row.vehicle_type:
@@ -361,6 +404,7 @@ def save_vehicle_pricing(data: list[VehiclePricingRow]):
                         row.is_active,
                     ),
                 )
+        _record_table_event(conn, "save_vehicle_pricing", len(data))
         conn.commit()
         return {"status": "success", "rows_saved": len(data)}
     except Exception as e:
@@ -373,25 +417,27 @@ def save_vehicle_pricing(data: list[VehiclePricingRow]):
 
 @router.get("/beverages")
 def get_beverages():
-    """Get all beverages"""
+    """Get all beverages from beverage_products"""
     with cursor() as cur:
         cur.execute(
             """
-            SELECT beverage_id, name, category, price,
-                   stock_quantity, is_active
-            FROM beverages
-            ORDER BY category, name
+            SELECT item_id, item_name, category, unit_price,
+                   our_cost, deposit_amount, stock_quantity, description
+            FROM beverage_products
+            ORDER BY category, item_name
         """
         )
         rows = cur.fetchall()
         return [
             {
-                "beverage_id": r[0],
-                "name": r[1],
+                "item_id": r[0],
+                "item_name": r[1],
                 "category": r[2],
-                "price": float(r[3]) if r[3] else 0.0,
-                "stock_quantity": r[4] if r[4] else 0,
-                "is_active": r[5],
+                "unit_price": float(r[3]) if r[3] else 0.0,
+                "our_cost": float(r[4]) if r[4] else 0.0,
+                "deposit_amount": float(r[5]) if r[5] else 0.0,
+                "stock_quantity": r[6] if r[6] else 0,
+                "description": r[7],
             }
             for r in rows
         ]
@@ -399,52 +445,61 @@ def get_beverages():
 
 @router.post("/beverages")
 def save_beverages(data: list[BeverageRow]):
-    """Save beverages (upsert)"""
+    """Save beverages to beverage_products (upsert)"""
     conn = get_connection()
     try:
+        ensure_audit_storage(conn)
         with conn.cursor() as cur:
             for row in data:
-                if not row.name:
+                if not row.item_name:
                     continue
 
-                if row.beverage_id:
+                if row.item_id:
                     # Update existing
                     cur.execute(
                         """
-                        UPDATE beverages SET
-                            name = %s, category = %s, price = %s,
-                            stock_quantity = %s, is_active = %s
-                        WHERE beverage_id = %s
+                        UPDATE beverage_products SET
+                            item_name = %s, category = %s, unit_price = %s,
+                            our_cost = %s, deposit_amount = %s,
+                            stock_quantity = %s, description = %s
+                        WHERE item_id = %s
                     """,
                         (
-                            row.name,
+                            row.item_name,
                             row.category,
-                            row.price,
+                            row.unit_price,
+                            row.our_cost,
+                            row.deposit_amount,
                             row.stock_quantity,
-                            row.is_active,
-                            row.beverage_id,
+                            row.description,
+                            row.item_id,
                         ),
                     )
                 else:
                     # Insert new
                     cur.execute(
                         """
-                        INSERT INTO beverages (
-                            name,
+                        INSERT INTO beverage_products (
+                            item_name,
                             category,
-                            price,
+                            unit_price,
+                            our_cost,
+                            deposit_amount,
                             stock_quantity,
-                            is_active)
-                        VALUES (%s, %s, %s, %s, %s)
+                            description)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """,
                         (
-                            row.name,
+                            row.item_name,
                             row.category,
-                            row.price,
+                            row.unit_price,
+                            row.our_cost,
+                            row.deposit_amount,
                             row.stock_quantity,
-                            row.is_active,
+                            row.description,
                         ),
                     )
+        _record_table_event(conn, "save_beverages", len(data))
         conn.commit()
         return {"status": "success", "rows_saved": len(data)}
     except Exception as e:

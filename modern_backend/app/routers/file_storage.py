@@ -5,6 +5,7 @@ vehicles, business documents
 
 import os
 import shutil
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Annotated
 
@@ -13,7 +14,10 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..auth import get_current_user, require_roles
+from ..db import get_connection, return_connection
 from ..settings import get_settings
 
 settings = get_settings()
@@ -45,6 +49,54 @@ class FileInfo(BaseModel):
     path: str
     size: int
     modified: str
+
+
+def _audit_actor_from_user(current_user: dict) -> AuditEventActor:
+    username = (
+        current_user.get("username")
+        or current_user.get("email")
+        or current_user.get("user")
+    )
+    return AuditEventActor(
+        actor_type="user" if username else "service",
+        user_id=(str(current_user.get("id")) if current_user.get("id") else None),
+        username=(str(username) if username else None),
+        role=(str(current_user.get("role")) if current_user.get("role") else None),
+    )
+
+
+def _record_file_audit_event(
+    *,
+    current_user: dict,
+    action: str,
+    entity_id: str,
+    before: dict | None,
+    after: dict | None,
+    note: str,
+) -> None:
+    conn = get_connection()
+    try:
+        ensure_audit_storage(conn)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="file_storage",
+                entity_type="file",
+                entity_id=entity_id,
+                action=action,
+                source="api",
+                actor=_audit_actor_from_user(current_user),
+                before=before,
+                after=after,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note=note,
+            ),
+            ensure_storage=False,
+            commit=True,
+        )
+    finally:
+        return_connection(conn)
 
 
 def check_access(
@@ -128,9 +180,26 @@ async def upload_file(
         content = await file.read()
         await f.write(content)
 
+    relative_path = str(target_path.relative_to(FILE_STORAGE_ROOT))
+    _record_file_audit_event(
+        current_user=current_user,
+        action="upload_file",
+        entity_id=relative_path,
+        before=None,
+        after={
+            "path": relative_path,
+            "filename": file.filename,
+            "size": len(content),
+            "category": category,
+            "entity_id": entity_id,
+            "subfolder": subfolder,
+        },
+        note="File uploaded through API",
+    )
+
     return {
         "filename": file.filename,
-        "path": str(target_path.relative_to(FILE_STORAGE_ROOT)),
+        "path": relative_path,
         "size": len(content),
     }
 
@@ -201,6 +270,21 @@ async def download_file(
     if not target_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
 
+    relative_path = str(target_path.relative_to(FILE_STORAGE_ROOT))
+    _record_file_audit_event(
+        current_user=current_user,
+        action="download_file",
+        entity_id=relative_path,
+        before={
+            "path": relative_path,
+            "category": category,
+            "entity_id": entity_id,
+            "subfolder": subfolder,
+        },
+        after=None,
+        note="File downloaded through API",
+    )
+
     return FileResponse(target_path, filename=filename)
 
 
@@ -233,7 +317,25 @@ async def delete_file(
     if not target_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
 
+    relative_path = str(target_path.relative_to(FILE_STORAGE_ROOT))
+    before = {
+        "path": relative_path,
+        "filename": filename,
+        "size": target_path.stat().st_size,
+        "category": category,
+        "entity_id": entity_id,
+        "subfolder": subfolder,
+    }
+
     target_path.unlink()
+    _record_file_audit_event(
+        current_user=current_user,
+        action="delete_file",
+        entity_id=relative_path,
+        before=before,
+        after=None,
+        note="File deleted through API",
+    )
     return {"status": "deleted", "filename": filename}
 
 
@@ -246,6 +348,14 @@ async def create_employee_folder_endpoint(
 ):
     """Create employee folder structure (called when new employee is added)."""
     folder = create_employee_folder(employee_id)
+    _record_file_audit_event(
+        current_user=current_user,
+        action="create_employee_folder",
+        entity_id=f"employees/{employee_id}",
+        before=None,
+        after={"folder": str(folder), "employee_id": employee_id},
+        note="Employee file folder created through API",
+    )
     return {"employee_id": employee_id, "folder": str(folder)}
 
 
@@ -258,4 +368,12 @@ async def create_vehicle_folder_endpoint(
 ):
     """Create vehicle folder structure (called when new vehicle is added)."""
     folder = create_vehicle_folder(vehicle_number)
+    _record_file_audit_event(
+        current_user=current_user,
+        action="create_vehicle_folder",
+        entity_id=f"vehicles/{vehicle_number}",
+        before=None,
+        after={"folder": str(folder), "vehicle_number": vehicle_number},
+        note="Vehicle file folder created through API",
+    )
     return {"vehicle_number": vehicle_number, "folder": str(folder)}

@@ -3,10 +3,12 @@
 from datetime import date
 from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(prefix="/api/receipts-simple", tags=["receipts-simple"])
@@ -31,6 +33,16 @@ GST_EXEMPT_GL_CODES = {
     "1135",  # Prepaid Visa Cards (asset; loads are non-taxable)
     "1099",  # Inter-Account Clearing (internal transfers)
 }
+
+
+def _audit_actor(request: Request) -> AuditEventActor:
+    user = getattr(request.state, "current_user", None) or {}
+    return AuditEventActor(
+        actor_type="user" if user else "service",
+        user_id=str(user.get("user_id") or user.get("employee_id") or "") or None,
+        username=user.get("username") or user.get("name"),
+        role=user.get("role"),
+    )
 
 
 def _linked_group_key(
@@ -488,12 +500,15 @@ def match_to_banking(
 
 
 @router.post("/{receipt_id}/link-banking/{transaction_id}")
-def link_receipt_to_banking(receipt_id: int, transaction_id: int):
+def link_receipt_to_banking(
+    receipt_id: int, transaction_id: int, request: Request
+):
     """Link a receipt to a banking transaction and populate audit fields"""
     conn = get_connection()
     cur = conn.cursor()
 
     try:
+        ensure_audit_storage(conn)
         # Get banking transaction details
         cur.execute(
             """
@@ -555,6 +570,33 @@ def link_receipt_to_banking(receipt_id: int, transaction_id: int):
             (receipt_id, transaction_id),
         )
 
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="receipts_simple",
+                entity_type="receipt",
+                entity_id=str(receipt_id),
+                action="link_banking_transaction",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={
+                    "banking_transaction_id": transaction_id,
+                    "receipt_type": receipt_type,
+                    "banking_transaction_type": banking_trans_type,
+                },
+                evidence_links=[
+                    f"receipts:{receipt_id}",
+                    f"banking_transactions:{transaction_id}",
+                ],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="Receipt linked to banking transaction",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+
         conn.commit()
         cur.close()
         conn.close()
@@ -573,12 +615,13 @@ def link_receipt_to_banking(receipt_id: int, transaction_id: int):
 
 
 @router.post("/", status_code=201)
-def create_receipt(receipt: SimpleReceiptCreate):
+def create_receipt(receipt: SimpleReceiptCreate, request: Request):
     """Create new receipt"""
     conn = get_connection()
     cur = conn.cursor()
 
     try:
+        ensure_audit_storage(conn)
         # Check GL account FIRST to determine if GST-exempt
         gl_account_code = None
         gl_account_name = None
@@ -674,6 +717,34 @@ def create_receipt(receipt: SimpleReceiptCreate):
         )
 
         receipt_id = cur.fetchone()[0]
+
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="receipts_simple",
+                entity_type="receipt",
+                entity_id=str(receipt_id),
+                action="create_receipt",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={
+                    "receipt_date": str(receipt.receipt_date),
+                    "vendor_name": receipt.vendor_name,
+                    "gross_amount": float(receipt.gross_amount),
+                    "gst_amount": float(gst or 0),
+                    "category": receipt.category,
+                    "gl_account_code": gl_account_code,
+                },
+                evidence_links=[f"receipts:{receipt_id}"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="Receipt created",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
+
         conn.commit()
 
         # Return the created receipt
@@ -847,12 +918,15 @@ def get_receipt(receipt_id: int):
 
 
 @router.put("/{receipt_id}")
-def update_receipt(receipt_id: int, receipt: SimpleReceiptCreate):
+def update_receipt(
+    receipt_id: int, receipt: SimpleReceiptCreate, request: Request
+):
     """Update an existing receipt"""
     conn = get_connection()
     cur = conn.cursor()
 
     try:
+        ensure_audit_storage(conn)
         # Check if receipt exists
         cur.execute(
             "SELECT receipt_id FROM receipts WHERE receipt_id = %s",
@@ -967,6 +1041,32 @@ def update_receipt(receipt_id: int, receipt: SimpleReceiptCreate):
                 receipt.is_paper_verified,
                 receipt_id,
             ),
+        )
+
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="receipts_simple",
+                entity_type="receipt",
+                entity_id=str(receipt_id),
+                action="update_receipt",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before=None,
+                after={
+                    "receipt_date": str(receipt.receipt_date),
+                    "vendor_name": receipt.vendor_name,
+                    "gross_amount": float(receipt.gross_amount),
+                    "category": receipt.category,
+                    "gl_account_code": gl_account_code,
+                },
+                evidence_links=[f"receipts:{receipt_id}"],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note="Receipt updated",
+            ),
+            ensure_storage=False,
+            commit=False,
         )
 
         conn.commit()

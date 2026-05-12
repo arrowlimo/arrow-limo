@@ -212,9 +212,15 @@
             <button class="print-menu-item" @click="onPrintMenuItem('confirmation')">
               📋 Confirmation Letter (Client)
             </button>
+            <button class="print-menu-item" @click="onPrintMenuItem('single-invoice')">
+              🧾 Single Invoice
+            </button>
             <div class="print-menu-divider"></div>
             <button class="print-menu-item" @click="onPrintMenuItem('email-confirmation')">
               📧 Email Confirmation Letter
+            </button>
+            <button class="print-menu-item" @click="onPrintMenuItem('email-invoice')">
+              📧 Email Invoice
             </button>
           </div>
         </div>
@@ -227,6 +233,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
+import { authFetch } from '@/utils/authFetch'
 import ClientDetailsSection from './ClientDetailsSection.vue'
 import DispatchSection from './DispatchSection.vue'
 import RoutingTable from './RoutingTable.vue'
@@ -240,6 +248,7 @@ import AccountingDetailsSection from './AccountingDetailsSection.vue'
 // For now, we'll inline the necessary logic
 
 // State
+const route = useRoute()
 const searchQuery = ref('')
 
 // Print menu
@@ -260,8 +269,12 @@ async function onPrintMenuItem(action) {
     await saveAndPrint()
   } else if (action === 'confirmation') {
     printConfirmation()
+  } else if (action === 'single-invoice') {
+    printSingleInvoice()
   } else if (action === 'email-confirmation') {
-    emailConfirmation()
+    await emailConfirmation()
+  } else if (action === 'email-invoice') {
+    await emailInvoice()
   }
 }
 
@@ -421,19 +434,75 @@ const handleQuickSplit = (hours) => {
   charterForm.value.split_time_after = hours
 }
 
+function estimateQuotedHours() {
+  const pickup = charterForm.value.pickup_time
+  const dropoff = charterForm.value.dropoff_time
+  if (!pickup || !dropoff) {
+    return 1
+  }
+
+  const [ph = 0, pm = 0] = pickup.split(':').map(Number)
+  const [dh = 0, dm = 0] = dropoff.split(':').map(Number)
+  let minutes = (dh * 60 + dm) - (ph * 60 + pm)
+  if (minutes <= 0) {
+    minutes += 24 * 60
+  }
+  return Math.max(1, Math.round((minutes / 60) * 100) / 100)
+}
+
+async function refreshPricingEstimate() {
+  if (!charterForm.value.vehicle_type) {
+    return
+  }
+
+  try {
+    const response = await authFetch('/api/pricing/calculate-quotes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        vehicle_type: charterForm.value.vehicle_type,
+        quoted_hours: estimateQuotedHours(),
+        include_gratuity: false
+      })
+    })
+
+    if (!response?.ok) {
+      return
+    }
+
+    const data = await response.json()
+    const quotes = Array.isArray(data?.quotes) ? data.quotes : []
+    const runType = String(charterForm.value.run_type || '').toLowerCase()
+    const preferredType = runType.includes('split')
+      ? 'split_run'
+      : runType.includes('package')
+        ? 'package'
+        : 'hourly'
+
+    const selected = quotes.find((q) => q.quote_type === preferredType) || quotes[0]
+    if (!selected) {
+      return
+    }
+
+    charterForm.value.charter_fee_type = selected.quote_type || charterForm.value.charter_fee_type
+    charterForm.value.charter_fee_amount = Number(selected.total_before_gratuity || 0)
+    charterForm.value.hourly_rate = Number(selected.base_rate || 0)
+    charterForm.value.wait_time_rate = Number(selected.standby_rate || charterForm.value.wait_time_rate || 0)
+  } catch (_) {
+    // Non-blocking: form remains editable even if pricing service is unavailable.
+  }
+}
+
 const handleVehicleTypeChange = () => {
-  // TODO: Load vehicle pricing based on type
-  console.log('Vehicle type changed:', charterForm.value.vehicle_type)
+  refreshPricingEstimate()
 }
 
 const handleRunTypeChange = () => {
-  // TODO: Load pricing based on run type
-  console.log('Run type changed:', charterForm.value.run_type)
+  refreshPricingEstimate()
 }
 
 const handleAirportChange = () => {
-  // TODO: Apply airport fee if applicable
-  console.log('Airport changed:', charterForm.value.airport_location)
+  refreshPricingEstimate()
 }
 
 const handleVehicleSelected = (vehicle) => {
@@ -510,8 +579,7 @@ async function searchCharters(retryCount = 0) {
   if (!searchQuery.value.trim()) return
   
   try {
-    // TODO: Replace with actual API call
-    const response = await fetch(`/api/charters/search?q=${encodeURIComponent(searchQuery.value)}`)
+    const response = await authFetch(`/api/charters/search?q=${encodeURIComponent(searchQuery.value)}`)
     if (response.ok) {
       const data = await response.json()
       searchResults.value = data.results || data || []
@@ -560,7 +628,7 @@ async function loadCharter(charter) {
     let fullCharter = charter
     const charterId = getCurrentCharterId(charter)
     if (!charter.routes && charterId) {
-      const response = await fetch(`/api/charters/${charterId}`)
+      const response = await authFetch(`/api/bookings/${charterId}`)
       if (response.ok) {
         fullCharter = await response.json()
       }
@@ -676,8 +744,21 @@ async function cloneCharter(charter) {
 }
 
 function linkCharter(charter) {
-  // TODO: Create relationship link between charters
-  console.log('Linking charter:', charter)
+  const linkRef = charter?.reserve_number || charter?.charter_id || charter?.id
+  if (!linkRef) {
+    alert('Unable to link: selected charter has no reference ID.')
+    return
+  }
+
+  const noteLine = `Linked charter reference: ${linkRef}`
+  const existingNotes = charterForm.value.dispatcher_notes || ''
+  if (!existingNotes.includes(noteLine)) {
+    charterForm.value.dispatcher_notes = existingNotes
+      ? `${existingNotes}\n${noteLine}`
+      : noteLine
+  }
+
+  alert('Linked charter reference added to dispatcher notes. Save charter to persist.')
 }
 
 function clearForm() {
@@ -787,20 +868,41 @@ async function saveCharter() {
     
     console.log('Saving complete charter data:', completeCharterData)
     
-    // Build API URL
     const isUpdate = Boolean(currentCharterId)
-    const apiUrl = isUpdate 
-      ? `/api/charters/${currentCharterId}` 
-      : '/api/charters'
-    
-    // TODO: Replace with actual API call
-    const response = await fetch(apiUrl, {
-      method: isUpdate ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(completeCharterData)
-    })
+    let response
+    if (isUpdate) {
+      const patchPayload = {
+        charter_date: completeCharterData.charter_date,
+        client_id: completeCharterData.client_id || currentCharter.value?.client_id,
+        vehicle_booked_id: completeCharterData.vehicle_id,
+        driver_name: completeCharterData.driver_name || currentCharter.value?.driver_name || '',
+        notes: completeCharterData.client_notes || completeCharterData.dispatcher_notes || '',
+        total_amount_due: completeCharterData.grand_total || charterGrandTotal.value,
+        status: completeCharterData.status || currentCharter.value?.status || 'pending'
+      }
+      response = await authFetch(`/api/charters/${currentCharterId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(patchPayload)
+      })
+    } else {
+      const createPayload = {
+        ...completeCharterData,
+        passenger_load: completeCharterData.passenger_count || 1,
+        total_amount_due: completeCharterData.grand_total || charterGrandTotal.value,
+        customer_notes: completeCharterData.client_notes || '',
+        dispatcher_notes: completeCharterData.dispatcher_notes || ''
+      }
+      response = await authFetch('/api/bookings/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(createPayload)
+      })
+    }
     
     if (response.ok) {
       const result = await response.json()
@@ -840,7 +942,7 @@ function buildRunSheetPdfPayload() {
 }
 
 async function openRunSheetPdfPreview(payload) {
-  const response = await fetch('/api/charters/run-sheet-pdf-preview', {
+  const response = await authFetch('/api/charters/run-sheet-pdf-preview', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -858,10 +960,25 @@ async function openRunSheetPdfPreview(payload) {
   globalThis.setTimeout(() => URL.revokeObjectURL(url), 60000)
 }
 
+async function openInvoicePdfPreview(charterId) {
+  const response = await authFetch(`/api/charters/${charterId}/invoice-pdf-preview`)
+  if (!response.ok) {
+    throw new Error(`Invoice print failed with status ${response.status}`)
+  }
+  const blob = await response.blob()
+  const url = URL.createObjectURL(blob)
+  window.open(url, '_blank', 'noopener')
+  globalThis.setTimeout(() => URL.revokeObjectURL(url), 60000)
+}
+
 async function saveAndInvoice() {
   await saveCharter()
-  // TODO: Generate and download invoice
-  console.log('Generating invoice...')
+  const currentCharterId = getCurrentCharterId()
+  if (!currentCharterId) {
+    alert('Save succeeded but no charter ID was returned for invoice generation.')
+    return
+  }
+  await openInvoicePdfPreview(currentCharterId)
 }
 
 async function saveAndPrint() {
@@ -880,8 +997,31 @@ function printConfirmation() {
     return
   }
 
-  const url = `/api/charters/${currentCharterId}/confirmation-letter-pdf`
-  window.open(url, '_blank', 'noopener')
+  openPdfWithAuth(`/api/charters/${currentCharterId}/confirmation-letter-pdf`)
+}
+
+function printSingleInvoice() {
+  const currentCharterId = getCurrentCharterId()
+  if (!currentCharterId) {
+    alert('Load or save a charter first to print single invoice.')
+    return
+  }
+  openPdfWithAuth(`/api/charters/${currentCharterId}/invoice-pdf-preview`)
+}
+
+async function openPdfWithAuth(url) {
+  try {
+    const response = await authFetch(url)
+    if (!response.ok) {
+      throw new Error(`PDF request failed with status ${response.status}`)
+    }
+    const blob = await response.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    window.open(blobUrl, '_blank', 'noopener')
+    globalThis.setTimeout(() => URL.revokeObjectURL(blobUrl), 60000)
+  } catch (error) {
+    alert(error.message || 'Failed to open PDF')
+  }
 }
 
 async function emailConfirmation() {
@@ -894,7 +1034,7 @@ async function emailConfirmation() {
   let recipient = currentCharter.value?.email || currentCharter.value?.client_email || ''
   let reserveNumber = currentCharter.value?.reserve_number || ''
   try {
-    const resp = await fetch(`/api/bookings/${currentCharterId}`)
+    const resp = await authFetch(`/api/bookings/${currentCharterId}`)
     if (resp.ok) {
       const booking = await resp.json()
       recipient = recipient || booking?.email || booking?.client_email || ''
@@ -920,17 +1060,66 @@ async function emailConfirmation() {
   window.location.href = mailto
 }
 
+async function emailInvoice() {
+  const currentCharterId = getCurrentCharterId()
+  if (!currentCharterId) {
+    alert('Load or save a charter first to email invoice.')
+    return
+  }
+
+  let recipient = currentCharter.value?.email || currentCharter.value?.client_email || ''
+  let reserveNumber = currentCharter.value?.reserve_number || ''
+  try {
+    const resp = await authFetch(`/api/bookings/${currentCharterId}`)
+    if (resp.ok) {
+      const booking = await resp.json()
+      recipient = recipient || booking?.email || booking?.client_email || ''
+      reserveNumber = reserveNumber || booking?.reserve_number || ''
+    }
+  } catch (_) {
+    // non-fatal
+  }
+
+  const invoiceUrl = `${window.location.origin}/api/charters/${currentCharterId}/invoice-pdf-preview`
+  const subject = `Charter Invoice ${reserveNumber ? `- ${reserveNumber}` : ''}`
+  const body = [
+    'Hi,',
+    '',
+    'Please find your charter invoice at the link below:',
+    invoiceUrl,
+    '',
+    'Thank you,',
+    'Arrow Limousine'
+  ].join('\n')
+
+  const mailto = `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  window.location.href = mailto
+}
+
 async function deleteCharter() {
   if (!confirm('Are you sure you want to delete this charter? This action cannot be undone.')) {
     return
   }
   
   try {
-    // TODO: API call to delete charter
-    console.log('Deleting charter:', currentCharter.value)
+    const currentCharterId = getCurrentCharterId()
+    if (!currentCharterId) {
+      alert('No charter is selected.')
+      return
+    }
+
+    const response = await authFetch(`/api/charters/${currentCharterId}`, {
+      method: 'DELETE'
+    })
+    if (!response?.ok) {
+      throw new Error(`Delete failed with status ${response?.status ?? 'unknown'}`)
+    }
+
     clearForm()
+    alert('Charter deleted successfully.')
   } catch (error) {
     console.error('Delete failed:', error)
+    alert('Failed to delete charter: ' + (error?.message || 'Unknown error'))
   }
 }
 
@@ -950,6 +1139,18 @@ watch(() => charterForm.value.out_of_town, (isOutOfTown) => {
     charterForm.value.routes[charterForm.value.routes.length - 1].type = 'Return'
   }
 })
+
+watch(
+  () => [route.params.id, route.query.id],
+  async () => {
+    const rawId = route.params.id || route.query.id
+    const charterId = Number.parseInt(String(rawId || ''), 10)
+    if (Number.isFinite(charterId) && charterId > 0) {
+      await loadCharter({ charter_id: charterId })
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>

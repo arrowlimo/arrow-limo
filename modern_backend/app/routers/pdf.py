@@ -3,6 +3,7 @@ PDF Generation Endpoints
 """
 
 import json
+from datetime import date
 from datetime import datetime
 from io import BytesIO
 from typing import Annotated, Any
@@ -11,7 +12,9 @@ from fastapi import APIRouter, Body, HTTPException, Path, Query
 from fastapi.responses import StreamingResponse
 from pypdf import PdfReader, PdfWriter
 
-from ..db import cursor
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
+from ..db import cursor, get_connection
 from ..services.pdf_generator import (
     generate_charter_pdf,
     generate_confirmation_letter_pdf,
@@ -27,6 +30,42 @@ from ..services.pdf_layout_settings import (
 )
 
 router = APIRouter(prefix="/api", tags=["pdf"])
+
+
+def _record_pdf_event(action: str, after: dict[str, Any], note: str) -> None:
+    conn = None
+    try:
+        conn = get_connection()
+        ensure_audit_storage(conn)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="pdf",
+                entity_type="pdf_layout_settings",
+                entity_id="global",
+                action=action,
+                source="api",
+                correlation_id=None,
+                actor=AuditEventActor(
+                    actor_type="service",
+                    user_id=None,
+                    username="pdf_api",
+                    role="service",
+                ),
+                before=None,
+                after=after,
+                evidence_links=[],
+                retention_until=date(date.today().year + 6, 12, 31),
+                note=note,
+            ),
+            ensure_storage=False,
+            commit=True,
+        )
+    except Exception:
+        pass
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 @router.get("/pdf-layout-settings")
@@ -63,7 +102,13 @@ def update_pdf_layout_settings(
             status_code=400, detail="Request body must be a JSON object"
         )
     try:
-        return save_pdf_layout_settings(settings_patch)
+        result = save_pdf_layout_settings(settings_patch)
+        _record_pdf_event(
+            action="pdf_layout_settings_updated",
+            after={"keys": list(settings_patch.keys())[:50]},
+            note="PDF layout settings patched",
+        )
+        return result
     except Exception as e:
         raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to save layout settings: {e!s}"
@@ -79,7 +124,13 @@ def update_pdf_layout_settings(
 def reset_pdf_settings_to_default():
     """Reset current layout settings to defaults."""
     try:
-        return reset_pdf_layout_settings()
+        result = reset_pdf_layout_settings()
+        _record_pdf_event(
+            action="pdf_layout_settings_reset",
+            after={"status": "default"},
+            note="PDF layout settings reset to defaults",
+        )
+        return result
     except Exception as e:
         raise HTTPException(  # noqa: B904
             status_code=500, detail=f"Failed to reset layout settings: {e!s}"
@@ -98,7 +149,13 @@ def apply_pdf_layout_settings_preset(
 ):
     """Apply a built-in layout preset (default, compact, comfortable)."""
     try:
-        return apply_pdf_layout_preset(preset_name)
+        result = apply_pdf_layout_preset(preset_name)
+        _record_pdf_event(
+            action="pdf_layout_preset_applied",
+            after={"preset_name": preset_name},
+            note="PDF layout preset applied",
+        )
+        return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))  # noqa: B904
     except Exception as e:
