@@ -1,9 +1,10 @@
+import os
 import psycopg2
 
 DBS = {
-    'local': dict(host='localhost', port=5432, database='almsdata', user='postgres', password='ArrowLimousine'),
-    'cloud_remote': dict(host='192.168.1.176', port=5432, database='almsdata', user='postgres', password='ArrowLimousine'),
-    'neon': dict(host='ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech', port=5432, database='neondb', user='neondb_owner', password='npg_rlL0yK9pvfCW', sslmode='require'),
+    'local': dict(host='localhost', port=5432, database='almsdata', user='postgres', password=os.getenv('ALMS_DB_PASSWORD', '')),
+    'cloud_remote': dict(host='192.168.1.176', port=5432, database='almsdata', user='postgres', password=os.getenv('ALMS_DB_PASSWORD', '')),
+    'neon': dict(host='ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech', port=5432, database='neondb', user='neondb_owner', password=os.getenv('NEON_DB_PASSWORD', ''), sslmode='require'),
 }
 
 TARGET_IDS = [

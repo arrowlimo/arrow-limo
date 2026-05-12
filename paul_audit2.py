@@ -1,6 +1,7 @@
+import os
 import psycopg2
 
-conn = psycopg2.connect(host="localhost", port=5432, database="almsdata", user="postgres", password="ArrowLimousine")
+conn = psycopg2.connect(host="localhost", port=5432, database="almsdata", user="postgres", password=os.getenv("ALMS_DB_PASSWORD", ""))
 conn.set_session(readonly=True)
 
 PAUL_ID = 10

@@ -7,7 +7,7 @@ conn = psycopg2.connect(
     port=5432,
     database='neondb',
     user='neondb_owner',
-    password='npg_rlL0yK9pvfCW',
+    password=os.getenv('NEON_DB_PASSWORD', ''),
     sslmode='require',
 )
 cur = conn.cursor()

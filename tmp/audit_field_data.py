@@ -10,10 +10,11 @@ conn = psycopg2.connect(
     host='localhost', port=5432, database='almsdata',
     user='postgres', password=os.getenv('ALMS_DB_PASSWORD', '')
 )
+import os
 cur = conn.cursor()
 
 # Build schema map: table -> set of columns
-cur.execute("""
+    user='postgres', password=os.getenv('ALMS_DB_PASSWORD', '')
     SELECT table_name, column_name
     FROM information_schema.columns
     WHERE table_schema = 'public'
