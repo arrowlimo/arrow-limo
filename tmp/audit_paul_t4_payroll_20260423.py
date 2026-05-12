@@ -1,9 +1,10 @@
 from decimal import Decimal
 import json
+import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-DB = dict(host='localhost', dbname='almsdata', user='postgres', password='ArrowLimousine', port=5432)
+DB = dict(host='localhost', dbname='almsdata', user='postgres', password=os.getenv('ALMS_DB_PASSWORD', ''), port=5432)
 PAUL_EMP_ID = 10
 YEARS = [2012, 2013, 2014]
 

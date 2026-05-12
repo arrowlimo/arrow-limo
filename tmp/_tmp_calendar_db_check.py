@@ -1,10 +1,11 @@
 import psycopg2
+import os
 
 conn = psycopg2.connect(
     host="localhost",
     dbname="almsdata",
     user="postgres",
-    password="ArrowLimousine",
+    password=os.getenv("ALMS_DB_PASSWORD", ""),
 )
 cur = conn.cursor()
 

@@ -1,8 +1,11 @@
 import re
+import os
 import psycopg
 from psycopg.rows import dict_row
 
-conn = psycopg.connect("host=localhost dbname=almsdata user=postgres password=ArrowLimousine")
+conn = psycopg.connect(
+    "host=localhost dbname=almsdata user=postgres password=" + os.getenv("ALMS_DB_PASSWORD", "")
+)
 
 with conn.cursor(row_factory=dict_row) as cur:
     cur.execute("""
