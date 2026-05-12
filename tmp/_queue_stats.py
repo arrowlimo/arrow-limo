@@ -1,5 +1,6 @@
+import os
 import psycopg
-conn = psycopg.connect(host='localhost', port=5432, dbname='almsdata', user='postgres', password='ArrowLimousine', sslmode='disable')
+conn = psycopg.connect(host='localhost', port=5432, dbname='almsdata', user='postgres', password=os.getenv('ALMS_DB_PASSWORD', ''), sslmode='disable')
 cur = conn.cursor()
 cur.execute('''
 SELECT

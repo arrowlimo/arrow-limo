@@ -1,6 +1,7 @@
+import os
 import psycopg2
 try:
-    conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password='ArrowLimousine')
+    conn = psycopg2.connect(host='localhost', dbname='almsdata', user='postgres', password=os.getenv('ALMS_DB_PASSWORD', ''))
     cur = conn.cursor()
     cur.execute('SELECT * FROM charter_routes LIMIT 0')
     print('charter_routes:', [desc[0] for desc in cur.description])
