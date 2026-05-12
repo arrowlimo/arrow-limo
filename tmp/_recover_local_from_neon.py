@@ -16,7 +16,12 @@ if not host or 'neon.tech' not in host:
     raise SystemExit('Invalid Neon config in .env.neon')
 
 local_user = 'postgres'
-local_pass = os.environ.get('LOCAL_DB_PASSWORD') or os.environ.get('POSTGRES_PASSWORD') or 'ArrowLimousine'
+local_pass = (
+    os.environ.get('LOCAL_DB_PASSWORD')
+    or os.environ.get('POSTGRES_PASSWORD')
+    or os.environ.get('ALMS_DB_PASSWORD')
+    or ''
+)
 local_db = 'almsdata'
 
 # Keep host exactly as configured for Neon; force local sslmode=disable.

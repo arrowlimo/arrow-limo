@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 sys.path.insert(0, r'l:\limo')
@@ -5,7 +6,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from modern_backend.app.services.pdf_generator import generate_charter_pdf
 
-conn = psycopg2.connect(host='localhost', port=5432, dbname='almsdata', user='postgres', password='ArrowLimousine')
+conn = psycopg2.connect(host='localhost', port=5432, dbname='almsdata', user='postgres', password=os.getenv('ALMS_DB_PASSWORD', ''))
 cur = conn.cursor(cursor_factory=RealDictCursor)
 cur.execute("""
 SELECT *
