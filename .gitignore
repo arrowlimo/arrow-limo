@@ -59,6 +59,11 @@ driver_pay_exports_2012/
 tax_forms/
 tmp/T4_*.pdf
 database_backups/
+Copy of General_ledger.csv
+Copy of General_ledger2.csv
+paul/
+proll/
+tmp/*t4*payroll*.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
