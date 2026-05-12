@@ -47,7 +47,7 @@
     <!-- Employee Form -->
     <div v-if="showForm" class="form-section">
       <div class="employee-form">
-        <h3>Add New Employee</h3>
+        <h3>{{ editingEmployee ? 'Edit Employee' : 'Add New Employee' }}</h3>
         <form @submit.prevent="addEmployee">
           <div class="form-row">
             <div class="form-group">
@@ -236,6 +236,7 @@ const searchText = ref('')
 const departmentFilter = ref('')
 const statusFilter = ref('')
 const employees = ref([])
+const editingEmployee = ref(null)
 const stats = ref({
   totalEmployees: 0,
   drivers: 0,
@@ -354,8 +355,19 @@ function formatStatus(status) {
 }
 
 function editEmployee(employee) {
-  // TODO: Implement edit functionality
-  console.log('Edit employee:', employee)
+  editingEmployee.value = employee
+  newEmployee.value = {
+    name: employee.name || '',
+    employee_id: employee.employee_id || '',
+    department: employee.department || '',
+    position: employee.position || '',
+    phone: employee.phone === '-' ? '' : (employee.phone || ''),
+    email: employee.email === '-' ? '' : (employee.email || ''),
+    hire_date: employee.hire_date ? String(employee.hire_date).slice(0, 10) : '',
+    hourly_rate: employee.hourly_rate || 0,
+    status: employee.status || 'active'
+  }
+  showForm.value = true
 }
 
 function viewPayroll(employee) {
@@ -388,7 +400,7 @@ async function addEmployee() {
 
     cancelForm()
     await loadEmployees()
-    toast.success('Employee added successfully!')
+    toast.success(editingEmployee.value ? 'Employee updated successfully!' : 'Employee added successfully!')
   } catch (error) {
     console.error('Error adding employee:', error)
     toast.error(error?.message || 'Failed to add employee')
@@ -397,6 +409,7 @@ async function addEmployee() {
 
 function cancelForm() {
   showForm.value = false
+  editingEmployee.value = null
   newEmployee.value = {
     name: '',
     employee_id: '',

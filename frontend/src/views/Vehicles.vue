@@ -47,7 +47,7 @@
 
     <!-- Vehicle Form -->
     <div v-if="showForm" class="vehicle-section">
-      <VehicleForm @saved="onVehicleSaved" />
+      <VehicleForm :initial-vehicle="editingVehicle" @saved="onVehicleSaved" />
     </div>
 
     <!-- Vehicle Table -->
@@ -155,6 +155,7 @@ const typeFilter = ref('')
 const statusFilter = ref('')
 const vehicles = ref([])
 const selectedVehicle = ref(null)
+const editingVehicle = ref(null)
 const stats = ref({
   totalVehicles: 0,
   activeVehicles: 0,
@@ -204,8 +205,7 @@ const filteredVehicles = computed(() => {
 })
 
 function editVehicle(vehicle) {
-  // TODO: Implement edit functionality
-  console.log('Edit vehicle:', vehicle)
+  editingVehicle.value = { ...vehicle }
   showForm.value = true
 }
 
@@ -220,6 +220,7 @@ function closeFiles() {
 }
 
 function onVehicleSaved() {
+  editingVehicle.value = null
   showForm.value = false
   loadVehicles()
   toast.success('Vehicle saved successfully!')

@@ -2,10 +2,13 @@
 
 import os
 import shutil
+from datetime import date
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(prefix="/api/employees", tags=["employees"])
@@ -34,6 +37,16 @@ def create_employee_folder(employee_id: int) -> Path:
         (emp_folder / "documents").mkdir(exist_ok=True)
 
     return emp_folder
+
+
+def _audit_actor(request: Request) -> AuditEventActor:
+    user = getattr(request.state, "current_user", None) or {}
+    return AuditEventActor(
+        actor_type="user" if user else "service",
+        user_id=str(user.get("user_id") or user.get("employee_id") or "") or None,
+        username=user.get("username") or user.get("name"),
+        role=user.get("role"),
+    )
 
 
 @router.get("/")
@@ -177,11 +190,12 @@ def get_employee(employee_id: int):
 
 
 @router.post("/")
-def create_employee(employee_data: dict):
+def create_employee(employee_data: dict, request: Request):
     """Create or update employee and auto-create file storage folder."""
     conn = get_connection()
     cur = conn.cursor()
     try:
+        ensure_audit_storage(conn)
         first_name = employee_data.get("first_name")
         last_name = employee_data.get("last_name")
         employee_category = employee_data.get("employee_category")
@@ -228,6 +242,15 @@ def create_employee(employee_data: dict):
         if existing_id is not None:
             cur.execute(
                 """
+                SELECT first_name, last_name, employee_category, hire_date, email, phone
+                FROM employees
+                WHERE employee_id = %s
+                """,
+                (existing_id,),
+            )
+            existing_before = cur.fetchone()
+            cur.execute(
+                """
                 UPDATE employees
                 SET first_name = COALESCE(%s, first_name),
                     last_name = COALESCE(%s, last_name),
@@ -249,6 +272,7 @@ def create_employee(employee_data: dict):
             )
             employee_id = existing_id
             status = "updated_existing"
+            action = "employee_updated"
         else:
             cur.execute(
                 """
@@ -268,6 +292,42 @@ def create_employee(employee_data: dict):
             )
             employee_id = cur.fetchone()[0]
             status = "created"
+            action = "employee_created"
+            existing_before = None
+
+        event = AuditEvent(
+            module="employees",
+            entity_type="employee",
+            entity_id=str(employee_id),
+            action=action,
+            source="api",
+            correlation_id=request.headers.get("X-Request-ID"),
+            actor=_audit_actor(request),
+            before=(
+                {
+                    "first_name": existing_before[0],
+                    "last_name": existing_before[1],
+                    "employee_category": existing_before[2],
+                    "hire_date": str(existing_before[3]) if existing_before[3] else None,
+                    "email": existing_before[4],
+                    "phone": existing_before[5],
+                }
+                if existing_before
+                else None
+            ),
+            after={
+                "first_name": first_name,
+                "last_name": last_name,
+                "employee_category": employee_category,
+                "hire_date": str(hire_date) if hire_date else None,
+                "email": email,
+                "phone": phone,
+            },
+            evidence_links=[f"employees:{employee_id}"],
+            retention_until=date(date.today().year + 6, 12, 31),
+            note="Employee create/update audit record",
+        )
+        record_audit_event(conn, event, ensure_storage=False, commit=False)
 
         conn.commit()
 

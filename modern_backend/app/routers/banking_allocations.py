@@ -1,11 +1,32 @@
 import contextlib
+from datetime import date, timedelta
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(prefix="/banking", tags=["banking-allocations"])
+
+
+def _audit_actor(request: Request | None) -> AuditEventActor:
+    if request is None:
+        return AuditEventActor(actor_type="system", username="system")
+    username = request.headers.get("X-User-Name") or request.headers.get(
+        "X-User"
+    )
+    role = request.headers.get("X-User-Role")
+    user_id = request.headers.get("X-User-Id")
+    if not username:
+        username = request.headers.get("X-Forwarded-User")
+    return AuditEventActor(
+        actor_type="user" if username else "service",
+        user_id=user_id,
+        username=username,
+        role=role,
+    )
 
 
 class Allocation(BaseModel):
@@ -62,7 +83,11 @@ def preview_allocations(transaction_id: int):
 
 
 @router.post("/{transaction_id}/allocate")
-def allocate_banking_to_receipts(transaction_id: int, req: AllocationRequest):
+def allocate_banking_to_receipts(
+    transaction_id: int,
+    req: AllocationRequest,
+    request: Request,
+):
     conn = get_connection()
     try:
         cur = conn.cursor()
@@ -140,6 +165,31 @@ def allocate_banking_to_receipts(transaction_id: int, req: AllocationRequest):
                     "WHERE id=%s",
                     (f"amount={a.amount: .2f} ", existing[0]),
                 )
+
+        ensure_audit_storage(conn)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="banking_allocations",
+                entity_type="banking_transaction",
+                entity_id=str(transaction_id),
+                action="allocate_banking_to_receipts",
+                source="api",
+                actor=_audit_actor(request),
+                before=None,
+                after={
+                    "transaction_id": transaction_id,
+                    "debit_amount": debit_amount,
+                    "total_allocations": total_alloc,
+                    "receipt_ids": [a.receipt_id for a in req.allocations],
+                },
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Banking transaction allocated to receipts",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
 
         conn.commit()
         return {

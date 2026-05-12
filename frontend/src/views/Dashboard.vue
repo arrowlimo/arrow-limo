@@ -93,11 +93,12 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { authFetch } from '@/utils/authFetch'
 const router = useRouter()
 
 // Open booking in Charter dashboard on double-click
 function openBooking(booking) {
-  router.push({ path: '/charter', query: { id: booking.charter_id } })
+  router.push({ path: `/charter/${booking.charter_id}` })
 }
 import { ref, onMounted, computed } from 'vue'
 const bookings = ref([])
@@ -223,7 +224,7 @@ const onQuickDateChange = () => {
 // Update booking field (for dispatch editing)
 const updateBooking = async (booking, field, value) => {
   try {
-    const response = await fetch(`/api/bookings/${booking.charter_id}`, {
+    const response = await authFetch(`/api/bookings/${booking.charter_id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -245,8 +246,8 @@ const updateBooking = async (booking, field, value) => {
 // Fetch bookings from backend
 const fetchBookings = async () => {
   try {
-    const res = await fetch('/api/bookings')
-    if (res.ok) {
+    const res = await authFetch('/api/bookings')
+    if (res && res.ok) {
       const data = await res.json()
       bookings.value = data.bookings || []
     }
@@ -264,9 +265,9 @@ const fetchDashboardMetrics = async () => {
     }
     
     const url = `/api/dashboard${params.toString() ? '?' + params.toString() : ''}`
-    const metricsRes = await fetch(url)
+    const metricsRes = await authFetch(url)
     
-    if (metricsRes.ok) {
+    if (metricsRes && metricsRes.ok) {
       const metricsData = await metricsRes.json()
       dashboardMetrics.value = {
         open_quotes: metricsData.open_quotes || 0,
@@ -326,8 +327,8 @@ const formatDateRange = (filterType) => {
 // Fetch reserve numbers for dropdown
 const fetchReserveNumbers = async () => {
   try {
-    const response = await fetch('/api/reserve-numbers')
-    if (response.ok) {
+    const response = await authFetch('/api/reserve-numbers')
+    if (response && response.ok) {
       reserveNumbers.value = await response.json()
     } else {
       console.error('Failed to fetch reserve numbers:', response.status)

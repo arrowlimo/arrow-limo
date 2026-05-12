@@ -5,10 +5,13 @@ audit.
 
 import csv
 import io
+from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(
@@ -23,19 +26,32 @@ class PD7ASubmitRequest(BaseModel):
     notes: str | None = None
 
 
+class PD7AUpsertRequest(BaseModel):
+    year: int
+    month: int
+    employee_count: int = 0
+    total_gross_payroll: float = 0
+    cpp_total: float = 0
+    ei_total: float = 0
+    income_tax_deducted: float = 0
+    total_remittance_due: float | None = None
+    adjusted_remittance: float | None = None
+    notes: str | None = None
+
+
 def _ensure_pd7a_audit_columns(conn):
     cur = conn.cursor()
     try:
         cur.execute(
-            "ALTER TABLE cra_pd7a_returns ADD COLUMN IF NOT EXISTS"
+            "ALTER TABLE cra_pd7a_returns ADD COLUMN IF NOT EXISTS "
             "submission_reference TEXT"
         )
         cur.execute(
-            "ALTER TABLE cra_pd7a_returns ADD COLUMN IF NOT EXISTS"
+            "ALTER TABLE cra_pd7a_returns ADD COLUMN IF NOT EXISTS "
             "submitted_by TEXT"
         )
         cur.execute(
-            "ALTER TABLE cra_pd7a_returns ADD COLUMN IF NOT EXISTS"
+            "ALTER TABLE cra_pd7a_returns ADD COLUMN IF NOT EXISTS "
             "filing_method TEXT"
         )
         conn.commit()
@@ -43,8 +59,152 @@ def _ensure_pd7a_audit_columns(conn):
         cur.close()
 
 
-@router.get("/pd7a/{tax_year}")
-async def list_pd7a_year(tax_year: int, conn=Depends(get_connection)):
+def _audit_actor(request: Request) -> AuditEventActor:
+    user = getattr(request.state, "current_user", None) or {}
+    return AuditEventActor(
+        actor_type="user" if user else "service",
+        user_id=str(user.get("user_id") or user.get("employee_id") or "")
+        or None,
+        username=user.get("username") or user.get("name"),
+        role=user.get("role"),
+    )
+
+
+@router.post("/pd7a")
+async def upsert_pd7a(
+    payload: PD7AUpsertRequest,
+    request: Request,
+    conn=Depends(get_connection),
+):
+    if payload.month < 1 or payload.month > 12:
+        raise HTTPException(status_code=400, detail="Month must be between 1 and 12")
+
+    _ensure_pd7a_audit_columns(conn)
+    ensure_audit_storage(conn)
+    cur = conn.cursor()
+    try:
+        total_due = (
+            payload.total_remittance_due
+            if payload.total_remittance_due is not None
+            else payload.cpp_total + payload.ei_total + payload.income_tax_deducted
+        )
+        adjusted = (
+            payload.adjusted_remittance
+            if payload.adjusted_remittance is not None
+            else total_due
+        )
+
+        cur.execute(
+            """
+            SELECT id
+            FROM cra_pd7a_returns
+            WHERE reporting_year = %s
+              AND reporting_month = %s
+            """,
+            (payload.year, payload.month),
+        )
+        existing_row = cur.fetchone()
+
+        if existing_row:
+            cur.execute(
+                """
+                UPDATE cra_pd7a_returns
+                SET employee_count = %s,
+                    total_gross_payroll = %s,
+                    cpp_total = %s,
+                    ei_total = %s,
+                    income_tax_deducted = %s,
+                    total_remittance_due = %s,
+                    adjusted_remittance = %s,
+                    notes = %s,
+                    updated_at = NOW()
+                WHERE id = %s
+                """,
+                (
+                    payload.employee_count,
+                    payload.total_gross_payroll,
+                    payload.cpp_total,
+                    payload.ei_total,
+                    payload.income_tax_deducted,
+                    total_due,
+                    adjusted,
+                    payload.notes,
+                    existing_row[0],
+                ),
+            )
+            action = "pd7a_updated"
+        else:
+            cur.execute(
+                """
+                INSERT INTO cra_pd7a_returns (
+                    reporting_year,
+                    reporting_month,
+                    employee_count,
+                    total_gross_payroll,
+                    cpp_total,
+                    ei_total,
+                    income_tax_deducted,
+                    total_remittance_due,
+                    adjusted_remittance,
+                    is_submitted,
+                    notes,
+                    created_at,
+                    updated_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, %s, NOW(), NOW())
+                """,
+                (
+                    payload.year,
+                    payload.month,
+                    payload.employee_count,
+                    payload.total_gross_payroll,
+                    payload.cpp_total,
+                    payload.ei_total,
+                    payload.income_tax_deducted,
+                    total_due,
+                    adjusted,
+                    payload.notes,
+                ),
+            )
+            action = "pd7a_upserted"
+
+        event = AuditEvent(
+            module="payroll_compliance",
+            entity_type="pd7a_return",
+            entity_id=f"{payload.year}-{payload.month:02d}",
+            action=action,
+            source="api",
+            correlation_id=request.headers.get("X-Request-ID"),
+            actor=_audit_actor(request),
+            before={"is_submitted": False, "exists": bool(existing_row)},
+            after={
+                "year": payload.year,
+                "month": payload.month,
+                "employee_count": payload.employee_count,
+                "total_gross_payroll": payload.total_gross_payroll,
+                "cpp_total": payload.cpp_total,
+                "ei_total": payload.ei_total,
+                "income_tax_deducted": payload.income_tax_deducted,
+                "total_remittance_due": total_due,
+                "adjusted_remittance": adjusted,
+                "notes": payload.notes,
+            },
+            evidence_links=[f"cra_pd7a_returns:{payload.year}-{payload.month:02d}"],
+            retention_until=date(payload.year + 6, 12, 31),
+            note="PD7A row upsert audit record",
+        )
+        record_audit_event(conn, event, ensure_storage=False, commit=False)
+        conn.commit()
+        return {"success": True, "year": payload.year, "month": payload.month}
+    except Exception as exc:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to save PD7A row: {exc}") from exc
+    finally:
+        cur.close()
+
+
+@router.get("/pd7a")
+async def list_pd7a_all(conn=Depends(get_connection)):
     _ensure_pd7a_audit_columns(conn)
     cur = conn.cursor()
     try:
@@ -67,10 +227,8 @@ async def list_pd7a_year(tax_year: int, conn=Depends(get_connection)):
                 filing_method,
                 notes
             FROM cra_pd7a_returns
-            WHERE reporting_year = %s
-            ORDER BY reporting_month
-            """,
-            (tax_year,),
+            ORDER BY reporting_year DESC, reporting_month DESC
+            """
         )
         rows = cur.fetchall()
         out = []
@@ -80,10 +238,13 @@ async def list_pd7a_year(tax_year: int, conn=Depends(get_connection)):
                     "year": int(r[0]),
                     "month": int(r[1]),
                     "employee_count": int(r[2] or 0),
+                    "total_gross_payroll": float(r[3] or 0),
                     "gross_payroll": float(r[3] or 0),
                     "cpp_total": float(r[4] or 0),
                     "ei_total": float(r[5] or 0),
+                    "income_tax_deducted": float(r[6] or 0),
                     "tax_deducted": float(r[6] or 0),
+                    "total_remittance_due": float(r[7] or 0),
                     "total_due": float(r[7] or 0),
                     "adjusted_remittance": float(r[8] or 0),
                     "is_submitted": bool(r[9]),
@@ -99,11 +260,200 @@ async def list_pd7a_year(tax_year: int, conn=Depends(get_connection)):
         cur.close()
 
 
+@router.post("/pd7a")
+async def upsert_pd7a(
+    payload: PD7AUpsertRequest,
+    request: Request,
+    conn=Depends(get_connection),
+):
+    if payload.month < 1 or payload.month > 12:
+        raise HTTPException(status_code=400, detail="Month must be between 1 and 12")
+
+    _ensure_pd7a_audit_columns(conn)
+    ensure_audit_storage(conn)
+    cur = conn.cursor()
+    try:
+        total_due = (
+            payload.total_remittance_due
+            if payload.total_remittance_due is not None
+            else payload.cpp_total + payload.ei_total + payload.income_tax_deducted
+        )
+        adjusted = (
+            payload.adjusted_remittance
+            if payload.adjusted_remittance is not None
+            else total_due
+        )
+
+        if row:
+            cur.execute(
+                """
+                UPDATE cra_pd7a_returns
+                SET employee_count = %s,
+                    total_gross_payroll = %s,
+                    cpp_total = %s,
+                    ei_total = %s,
+                    income_tax_deducted = %s,
+                    total_remittance_due = %s,
+                    adjusted_remittance = %s,
+                    notes = %s,
+                    updated_at = NOW()
+                WHERE id = %s
+                """,
+                (
+                    payload.employee_count,
+                    payload.total_gross_payroll,
+                    payload.cpp_total,
+                    payload.ei_total,
+                    payload.income_tax_deducted,
+                    total_due,
+                    adjusted,
+                    payload.notes,
+                    row[0],
+                ),
+            )
+        else:
+            cur.execute(
+                """
+                INSERT INTO cra_pd7a_returns (
+                    reporting_year,
+                    reporting_month,
+                    employee_count,
+                    total_gross_payroll,
+                    cpp_total,
+                    ei_total,
+                    income_tax_deducted,
+                    total_remittance_due,
+                    adjusted_remittance,
+                    is_submitted,
+                    notes,
+                    created_at,
+                    updated_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, %s, NOW(), NOW())
+                """,
+                (
+                    payload.year,
+                    payload.month,
+                    payload.employee_count,
+                    payload.total_gross_payroll,
+                    payload.cpp_total,
+                    payload.ei_total,
+                    payload.income_tax_deducted,
+                    total_due,
+                    adjusted,
+                    payload.notes,
+                ),
+            )
+        conn.commit()
+        return {"success": True, "year": payload.year, "month": payload.month}
+    except Exception as exc:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to save PD7A row: {exc}") from exc
+    finally:
+        cur.close()
+
+
+@router.put("/pd7a/{tax_year}/{tax_month}")
+async def update_pd7a_month(
+    tax_year: int,
+    tax_month: int,
+    payload: PD7AUpsertRequest,
+    request: Request,
+    conn=Depends(get_connection),
+):
+    if tax_month < 1 or tax_month > 12:
+        raise HTTPException(status_code=400, detail="Month must be between 1 and 12")
+
+    _ensure_pd7a_audit_columns(conn)
+    ensure_audit_storage(conn)
+    cur = conn.cursor()
+    try:
+        total_due = (
+            payload.total_remittance_due
+            if payload.total_remittance_due is not None
+            else payload.cpp_total + payload.ei_total + payload.income_tax_deducted
+        )
+        adjusted = (
+            payload.adjusted_remittance
+            if payload.adjusted_remittance is not None
+            else total_due
+        )
+
+        cur.execute(
+            """
+            UPDATE cra_pd7a_returns
+            SET employee_count = %s,
+                total_gross_payroll = %s,
+                cpp_total = %s,
+                ei_total = %s,
+                income_tax_deducted = %s,
+                total_remittance_due = %s,
+                adjusted_remittance = %s,
+                notes = %s,
+                updated_at = NOW()
+            WHERE reporting_year = %s
+              AND reporting_month = %s
+            """,
+            (
+                payload.employee_count,
+                payload.total_gross_payroll,
+                payload.cpp_total,
+                payload.ei_total,
+                payload.income_tax_deducted,
+                total_due,
+                adjusted,
+                payload.notes,
+                tax_year,
+                tax_month,
+            ),
+        )
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail="PD7A row not found")
+
+        event = AuditEvent(
+            module="payroll_compliance",
+            entity_type="pd7a_return",
+            entity_id=f"{tax_year}-{tax_month:02d}",
+            action="pd7a_updated",
+            source="api",
+            correlation_id=request.headers.get("X-Request-ID"),
+            actor=_audit_actor(request),
+            before=None,
+            after={
+                "year": tax_year,
+                "month": tax_month,
+                "employee_count": payload.employee_count,
+                "total_gross_payroll": payload.total_gross_payroll,
+                "cpp_total": payload.cpp_total,
+                "ei_total": payload.ei_total,
+                "income_tax_deducted": payload.income_tax_deducted,
+                "total_remittance_due": total_due,
+                "adjusted_remittance": adjusted,
+                "notes": payload.notes,
+            },
+            evidence_links=[f"cra_pd7a_returns:{tax_year}-{tax_month:02d}"],
+            retention_until=date(tax_year + 6, 12, 31),
+            note="PD7A row update audit record",
+        )
+        record_audit_event(conn, event, ensure_storage=False, commit=False)
+        conn.commit()
+        return {"success": True, "year": tax_year, "month": tax_month}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as exc:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update PD7A row: {exc}") from exc
+    finally:
+        cur.close()
+
+
 @router.post("/pd7a/{tax_year}/{tax_month}/submit")
 async def submit_pd7a_month(
     tax_year: int,
     tax_month: int,
     payload: PD7ASubmitRequest,
+    request: Request,
     conn=Depends(get_connection),
 ):
     if tax_month < 1 or tax_month > 12:
@@ -112,6 +462,7 @@ async def submit_pd7a_month(
         )
 
     _ensure_pd7a_audit_columns(conn)
+    ensure_audit_storage(conn)
     cur = conn.cursor()
     try:
         cur.execute(
@@ -174,6 +525,28 @@ async def submit_pd7a_month(
             """,
             (tax_year, tax_month),
         )
+
+        event = AuditEvent(
+            module="payroll_compliance",
+            entity_type="pd7a_return",
+            entity_id=f"{tax_year}-{tax_month:02d}",
+            action="pd7a_submitted",
+            source="api",
+            correlation_id=request.headers.get("X-Request-ID"),
+            actor=_audit_actor(request),
+            before={"is_submitted": False},
+            after={
+                "is_submitted": True,
+                "submission_reference": sub_ref,
+                "submitted_by": (payload.submitted_by or "web_app").strip(),
+                "filing_method": (payload.filing_method or "manual").strip(),
+                "notes": payload.notes,
+            },
+            evidence_links=[f"cra_pd7a_returns:{tax_year}-{tax_month:02d}"],
+            retention_until=date(tax_year + 6, 12, 31),
+            note="PD7A submission audit record",
+        )
+        record_audit_event(conn, event, ensure_storage=False, commit=False)
 
         conn.commit()
         return {

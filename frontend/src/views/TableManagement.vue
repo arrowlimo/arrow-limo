@@ -185,20 +185,24 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Name</th>
+              <th>Item Name</th>
               <th>Category</th>
-              <th>Price</th>
+              <th title="What customers are charged">Sell Price</th>
+              <th title="Your store/wholesale cost (Alberta prices)">Our Cost</th>
+              <th title="Deposit per unit (10¢ ≤1L, 25¢ >1L) - auto-calculated">Deposit/Unit</th>
               <th>Stock</th>
-              <th>Active</th>
+              <th>Description</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(row, idx) in beverageData" :key="idx">
-              <td><input v-model="row.name" class="wide" /></td>
+              <td><input v-model="row.item_name" class="wide" /></td>
               <td><input v-model="row.category" /></td>
-              <td><input v-model.number="row.price" type="number" step="0.01" /></td>
+              <td><input v-model.number="row.unit_price" type="number" step="0.01" /></td>
+              <td><input v-model.number="row.our_cost" type="number" step="0.01" class="highlight-cost" title="Store/wholesale cost" /></td>
+              <td><input v-model.number="row.deposit_amount" type="number" step="0.01" class="highlight-deposit" title="Alberta deposit (10¢ ≤1L, 25¢ >1L)" /></td>
               <td><input v-model.number="row.stock_quantity" type="number" /></td>
-              <td><input type="checkbox" v-model="row.is_active" /></td>
+              <td><input v-model="row.description" class="wide" /></td>
             </tr>
           </tbody>
         </table>
@@ -394,11 +398,13 @@ async function loadBeverages() {
 
 function addBeverageRow() {
   beverageData.value.push({
-    name: '',
+    item_name: '',
     category: '',
-    price: 0,
+    unit_price: 0,
+    our_cost: 0,
+    deposit_amount: 0,
     stock_quantity: 0,
-    is_active: true
+    description: ''
   });
 }
 

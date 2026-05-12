@@ -268,8 +268,8 @@
         
         <div class="file-category-card">
           <FileUpload 
-            title="💻 QuickBooks/Accounting System Files" 
-            hint="QuickBooks backups, import files, exports"
+            title="💻 Accounting System Files" 
+            hint="Accounting backups, import files, exports"
             category="business_documents" 
             entity-id="accountant" 
             subfolder="accounting_system"

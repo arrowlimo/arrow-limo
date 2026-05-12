@@ -1,17 +1,87 @@
 """Invoices API Router"""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(prefix="/api/invoices", tags=["invoices"])
 
 # Constants
 ERROR_INVOICE_NOT_FOUND = "Invoice not found"
+
+
+def _audit_actor(request: Request | None) -> AuditEventActor:
+    if request is None:
+        return AuditEventActor(actor_type="system", username="system")
+    username = request.headers.get("X-User-Name") or request.headers.get(
+        "X-User"
+    )
+    role = request.headers.get("X-User-Role")
+    user_id = request.headers.get("X-User-Id")
+    if not username:
+        username = request.headers.get("X-Forwarded-User")
+    return AuditEventActor(
+        actor_type="user" if username else "service",
+        user_id=user_id,
+        username=username,
+        role=role,
+    )
+
+
+def _load_invoice_snapshot(conn, invoice_id: int) -> dict | None:
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT
+            i.invoice_id,
+            i.reserve_number,
+            i.invoice_number,
+            i.invoice_date,
+            i.due_date,
+            i.subtotal_taxable,
+            i.gst_amount,
+            i.subtotal_non_taxable,
+            i.invoice_total,
+            i.total_payments,
+            i.balance_due,
+            i.paid,
+            i.invoice_status,
+            i.notes,
+            i.finalized_at,
+            i.created_at
+        FROM invoices i
+        WHERE i.invoice_id = %s
+        """,
+        (invoice_id,),
+    )
+    row = cur.fetchone()
+    cur.close()
+    if not row:
+        return None
+    return {
+        "invoice_id": row[0],
+        "reserve_number": row[1],
+        "invoice_number": row[2],
+        "invoice_date": row[3].isoformat() if row[3] else None,
+        "due_date": row[4].isoformat() if row[4] else None,
+        "subtotal_taxable": float(row[5]) if row[5] is not None else None,
+        "gst_amount": float(row[6]) if row[6] is not None else None,
+        "subtotal_non_taxable": float(row[7]) if row[7] is not None else None,
+        "invoice_total": float(row[8]) if row[8] is not None else None,
+        "total_payments": float(row[9]) if row[9] is not None else None,
+        "balance_due": float(row[10]) if row[10] is not None else None,
+        "paid": row[11],
+        "invoice_status": row[12],
+        "notes": row[13],
+        "finalized_at": row[14].isoformat() if row[14] else None,
+        "created_at": row[15].isoformat() if row[15] else None,
+    }
 
 
 # Pydantic Models
@@ -219,7 +289,7 @@ def get_invoice(invoice_id: int):
 
 
 @router.post("/", status_code=201)
-def create_invoice(invoice: InvoiceCreate):
+def create_invoice(invoice: InvoiceCreate, request: Request):
     """Create new invoice"""
     conn = get_connection()
     cur = conn.cursor()
@@ -273,6 +343,29 @@ def create_invoice(invoice: InvoiceCreate):
         )
 
         invoice_id = cur.fetchone()[0]
+        ensure_audit_storage(conn)
+        audit_after = _load_invoice_snapshot(conn, invoice_id) or {
+            "invoice_id": invoice_id,
+            "invoice_number": invoice.invoice_number,
+        }
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="invoices",
+                entity_type="invoice",
+                entity_id=str(invoice_id),
+                action="create_invoice",
+                source="api",
+                actor=_audit_actor(request),
+                before=None,
+                after=audit_after,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Invoice created through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
 
         cur.close()
@@ -293,12 +386,22 @@ def create_invoice(invoice: InvoiceCreate):
 
 
 @router.put("/{invoice_id}")
-def update_invoice(invoice_id: int, invoice: InvoiceUpdate):
+def update_invoice(
+    invoice_id: int,
+    invoice: InvoiceUpdate,
+    request: Request,
+):
     """Update existing invoice"""
     conn = get_connection()
     cur = conn.cursor()
 
     try:
+        audit_before = _load_invoice_snapshot(conn, invoice_id)
+        if audit_before is None:
+            cur.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
+
         updates = []
         params = []
 
@@ -350,6 +453,26 @@ def update_invoice(invoice_id: int, invoice: InvoiceUpdate):
                 status_code=404, detail=ERROR_INVOICE_NOT_FOUND
             )
 
+        audit_after = _load_invoice_snapshot(conn, invoice_id) or audit_before
+        ensure_audit_storage(conn)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="invoices",
+                entity_type="invoice",
+                entity_id=str(invoice_id),
+                action="update_invoice",
+                source="api",
+                actor=_audit_actor(request),
+                before=audit_before,
+                after=audit_after,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Invoice updated through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
         cur.close()
         conn.close()
@@ -368,7 +491,11 @@ def update_invoice(invoice_id: int, invoice: InvoiceUpdate):
 
 
 @router.put("/{invoice_id}/mark-paid")
-def mark_invoice_paid(invoice_id: int, paid_date: date | None = None):
+def mark_invoice_paid(
+    invoice_id: int,
+    request: Request,
+    paid_date: date | None = None,
+):
     """Mark invoice as paid"""
     conn = get_connection()
     cur = conn.cursor()
@@ -376,6 +503,12 @@ def mark_invoice_paid(invoice_id: int, paid_date: date | None = None):
     try:
         if paid_date is None:
             paid_date = date.today()
+
+        before_snapshot = _load_invoice_snapshot(conn, invoice_id)
+        if before_snapshot is None:
+            cur.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
         cur.execute(
             """
@@ -396,6 +529,26 @@ def mark_invoice_paid(invoice_id: int, paid_date: date | None = None):
                 status_code=404, detail=ERROR_INVOICE_NOT_FOUND
             )
 
+        ensure_audit_storage(conn)
+        after_snapshot = _load_invoice_snapshot(conn, invoice_id) or before_snapshot
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="invoices",
+                entity_type="invoice",
+                entity_id=str(invoice_id),
+                action="mark_paid",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=after_snapshot,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Invoice marked paid through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
         cur.close()
         conn.close()
@@ -414,12 +567,18 @@ def mark_invoice_paid(invoice_id: int, paid_date: date | None = None):
 
 
 @router.delete("/{invoice_id}")
-def delete_invoice(invoice_id: int):
+def delete_invoice(invoice_id: int, request: Request):
     """Delete invoice"""
     conn = get_connection()
     cur = conn.cursor()
 
     try:
+        before_snapshot = _load_invoice_snapshot(conn, invoice_id)
+        if before_snapshot is None:
+            cur.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
+
         cur.execute(
             "DELETE FROM invoices WHERE invoice_id = %s", (invoice_id,)
         )
@@ -432,6 +591,25 @@ def delete_invoice(invoice_id: int):
                 status_code=404, detail=ERROR_INVOICE_NOT_FOUND
             )
 
+        ensure_audit_storage(conn)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="invoices",
+                entity_type="invoice",
+                entity_id=str(invoice_id),
+                action="delete_invoice",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=None,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Invoice deleted through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
         cur.close()
         conn.close()

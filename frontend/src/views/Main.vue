@@ -319,8 +319,53 @@ function confirmBeverageCart() {
   beverageCart.value = beverageList.value.filter(b => b.qty > 0).map(b => ({ ...b }))
 }
 function printBeverageOrder() {
-  // TODO: Implement printable order with all required fields
-  window.print()
+  const target = selectedBeverageTarget.value
+  const items = beverageCart.value || []
+  if (!target || !items.length) {
+    toast.error('Select a target and add beverage items before printing')
+    return
+  }
+
+  const now = new Date()
+  const rows = items.map((item) => {
+    const qty = Number(item.qty || item.quantity || 0)
+    const price = Number(item.price || 0)
+    const line = qty * price
+    return `<tr><td>${item.name || '-'}</td><td>${qty}</td><td>$${price.toFixed(2)}</td><td>$${line.toFixed(2)}</td></tr>`
+  }).join('')
+
+  const total = items.reduce((sum, item) => {
+    const qty = Number(item.qty || item.quantity || 0)
+    const price = Number(item.price || 0)
+    return sum + (qty * price)
+  }, 0)
+
+  const printHtml = `
+    <html>
+      <head><title>Beverage Order</title></head>
+      <body>
+        <h2>Beverage Order</h2>
+        <p><strong>Generated:</strong> ${now.toLocaleString()}</p>
+        <p><strong>Target:</strong> ${target.display || target.client_name || target.charter_id || '-'}</p>
+        <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; width:100%;">
+          <thead><tr><th>Item</th><th>Qty</th><th>Unit Price</th><th>Line Total</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><th colspan="3" style="text-align:right;">Total</th><th>$${total.toFixed(2)}</th></tr></tfoot>
+        </table>
+      </body>
+    </html>
+  `
+
+  const win = window.open('', '_blank', 'noopener,width=900,height=700')
+  if (!win) {
+    toast.error('Popup blocked: allow popups to print beverage order')
+    return
+  }
+  win.document.open()
+  win.document.write(printHtml)
+  win.document.close()
+  win.focus()
+  win.print()
 }
 
 // Persist beverage orders to backend (if target is a charter)
@@ -376,7 +421,7 @@ const closeBookingDetail = () => {
 
 const editBooking = (booking) => {
   // Handle booking editing - could navigate to edit form
-  router.push({ path: '/charter', query: { id: booking.charter_id } })
+  router.push({ path: `/charter/${booking.charter_id}` })
   closeBookingDetail()
 }
 const bookings = ref([])

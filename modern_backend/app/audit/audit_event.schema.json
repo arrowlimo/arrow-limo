@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arrowlimo.local/schemas/audit_event.schema.json",
+  "title": "AuditEvent",
+  "type": "object",
+  "required": [
+    "event_id",
+    "occurred_at",
+    "module",
+    "entity_type",
+    "entity_id",
+    "action",
+    "source",
+    "actor",
+    "retention_until"
+  ],
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "module": {"type": "string", "minLength": 1},
+    "entity_type": {"type": "string", "minLength": 1},
+    "entity_id": {"type": "string", "minLength": 1},
+    "action": {"type": "string", "minLength": 1},
+    "source": {"type": "string", "minLength": 1},
+    "correlation_id": {"type": ["string", "null"]},
+    "actor": {
+      "type": "object",
+      "required": ["actor_type"],
+      "properties": {
+        "actor_type": {"type": "string", "enum": ["user", "service", "system"]},
+        "user_id": {"type": ["string", "null"]},
+        "username": {"type": ["string", "null"]},
+        "role": {"type": ["string", "null"]}
+      }
+    },
+    "before": {"type": ["object", "null"]},
+    "after": {"type": ["object", "null"]},
+    "evidence_links": {"type": "array", "items": {"type": "string"}},
+    "retention_until": {"type": "string", "format": "date"},
+    "note": {"type": ["string", "null"]},
+    "prev_hash": {"type": ["string", "null"]},
+    "event_hash": {"type": ["string", "null"]}
+  }
+}

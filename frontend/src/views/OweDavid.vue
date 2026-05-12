@@ -451,8 +451,25 @@ function cancelExpenseForm() {
 }
 
 function editTransaction(transaction) {
-  console.log('Edit transaction:', transaction)
-  // TODO: Implement edit functionality
+  const amountRaw = prompt('Amount', String(transaction.amount ?? ''))
+  if (amountRaw === null) return
+  const description = prompt('Description', transaction.description || '')
+  if (description === null) return
+  const date = prompt('Date (YYYY-MM-DD)', transaction.date || '')
+  if (date === null) return
+
+  const amount = parseFloat(amountRaw)
+  if (Number.isNaN(amount) || amount < 0) {
+    toast.error('Invalid amount')
+    return
+  }
+
+  transaction.amount = amount
+  transaction.description = description
+  transaction.date = date
+  recalculateBalances()
+  calculateStats()
+  toast.success('Transaction updated')
 }
 
 function deleteTransaction(transaction) {
@@ -464,15 +481,49 @@ function deleteTransaction(transaction) {
 }
 
 function generateStatement() {
-  console.log('Generate statement')
-  // TODO: Generate and download statement
-  toast.info('Statement generation not yet implemented')
+  const lines = []
+  lines.push('Owe David Statement')
+  lines.push(`Generated: ${new Date().toLocaleString()}`)
+  lines.push('')
+  lines.push('Date,Type,Category,Description,Amount,Running Balance')
+  for (const t of transactions.value) {
+    lines.push([
+      t.date || '',
+      t.type || '',
+      t.category || '',
+      (t.description || '').replace(/,/g, ' '),
+      Number(t.amount || 0).toFixed(2),
+      Number(t.running_balance || 0).toFixed(2)
+    ].join(','))
+  }
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `owe-david-statement-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  toast.success('Statement generated')
 }
 
 function exportData() {
-  console.log('Export data')
-  // TODO: Export to CSV/Excel
-  toast.info('Data export not yet implemented')
+  const headers = ['id', 'date', 'type', 'category', 'description', 'amount', 'status', 'running_balance']
+  const csvRows = [headers.join(',')]
+  for (const t of transactions.value) {
+    const row = headers.map((h) => {
+      const val = t[h] ?? ''
+      return `"${String(val).replace(/"/g, '""')}"`
+    }).join(',')
+    csvRows.push(row)
+  }
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `owe-david-export-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  toast.success('Data exported')
 }
 
 onMounted(() => {

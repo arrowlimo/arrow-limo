@@ -1,14 +1,63 @@
 """Banking Transactions API Router"""
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(prefix="/api/banking", tags=["banking"])
+
+
+def _audit_actor(request: Request | None) -> AuditEventActor:
+    if request is None:
+        return AuditEventActor(actor_type="system", username="system")
+    username = request.headers.get("X-User-Name") or request.headers.get(
+        "X-User"
+    )
+    role = request.headers.get("X-User-Role")
+    user_id = request.headers.get("X-User-Id")
+    if not username:
+        username = request.headers.get("X-Forwarded-User")
+    return AuditEventActor(
+        actor_type="user" if username else "service",
+        user_id=user_id,
+        username=username,
+        role=role,
+    )
+
+
+def _load_banking_snapshot(conn, transaction_id: int) -> dict | None:
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT transaction_id, account_number, transaction_date,
+               description, debit_amount, credit_amount, balance,
+               category, COALESCE(verified, false)
+        FROM banking_transactions
+        WHERE transaction_id = %s
+        """,
+        (transaction_id,),
+    )
+    row = cur.fetchone()
+    cur.close()
+    if not row:
+        return None
+    return {
+        "transaction_id": row[0],
+        "account_number": row[1],
+        "transaction_date": row[2].isoformat() if row[2] else None,
+        "description": row[3],
+        "debit_amount": float(row[4]) if row[4] is not None else None,
+        "credit_amount": float(row[5]) if row[5] is not None else None,
+        "balance": float(row[6]) if row[6] is not None else None,
+        "category": row[7],
+        "verified": bool(row[8]),
+    }
 
 
 class BankingTransactionResponse(BaseModel):
@@ -214,12 +263,24 @@ def get_bank_accounts():
 
 
 @router.put("/transactions/{transaction_id}/categorize")
-def categorize_transaction(transaction_id: int, category: str):
+def categorize_transaction(
+    transaction_id: int,
+    category: str,
+    request: Request,
+):
     """Categorize a banking transaction"""
     conn = get_connection()
     cur = conn.cursor()
 
     try:
+        before_snapshot = _load_banking_snapshot(conn, transaction_id)
+        if before_snapshot is None:
+            cur.close()
+            conn.close()
+            raise HTTPException(
+                status_code=404, detail="Transaction not found"
+            )
+
         cur.execute(
             """
             UPDATE banking_transactions
@@ -236,6 +297,27 @@ def categorize_transaction(transaction_id: int, category: str):
             raise HTTPException(
                 status_code=404, detail="Transaction not found"
             )
+
+        after_snapshot = _load_banking_snapshot(conn, transaction_id)
+        ensure_audit_storage(conn)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="banking",
+                entity_type="banking_transaction",
+                entity_id=str(transaction_id),
+                action="categorize_transaction",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=after_snapshot,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Banking transaction categorized through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
 
         conn.commit()
         cur.close()
@@ -262,13 +344,23 @@ class BankingTransactionUpdate(BaseModel):
 
 @router.put("/transactions/{transaction_id}")
 def update_banking_transaction(
-    transaction_id: int, update: BankingTransactionUpdate
+    transaction_id: int,
+    update: BankingTransactionUpdate,
+    request: Request,
 ):
     """Update a banking transaction (description, category, verified status)"""
     conn = get_connection()
     cur = conn.cursor()
 
     try:
+        before_snapshot = _load_banking_snapshot(conn, transaction_id)
+        if before_snapshot is None:
+            cur.close()
+            conn.close()
+            raise HTTPException(
+                status_code=404, detail="Transaction not found"
+            )
+
         # Build dynamic update query based on provided fields
         update_fields = []
         params = []
@@ -304,6 +396,27 @@ def update_banking_transaction(
             raise HTTPException(
                 status_code=404, detail="Transaction not found"
             )
+
+        after_snapshot = _load_banking_snapshot(conn, transaction_id)
+        ensure_audit_storage(conn)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="banking",
+                entity_type="banking_transaction",
+                entity_id=str(transaction_id),
+                action="update_banking_transaction",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=after_snapshot,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Banking transaction updated through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
 
         conn.commit()
 

@@ -2,14 +2,68 @@
 
 from datetime import date as dt_date
 from datetime import datetime as dt_datetime
+from datetime import timedelta
 from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(prefix="/api/receipts", tags=["receipts"])
+
+
+def _audit_actor(request: Request | None) -> AuditEventActor:
+    if request is None:
+        return AuditEventActor(actor_type="system", username="system")
+    username = request.headers.get("X-User-Name") or request.headers.get(
+        "X-User"
+    )
+    role = request.headers.get("X-User-Role")
+    user_id = request.headers.get("X-User-Id")
+    if not username:
+        username = request.headers.get("X-Forwarded-User")
+    return AuditEventActor(
+        actor_type="user" if username else "service",
+        user_id=user_id,
+        username=username,
+        role=role,
+    )
+
+
+def _load_receipt_snapshot(conn, receipt_id: int) -> dict | None:
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT
+            receipt_id, receipt_date, vendor_name, gross_amount, gst_amount,
+            gl_account_code, category, description, vehicle_id,
+            payment_method, banking_transaction_id, created_at
+        FROM receipts
+        WHERE receipt_id = %s
+        """,
+        (receipt_id,),
+    )
+    row = cur.fetchone()
+    cur.close()
+    if not row:
+        return None
+    return {
+        "receipt_id": row[0],
+        "date": row[1].isoformat() if row[1] else None,
+        "vendor": row[2],
+        "amount": float(row[3]) if row[3] is not None else None,
+        "gst": float(row[4]) if row[4] is not None else None,
+        "gl_account_code": row[5],
+        "category": row[6],
+        "description": row[7],
+        "vehicle_id": row[8],
+        "payment_method": row[9],
+        "banking_transaction_id": row[10],
+        "created_at": row[11].isoformat() if row[11] else None,
+    }
 
 
 # Pydantic Models
@@ -229,7 +283,7 @@ def get_receipt(receipt_id: int):
 
 
 @router.post("/", status_code=201)
-def create_receipt(receipt: ReceiptCreate):
+def create_receipt(receipt: ReceiptCreate, request: Request):
     """Create new receipt"""
     conn = get_connection()
     cur = conn.cursor()
@@ -261,6 +315,29 @@ def create_receipt(receipt: ReceiptCreate):
         )
 
         receipt_id = cur.fetchone()[0]
+        ensure_audit_storage(conn)
+        audit_after = _load_receipt_snapshot(conn, receipt_id) or {
+            "receipt_id": receipt_id,
+            "vendor": receipt.vendor,
+        }
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="receipts",
+                entity_type="receipt",
+                entity_id=str(receipt_id),
+                action="create_receipt",
+                source="api",
+                actor=_audit_actor(request),
+                before=None,
+                after=audit_after,
+                evidence_links=[],
+                retention_until=dt_date.today() + timedelta(days=365 * 7),
+                note="Receipt created through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
         cur.close()
         conn.close()
@@ -280,12 +357,18 @@ def create_receipt(receipt: ReceiptCreate):
 
 
 @router.put("/{receipt_id}")
-def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
+def update_receipt(receipt_id: int, receipt: ReceiptUpdate, request: Request):
     """Update existing receipt"""
     conn = get_connection()
     cur = conn.cursor()
 
     try:
+        before_snapshot = _load_receipt_snapshot(conn, receipt_id)
+        if before_snapshot is None:
+            cur.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Receipt not found")
+
         # Build dynamic update query
         updates = []
         params = []
@@ -377,6 +460,26 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
             conn.close()
             raise HTTPException(status_code=404, detail="Receipt not found")
 
+        ensure_audit_storage(conn)
+        after_snapshot = _load_receipt_snapshot(conn, receipt_id) or before_snapshot
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="receipts",
+                entity_type="receipt",
+                entity_id=str(receipt_id),
+                action="update_receipt",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=after_snapshot,
+                evidence_links=[],
+                retention_until=dt_date.today() + timedelta(days=365 * 7),
+                note="Receipt updated through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
         cur.close()
         conn.close()
@@ -398,12 +501,18 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate):
 
 
 @router.delete("/{receipt_id}")
-def delete_receipt(receipt_id: int):
+def delete_receipt(receipt_id: int, request: Request):
     """Delete receipt"""
     conn = get_connection()
     cur = conn.cursor()
 
     try:
+        before_snapshot = _load_receipt_snapshot(conn, receipt_id)
+        if before_snapshot is None:
+            cur.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Receipt not found")
+
         # Delete receipt
         cur.execute(
             "DELETE FROM receipts WHERE receipt_id = %s", (receipt_id,)
@@ -415,6 +524,25 @@ def delete_receipt(receipt_id: int):
             conn.close()
             raise HTTPException(status_code=404, detail="Receipt not found")
 
+        ensure_audit_storage(conn)
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="receipts",
+                entity_type="receipt",
+                entity_id=str(receipt_id),
+                action="delete_receipt",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=None,
+                evidence_links=[],
+                retention_until=dt_date.today() + timedelta(days=365 * 7),
+                note="Receipt deleted through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
         conn.commit()
         cur.close()
         conn.close()

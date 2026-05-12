@@ -21,10 +21,10 @@ const Login = () => import(/* webpackChunkName: "login" */ './src/views/Login.vu
 const Main = () => import(/* webpackChunkName: "main" */ './src/views/Main.vue')
 const ReceiptsView = () => import(/* webpackChunkName: "receipts" */ './src/views/ReceiptsView.vue')
 const BookingPage = () => import(/* webpackChunkName: "booking" */ './src/views/BookingPage.vue')
-const QuoteGenerator = () => import(/* webpackChunkName: "quote" */ './src/views/QuoteGenerator.vue')
 const TableManagement = () => import(/* webpackChunkName: "tables" */ './src/views/TableManagement.vue')
 const ChequeBookManagement = () => import(/* webpackChunkName: "cheques" */ './src/views/ChequeBookManagement.vue')
 const ReceivedPayments = () => import(/* webpackChunkName: "payments" */ './src/views/ReceivedPayments.vue')
+const AuditCenter = () => import(/* webpackChunkName: "audit-center" */ './src/views/AuditCenter.vue')
 
 const routes = [
   {
@@ -43,7 +43,6 @@ const routes = [
   { path: '/dispatch', component: Dispatch, meta: { requiresAuth: true } },
   { path: '/charter', component: Charter, meta: { requiresAuth: true } },
   { path: '/charter/:id', component: Charter, meta: { requiresAuth: true } },
-  { path: '/quote-generator', component: QuoteGenerator, meta: { requiresAuth: true } },
   { path: '/vehicles', component: Vehicles, meta: { requiresAuth: true } },
   { path: '/employees', component: Employees, meta: { requiresAuth: true } },
   { path: '/customers', component: Customers, meta: { requiresAuth: true } },
@@ -55,6 +54,7 @@ const routes = [
   { path: '/table-management', component: TableManagement, meta: { requiresAuth: true } },
   { path: '/cheque-books', component: ChequeBookManagement, meta: { requiresAuth: true } },
   { path: '/received-payments', component: ReceivedPayments, meta: { requiresAuth: true } },
+  { path: '/audit-center', component: AuditCenter, meta: { requiresAuth: true } },
   { path: '/drivers', component: Drivers, meta: { requiresAuth: true } },
   { path: '/driver-hos', component: DriverHOSLog, meta: { requiresAuth: true } },
   { path: '/booking', component: BookingPage, meta: { requiresAuth: true } },

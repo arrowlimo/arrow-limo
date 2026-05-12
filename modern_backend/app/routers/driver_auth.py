@@ -13,6 +13,8 @@ from fastapi import APIRouter, Form, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
 router = APIRouter(prefix="/auth", tags=["user_auth"])
@@ -151,6 +153,54 @@ def parse_bearer_token(authorization: str | None) -> str | None:
     if len(parts) != 2 or parts[0].lower() != "bearer":
         return None
     return parts[1].strip() or None
+
+
+def _record_auth_event(
+    *,
+    action: str,
+    username: str | None,
+    user_id: int | None,
+    role: str | None,
+    request: Request | None = None,
+    note: str | None = None,
+) -> None:
+    """Best-effort auth audit event write without blocking login flow."""
+    conn = None
+    try:
+        conn = get_connection()
+        ensure_audit_storage(conn)
+        actor = AuditEventActor(
+            actor_type="user" if username else "service",
+            user_id=str(user_id) if user_id is not None else None,
+            username=username,
+            role=role,
+        )
+        corr = request.headers.get("X-Request-ID") if request else None
+        record_audit_event(
+            conn,
+            AuditEvent(
+                module="driver_auth",
+                entity_type="session",
+                entity_id=str(user_id) if user_id is not None else (username or "unknown"),
+                action=action,
+                source="api",
+                correlation_id=corr,
+                actor=actor,
+                before=None,
+                after=None,
+                evidence_links=[],
+                retention_until=datetime(datetime.now().year + 6, 12, 31).date(),
+                note=note,
+            ),
+            ensure_storage=False,
+            commit=True,
+        )
+    except Exception:
+        # Auth should continue even if audit storage is temporarily unavailable.
+        pass
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def get_driver_trips(employee_id: int) -> list:
@@ -363,6 +413,14 @@ async def login_submit(
     """Handle login form submission (HTML form)"""
     user = verify_user_credentials(username, password)
     if not user:
+        _record_auth_event(
+            action="login_failed",
+            username=username,
+            user_id=None,
+            role=None,
+            request=request,
+            note="Invalid credentials",
+        )
         raise HTTPException(status_code=401, detail="Invalid credentials")
     session_token = create_session(
         user["employee_id"],
@@ -379,11 +437,19 @@ async def login_submit(
         secure=True,
         samesite="lax",
     )
+    _record_auth_event(
+        action="login_succeeded",
+        username=username,
+        user_id=user.get("employee_id"),
+        role=user.get("role", "user"),
+        request=request,
+        note="HTML login",
+    )
     return {"status": "success", "redirect": "/auth/dashboard"}
 
 
 @router.post("/login")
-async def login_json(login_request: LoginRequest):
+async def login_json(login_request: LoginRequest, request: Request):
     """Handle JSON login (for Vue frontend)"""
     print(f"[LOGIN] Attempting login for username: {login_request.username}")
     user = verify_user_credentials(
@@ -393,6 +459,14 @@ async def login_json(login_request: LoginRequest):
         print(
             f"[LOGIN] Failed - invalid credentials for"
             f"{login_request.username}"
+        )
+        _record_auth_event(
+            action="login_failed",
+            username=login_request.username,
+            user_id=None,
+            role=None,
+            request=request,
+            note="Invalid credentials",
         )
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
@@ -407,6 +481,14 @@ async def login_json(login_request: LoginRequest):
         role=user.get("role", "user"),
         permissions=user.get("permissions", {}),
         username=login_request.username,
+    )
+    _record_auth_event(
+        action="login_succeeded",
+        username=login_request.username,
+        user_id=user.get("employee_id"),
+        role=user.get("role", "user"),
+        request=request,
+        note="JSON login",
     )
 
     # Return JWT-style response for frontend
@@ -495,7 +577,16 @@ async def logout_json(request: Request):
     """API logout for SPA clients using bearer token."""
     authorization = request.headers.get("Authorization")
     token = parse_bearer_token(authorization)
+    session = get_session(token) if token else None
     revoke_session(token)
+    _record_auth_event(
+        action="logout",
+        username=(session or {}).get("username"),
+        user_id=(session or {}).get("employee_id"),
+        role=(session or {}).get("role"),
+        request=request,
+        note="Bearer token logout",
+    )
     return {"status": "ok"}
 
 

@@ -25,6 +25,7 @@ from .routers import (
 from .routers import banking as banking_router
 from .routers import banking_allocations as banking_allocations_router
 from .routers import beverage_order as beverage_order_router
+from .routers import beverage_reconciliation as beverage_reconciliation_router
 from .routers import bookings as bookings_router
 from .routers import charges as charges_router
 from .routers import charter_sheet as charter_sheet_router
@@ -40,6 +41,7 @@ from .routers import metrics as metrics_router
 from .routers import owe_david as owe_david_router
 from .routers import payments as payments_router
 from .routers import payroll_compliance as payroll_compliance_router
+from .routers import payroll_entries as payroll_entries_router
 from .routers import payroll_tax as payroll_tax_router
 from .routers import pdf as pdf_router
 from .routers import pricing as pricing_router
@@ -49,10 +51,13 @@ from .routers import receipts_simple as receipts_simple_router
 from .routers import receipts_split as receipts_split_router
 from .routers import reconciliation_report as reconciliation_report_router
 from .routers import reports as reports_router
+from .routers import cash_box as cash_box_router
+from .routers import year_end as year_end_router
 from .routers import t2_returns as t2_returns_router
 from .routers import table_management as table_management_router
 from .routers import vehicles as vehicles_router
 from .routers import vendor_standardization as vendor_standardization_router
+from .audit import router as audit_router
 from .routes import cheque_books as cheque_books_router
 from .routes import received_payments as received_payments_router
 from .settings import get_settings
@@ -205,12 +210,16 @@ app.include_router(
 )  # Dashboard metrics
 app.include_router(pdf_router.router)  # PDF generation
 app.include_router(reports_router.router, dependencies=[finance_roles])
+app.include_router(year_end_router.router, dependencies=[finance_roles])
 app.include_router(charges_router.router, dependencies=[authenticated_user])
 app.include_router(payments_router.router, dependencies=[authenticated_user])
 app.include_router(charters_router.router, dependencies=[authenticated_user])
 app.include_router(bookings_router.router, dependencies=[authenticated_user])
 app.include_router(
     beverage_order_router.router, dependencies=[authenticated_user]
+)
+app.include_router(
+    beverage_reconciliation_router.router, dependencies=[finance_roles]
 )
 app.include_router(receipts_router.router, dependencies=[authenticated_user])
 app.include_router(
@@ -255,11 +264,15 @@ app.include_router(
     payroll_tax_router.router, dependencies=[finance_roles]
 )  # Payroll & T4 form entry
 app.include_router(
+    payroll_entries_router.router, dependencies=[finance_roles]
+)
+app.include_router(
     continuous_employment_router.router, dependencies=[finance_roles]
 )  # ROE lifecycle + submission tracking
 app.include_router(
     payroll_compliance_router.router, dependencies=[finance_roles]
 )  # PD7A submission audit + reporting
+app.include_router(cash_box_router.router, dependencies=[finance_roles])
 app.include_router(
     reconciliation_report_router.router, dependencies=[finance_roles]
 )  # Banking-receipt reconciliation
@@ -269,6 +282,8 @@ app.include_router(
 app.include_router(
     bank_audit_reconciliation_router.router, dependencies=[finance_roles]
 )  # Bank account reconciliation for auditors
+
+app.include_router(audit_router, dependencies=[finance_roles])
 
 app.include_router(
     cheque_books_router.router, dependencies=[finance_roles]

@@ -98,8 +98,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { toast } from '@/toast/toastStore'
+const props = defineProps({
+  initialVehicle: {
+    type: Object,
+    default: null
+  }
+})
+const emit = defineEmits(['saved'])
 const dragActive = ref(false)
 const vehicleDocuments = ref([])
 const uploadingDocs = ref(false)
@@ -205,16 +212,37 @@ async function onVehicleSelect() {
     await fetchVehicleDocuments()
   }
 }
+
+watch(
+  () => props.initialVehicle,
+  (value) => {
+    if (!value) return
+    selectedVehicle.value = value.vehicle_number || ''
+    Object.keys(form.value).forEach((k) => {
+      if (value[k] !== undefined && value[k] !== null) {
+        form.value[k] = value[k]
+      }
+    })
+  },
+  { immediate: true }
+)
+
 async function submitForm() {
   try {
   saving.value = true
-  const res = await fetch('/api/vehicles', {
-      method: 'POST',
+  const isEdit = Boolean(props.initialVehicle?.vehicle_id)
+  const endpoint = isEdit
+    ? `/api/vehicles/${encodeURIComponent(props.initialVehicle.vehicle_id)}`
+    : '/api/vehicles'
+  const method = isEdit ? 'PUT' : 'POST'
+  const res = await fetch(endpoint, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form.value)
     });
     if (res.ok) {
-      toast.success('Vehicle saved!')
+      toast.success(isEdit ? 'Vehicle updated!' : 'Vehicle saved!')
+      emit('saved')
     } else {
       const err = await res.text();
       toast.error('Save failed: ' + err)

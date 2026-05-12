@@ -1,11 +1,41 @@
+from datetime import date, timedelta
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Path, Query, Request
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import cursor
 from ..utils.locked_charter import enforce_charter_not_locked
 
 router = APIRouter(prefix="/api", tags=["bookings"])
+
+
+def _audit_actor(request: Request | None) -> AuditEventActor:
+    if request is None:
+        return AuditEventActor(actor_type="system", username="system")
+    username = request.headers.get("X-User-Name") or request.headers.get(
+        "X-User"
+    )
+    role = request.headers.get("X-User-Role")
+    user_id = request.headers.get("X-User-Id")
+    if not username:
+        username = request.headers.get("X-Forwarded-User")
+    return AuditEventActor(
+        actor_type="user" if username else "service",
+        user_id=user_id,
+        username=username,
+        role=role,
+    )
+
+
+def _fetch_charter_snapshot(cur, charter_id: int) -> dict[str, Any] | None:
+    cur.execute("SELECT * FROM charters WHERE charter_id = %s", (charter_id,))
+    row = cur.fetchone()
+    if not row:
+        return None
+    cols = [d[0] for d in (cur.description or [])]
+    return dict(zip(cols, row, strict=False))
 
 
 @router.get("/bookings")
@@ -270,7 +300,9 @@ def search_bookings(
 
 @router.patch("/bookings/{charter_id}")
 def update_booking(
-    charter_id: int = Path(...), payload: dict[str, Any] | None = None
+    request: Request,
+    charter_id: int = Path(...),
+    payload: dict[str, Any] | None = None,
 ):
     payload = payload or {}
 
@@ -290,23 +322,46 @@ def update_booking(
     set_clauses = ", ".join([f"{field} = %s" for field in updates])
     values = [*list(updates.values()), charter_id]
     with cursor() as cur:
+        before_snapshot = _fetch_charter_snapshot(cur, charter_id)
+        if not before_snapshot:
+            raise HTTPException(status_code=404, detail="not_found")
+
         cur.execute(
             f"UPDATE charters SET {set_clauses}  WHERE charter_id = %s", values
         )
-        cur.execute(
-            "SELECT charter_id, vehicle_booked_id, driver_name, notes FROM"
-            "charters WHERE charter_id=%s",
-            (charter_id,),
+        after_snapshot = _fetch_charter_snapshot(cur, charter_id)
+        if not after_snapshot:
+            raise HTTPException(status_code=404, detail="not_found")
+
+        ensure_audit_storage(cur.connection)
+        record_audit_event(
+            cur.connection,
+            AuditEvent(
+                module="bookings",
+                entity_type="booking",
+                entity_id=str(charter_id),
+                action="update_booking",
+                source="api",
+                actor=_audit_actor(request),
+                before=before_snapshot,
+                after=after_snapshot,
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Booking updated through API",
+            ),
+            ensure_storage=False,
+            commit=False,
         )
-        row = cur.fetchone()
-        cols = [d[0] for d in (cur.description or [])]
-    if not row:
-        raise HTTPException(status_code=404, detail="not_found")
-    return dict(zip(cols, row, strict=False))
+    return {
+        "charter_id": after_snapshot.get("charter_id"),
+        "vehicle_booked_id": after_snapshot.get("vehicle_booked_id"),
+        "driver_name": after_snapshot.get("driver_name"),
+        "notes": after_snapshot.get("notes"),
+    }
 
 
 @router.post("/bookings/create")
-def create_booking(payload: dict[str, Any] | None = None):
+def create_booking(request: Request, payload: dict[str, Any] | None = None):
     """Create a new charter booking with minimal required fields.
 
     This endpoint focuses on inserting into the `charters` table and
@@ -756,5 +811,32 @@ def create_booking(payload: dict[str, Any] | None = None):
                 ),
             )
         # End cursor context: auto-commit
+
+    with cursor() as cur:
+        after_snapshot = _fetch_charter_snapshot(cur, charter_id)
+        ensure_audit_storage(cur.connection)
+        record_audit_event(
+            cur.connection,
+            AuditEvent(
+                module="bookings",
+                entity_type="booking",
+                entity_id=str(charter_id),
+                action="create_booking",
+                source="api",
+                actor=_audit_actor(request),
+                before=None,
+                after=after_snapshot
+                or {
+                    "charter_id": charter_id,
+                    "reserve_number": new_row[1],
+                    "status": new_row[2],
+                },
+                evidence_links=[],
+                retention_until=date.today() + timedelta(days=365 * 7),
+                note="Booking created through API",
+            ),
+            ensure_storage=False,
+            commit=False,
+        )
 
     return dict(zip(cols, new_row, strict=False))

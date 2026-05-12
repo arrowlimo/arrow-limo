@@ -11,11 +11,17 @@
       <!-- Admin/Manager sections -->
       <router-link v-if="canAccess('dispatch')" to="/dispatch">Dispatch</router-link>
       <router-link v-if="canAccess('charter')" to="/charter">Charter</router-link>
-      <router-link v-if="canAccess('quote-generator')" to="/quote-generator">Quote Generator</router-link>
       <router-link v-if="canAccess('vehicles')" to="/vehicles">Vehicles</router-link>
       <router-link v-if="canAccess('employees')" to="/employees">Employees</router-link>
       <router-link v-if="canAccess('customers')" to="/customers">Customers</router-link>
       <router-link v-if="canAccess('accounting')" to="/accounting">Accounting</router-link>
+      <router-link v-if="canAccess('payroll')" to="/payroll">Payroll</router-link>
+      <router-link v-if="canAccess('tax-management')" to="/tax-management">Tax</router-link>
+      <router-link v-if="canAccess('payroll-compliance')" to="/payroll-compliance">Compliance</router-link>
+      <router-link v-if="canAccess('audit-center')" to="/audit-center">Audit Center</router-link>
+      <router-link v-if="canAccess('cash-box')" to="/cash-box">Cash Box</router-link>
+      <router-link v-if="canAccess('year-end-close')" to="/year-end-close">Year-End</router-link>
+      <router-link v-if="canAccess('beverage-reconciliation')" to="/beverage-reconciliation">Beverage</router-link>
       <router-link v-if="canAccess('reports')" to="/reports">Reports</router-link>
       <router-link v-if="canAccess('documents')" to="/documents">Documents</router-link>
       <router-link v-if="canAccess('admin')" to="/admin">Admin</router-link>
@@ -59,9 +65,9 @@ function canAccess(section) {
     return true
   }
   
-  // Accountant: limited access including quote generator
+  // Accountant: access accounting and related sections
   if (userRole.value === 'accountant') {
-    return ['charter', 'quote-generator', 'accounting', 'reports', 'customers'].includes(section)
+    return ['charter', 'accounting', 'payroll', 'tax-management', 'payroll-compliance', 'audit-center', 'cash-box', 'year-end-close', 'beverage-reconciliation', 'reports', 'customers', 'documents'].includes(section)
   }
   
   // Check permissions object

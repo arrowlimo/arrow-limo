@@ -94,6 +94,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import CustomerForm from '../components/CustomerForm.vue'
+import { toast } from '@/toast/toastStore'
 
 const showForm = ref(false)
 const searchText = ref('')
@@ -137,7 +138,7 @@ const filteredCustomers = computed(() => {
 
 async function loadCustomers() {
   try {
-    const response = await fetch('/api/clients')
+    const response = await fetch('/api/customers/')
     if (response.ok) {
       customers.value = await response.json()
       calculateStats()
@@ -175,13 +176,51 @@ function formatDate(dateString) {
 }
 
 function editCustomer(customer) {
-  // TODO: Implement edit functionality
-  console.log('Edit customer:', customer)
+  const clientName = prompt('Client name', customer.client_name || '')
+  if (clientName === null) return
+  const email = prompt('Email', customer.email || '')
+  if (email === null) return
+  const phone = prompt('Phone', customer.phone || '')
+  if (phone === null) return
+
+  const payload = {
+    ...customer,
+    client_name: clientName,
+    email,
+    phone,
+    primary_phone: phone,
+    client_id: customer.client_id || customer.id
+  }
+
+  fetch('/api/customers/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(async (res) => {
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '')
+        throw new Error(detail || `Update failed (${res.status})`)
+      }
+      toast.success('Customer updated successfully')
+      await loadCustomers()
+    })
+    .catch((err) => {
+      toast.error(err?.message || 'Failed to update customer')
+    })
 }
 
-function viewBookings(customer) {
-  // TODO: Navigate to bookings filtered by customer
-  console.log('View bookings for:', customer)
+async function viewBookings(customer) {
+  try {
+    const q = encodeURIComponent(customer.client_name || '')
+    const res = await fetch(`/api/bookings/search?q=${q}&limit=20`)
+    if (!res.ok) throw new Error(`Search failed (${res.status})`)
+    const data = await res.json()
+    const count = Array.isArray(data?.results) ? data.results.length : 0
+    toast.info(`${count} booking(s) found for ${customer.client_name}`)
+  } catch (error) {
+    toast.error(error?.message || 'Failed to load bookings for customer')
+  }
 }
 
 function onCustomerSaved() {

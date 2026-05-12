@@ -15,6 +15,8 @@ from fastapi.responses import FileResponse
 from fastapi.responses import Response as FastAPIResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from ..audit.engine import ensure_audit_storage, record_audit_event
+from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 from ..services.inspection_pdf import generate_pre_trip_pdf
 
@@ -143,6 +145,15 @@ def audit_log_access(
         print(f"Audit log error: {e}")
 
 
+def _audit_actor(user_id: int, user_role: str) -> AuditEventActor:
+    return AuditEventActor(
+        actor_type="user",
+        user_id=str(user_id),
+        username=f"user_{user_id}",
+        role=user_role,
+    )
+
+
 @router.get("/pre-trip-blank")
 async def download_pre_trip_blank() -> FastAPIResponse:
     """
@@ -226,6 +237,35 @@ async def get_signed_url(
             f"{base_url}/api/inspection-forms/{reserve_number}"
             f"?signature={signature}&expires={expires}"
         )
+
+        conn = get_connection()
+        try:
+            ensure_audit_storage(conn)
+            record_audit_event(
+                conn,
+                AuditEvent(
+                    module="inspection_forms",
+                    entity_type="inspection_form",
+                    entity_id=reserve_number,
+                    action="inspection_signed_url_generated",
+                    source="api",
+                    correlation_id=None,
+                    actor=_audit_actor(int(user_id), str(user_role)),
+                    before=None,
+                    after={
+                        "reserve_number": reserve_number,
+                        "charter_id": charter_id,
+                        "expires": expires,
+                    },
+                    evidence_links=[f"charters:{charter_id}"],
+                    retention_until=datetime(date.today().year + 6, 12, 31).date(),
+                    note="Generated signed URL for inspection form download",
+                ),
+                ensure_storage=False,
+                commit=True,
+            )
+        finally:
+            conn.close()
 
         return {
             "url": signed_url,
