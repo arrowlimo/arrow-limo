@@ -50,6 +50,16 @@ backups/
 T4_2012_Forms/T4_2025_*.pdf
 T4_2012_Forms/*_EMPLOYEE*.pdf
 
+# PII/Payroll/Tax artifacts (never track)
+T4_2012_Forms/
+T4_2012_*.pdf
+PayStatement_*.pdf
+driver_pay_detailed_2012/
+driver_pay_exports_2012/
+tax_forms/
+tmp/T4_*.pdf
+database_backups/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -207,3 +217,5 @@ database_backups/**/*.sql
 database_backups/**/*.json
 db/*.mdb
 database/*.mdb
+
+db_check.py
