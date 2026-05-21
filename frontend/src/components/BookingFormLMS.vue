@@ -107,12 +107,17 @@
         <label>Vehicle Type Requested</label>
         <select v-model="form.vehicle_type_requested" class="input-field">
           <option value="">-- Select Vehicle Type --</option>
-          <option value="sedan">Sedan (4 pass)</option>
-          <option value="suv">SUV (6-8 pass)</option>
-          <option value="stretch">Stretch Limo (6-8 pass)</option>
-          <option value="party_bus">Party Bus (20 pass)</option>
-          <option value="shuttle">Shuttle (12-15 pass)</option>
-          <option value="other">Other</option>
+          <option value="Sedan">Sedan</option>
+          <option value="Luxury Sedan">Luxury Sedan</option>
+          <option value="6 Pax Executive SUV">6 Pax Executive SUV</option>
+          <option value="6 Pax Stretch Limo">6 Pax Stretch Limo</option>
+          <option value="13 Pax Stretch SUV">13 Pax Stretch SUV</option>
+          <option value="14 Pax Charter bus">14 Pax Charter bus</option>
+          <option value="18 Pax Charter bus">18 Pax Charter bus</option>
+          <option value="20 Pax Party Bus">20 Pax Party Bus</option>
+          <option value="20 Pax Party Bus / Lavatory">20 Pax Party Bus / Lavatory</option>
+          <option value="27 Pax Charter bus">27 Pax Charter bus</option>
+          <option value="27 Pax Extreme Party bus">27 Pax Extreme Party bus</option>
         </select>
       </div>
 

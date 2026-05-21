@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from psycopg2 import sql
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
@@ -132,6 +133,18 @@ def _load_rule_snapshot(conn, rule_id: int) -> dict[str, Any] | None:
         "created_at": row[8].isoformat() if hasattr(row[8], "isoformat") else None,
         "updated_at": row[9].isoformat() if hasattr(row[9], "isoformat") else None,
     }
+
+
+def _write_cursor_rows_to_csv(cur, writer: csv.writer, chunk_size: int = 5000) -> int:
+    """Write cursor rows in chunks to avoid loading entire result sets."""
+    total_rows = 0
+    while True:
+        batch = cur.fetchmany(chunk_size)
+        if not batch:
+            break
+        writer.writerows(batch)
+        total_rows += len(batch)
+    return total_rows
 
 
 @router.get("/export")
@@ -2764,8 +2777,6 @@ def cra_audit_export(
                 """,
                     date_params,
                 )
-                accounts = cur.fetchall()
-
                 root = ET.Element("Accounts")
                 root.set(
                     "exportDate",
@@ -2777,17 +2788,27 @@ def cra_audit_export(
                 if end_date:
                     root.set("endDate", end_date)
 
-                for acc in accounts:
-                    acc_elem = ET.SubElement(root, "Account")
-                    ET.SubElement(acc_elem, "Name").text = str(acc[0] or "")
-                    ET.SubElement(
-                        acc_elem, "AccountCode"
-                    ).text = str(acc[1] or "")
-                    ET.SubElement(
-                        acc_elem, "FullName"
-                    ).text = str(acc[2] or "")
-                    ET.SubElement(acc_elem, "Number").text = str(acc[3] or "")
-                    ET.SubElement(acc_elem, "Type").text = str(acc[4] or "")
+                while True:
+                    accounts = cur.fetchmany(5000)
+                    if not accounts:
+                        break
+                    for acc in accounts:
+                        acc_elem = ET.SubElement(root, "Account")
+                        ET.SubElement(
+                            acc_elem, "Name"
+                        ).text = str(acc[0] or "")
+                        ET.SubElement(
+                            acc_elem, "AccountCode"
+                        ).text = str(acc[1] or "")
+                        ET.SubElement(
+                            acc_elem, "FullName"
+                        ).text = str(acc[2] or "")
+                        ET.SubElement(
+                            acc_elem, "Number"
+                        ).text = str(acc[3] or "")
+                        ET.SubElement(
+                            acc_elem, "Type"
+                        ).text = str(acc[4] or "")
 
                 with open(
                     tmppath / "Accounts.xml", "w", encoding="utf-8"
@@ -2814,8 +2835,6 @@ def cra_audit_export(
                 """,
                     date_params if date_params else [],
                 )
-                vendors = cur.fetchall()
-
                 root = ET.Element("Vendors")
                 root.set(
                     "exportDate",
@@ -2823,24 +2842,30 @@ def cra_audit_export(
                 )
                 root.set("company", "Arrow Limousine & Sedan Ltd.")
 
-                for vendor in vendors:
-                    vendor_elem = ET.SubElement(root, "Vendor")
-                    ET.SubElement(vendor_elem, "Name").text = str(vendor[0])
-                    ET.SubElement(
-                        vendor_elem, "TransactionCount"
-                    ).text = str(vendor[1])
-                    ET.SubElement(
-                        vendor_elem, "FirstTransaction"
-                    ).text = str(vendor[2])
-                    ET.SubElement(
-                        vendor_elem, "LastTransaction"
-                    ).text = str(vendor[3])
-                    ET.SubElement(
-                        vendor_elem, "TotalDebit"
-                    ).text = str(vendor[4] or 0)
-                    ET.SubElement(
-                        vendor_elem, "TotalCredit"
-                    ).text = str(vendor[5] or 0)
+                while True:
+                    vendors = cur.fetchmany(5000)
+                    if not vendors:
+                        break
+                    for vendor in vendors:
+                        vendor_elem = ET.SubElement(root, "Vendor")
+                        ET.SubElement(vendor_elem, "Name").text = str(
+                            vendor[0]
+                        )
+                        ET.SubElement(
+                            vendor_elem, "TransactionCount"
+                        ).text = str(vendor[1])
+                        ET.SubElement(
+                            vendor_elem, "FirstTransaction"
+                        ).text = str(vendor[2])
+                        ET.SubElement(
+                            vendor_elem, "LastTransaction"
+                        ).text = str(vendor[3])
+                        ET.SubElement(
+                            vendor_elem, "TotalDebit"
+                        ).text = str(vendor[4] or 0)
+                        ET.SubElement(
+                            vendor_elem, "TotalCredit"
+                        ).text = str(vendor[5] or 0)
 
                 with open(tmppath / "Vendors.xml", "w", encoding="utf-8") as f:
                     f.write(prettify_xml(root))
@@ -2865,8 +2890,6 @@ def cra_audit_export(
                 """,
                     date_params if date_params else [],
                 )
-                employees = cur.fetchall()
-
                 root = ET.Element("Employees")
                 root.set(
                     "exportDate",
@@ -2874,24 +2897,28 @@ def cra_audit_export(
                 )
                 root.set("company", "Arrow Limousine & Sedan Ltd.")
 
-                for emp in employees:
-                    emp_elem = ET.SubElement(root, "Employee")
-                    ET.SubElement(emp_elem, "Name").text = str(emp[0])
-                    ET.SubElement(
-                        emp_elem, "TransactionCount"
-                    ).text = str(emp[1])
-                    ET.SubElement(
-                        emp_elem, "FirstTransaction"
-                    ).text = str(emp[2])
-                    ET.SubElement(
-                        emp_elem, "LastTransaction"
-                    ).text = str(emp[3])
-                    ET.SubElement(
-                        emp_elem, "TotalDebit"
-                    ).text = str(emp[4] or 0)
-                    ET.SubElement(
-                        emp_elem, "TotalCredit"
-                    ).text = str(emp[5] or 0)
+                while True:
+                    employees = cur.fetchmany(5000)
+                    if not employees:
+                        break
+                    for emp in employees:
+                        emp_elem = ET.SubElement(root, "Employee")
+                        ET.SubElement(emp_elem, "Name").text = str(emp[0])
+                        ET.SubElement(
+                            emp_elem, "TransactionCount"
+                        ).text = str(emp[1])
+                        ET.SubElement(
+                            emp_elem, "FirstTransaction"
+                        ).text = str(emp[2])
+                        ET.SubElement(
+                            emp_elem, "LastTransaction"
+                        ).text = str(emp[3])
+                        ET.SubElement(
+                            emp_elem, "TotalDebit"
+                        ).text = str(emp[4] or 0)
+                        ET.SubElement(
+                            emp_elem, "TotalCredit"
+                        ).text = str(emp[5] or 0)
 
                 with open(
                     tmppath / "Employees.xml", "w", encoding="utf-8"
@@ -2915,8 +2942,6 @@ def cra_audit_export(
                 """,
                     (as_of_date,),
                 )
-                balances = cur.fetchall()
-
                 root = ET.Element("TrialBalance")
                 root.set(
                     "exportDate",
@@ -2928,29 +2953,33 @@ def cra_audit_export(
                 total_debits = Decimal(0)
                 total_credits = Decimal(0)
 
-                for balance in balances:
-                    balance_elem = ET.SubElement(root, "AccountBalance")
-                    ET.SubElement(balance_elem, "AccountName").text = str(
-                        balance[0] or ""
-                    )
-                    ET.SubElement(balance_elem, "AccountCode").text = str(
-                        balance[1] or ""
-                    )
-                    ET.SubElement(balance_elem, "AccountType").text = str(
-                        balance[2] or ""
-                    )
-                    ET.SubElement(balance_elem, "TotalDebit").text = str(
-                        balance[3] or 0
-                    )
-                    ET.SubElement(balance_elem, "TotalCredit").text = str(
-                        balance[4] or 0
-                    )
-                    ET.SubElement(
-                        balance_elem, "Balance"
-                    ).text = str(balance[5] or 0)
+                while True:
+                    balances = cur.fetchmany(5000)
+                    if not balances:
+                        break
+                    for balance in balances:
+                        balance_elem = ET.SubElement(root, "AccountBalance")
+                        ET.SubElement(balance_elem, "AccountName").text = str(
+                            balance[0] or ""
+                        )
+                        ET.SubElement(balance_elem, "AccountCode").text = str(
+                            balance[1] or ""
+                        )
+                        ET.SubElement(balance_elem, "AccountType").text = str(
+                            balance[2] or ""
+                        )
+                        ET.SubElement(balance_elem, "TotalDebit").text = str(
+                            balance[3] or 0
+                        )
+                        ET.SubElement(balance_elem, "TotalCredit").text = str(
+                            balance[4] or 0
+                        )
+                        ET.SubElement(
+                            balance_elem, "Balance"
+                        ).text = str(balance[5] or 0)
 
-                    total_debits += Decimal(balance[3] or 0)
-                    total_credits += Decimal(balance[4] or 0)
+                        total_debits += Decimal(balance[3] or 0)
+                        total_credits += Decimal(balance[4] or 0)
 
                 summary = ET.SubElement(root, "Summary")
                 ET.SubElement(summary, "TotalDebits").text = str(total_debits)
@@ -3148,40 +3177,39 @@ def get_accounting_export_views():
                 "migration_script": "migrations/create_accounting_export_views.sql",
             }
 
-        # Get record count for each view
+        # Get record counts in one query to avoid per-view round trips.
+        count_queries = [
+            sql.SQL(
+                "SELECT {view_name} AS view_name, COUNT(*)::bigint AS record_count "
+                "FROM {view_ident}"
+            ).format(
+                view_name=sql.Literal(view_name),
+                view_ident=sql.Identifier(view_name),
+            )
+            for view_name in views
+        ]
+        combined_counts = sql.SQL(" UNION ALL ").join(count_queries)
+        cur.execute(combined_counts)
+        counts_by_view = {row[0]: int(row[1] or 0) for row in cur.fetchall()}
+
         view_info = []
         for view_name in views:
-            try:
-                cur.execute(f"SELECT COUNT(*) FROM {view_name}")
-                count = cur.fetchone()[0]
+            friendly_name = (
+                view_name.replace("qb_export_", "")
+                .replace("_", " ")
+                .title()
+            )
 
-                # Get friendly name
-                friendly_name = (
-                    view_name
-                    .replace("qb_export_", "")
-                    .replace("_", " ")
-                    .title()
-                )
-
-                view_info.append(
-                    {
-                        "view_name": view_name,
-                        "friendly_name": friendly_name,
-                        "record_count": count,
-                        "export_filename": (
-                            f"{friendly_name.replace(' ', '_')}.csv"
-                        ),
-                    }
-                )
-            except Exception as e:
-                view_info.append(
-                    {
-                        "view_name": view_name,
-                        "friendly_name": view_name,
-                        "record_count": 0,
-                        "error": str(e),
-                    }
-                )
+            view_info.append(
+                {
+                    "view_name": view_name,
+                    "friendly_name": friendly_name,
+                    "record_count": counts_by_view.get(view_name, 0),
+                    "export_filename": (
+                        f"{friendly_name.replace(' ', '_')}.csv"
+                    ),
+                }
+            )
 
         return {
             "status": "ready",
@@ -3265,7 +3293,6 @@ def export_accounting_view(
 
         # Execute query
         cur.execute(query, params)
-        rows = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
 
         if format.lower() == "csv":
@@ -3273,7 +3300,7 @@ def export_accounting_view(
             output = io.StringIO()
             writer = csv.writer(output)
             writer.writerow(columns)
-            writer.writerows(rows)
+            _write_cursor_rows_to_csv(cur, writer)
 
             # Create filename
             date_suffix = ""
@@ -3380,7 +3407,6 @@ def export_all_accounting_views(
 
                 # Execute query
                 cur.execute(query, params)
-                rows = cur.fetchall()
                 columns = [desc[0] for desc in cur.description]
 
                 # Write to CSV
@@ -3390,7 +3416,7 @@ def export_all_accounting_views(
                 with open(csv_path, "w", newline="", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow(columns)
-                    writer.writerows(rows)
+                    _write_cursor_rows_to_csv(cur, writer)
 
             # Create README
             if start_date and end_date:

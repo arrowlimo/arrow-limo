@@ -39,7 +39,12 @@ async def get_verification_summary():
     try:
         # Use materialized view for better performance
         cur.execute("""
-            SELECT * FROM mv_receipt_verification_summary;
+                        SELECT
+                            total_receipts,
+                            physically_verified_count,
+                            unverified_count,
+                            verification_percentage
+                        FROM mv_receipt_verification_summary;
         """)
         result = cur.fetchone()
         return {
@@ -56,7 +61,7 @@ async def get_verification_summary():
 
 
 @router.get("/by-year")
-async def get_verification_by_year():
+async def get_verification_by_year(limit: int = Query(200, ge=1, le=5000)):
     """Get verification stats by year."""
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -64,9 +69,16 @@ async def get_verification_by_year():
     try:
         # Use materialized view for better performance
         cur.execute("""
-            SELECT * FROM mv_receipt_verification_by_year
-            ORDER BY year;
-        """)
+                        SELECT
+                            year,
+                            total_receipts,
+                            physically_verified_count,
+                            unverified_count,
+                            verification_percentage
+                        FROM mv_receipt_verification_by_year
+                        ORDER BY year
+                        LIMIT %s;
+                """, (limit,))
         return [dict(row) for row in cur.fetchall()]
     finally:
         cur.close()
@@ -82,15 +94,19 @@ async def get_unverified_receipts(
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
-        where = (
-            "r.is_paper_verified = FALSE "
-            "AND r.business_personal != 'personal' "
-            "AND r.is_personal_purchase = FALSE"
-        )
+        where_clauses = [
+            "r.is_paper_verified = FALSE",
+            "r.business_personal != 'personal'",
+            "r.is_personal_purchase = FALSE",
+        ]
+        params = []
         if year:
-            where += f" AND EXTRACT(YEAR FROM r.receipt_date) = {year}"
+            where_clauses.append("EXTRACT(YEAR FROM r.receipt_date) = %s")
+            params.append(year)
 
-        cur.execute(f"""
+        params.append(limit)
+
+        cur.execute("""
             SELECT
               r.receipt_id,
               r.receipt_date,
@@ -104,10 +120,10 @@ async def get_unverified_receipts(
                                 ELSE 'Not linked'
                             END as status
             FROM receipts r
-            WHERE {where}
+                        WHERE {where_clause}
             ORDER BY r.receipt_date DESC
-            LIMIT {limit};
-        """)
+                        LIMIT %s;
+                """.format(where_clause=" AND ".join(where_clauses)), tuple(params))
         return [dict(row) for row in cur.fetchall()]
     finally:
         cur.close()
@@ -193,11 +209,15 @@ async def get_verified_receipts(
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
-        where = "r.is_paper_verified = TRUE"
+        where_clauses = ["r.is_paper_verified = TRUE"]
+        params = []
         if year:
-            where += f" AND EXTRACT(YEAR FROM r.receipt_date) = {year}"
+            where_clauses.append("EXTRACT(YEAR FROM r.receipt_date) = %s")
+            params.append(year)
 
-        cur.execute(f"""
+        params.append(limit)
+
+        cur.execute("""
             SELECT
               r.receipt_id,
               r.receipt_date,
@@ -210,10 +230,10 @@ async def get_verified_receipts(
             FROM receipts r
             LEFT JOIN banking_transactions bt ON r.banking_transaction_id =
             bt.transaction_id
-            WHERE {where}
+            WHERE {where_clause}
             ORDER BY r.receipt_date DESC
-            LIMIT {limit};
-        """)
+            LIMIT %s;
+        """.format(where_clause=" AND ".join(where_clauses)), tuple(params))
         return [dict(row) for row in cur.fetchall()]
     finally:
         cur.close()

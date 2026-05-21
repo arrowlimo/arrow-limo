@@ -641,7 +641,7 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
                 SELECT charter_id, SUM(amount) AS total_paid
                 FROM payments
                 GROUP BY charter_id
-            ) p ON c.charter_id = p.charter_id
+            ) p ON c.charter_id::text = p.charter_id::text
             LEFT JOIN (
                 SELECT charter_id, SUM(amount) AS nrr_amount
                 FROM payments
@@ -650,8 +650,8 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
                 )
                   AND payment_label NOT IN ('Deposit')
                 GROUP BY charter_id
-            ) nrr ON c.charter_id = nrr.charter_id
-            WHERE c.charter_id = %s
+            ) nrr ON c.charter_id::text = nrr.charter_id::text
+            WHERE c.charter_id::text = %s::text
             """,
             (charter_id,),
         )
@@ -680,7 +680,7 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
                 COALESCE(stop_time, pickup_time, dropoff_time) AS stop_time,
                 route_notes
             FROM charter_routes
-            WHERE charter_id = %s
+            WHERE charter_id::text = %s::text
             ORDER BY route_sequence
             """,
             (charter_id,),
@@ -721,7 +721,7 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
             SELECT payment_label, payment_method, amount, payment_date, notes,
             reference_number
             FROM payments
-            WHERE charter_id = %s
+            WHERE charter_id::text = %s::text
                             {payment_deleted_filter}
             ORDER BY payment_date, payment_id
                         """,

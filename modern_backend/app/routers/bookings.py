@@ -404,6 +404,12 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
     assigned_driver_id = payload.get("assigned_driver_id")
     status = payload.get("status") or "Quote"
     total_amount_due = payload.get("total_amount_due")
+    try:
+        total_amount_due_float = (
+            float(total_amount_due) if total_amount_due is not None else 0.0
+        )
+    except Exception:
+        total_amount_due_float = 0.0
 
     # Notes fields
     # Fixed: DB column is client_notes
@@ -535,7 +541,7 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
                 pickup_address,
                 dropoff_address,
                 pickup_time,
-                total_amount_due,
+                total_amount_due_float,
                 status,
                 separate_customer_printout,
                 client_notes,
@@ -628,6 +634,21 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
             "additional_charges_amount"
         ) or payload.get("additional_charges")
 
+        # Primary charter charge used for gratuity base (charter run-time only)
+        charter_fee_amount = payload.get("charter_fee_amount")
+
+        def _to_float(value: Any, default: float = 0.0) -> float:
+            try:
+                if value in (None, ""):
+                    return default
+                return float(value)
+            except Exception:
+                return default
+
+        base_charge_float = _to_float(base_charge)
+        airport_fee_float = _to_float(airport_fee)
+        additional_charges_float = _to_float(additional_charges)
+
         if base_charge:
             try:
                 base_charge = float(base_charge)
@@ -691,6 +712,7 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
         # Insert beverage charges from cart (taxable, not included in cart
         # price)
         beverage_total = payload.get("beverage_total")
+        beverage_total_float = _to_float(beverage_total)
         if beverage_total:
             try:
                 beverage_total = float(beverage_total)
@@ -711,17 +733,37 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
             except Exception:
                 pass
 
-        # Insert gratuity (percentage-based: 18% default, or custom amount)
+        # Insert gratuity (applies to charter run-time charges only)
         gratuity_percentage = payload.get(
             "gratuity_percentage"
         )  # e.g., 18.0 for 18%
         # Override with fixed amount
         gratuity_amount = payload.get("gratuity_amount")
+        extra_gratuity_cash = _to_float(
+            payload.get("extra_gratuity") or payload.get("gratuity_cash_amount")
+        )
+        inserted_gratuity_amount = 0.0
+
+        # Prefer explicit charter fee amount, then base charge.
+        gratuity_base = _to_float(charter_fee_amount)
+        if gratuity_base <= 0:
+            gratuity_base = base_charge_float
+        # Fallback if explicit charter fee was not provided.
+        if gratuity_base <= 0 and total_amount_due_float > 0:
+            gratuity_base = max(
+                0.0,
+                total_amount_due_float
+                - beverage_total_float
+                - additional_charges_float
+                - airport_fee_float
+                - extra_gratuity_cash,
+            )
 
         if gratuity_amount:
             try:
                 gratuity_amount = float(gratuity_amount)
                 if gratuity_amount > 0:
+                    inserted_gratuity_amount = gratuity_amount
                     cur.execute(
                         """
                         INSERT INTO charges (reserve_number, charge_type,
@@ -732,7 +774,7 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
                             reserve_number,
                             "additional",
                             gratuity_amount,
-                            "Gratuity (custom)",
+                            "Gratuity (approved)",
                         ),
                     )
             except Exception:
@@ -740,15 +782,13 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
         elif gratuity_percentage:
             try:
                 gratuity_percentage = float(gratuity_percentage)
-                if gratuity_percentage > 0 and total_amount_due:
-                    # Calculate gratuity as percentage of subtotal (before GST)
-                    subtotal = (
-                        float(total_amount_due) / 1.05
-                    )  # Remove GST to get subtotal
+                if gratuity_percentage > 0 and gratuity_base > 0:
+                    # Gratuity is based on charter run-time charges only.
                     gratuity_calc = round(
-                        subtotal * gratuity_percentage / 100, 2
+                        gratuity_base * gratuity_percentage / 100, 2
                     )
                     if gratuity_calc > 0:
+                        inserted_gratuity_amount = gratuity_calc
                         cur.execute(
                             """
                             INSERT INTO charges (reserve_number, charge_type,
@@ -759,16 +799,45 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
                                 reserve_number,
                                 "additional",
                                 gratuity_calc,
-                                f"Gratuity ({gratuity_percentage}%)",
+                                f"Gratuity ({gratuity_percentage}% of charter charges)",
                             ),
                         )
             except Exception:
                 pass
 
+        # Extra gratuity is driver cash, non-taxable, informational only.
+        if extra_gratuity_cash > 0:
+            try:
+                cur.execute(
+                    """
+                    INSERT INTO charges (reserve_number, charge_type,
+                    amount, description)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (
+                        reserve_number,
+                        "additional",
+                        0.0,
+                        (
+                            "Extra gratuity cash paid directly to driver "
+                            f"(non-taxable): ${extra_gratuity_cash:.2f}"
+                        ),
+                    ),
+                )
+            except Exception:
+                pass
+
         # Calculate and insert GST (tax-included: gst = total * 0.05 / 1.05)
         # Skip if client is GST exempt
-        if not is_gst_exempt and total_amount_due and total_amount_due > 0:
-            gst_amount = round(float(total_amount_due) * 0.05 / 1.05, 2)
+        if not is_gst_exempt and total_amount_due_float > 0:
+            # GST excludes gratuities, including cash extra gratuity.
+            gst_taxable_total = max(
+                0.0,
+                total_amount_due_float
+                - inserted_gratuity_amount
+                - extra_gratuity_cash,
+            )
+            gst_amount = round(gst_taxable_total * 0.05 / 1.05, 2)
             if gst_amount > 0:
                 cur.execute(
                     """

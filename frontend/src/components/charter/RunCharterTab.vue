@@ -412,7 +412,8 @@ const charterGstAmount = computed(() => {
 })
 
 const charterGrandTotal = computed(() => {
-  return charterSubtotal.value + charterGstAmount.value + (charterForm.value.gratuity_amount || 0) + (charterForm.value.extra_gratuity || 0)
+  // Extra gratuity is cash paid directly to driver, not part of amount due.
+  return charterSubtotal.value + charterGstAmount.value + (charterForm.value.gratuity_amount || 0)
 })
 
 // Compatible computed values (for compatibility with existing code)
@@ -554,7 +555,9 @@ const updateRouteBilledTime = (index, billedTime) => {
 // Billing Methods
 const calculateGratuity = () => {
   const percent = charterForm.value.gratuity_percent || 0
-  charterForm.value.gratuity_amount = charterSubtotal.value * (percent / 100)
+  // Gratuity applies to charter run-time charge only (not beverages/extras).
+  const charterRunTotal = Number(charterForm.value.charter_fee_amount || 0)
+  charterForm.value.gratuity_amount = charterRunTotal * (percent / 100)
 }
 
 const addCustomCharge = (charge) => {
@@ -1128,7 +1131,7 @@ watch(() => charterForm.value.gratuity_percent, () => {
   calculateGratuity()
 })
 
-watch(() => charterSubtotal.value, () => {
+watch(() => charterForm.value.charter_fee_amount, () => {
   calculateGratuity()
 })
 

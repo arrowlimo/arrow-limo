@@ -341,10 +341,12 @@ class CharterPDFForm:
 
         # Vehicle info
         vehicle_id = self._safe(self.data.get("vehicle_id") or self.data.get("vehicle") or "-")
-        odo_start = self._safe(self.data.get("odometer_start"))
-        odo_end = self._safe(self.data.get("odometer_end"))
+        raw_odo_start = self.data.get("odometer_start")
+        raw_odo_end = self.data.get("odometer_end")
+        odo_start = self._format_odometer(raw_odo_start)
+        odo_end = self._format_odometer(raw_odo_end)
         try:
-            total_odo = round(float(odo_end or 0) - float(odo_start or 0), 1)
+            total_odo = round(float(raw_odo_end or 0) - float(raw_odo_start or 0), 1)
         except Exception:
             total_odo = "-"
 
@@ -535,8 +537,8 @@ class CharterPDFForm:
             x_left + 5,
             vehicle_row_1_y,
             (
-                f"Start Odo: {(odo_start or '___________'):<11}   "
-                f"End Odo: {(odo_end or '___________'):<11}"
+                f"Out Odo: {odo_start or '_______'}   "
+                f"In Odo: {odo_end or '_______'}"
             ),
         )
         # Row 1 right: fuel / float
@@ -1307,6 +1309,18 @@ class CharterPDFForm:
             return f"{float(value or 0):.2f}"
         except Exception:
             return "0.00"
+
+    def _format_odometer(self, value):
+        if value in (None, ""):
+            return ""
+        try:
+            numeric_value = int(round(float(value)))
+            if numeric_value < 0:
+                return ""
+            return str(numeric_value)[:7]
+        except Exception:
+            cleaned = re.sub(r"\D", "", str(value))
+            return cleaned[:7]
 
     def _safe(self, value):
         if value is None or value == "":

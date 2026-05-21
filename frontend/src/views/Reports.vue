@@ -1,4 +1,4 @@
-<template>
+we <template>
   <div>
     <h1>📊 Reports Dashboard</h1>
     

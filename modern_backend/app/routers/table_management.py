@@ -373,6 +373,8 @@ def save_vehicle_pricing(data: list[VehiclePricingRow]):
                 if not row.vehicle_type:
                     continue
 
+                charter_type_code = (row.charter_type_code or "default").strip().lower()
+
                 cur.execute(
                     """
                     INSERT INTO vehicle_pricing_defaults (
@@ -395,7 +397,7 @@ def save_vehicle_pricing(data: list[VehiclePricingRow]):
                 """,
                     (
                         row.vehicle_type,
-                        row.charter_type_code,
+                        charter_type_code,
                         row.hourly_rate,
                         row.package_rate,
                         row.package_hours,

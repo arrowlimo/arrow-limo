@@ -92,13 +92,17 @@
           @change="$emit('update:vehicleType', $event.target.value); $emit('vehicle-type-changed')"
         >
           <option value="">-- Select Vehicle Type --</option>
-          <option value="luxury_sedan_4pax">Luxury Sedan (4 pax) - $85/hr</option>
-          <option value="luxury_suv_6pax">Luxury SUV (6 pax) - $110/hr</option>
-          <option value="exec_sprinter_10pax">Executive Sprinter (10 pax) - $135/hr</option>
-          <option value="shuttle_14pax">Shuttle Bus (14 pax) - $145/hr</option>
-          <option value="shuttle_18pax">Shuttle Bus (18 pax) - $155/hr</option>
-          <option value="mini_coach_24pax">Mini Coach (24 pax) - $175/hr</option>
-          <option value="motor_coach_56pax">Motor Coach (56 pax) - $185/hr</option>
+          <option value="Sedan">Sedan</option>
+          <option value="Luxury Sedan">Luxury Sedan</option>
+          <option value="6 Pax Executive SUV">6 Pax Executive SUV</option>
+          <option value="6 Pax Stretch Limo">6 Pax Stretch Limo</option>
+          <option value="13 Pax Stretch SUV">13 Pax Stretch SUV</option>
+          <option value="14 Pax Charter bus">14 Pax Charter bus</option>
+          <option value="18 Pax Charter bus">18 Pax Charter bus</option>
+          <option value="20 Pax Party Bus">20 Pax Party Bus</option>
+          <option value="20 Pax Party Bus / Lavatory">20 Pax Party Bus / Lavatory</option>
+          <option value="27 Pax Charter bus">27 Pax Charter bus</option>
+          <option value="27 Pax Extreme Party bus">27 Pax Extreme Party bus</option>
         </select>
       </div>
 

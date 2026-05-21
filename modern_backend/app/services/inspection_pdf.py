@@ -139,8 +139,8 @@ def generate_pre_trip_pdf() -> bytes:
     y = _info_row(c, LEFT, y, [
         ("Driver Name:", 140),
         ("Vehicle # / Unit:", 80),
-        ("Licence Plate:", 80),
-        ("Odometer (start):", 80),
+        ("Licence Plate:", 70),
+        ("Odometer (out):", 100),
     ], row_height=22)
 
     y -= 4

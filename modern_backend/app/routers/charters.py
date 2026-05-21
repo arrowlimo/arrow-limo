@@ -16,6 +16,14 @@ from ..models.charter_routes import (
 
 router = APIRouter(prefix="/api", tags=["charters"])
 
+_CHARTER_ROUTE_COLUMNS = (
+    "route_id, charter_id, route_sequence, pickup_location, pickup_time, "
+    "dropoff_location, dropoff_time, estimated_duration_minutes, "
+    "actual_duration_minutes, estimated_distance_km, actual_distance_km, "
+    "route_price, route_notes, route_status, created_at, updated_at, "
+    "event_type_code, address, reserve_number, stop_time"
+)
+
 
 def _audit_actor(request: Request | None) -> AuditEventActor:
     if request is None:
@@ -48,7 +56,8 @@ def _fetch_route(
     cur, charter_id: int, route_id: int
 ) -> dict[str, Any] | None:
     cur.execute(
-        "SELECT * FROM charter_routes WHERE route_id = %s AND charter_id = %s",
+        f"SELECT {_CHARTER_ROUTE_COLUMNS} FROM charter_routes "
+        "WHERE route_id = %s AND charter_id = %s",
         (route_id, charter_id),
     )
     row = cur.fetchone()
@@ -330,10 +339,11 @@ def get_charter_routes(
 
         cur.execute(
             """
-            SELECT * FROM charter_routes 
+            SELECT {columns}
+            FROM charter_routes
             WHERE charter_id = %s 
             ORDER BY route_sequence
-            """,
+            """.format(columns=_CHARTER_ROUTE_COLUMNS),
             (charter_id,),
         )
         rows = cur.fetchall()
@@ -382,10 +392,11 @@ def get_charter_with_routes(
         # Get all routes
         cur.execute(
             """
-            SELECT * FROM charter_routes 
+            SELECT {columns}
+            FROM charter_routes
             WHERE charter_id = %s 
             ORDER BY route_sequence
-            """,
+            """.format(columns=_CHARTER_ROUTE_COLUMNS),
             (charter_id,),
         )
         route_rows = cur.fetchall()
@@ -596,7 +607,9 @@ def reorder_charter_routes(
     with _db_cursor() as cur:
         before_rows: list[dict[str, Any]] = []
         cur.execute(
-            "SELECT * FROM charter_routes WHERE charter_id = %s ORDER BY route_sequence",
+            "SELECT "
+            f"{_CHARTER_ROUTE_COLUMNS} FROM charter_routes "
+            "WHERE charter_id = %s ORDER BY route_sequence",
             (charter_id,),
         )
         rows = cur.fetchall()
@@ -641,8 +654,9 @@ def reorder_charter_routes(
 
         # Return updated routes in order
         cur.execute(
-            "SELECT * FROM charter_routes WHERE charter_id = %s ORDER BY"
-            "route_sequence",
+            "SELECT "
+            f"{_CHARTER_ROUTE_COLUMNS} FROM charter_routes "
+            "WHERE charter_id = %s ORDER BY route_sequence",
             (charter_id,),
         )
         rows = cur.fetchall()

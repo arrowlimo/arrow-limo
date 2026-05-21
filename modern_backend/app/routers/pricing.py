@@ -179,8 +179,10 @@ def calculate_quotes(request: QuoteRequest, http_request: Request):
         )
 
         pricing_data = {}
+        default_profile = None
         for row in cur.fetchall():
-            pricing_data[row[0]] = {
+            type_code = (row[0] or "").strip().lower()
+            profile = {
                 "hourly_rate": float(row[1]) if row[1] else 0.0,
                 "package_rate": float(row[2]) if row[2] else 0.0,
                 "package_hours": float(row[3]) if row[3] else 0.0,
@@ -190,6 +192,10 @@ def calculate_quotes(request: QuoteRequest, http_request: Request):
                 "split_run_before": float(row[7]) if row[7] else 0.0,
                 "split_run_after": float(row[8]) if row[8] else 0.0,
             }
+            if type_code:
+                pricing_data[type_code] = profile
+            if default_profile is None:
+                default_profile = profile
 
         if not pricing_data:
             raise HTTPException(
@@ -200,9 +206,14 @@ def calculate_quotes(request: QuoteRequest, http_request: Request):
         quotes = []
         quoted_hours = request.quoted_hours
 
+        # Support one-row-per-vehicle defaults when explicit type rows are not present.
+        hourly_profile = pricing_data.get("hourly") or default_profile
+        package_profile = pricing_data.get("package") or default_profile
+        split_profile = pricing_data.get("split_run") or default_profile
+
         # QUOTE 1: Hourly Rate
-        if "hourly" in pricing_data:
-            hourly = pricing_data["hourly"]
+        if hourly_profile:
+            hourly = hourly_profile
             hourly_total = hourly["hourly_rate"] * quoted_hours
 
             gratuity_amt = None
@@ -231,16 +242,34 @@ def calculate_quotes(request: QuoteRequest, http_request: Request):
             )
 
         # QUOTE 2: Package Rate
-        if "package" in pricing_data:
-            pkg = pricing_data["package"]
+        if package_profile:
+            pkg = package_profile
             if pkg["package_rate"] > 0:
                 pkg_hours = pkg["package_hours"]
-                base_total = pkg["package_rate"]
+                has_explicit_package = "package" in pricing_data
 
-                # Calculate extra time if quoted hours exceed package hours
-                extra_hours = max(0, quoted_hours - pkg_hours)
-                extra_cost = extra_hours * pkg["extra_time_rate"]
-                total = base_total + extra_cost
+                if has_explicit_package and pkg_hours > 0:
+                    # Legacy mode: fixed package amount with extra-time overage.
+                    base_total = pkg["package_rate"]
+                    extra_hours = max(0, quoted_hours - pkg_hours)
+                    extra_cost = extra_hours * pkg["extra_time_rate"]
+                    total = base_total + extra_cost
+                    calc_note = (
+                        f"{pkg_hours}hr package ${pkg['package_rate']:.2f}"
+                        + (
+                            f" + {extra_hours}hr extra @ ${pkg['extra_time_rate']:.2f}/hr = ${extra_cost:.2f}"
+                            if extra_hours > 0
+                            else ""
+                        )
+                        + f". Total: ${total:.2f}"
+                    )
+                else:
+                    # One-row mode: package_rate is treated as per-hour package base.
+                    total = pkg["package_rate"] * quoted_hours
+                    calc_note = (
+                        f"Package base ${pkg['package_rate']:.2f}/hr x "
+                        f"{quoted_hours} hours = ${total:.2f}"
+                    )
 
                 gratuity_amt = None
                 total_with_tip = None
@@ -250,34 +279,24 @@ def calculate_quotes(request: QuoteRequest, http_request: Request):
                     )
                     total_with_tip = total + gratuity_amt
 
-                extra_note = (
-                    f" + {extra_hours}hr extra @ "
-                    f"${pkg['extra_time_rate']:.2f}/hr = ${extra_cost:.2f}"
-                    if extra_hours > 0
-                    else ""
-                )
-
                 quotes.append(
                     {
                         "quote_type": "package",
                         "quote_name": "Quote 2: Package Rate",
                         "base_rate": pkg["package_rate"],
-                        "hours_included": pkg_hours,
+                        "hours_included": pkg_hours if pkg_hours > 0 else quoted_hours,
                         "extra_time_rate": pkg["extra_time_rate"],
                         "standby_rate": None,
                         "total_before_gratuity": round(total, 2),
                         "gratuity_amount": gratuity_amt,
                         "total_with_gratuity": total_with_tip,
-                        "calculation_notes": (
-                            f"{pkg_hours}hr package ${pkg['package_rate']:.2f}"
-                            f"{extra_note}. Total: ${total:.2f}"
-                        ),
+                        "calculation_notes": calc_note,
                     }
                 )
 
         # QUOTE 3: Split Run
-        if "split_run" in pricing_data:
-            split = pricing_data["split_run"]
+        if split_profile:
+            split = split_profile
             before_hrs = split["split_run_before"]
             after_hrs = split["split_run_after"]
             free_hours = before_hrs + after_hrs
