@@ -73,7 +73,7 @@ import psycopg2  # noqa: E402
 
 try:  # noqa: E402
     # Package import path (desktop_app.*) used by some entry points.
-    from desktop_app.db_error_handling import DatabaseContext
+    from db_error_handling import DatabaseContext
 except Exception:  # pragma: no cover - fallback for top-level module execution
     # Direct module import path when running from desktop_app/ as cwd.
     from db_error_handling import DatabaseContext
@@ -128,12 +128,12 @@ class LoginManager:
         except Exception:
             return False
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize database connection"""
         self.token_file = Path.home() / ".limo_auth_token"
         self._refresh_db_config()
 
-    def _refresh_db_config(self):
+    def _refresh_db_config(self) -> None:
         """Refresh database configuration from environment variables"""
         self.db_host = os.environ.get("DB_HOST", "localhost")
         self.db_port = int(os.environ.get("DB_PORT", 5432))
@@ -143,7 +143,7 @@ class LoginManager:
         sslmode = os.environ.get("DB_SSLMODE", "prefer")
         self.db_sslmode = sslmode.strip() or "prefer"
 
-    def _get_connection(self):
+    def _get_connection(self) -> object:
         """Create database connection - refresh config first"""
         self._refresh_db_config()  # Always get latest env vars
         return psycopg2.connect(
@@ -444,7 +444,7 @@ class LoginManager:
             # Restrict file permissions to owner only
             os.chmod(self.token_file, 0o600)
         except Exception as e:
-            print(f"Warning: Could not save remember token: {e}")
+            logger.warning("Could not save remember token: %s", e)
 
     def load_remember_token(self) -> Optional[int]:
         """Load and validate remember-me token"""

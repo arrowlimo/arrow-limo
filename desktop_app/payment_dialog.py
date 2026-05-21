@@ -25,7 +25,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from desktop_app.db_error_handling import DatabaseContext
+from db_error_handling import DatabaseContext
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 class PaymentDialog(QDialog):
     """Payment management dialog with transaction history and payment entry"""
 
-    def __init__(self, db, reserve_number, client_id=None, parent=None):
+    def __init__(self, db, reserve_number, client_id=None, parent=None) -> None:
         super().__init__(parent)
         self.db = db
         self.reserve_number = reserve_number
@@ -131,7 +131,7 @@ class PaymentDialog(QDialog):
         self.load_payment_history()
         self.load_summary()
 
-    def create_history_tab(self):
+    def create_history_tab(self) -> object:
         """Tab 1: Payment history table matching LMSGold format"""
         widget = QWidget()
         layout = QVBoxLayout()
@@ -185,7 +185,7 @@ class PaymentDialog(QDialog):
         widget.setLayout(layout)
         return widget
 
-    def create_add_payment_tab(self):
+    def create_add_payment_tab(self) -> object:
         """Tab 2: Add new payment entry"""
         widget = QWidget()
         layout = QVBoxLayout()
@@ -294,7 +294,7 @@ class PaymentDialog(QDialog):
         widget.setLayout(layout)
         return widget
 
-    def create_cc_info_tab(self):
+    def create_cc_info_tab(self) -> object:
         """Tab 3: Credit Card and contact information (for payment entry"
         "only)"""
 
@@ -395,7 +395,7 @@ class PaymentDialog(QDialog):
         widget.setLayout(layout)
         return widget
 
-    def load_payment_history(self):
+    def load_payment_history(self) -> None:
         """Load payment and charge history for this charter"""
         try:
             with DatabaseContext(self.db, auto_commit=False) as cur:
@@ -468,7 +468,7 @@ class PaymentDialog(QDialog):
                 self, "Error", f"Failed to load payment history: {str(e)}"
             )
 
-    def load_summary(self):
+    def load_summary(self) -> None:
         """Load and display payment summary (Total Charges, Payments,"
         "Balance)"""
 
@@ -502,7 +502,7 @@ class PaymentDialog(QDialog):
                 self, "Error", f"Failed to load summary: {str(e)}"
             )
 
-    def record_payment(self):
+    def record_payment(self) -> None:
         """Record a new payment"""
         if self.payment_amount.value() <= 0:
             QMessageBox.warning(
@@ -556,7 +556,7 @@ class PaymentDialog(QDialog):
                 self, "Error", f"Failed to record payment: {str(e)}"
             )
 
-    def mark_nfd(self):
+    def mark_nfd(self) -> None:
         """Mark payment as No Funds Deposit (NFD)"""
         if (
             QMessageBox.question(
@@ -602,7 +602,7 @@ class PaymentDialog(QDialog):
                     self, "Error", f"Failed to record NFD: {str(e)}"
                 )
 
-    def email_receipt(self):
+    def email_receipt(self) -> None:
         """Email payment receipt to client"""
         email = self.client_email.text().strip()
 
@@ -619,7 +619,7 @@ class PaymentDialog(QDialog):
             f"implemented)",
         )
 
-    def delete_transaction(self):
+    def delete_transaction(self) -> None:
         """Delete selected payment or charge (admin authority)"""
         selected = self.history_table.selectedIndexes()
         if not selected:
@@ -708,7 +708,7 @@ class PaymentDialog(QDialog):
                     f"Failed to delete {transaction_type.lower()}: {str(e)}",
                 )
 
-    def edit_transaction(self):
+    def edit_transaction(self) -> None:
         """Edit selected payment (charges cannot be edited - delete and"
         "re-add instead)"""
 
@@ -788,7 +788,7 @@ class PaymentDialog(QDialog):
                 self, "Error", f"Failed to load payment: {str(e)}"
             )
 
-    def save_contact_info(self):
+    def save_contact_info(self) -> None:
         """Save client contact information"""
         email = self.client_email.text().strip()
         phone = self.client_phone.text().strip()
