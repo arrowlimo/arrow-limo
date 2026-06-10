@@ -238,21 +238,18 @@ class PaymentDialog(QDialog):
         self.payment_method.setMaximumWidth(200)
         row2.addWidget(method_label)
         row2.addWidget(self.payment_method)
-        row2.addStretch()
-        form_layout.addLayout(row2)
+        row2.addSpacing(30)
 
-        # Row 3: Reference Number
-        row3 = QHBoxLayout()
-
+        # Reference on the same row as payment method
         ref_label = QLabel("Reference/Check #:")
         ref_label.setMinimumWidth(100)
         self.payment_reference = QLineEdit()
         self.payment_reference.setPlaceholderText("e.g., transaction ID, check number")
-        self.payment_reference.setMaximumWidth(300)
-        row3.addWidget(ref_label)
-        row3.addWidget(self.payment_reference)
-        row3.addStretch()
-        form_layout.addLayout(row3)
+        self.payment_reference.setMaximumWidth(260)
+        row2.addWidget(ref_label)
+        row2.addWidget(self.payment_reference)
+        row2.addStretch()
+        form_layout.addLayout(row2)
 
         # Row 4: Notes
         notes_label = QLabel("Notes:")
@@ -318,21 +315,18 @@ class PaymentDialog(QDialog):
         self.cc_last4.setMaximumWidth(150)
         row1.addWidget(card_last4_label)
         row1.addWidget(self.cc_last4)
-        row1.addStretch()
-        layout.addLayout(row1)
+        row1.addSpacing(30)
 
-        # Row 2: Expiry
-        row2 = QHBoxLayout()
-
+        # Expiry on the same line as card type / last 4
         expiry_label = QLabel("Expiry Date:")
         expiry_label.setMinimumWidth(100)
         self.cc_expiry = QLineEdit()
         self.cc_expiry.setReadOnly(True)
         self.cc_expiry.setMaximumWidth(150)
-        row2.addWidget(expiry_label)
-        row2.addWidget(self.cc_expiry)
-        row2.addStretch()
-        layout.addLayout(row2)
+        row1.addWidget(expiry_label)
+        row1.addWidget(self.cc_expiry)
+        row1.addStretch()
+        layout.addLayout(row1)
 
         layout.addSpacing(15)
 
@@ -342,31 +336,27 @@ class PaymentDialog(QDialog):
         email_title.setStyleSheet("color: #555;")
         layout.addWidget(email_title)
 
-        # Row 3: Email
+        # Email and phone on a single row
         row3 = QHBoxLayout()
 
         email_label = QLabel("Email:")
         email_label.setMinimumWidth(100)
         self.client_email = QLineEdit()
         self.client_email.setPlaceholderText("client@example.com")
-        self.client_email.setMaximumWidth(300)
+        self.client_email.setMaximumWidth(260)
         row3.addWidget(email_label)
         row3.addWidget(self.client_email)
-        row3.addStretch()
-        layout.addLayout(row3)
-
-        # Row 4: Phone
-        row4 = QHBoxLayout()
+        row3.addSpacing(30)
 
         phone_label = QLabel("Phone:")
         phone_label.setMinimumWidth(100)
         self.client_phone = QLineEdit()
         self.client_phone.setPlaceholderText("(555) 123-4567")
-        self.client_phone.setMaximumWidth(300)
-        row4.addWidget(phone_label)
-        row4.addWidget(self.client_phone)
-        row4.addStretch()
-        layout.addLayout(row4)
+        self.client_phone.setMaximumWidth(200)
+        row3.addWidget(phone_label)
+        row3.addWidget(self.client_phone)
+        row3.addStretch()
+        layout.addLayout(row3)
 
         layout.addSpacing(15)
 
