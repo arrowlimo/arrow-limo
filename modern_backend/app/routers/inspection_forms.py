@@ -6,7 +6,7 @@ eHOS compliance: Inspection forms with digital signatures and timestamps
 import hashlib
 import hmac
 import os
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import jwt
