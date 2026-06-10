@@ -264,22 +264,30 @@ class AccountingControlCenterWidget(QWidget):
         open_snapshot_folder_btn.clicked.connect(self._open_snapshot_folder)
         controls.addWidget(open_snapshot_folder_btn)
 
+        controls.addStretch()
+
+        # "Run ... Fix Sequence" buttons on their own row to avoid a toolbar
+        # that runs off the right edge.
+        fix_controls = QHBoxLayout()
         run_fix_btn = QPushButton("Run High-Priority Fix Sequence")
         run_fix_btn.clicked.connect(
             self._run_overview_fix_sequence
         )
-        controls.addWidget(run_fix_btn)
+        fix_controls.addWidget(run_fix_btn)
 
         run_t2_fix_btn = QPushButton("Run T2 Fix Sequence")
         run_t2_fix_btn.clicked.connect(self._run_t2_fix_sequence)
-        controls.addWidget(run_t2_fix_btn)
+        fix_controls.addWidget(run_t2_fix_btn)
 
         run_payroll_fix_btn = QPushButton("Run Payroll Fix Sequence")
         run_payroll_fix_btn.clicked.connect(self._run_payroll_fix_sequence)
-        controls.addWidget(run_payroll_fix_btn)
+        fix_controls.addWidget(run_payroll_fix_btn)
 
-        controls.addStretch()
+        fix_controls.addStretch()
 
+        # Navigation buttons live on their own row so the toolbar never runs
+        # past the right edge (the single row overflowed horizontally).
+        nav_controls = QHBoxLayout()
         for label, tab_name in [
             ("Open Receipts", "💰 Receipts & Invoices"),
             ("Open Vendor Invoices", "📋 Vendor Invoice Manager"),
@@ -294,9 +302,12 @@ class AccountingControlCenterWidget(QWidget):
                     self._jump_to_accounting_subtab(target)
                 )
             )
-            controls.addWidget(button)
+            nav_controls.addWidget(button)
+        nav_controls.addStretch()
 
         header_layout.addLayout(controls)
+        header_layout.addLayout(fix_controls)
+        header_layout.addLayout(nav_controls)
         self.layout_main.addWidget(header)
 
         self.panel_tabs = QTabWidget()
@@ -1995,7 +2006,7 @@ class AccountingControlCenterWidget(QWidget):
                         COUNT(*) FILTER (
                             WHERE COALESCE(
                                 calculated_total_remittance,
-                                0,
+                                0
                             ) > 0
                               AND COALESCE(reconciled, FALSE) = FALSE
                         ),
@@ -2235,7 +2246,7 @@ class AccountingControlCenterWidget(QWidget):
                         COUNT(*) FILTER (
                             WHERE COALESCE(
                                 NULLIF(TRIM(gl_account_code), ''),
-                                '',
+                                ''
                             ) = ''
                                OR LOWER(COALESCE(gl_account_code, ''))
                                   IN ('n/a', 'na', 'unassigned')
@@ -2278,7 +2289,7 @@ class AccountingControlCenterWidget(QWidget):
                             COUNT(*) FILTER (
                                 WHERE COALESCE(
                                     calculated_total_remittance,
-                                    0,
+                                    0
                                 ) > 0
                                   AND COALESCE(reconciled, FALSE) = FALSE
                             )

@@ -376,22 +376,48 @@ class VehicleManagementWidget(QWidget):
         self.description_input = QTextEdit()
         self.description_input.setFixedHeight(60)
 
-        layout.addRow("Vehicle Number*", self.vehicle_number_input)
-        layout.addRow("VIN Number", self.vin_input)
-        layout.addRow("Vehicle Code", self.vehicle_code_input)
-        layout.addRow("Fleet Number", self.fleet_number_input)
-        layout.addRow("Fleet Position", self.fleet_position_input)
-        layout.addRow("License Plate*", self.license_plate_input)
-        layout.addRow("Make*", self.make_input)
-        layout.addRow("Model*", self.model_input)
-        layout.addRow("Year*", self.year_input)
-        layout.addRow("Type", self.type_input)
-        layout.addRow("Category", self.vehicle_category_input)
-        layout.addRow("Class", self.vehicle_class_input)
+        # Pair short fields two-per-row so the form uses the width instead of
+        # stacking 14 single fields down the page.
+        for _w in (
+            self.vehicle_number_input, self.vin_input, self.vehicle_code_input,
+            self.fleet_number_input, self.license_plate_input, self.make_input,
+            self.model_input, self.vehicle_category_input,
+            self.vehicle_class_input,
+        ):
+            _w.setMaximumWidth(220)
+        for _w in (
+            self.fleet_position_input, self.year_input,
+            self.passenger_capacity_input,
+        ):
+            _w.setMaximumWidth(120)
+        self.type_input.setMaximumWidth(220)
+
+        def _pair(label1, widget1, label2, widget2):
+            row = QHBoxLayout()
+            row.addWidget(widget1)
+            row.addSpacing(24)
+            row.addWidget(QLabel(label2))
+            row.addWidget(widget2)
+            row.addStretch()
+            layout.addRow(label1, row)
+
+        _pair("Vehicle Number*", self.vehicle_number_input,
+              "VIN Number", self.vin_input)
+        _pair("Vehicle Code", self.vehicle_code_input,
+              "Fleet Number", self.fleet_number_input)
+        _pair("Fleet Position", self.fleet_position_input,
+              "License Plate*", self.license_plate_input)
+        _pair("Make*", self.make_input, "Model*", self.model_input)
+        _pair("Year*", self.year_input, "Type", self.type_input)
+        _pair("Category", self.vehicle_category_input,
+              "Class", self.vehicle_class_input)
         layout.addRow("Passenger Capacity", self.passenger_capacity_input)
         layout.addRow("Description", self.description_input)
 
-        widget.setLayout(layout)
+        layout.setVerticalSpacing(10)
+        outer = QVBoxLayout(widget)
+        outer.addLayout(layout)
+        outer.addStretch()
         return widget
 
     def _create_status_tab(self) -> object:
@@ -438,18 +464,40 @@ class VehicleManagementWidget(QWidget):
         self.odometer_input.setMaximum(9999999)
         self.odometer_input.setSuffix(" km")
 
-        layout.addRow("Operational Status", self.operational_status_input)
-        layout.addRow("Is Active", self.is_active_input)
-        layout.addRow("Commission Date", self.commission_date_input)
-        layout.addRow("Decommission Date", self.decommission_date_input)
-        layout.addRow("Exterior Color", self.ext_color_input)
-        layout.addRow("Interior Color", self.int_color_input)
-        layout.addRow("Length", self.length_input)
-        layout.addRow("Width", self.width_input)
-        layout.addRow("Height", self.height_input)
-        layout.addRow("Odometer", self.odometer_input)
+        for _w in (
+            self.ext_color_input, self.int_color_input,
+        ):
+            _w.setMaximumWidth(220)
+        for _w in (
+            self.length_input, self.width_input, self.height_input,
+            self.odometer_input, self.commission_date_input,
+            self.decommission_date_input,
+        ):
+            _w.setMaximumWidth(140)
+        self.operational_status_input.setMaximumWidth(220)
 
-        widget.setLayout(layout)
+        def _pair(label1, widget1, label2, widget2):
+            row = QHBoxLayout()
+            row.addWidget(widget1)
+            row.addSpacing(24)
+            row.addWidget(QLabel(label2))
+            row.addWidget(widget2)
+            row.addStretch()
+            layout.addRow(label1, row)
+
+        _pair("Operational Status", self.operational_status_input,
+              "Is Active", self.is_active_input)
+        _pair("Commission Date", self.commission_date_input,
+              "Decommission Date", self.decommission_date_input)
+        _pair("Exterior Color", self.ext_color_input,
+              "Interior Color", self.int_color_input)
+        _pair("Length", self.length_input, "Width", self.width_input)
+        _pair("Height", self.height_input, "Odometer", self.odometer_input)
+
+        layout.setVerticalSpacing(10)
+        outer = QVBoxLayout(widget)
+        outer.addLayout(layout)
+        outer.addStretch()
         return widget
 
     def _create_maintenance_tab(self) -> object:

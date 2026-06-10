@@ -466,35 +466,65 @@ class ClientDetailDialog(QDialog):
         self.credit_limit = QDoubleSpinBox()
         self.credit_limit.setMaximum(9999999)
         self.credit_limit.setPrefix("$")
-        form.addRow("Credit Limit:", self.credit_limit)
+        self.credit_limit.setMaximumWidth(160)
 
         self.credit_used = QDoubleSpinBox()
         self.credit_used.setMaximum(9999999)
         self.credit_used.setReadOnly(True)
         self.credit_used.setPrefix("$")
-        form.addRow("Credit Used:", self.credit_used)
+        self.credit_used.setMaximumWidth(160)
+
+        # Credit Limit + Credit Used share one row (both are short $ fields).
+        limit_row = QHBoxLayout()
+        limit_row.addWidget(self.credit_limit)
+        limit_row.addSpacing(30)
+        limit_row.addWidget(QLabel("Credit Used:"))
+        limit_row.addWidget(self.credit_used)
+        limit_row.addStretch()
+        form.addRow("Credit Limit:", limit_row)
 
         self.credit_available = QDoubleSpinBox()
         self.credit_available.setMaximum(9999999)
         self.credit_available.setReadOnly(True)
         self.credit_available.setPrefix("$")
-        form.addRow("Available Credit:", self.credit_available)
-
-        self.deposit_required = QCheckBox()
-        form.addRow("Deposit Required:", self.deposit_required)
+        self.credit_available.setMaximumWidth(160)
 
         self.deposit_percent = QDoubleSpinBox()
         self.deposit_percent.setMaximum(100)
         self.deposit_percent.setSuffix("%")
-        form.addRow("Deposit %:", self.deposit_percent)
+        self.deposit_percent.setMaximumWidth(160)
+
+        # Available Credit + Deposit % on one row.
+        avail_row = QHBoxLayout()
+        avail_row.addWidget(self.credit_available)
+        avail_row.addSpacing(30)
+        avail_row.addWidget(QLabel("Deposit %:"))
+        avail_row.addWidget(self.deposit_percent)
+        avail_row.addStretch()
+        form.addRow("Available Credit:", avail_row)
+
+        self.deposit_required = QCheckBox()
 
         self.credit_check_date = StandardDateEdit(prefer_month_text=True)
         self.credit_check_date.setCalendarPopup(True)
-        form.addRow("Last Credit Check:", self.credit_check_date)
+        self.credit_check_date.setMaximumWidth(160)
+
+        # Deposit Required + Last Credit Check on one row.
+        deposit_row = QHBoxLayout()
+        deposit_row.addWidget(self.deposit_required)
+        deposit_row.addSpacing(30)
+        deposit_row.addWidget(QLabel("Last Credit Check:"))
+        deposit_row.addWidget(self.credit_check_date)
+        deposit_row.addStretch()
+        form.addRow("Deposit Required:", deposit_row)
 
         self.credit_rating = QComboBox()
         self.credit_rating.addItems(["Excellent", "Good", "Fair", "Poor", "Not Rated"])
-        form.addRow("Credit Rating:", self.credit_rating)
+        self.credit_rating.setMaximumWidth(160)
+        rating_row = QHBoxLayout()
+        rating_row.addWidget(self.credit_rating)
+        rating_row.addStretch()
+        form.addRow("Credit Rating:", rating_row)
 
         layout.addLayout(form)
         layout.addStretch()

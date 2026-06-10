@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -92,6 +93,10 @@ class EnhancedClientListWidget(QWidget):
         )
         self.table.doubleClicked.connect(self.open_detail)
         self.table.setSortingEnabled(True)  # ✅ Enable sorting on all columns
+        # Stretch every column so the grid fills the panel width instead of
+        # leaving a large blank gap to the right of the last column.
+        _header = self.table.horizontalHeader()
+        _header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         layout.addWidget(self.table)
 
         # ===== ACTION BUTTONS =====
