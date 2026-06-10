@@ -10,7 +10,7 @@ from datetime import date as date_type
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/receipts-split", tags=["receipts-split"])
 
@@ -192,7 +192,7 @@ def get_linked_split_receipts(receipt_id: int):
             total_gst += gst
 
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         return {
             "count": len(receipts),
@@ -208,7 +208,7 @@ def get_linked_split_receipts(receipt_id: int):
         raise
     except Exception as e:
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch linked receipts: {e!s}"
         )
@@ -290,7 +290,7 @@ def get_receipts_by_banking_transaction(transaction_id: int):
             total_gst += gst
 
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         return {
             "count": len(receipts),
@@ -304,7 +304,7 @@ def get_receipts_by_banking_transaction(transaction_id: int):
 
     except Exception as e:
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch receipts: {e!s}"
         )

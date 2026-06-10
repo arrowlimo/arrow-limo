@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/auth", tags=["user_auth"])
 
@@ -57,7 +57,7 @@ def verify_user_credentials(username: str, password: str) -> dict:
             # Check status
             if status and status.lower() != "active":
                 cur.close()
-                conn.close()
+                return_connection(conn)
                 return None
 
             # Verify password with bcrypt
@@ -86,7 +86,7 @@ def verify_user_credentials(username: str, password: str) -> dict:
                                 permissions = {}
 
                         cur.close()
-                        conn.close()
+                        return_connection(conn)
                         return {
                             "employee_id": user_id,
                             "name": uname,
@@ -98,7 +98,7 @@ def verify_user_credentials(username: str, password: str) -> dict:
                     pass
 
         cur.close()
-        conn.close()
+        return_connection(conn)
         return None
     except Exception as e:
         print(f"Auth error: {e}")
@@ -200,7 +200,7 @@ def _record_auth_event(
         pass
     finally:
         if conn is not None:
-            conn.close()
+            return_connection(conn)
 
 
 def get_driver_trips(employee_id: int) -> list:
@@ -244,7 +244,7 @@ def get_driver_trips(employee_id: int) -> list:
             )
 
         cur.close()
-        conn.close()
+        return_connection(conn)
         return trips
     except Exception as e:
         print(f"Error fetching trips: {e}")
@@ -549,7 +549,7 @@ async def dashboard(request: Request):
         role_row = cur.fetchone()
         user_role = role_row[0] if role_row else "user"
         cur.close()
-        conn.close()
+        return_connection(conn)
     except Exception:
         user_role = "user"
 

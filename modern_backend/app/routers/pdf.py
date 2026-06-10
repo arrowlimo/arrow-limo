@@ -13,7 +13,7 @@ from pypdf import PdfReader, PdfWriter
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import cursor, get_connection
+from ..db import cursor, get_connection, return_connection
 from ..services.pdf_generator import (
     generate_charter_pdf,
     generate_confirmation_letter_pdf,
@@ -64,7 +64,7 @@ def _record_pdf_event(action: str, after: dict[str, Any], note: str) -> None:
         pass
     finally:
         if conn is not None:
-            conn.close()
+            return_connection(conn)
 
 
 @router.get("/pdf-layout-settings")

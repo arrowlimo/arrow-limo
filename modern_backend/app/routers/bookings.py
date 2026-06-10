@@ -453,7 +453,7 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):  # 
             else:
                 # Generate account_number (max numeric + 1)
                 cur.execute(
-                    "SELECT MAX(CAST(account_number AS INTEGER)) FROM clients"
+                    "SELECT MAX(CAST(account_number AS INTEGER)) FROM clients "
                     "WHERE account_number ~ '^[0-9]+$'"
                 )
                 max_account = cur.fetchone()[0] or 7604
@@ -490,7 +490,7 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):  # 
         except Exception:
             # Fallback: derive from current max reserve_number
             cur.execute(
-                "SELECT MAX(CAST(reserve_number AS INTEGER)) FROM charters"
+                "SELECT MAX(CAST(reserve_number AS INTEGER)) FROM charters "
                 "WHERE reserve_number ~ '^\\d+$'"
             )
             max_val = cur.fetchone()[0] or 0

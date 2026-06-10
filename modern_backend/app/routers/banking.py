@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/banking", tags=["banking"])
 
@@ -139,7 +139,7 @@ def get_banking_transactions(
         )
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return transactions
 
@@ -224,7 +224,7 @@ def search_banking_transactions(
         )
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return transactions
 
@@ -257,7 +257,7 @@ def get_bank_accounts():
         )
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return accounts
 
@@ -276,7 +276,7 @@ def categorize_transaction(
         before_snapshot = _load_banking_snapshot(conn, transaction_id)
         if before_snapshot is None:
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(
                 status_code=404, detail="Transaction not found"
             )
@@ -293,7 +293,7 @@ def categorize_transaction(
         if cur.rowcount == 0:
             conn.rollback()
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(
                 status_code=404, detail="Transaction not found"
             )
@@ -321,7 +321,7 @@ def categorize_transaction(
 
         conn.commit()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         return {"message": "Transaction categorized successfully"}
 
@@ -330,7 +330,7 @@ def categorize_transaction(
     except Exception as e:
         conn.rollback()
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(
             status_code=500, detail=f"Failed to categorize: {e!s}"
         )
@@ -356,7 +356,7 @@ def update_banking_transaction(
         before_snapshot = _load_banking_snapshot(conn, transaction_id)
         if before_snapshot is None:
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(
                 status_code=404, detail="Transaction not found"
             )
@@ -392,7 +392,7 @@ def update_banking_transaction(
         if cur.rowcount == 0:
             conn.rollback()
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(
                 status_code=404, detail="Transaction not found"
             )
@@ -434,7 +434,7 @@ def update_banking_transaction(
         )
         row = cur.fetchone()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         return {
             "message": "Transaction updated successfully",
@@ -456,7 +456,7 @@ def update_banking_transaction(
     except Exception as e:
         conn.rollback()
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(
             status_code=500, detail=f"Failed to update transaction: {e!s}"
         )
@@ -510,7 +510,7 @@ def get_reconciliation_status():
     expense_match = cur.fetchone()
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return {
         "deposits": {

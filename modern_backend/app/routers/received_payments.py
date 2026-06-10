@@ -10,7 +10,7 @@ import psycopg2.extras
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/received-payments", tags=["Received Payments"])
 
@@ -204,7 +204,7 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
         raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/search", response_model=list[ReceivedPaymentResponse])
@@ -329,7 +329,7 @@ async def search_received_payments(
         raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/unallocated", response_model=list[ReceivedPaymentResponse])
@@ -415,7 +415,7 @@ async def update_received_payment(
         raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.delete("/{payment_id}", response_model=dict)
@@ -454,7 +454,7 @@ async def delete_received_payment(payment_id: int):
         raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 # ============================================================================

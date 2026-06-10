@@ -627,7 +627,7 @@ def reorder_charter_routes(
         # Verify all route_ids belong to this charter
         route_ids = list(sequence_map.keys())
         cur.execute(
-            f"SELECT route_id FROM charter_routes WHERE charter_id = %s AND"
+            f"SELECT route_id FROM charter_routes WHERE charter_id = %s AND "
             f"route_id IN ({','.join(['%s']*len(route_ids))})",
             (charter_id, *route_ids),
         )

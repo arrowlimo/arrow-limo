@@ -10,7 +10,7 @@ import psycopg2.extras
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/cheque-books", tags=["Cheque Books"])
 
@@ -139,7 +139,7 @@ async def get_cheque_books_summary():
         raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.post("/search", response_model=list[ChequeResponse])
@@ -179,7 +179,7 @@ async def search_cheques(search: ChequeSearchRequest):
         if search.status:
             if search.status.lower() == "nsf":
                 where_clauses.append(
-                    "(category ILIKE '%nsf%' OR description ILIKE '%nsf%' OR"
+                    "(category ILIKE '%nsf%' OR description ILIKE '%nsf%' OR "
                     "description ILIKE '%returned%')"
                 )
             elif search.status.lower() == "void":
@@ -188,7 +188,7 @@ async def search_cheques(search: ChequeSearchRequest):
                 )
             elif search.status.lower() == "cleared":
                 where_clauses.append(
-                    "category IS NOT NULL AND category != '' AND category NOT"
+                    "category IS NOT NULL AND category != '' AND category NOT "
                     "ILIKE '%nsf%' AND category NOT ILIKE '%void%'"
                 )
             elif search.status.lower() == "pending":
@@ -275,7 +275,7 @@ async def search_cheques(search: ChequeSearchRequest):
         raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.put("/{transaction_id}", response_model=dict)
@@ -355,7 +355,7 @@ async def update_cheque(transaction_id: int, update: ChequeUpdateRequest):
         raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.post("/bulk-update", response_model=dict)
@@ -449,7 +449,7 @@ async def bulk_update_cheques(updates: list[ChequeUpdateRequest]):
         )
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/by-bank/{account_number}", response_model=list[ChequeResponse])

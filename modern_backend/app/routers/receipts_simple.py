@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/receipts-simple", tags=["receipts-simple"])
 
@@ -222,7 +222,7 @@ def get_vendors():
         )
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     # Return with cache headers (1 hour cache)
     return JSONResponse(
@@ -274,7 +274,7 @@ def get_vendor_profile(vendor: str):
     top = cur.fetchone()
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return {
         "canonical_vendor": canonical or vendor.strip().upper(),
@@ -318,7 +318,7 @@ def check_duplicate_receipts(
     seed_rows = cur.fetchall()
     if not seed_rows:
         cur.close()
-        conn.close()
+        return_connection(conn)
         return []
 
     seed_ids = [row[0] for row in seed_rows]
@@ -400,7 +400,7 @@ def check_duplicate_receipts(
         item["group_count"] = int(meta["group_count"])
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return duplicates
 
@@ -494,7 +494,7 @@ def match_to_banking(
         )
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return matches
 
@@ -599,7 +599,7 @@ def link_receipt_to_banking(
 
         conn.commit()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         return {
             "message": "Receipt linked to banking transaction successfully",
@@ -610,7 +610,7 @@ def link_receipt_to_banking(
     except Exception as e:
         conn.rollback()
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(status_code=500, detail=f"Failed to link: {e!s}")
 
 
@@ -631,7 +631,7 @@ def create_receipt(receipt: SimpleReceiptCreate, request: Request):
             gl_account_code = receipt.gl_account_code.strip()
             if gl_account_code:
                 cur.execute(
-                    "SELECT account_name FROM chart_of_accounts WHERE"
+                    "SELECT account_name FROM chart_of_accounts WHERE "
                     "account_code = %s",
 
                     (gl_account_code,),
@@ -765,7 +765,7 @@ def create_receipt(receipt: SimpleReceiptCreate, request: Request):
 
         row = cur.fetchone()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         return {
             "receipt_id": row[0],
@@ -792,7 +792,7 @@ def create_receipt(receipt: SimpleReceiptCreate, request: Request):
     except Exception as e:
         conn.rollback()
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(
             status_code=500, detail=f"Failed to create receipt: {e!s}"
         )
@@ -859,7 +859,7 @@ def get_receipts(
         )
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return receipts
 
@@ -887,7 +887,7 @@ def get_receipt(receipt_id: int):
 
     row = cur.fetchone()
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     if not row:
         raise HTTPException(status_code=404, detail="Receipt not found")
@@ -944,7 +944,7 @@ def update_receipt(
             gl_account_code = receipt.gl_account_code.strip()
             if gl_account_code:
                 cur.execute(
-                    "SELECT account_name FROM chart_of_accounts WHERE"
+                    "SELECT account_name FROM chart_of_accounts WHERE "
                     "account_code = %s",
 
                     (gl_account_code,),
@@ -1090,7 +1090,7 @@ def update_receipt(
 
         row = cur.fetchone()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         return {
             "receipt_id": row[0],
@@ -1123,7 +1123,7 @@ def update_receipt(
     except Exception as e:
         conn.rollback()
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(
             status_code=500, detail=f"Failed to update receipt: {e!s}"
         )

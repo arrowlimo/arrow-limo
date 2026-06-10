@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/employees", tags=["employees"])
 
@@ -95,7 +95,7 @@ def list_employees():
         )
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/drivers")
@@ -139,7 +139,7 @@ def list_drivers():
         )
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/{employee_id}")
@@ -186,7 +186,7 @@ def get_employee(employee_id: int):
         )
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.post("/")
@@ -346,4 +346,4 @@ def create_employee(employee_data: dict, request: Request):
         )
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)

@@ -59,11 +59,11 @@ def get_connection():
             conn_pool = _get_pool()
             conn = conn_pool.getconn()
 
-            # Test if connection is alive
+            # Set search_path (also serves as the liveness check, so we don't
+            # need a separate `SELECT 1` round-trip). Note: Neon's pooled
+            # endpoint rejects search_path as a startup `options` parameter,
+            # so it must be issued as a statement here.
             try:
-                with conn.cursor() as cur:
-                    cur.execute("SELECT 1")
-                # Set search_path for Neon compatibility
                 with conn.cursor() as cur:
                     cur.execute("SET search_path TO public")
                 conn.commit()
@@ -108,8 +108,14 @@ def get_connection():
 
 
 def return_connection(conn):
-    """Return a connection to the pool"""
+    """Return a connection to the pool.
+
+    Rolls back any open/aborted transaction first so the next caller that
+    checks this connection out of the pool gets a clean session.
+    """
     try:
+        with suppress(Exception):
+            conn.rollback()
         conn_pool = _get_pool()
         conn_pool.putconn(conn)
     except Exception:

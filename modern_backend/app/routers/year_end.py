@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/year-end", tags=["year_end_close"])
 
@@ -374,7 +374,7 @@ def get_year_end_summary(fiscal_year: int):
             **_compute_summary(conn, fiscal_year),
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/capital-gains/{fiscal_year}")
@@ -385,7 +385,7 @@ def get_capital_gains(fiscal_year: int):
         data = _compute_capital_gains(conn, fiscal_year)
         return {"fiscal_year": fiscal_year, **data}
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/checklist/{fiscal_year}")
@@ -400,7 +400,7 @@ def get_year_end_checklist(fiscal_year: int):
             "summary": _checklist_summary(items),
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.post("/checklist/{fiscal_year}")
@@ -436,7 +436,7 @@ def upsert_year_end_checklist_item(fiscal_year: int, item: YearEndChecklistItem)
         conn.rollback()
         raise HTTPException(status_code=400, detail=f"failed_to_save_checklist_item: {exc}") from exc
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/status/{fiscal_year}")
@@ -489,7 +489,7 @@ def get_year_end_status(fiscal_year: int):
             "checklist": checklist,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.post("/close")
@@ -608,7 +608,7 @@ def execute_year_end_close(payload: YearEndCloseRequest, request: Request):
         conn.rollback()
         raise HTTPException(status_code=500, detail=f"year_end_close_failed: {exc}") from exc
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/report/{fiscal_year}")
@@ -676,4 +676,4 @@ def get_year_end_report(fiscal_year: int):
             "rollovers": rollovers,
         }
     finally:
-        conn.close()
+        return_connection(conn)

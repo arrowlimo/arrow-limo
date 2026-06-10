@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import cursor, get_connection
+from ..db import cursor, get_connection, return_connection
 
 router = APIRouter(prefix="/api", tags=["charges"])
 
@@ -139,7 +139,7 @@ def update_charge(
             raise HTTPException(status_code=404, detail="not_found")
 
         cur.execute(
-            f"UPDATE charter_charges SET {sets} WHERE charge_id = %s"
+            f"UPDATE charter_charges SET {sets} WHERE charge_id = %s "
             f"RETURNING charge_id, charter_id, charge_type, amount,"
             f"description, created_at",
             values,
@@ -272,7 +272,7 @@ def get_charge_catalog(
         )
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/charges/by-reserve/{reserve_number}")
@@ -322,4 +322,4 @@ def get_charges_by_reserve(reserve_number: str):
         )
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)

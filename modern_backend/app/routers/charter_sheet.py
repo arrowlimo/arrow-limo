@@ -13,7 +13,7 @@ Returns complete charter sheet with:
 
 from fastapi import APIRouter, HTTPException
 
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api", tags=["charter-sheet"])
 
@@ -212,4 +212,4 @@ def get_charter_sheet(reserve_number: str):
         )
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)

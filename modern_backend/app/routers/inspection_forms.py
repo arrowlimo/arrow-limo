@@ -17,7 +17,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import get_connection
+from ..db import get_connection, return_connection
 from ..services.inspection_pdf import generate_pre_trip_pdf
 
 router = APIRouter(prefix="/api/inspection-forms", tags=["inspection-forms"])
@@ -110,7 +110,7 @@ def check_authorization(user_id: int, user_role: str, charter_id: int) -> None:
                 )
 
         cur.close()
-        conn.close()
+        return_connection(conn)
     except HTTPException:
         raise
     except Exception:
@@ -139,7 +139,7 @@ def audit_log_access(
 
         conn.commit()
         cur.close()
-        conn.close()
+        return_connection(conn)
     except Exception as e:
         # Non-critical: log but don't fail
         print(f"Audit log error: {e}")
@@ -206,7 +206,7 @@ async def get_signed_url(
 
         result = cur.fetchone()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         if not result:
             raise HTTPException(
@@ -265,7 +265,7 @@ async def get_signed_url(
                 commit=True,
             )
         finally:
-            conn.close()
+            return_connection(conn)
 
         return {
             "url": signed_url,
@@ -338,7 +338,7 @@ async def download_inspection_form(
 
         result = cur.fetchone()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         if not result:
             raise HTTPException(
@@ -447,7 +447,7 @@ async def get_form_metadata(
 
         result = cur.fetchone()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         if not result:
             raise HTTPException(

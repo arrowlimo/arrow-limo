@@ -192,7 +192,7 @@ def _build_submission_warnings(payload: dict) -> list[str]:
         age_days = (date.today() - created_at.date()).days
         if age_days > 5:
             warnings.append(
-                "ROE draft is older than 5 days; verify submission timeline"
+                "ROE draft is older than 5 days; verify submission timeline "
                 "compliance."
             )
 
@@ -220,23 +220,23 @@ def _ensure_roe_columns(conn):
     cur = conn.cursor()
     try:
         cur.execute(
-            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS"
+            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS "
             "reason_description TEXT"
         )
         cur.execute(
-            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS"
+            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS "
             "roe_status TEXT DEFAULT 'draft'"
         )
         cur.execute(
-            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS"
+            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS "
             "submitted_at TIMESTAMP"
         )
         cur.execute(
-            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS"
+            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS "
             "submitted_by TEXT"
         )
         cur.execute(
-            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS"
+            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS "
             "submission_reference TEXT"
         )
         conn.commit()
