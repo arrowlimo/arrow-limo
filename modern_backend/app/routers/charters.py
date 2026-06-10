@@ -101,7 +101,8 @@ def list_charters(
     sql = """
         SELECT c.charter_id, c.charter_date, COALESCE(cl.client_name,
         c.client_id::text) AS client,
-               c.vehicle_booked_id, c.driver_name, c.status
+               c.vehicle AS vehicle_booked_id, c.driver AS driver_name,
+               c.status
         FROM charters c
         LEFT JOIN clients cl ON c.client_id = cl.client_id
         {where}
@@ -240,19 +241,20 @@ def update_charter(
     payload: dict[str, Any] | None = None,
 ):
     # Only allow a safe subset of fields to be updated via this endpoint
-    allowed = {
-        "status",
-        "vehicle_booked_id",
-        "driver_name",
-        "notes",
-        "balance",
-        "total_amount_due",
-        "charter_date",
-        "client_id",
+    # Map externally-accepted field names to real charters columns.
+    column_map = {
+        "status": "status",
+        "vehicle_booked_id": "vehicle",
+        "driver_name": "driver",
+        "notes": "notes",
+        "balance": "balance",
+        "total_amount_due": "total_amount_due",
+        "charter_date": "charter_date",
+        "client_id": "client_id",
     }
     payload = payload or {}
     updates: dict[str, Any] = {
-        k: v for k, v in payload.items() if k in allowed
+        column_map[k]: v for k, v in payload.items() if k in column_map
     }
     if not updates:
         raise HTTPException(status_code=400, detail="no_allowed_fields")
