@@ -584,7 +584,7 @@ class PaymentDialog(QDialog):
         QMessageBox.information(
             self,
             "Email Receipt",
-            f"Receipt would be sent to: {email}\n\n(Email integration not yet" f"implemented)",
+            f"Receipt would be sent to: {email}\n\n(Email integration not yet implemented)",
         )
 
     def delete_transaction(self) -> None:
@@ -611,8 +611,8 @@ class PaymentDialog(QDialog):
             QMessageBox.question(
                 self,
                 "Confirm Delete",
-                f"Delete"
-                f"{transaction_type.lower()}?\n\n{description}\nAmount:"
+                f"Delete "
+                f"{transaction_type.lower()}?\n\n{description}\nAmount: "
                 f"{amount}\n\nThis cannot be undone.",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
@@ -682,7 +682,7 @@ class PaymentDialog(QDialog):
             QMessageBox.warning(
                 self,
                 "Cannot Edit",
-                "Only payments can be edited. To modify a charge, delete it" "and add a new one.",
+                "Only payments can be edited. To modify a charge, delete it and add a new one.",
             )
             return
 
@@ -731,7 +731,7 @@ class PaymentDialog(QDialog):
             QMessageBox.information(
                 self,
                 "Edit Mode",
-                "Payment loaded for editing. Modify the fields and click"
+                "Payment loaded for editing. Modify the fields and click "
                 "'Record Payment' to save changes.",
             )
 
