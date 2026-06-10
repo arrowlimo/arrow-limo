@@ -6,6 +6,9 @@ preferences
 
 import logging
 
+from common_widgets import StandardDateEdit
+from db_error_handling import DatabaseContext
+from payment_dialog import PaymentDialog
 from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
@@ -31,15 +34,11 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-from common_widgets import StandardDateEdit
 from ui_standards import (
     SmartFormField,
     make_read_only_table,
     setup_standard_table,
 )
-from db_error_handling import DatabaseContext
-from payment_dialog import PaymentDialog
 
 logger = logging.getLogger(__name__)
 
@@ -75,9 +74,8 @@ class ClientDetailDialog(QDialog):
                         "ALTER TABLE clients ADD COLUMN IF NOT EXISTS "
                         "contract_charter_reserve VARCHAR(20)"
                     )
-            except Exception:
-                pass
-
+            except Exception as _e:
+                logger.debug("Suppressed: %s", _e)
             self.setWindowTitle(f"Client Detail - {client_id or 'New'}")
             self.setGeometry(50, 50, 1400, 900)
 
@@ -104,7 +102,7 @@ class ClientDetailDialog(QDialog):
 
             # Right side: Standard drill-down buttons (Add, Duplicate, Delete,
             # Save, Close)
-            self.add_new_btn = QPushButton("➕ Add New")
+            self.add_new_btn = QPushButton("+ Add New")
             self.add_new_btn.clicked.connect(self.add_new_client)
             button_layout.addWidget(self.add_new_btn)
 
@@ -130,9 +128,7 @@ class ClientDetailDialog(QDialog):
             tabs = QTabWidget()
 
             tabs.addTab(self.create_contact_tab(), "👤 Contact Info")
-            tabs.addTab(
-                self.create_charter_history_tab(), "🚗 Charter History"
-            )
+            tabs.addTab(self.create_charter_history_tab(), "🚗 Charter History")
             tabs.addTab(self.create_payments_tab(), "💳 Payments")
             tabs.addTab(self.create_credit_tab(), "💰 Credit & Terms")
             tabs.addTab(self.create_preferences_tab(), "⭐ Preferences")
@@ -146,7 +142,7 @@ class ClientDetailDialog(QDialog):
 
             if client_id:
                 self.load_client_data()
-        except Exception as e:
+        except Exception:
             logger.exception("ClientDetailDialog.__init__ failed")
             raise
 
@@ -192,9 +188,7 @@ class ClientDetailDialog(QDialog):
         self.corporate_parent_id.setMinimum(0)
         self.corporate_parent_id.setMaximum(999999)
         self.corporate_parent_id.setValue(0)
-        corporate_form.addRow(
-            "Corporate Parent ID (0=Individual):", self.corporate_parent_id
-        )
+        corporate_form.addRow("Corporate Parent ID (0=Individual):", self.corporate_parent_id)
 
         self.corporate_role = QComboBox()
         self.corporate_role.addItems(
@@ -281,9 +275,7 @@ class ClientDetailDialog(QDialog):
 
         # Status
         self.client_status = QComboBox()
-        self.client_status.addItems(
-            ["Active", "Inactive", "Suspended", "VIP", "Blacklisted"]
-        )
+        self.client_status.addItems(["Active", "Inactive", "Suspended", "VIP", "Blacklisted"])
         form.addRow("Status:", self.client_status)
 
         self.notes = SmartFormField.auto_expanding_text(max_height=300)
@@ -349,7 +341,7 @@ class ClientDetailDialog(QDialog):
 
         # Charter buttons
         btn_layout = QHBoxLayout()
-        new_charter_btn = QPushButton("➕ New Charter")
+        new_charter_btn = QPushButton("+ New Charter")
         new_charter_btn.clicked.connect(self.new_charter)
         btn_layout.addWidget(new_charter_btn)
         btn_layout.addStretch()
@@ -367,7 +359,7 @@ class ClientDetailDialog(QDialog):
         title = QLabel("Payment History (Manual Record)")
         title.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         header.addWidget(title)
-        help_icon = QLabel("ℹ️")
+        help_icon = QLabel("i")
         help_icon.setToolTip(
             "Manual ledger entry only — records payments already received"
             "(cash/check/bank). No online processing or auto-charging."
@@ -419,10 +411,9 @@ class ClientDetailDialog(QDialog):
 
         # Payment buttons
         btn_layout = QHBoxLayout()
-        record_payment_btn = QPushButton("➕ Record Payment")
+        record_payment_btn = QPushButton("+ Record Payment")
         record_payment_btn.setToolTip(
-            "Record a manually received client payment; no online processing"
-            "or auto-charging."
+            "Record a manually received client payment; no online processing" "or auto-charging."
         )
         record_payment_btn.clicked.connect(self.record_payment)
         btn_layout.addWidget(record_payment_btn)
@@ -478,9 +469,7 @@ class ClientDetailDialog(QDialog):
         form.addRow("Last Credit Check:", self.credit_check_date)
 
         self.credit_rating = QComboBox()
-        self.credit_rating.addItems(
-            ["Excellent", "Good", "Fair", "Poor", "Not Rated"]
-        )
+        self.credit_rating.addItems(["Excellent", "Good", "Fair", "Poor", "Not Rated"])
         form.addRow("Credit Rating:", self.credit_rating)
 
         layout.addLayout(form)
@@ -504,10 +493,10 @@ class ClientDetailDialog(QDialog):
         self.fav_drivers_list = QListWidget()
         driver_layout.addWidget(self.fav_drivers_list)
         driver_btn_layout = QHBoxLayout()
-        add_driver_btn = QPushButton("➕ Add Driver")
+        add_driver_btn = QPushButton("+ Add Driver")
         add_driver_btn.clicked.connect(self.add_favorite_driver)
         driver_btn_layout.addWidget(add_driver_btn)
-        remove_driver_btn = QPushButton("➖ Remove")
+        remove_driver_btn = QPushButton("- Remove")
         remove_driver_btn.clicked.connect(self.remove_favorite_driver)
         driver_btn_layout.addWidget(remove_driver_btn)
         driver_btn_layout.addStretch()
@@ -521,10 +510,10 @@ class ClientDetailDialog(QDialog):
         self.fav_vehicles_list = QListWidget()
         vehicle_layout.addWidget(self.fav_vehicles_list)
         vehicle_btn_layout = QHBoxLayout()
-        add_vehicle_btn = QPushButton("➕ Add Vehicle")
+        add_vehicle_btn = QPushButton("+ Add Vehicle")
         add_vehicle_btn.clicked.connect(self.add_favorite_vehicle)
         vehicle_btn_layout.addWidget(add_vehicle_btn)
-        remove_vehicle_btn = QPushButton("➖ Remove")
+        remove_vehicle_btn = QPushButton("- Remove")
         remove_vehicle_btn.clicked.connect(self.remove_favorite_vehicle)
         vehicle_btn_layout.addWidget(remove_vehicle_btn)
         vehicle_btn_layout.addStretch()
@@ -536,9 +525,7 @@ class ClientDetailDialog(QDialog):
         req_group = QGroupBox("Special Requirements")
         req_layout = QVBoxLayout()
         self.special_requirements = QTextEdit()
-        self.special_requirements.setPlaceholderText(
-            "Wheelchair accessible, child seats, etc."
-        )
+        self.special_requirements.setPlaceholderText("Wheelchair accessible, child seats, etc.")
         req_layout.addWidget(self.special_requirements)
         req_group.setLayout(req_layout)
         layout.addWidget(req_group)
@@ -648,7 +635,7 @@ class ClientDetailDialog(QDialog):
 
         # Dispute buttons
         btn_layout = QHBoxLayout()
-        log_dispute_btn = QPushButton("➕ Log Dispute")
+        log_dispute_btn = QPushButton("+ Log Dispute")
         log_dispute_btn.clicked.connect(self.log_dispute)
         btn_layout.addWidget(log_dispute_btn)
 
@@ -718,7 +705,8 @@ class ClientDetailDialog(QDialog):
                     email, address_line1,
                            first_name, last_name, parent_client_id,
                            corporate_role, is_company,
-                           contract_charter_reserve
+                           contract_charter_reserve,
+                           city, province, zip_code
                     FROM clients
                     WHERE client_id = %s
                 """,
@@ -727,7 +715,7 @@ class ClientDetailDialog(QDialog):
                 client = cur.fetchone()
                 if client:
                     (
-                        cid,
+                        _cid,
                         company,
                         name,
                         phone,
@@ -739,13 +727,12 @@ class ClientDetailDialog(QDialog):
                         role,
                         is_company_val,
                         contract_reserve,
+                        city_val,
+                        province_val,
+                        postal_val,
                     ) = client
 
-                    is_company = (
-                        bool(is_company_val)
-                        if is_company_val is not None
-                        else False
-                    )
+                    is_company = bool(is_company_val) if is_company_val is not None else False
                     is_child = int(parent_id or 0) > 0
 
                     self.company_name.setText(str(company or ""))
@@ -762,9 +749,7 @@ class ClientDetailDialog(QDialog):
                         if "," in client_name_str:
                             parts = client_name_str.split(",", 1)
                             parsed_last = parts[0].strip()
-                            parsed_first = (
-                                parts[1].strip() if len(parts) > 1 else ""
-                            )
+                            parsed_first = parts[1].strip() if len(parts) > 1 else ""
                             self.last_name.setText(parsed_last)
                             self.first_name.setText(parsed_first)
                         else:
@@ -772,9 +757,7 @@ class ClientDetailDialog(QDialog):
                             # name
                             # only
                             self.first_name.setText(str(first_name or ""))
-                            self.last_name.setText(
-                                str(last_name or client_name_str)
-                            )
+                            self.last_name.setText(str(last_name or client_name_str))
 
                         # Show first/last name fields for individuals/children
                         self.first_name.setVisible(True)
@@ -786,6 +769,10 @@ class ClientDetailDialog(QDialog):
                         # For companies, clear these fields
                         self.first_name.setText("")
                         self.last_name.setText("")
+
+                    self.city.setText(str(city_val or ""))
+                    self.province.setText(str(province_val or ""))
+                    self.postal.setText(str(postal_val or ""))
 
                     self.corporate_parent_id.setValue(int(parent_id or 0))
                     self.is_company.setChecked(is_company)
@@ -817,9 +804,7 @@ class ClientDetailDialog(QDialog):
                 )
 
                 charter_rows = cur.fetchall()
-                self.charter_table.setRowCount(
-                    len(charter_rows) if charter_rows else 0
-                )
+                self.charter_table.setRowCount(len(charter_rows) if charter_rows else 0)
                 if charter_rows:
                     total_rev = 0
                     for i, (
@@ -831,44 +816,25 @@ class ClientDetailDialog(QDialog):
                         veh,
                         amount,
                     ) in enumerate(charter_rows):
-                        self.charter_table.setItem(
-                            i, 0, QTableWidgetItem(str(c_date))
-                        )
-                        self.charter_table.setItem(
-                            i, 1, QTableWidgetItem(str(res))
-                        )
-                        self.charter_table.setItem(
-                            i, 2, QTableWidgetItem(str(pickup or ""))
-                        )
-                        self.charter_table.setItem(
-                            i, 3, QTableWidgetItem(str(dest or ""))
-                        )
-                        self.charter_table.setItem(
-                            i, 4, QTableWidgetItem(str(driver or ""))
-                        )
-                        self.charter_table.setItem(
-                            i, 5, QTableWidgetItem(str(veh or ""))
-                        )
+                        self.charter_table.setItem(i, 0, QTableWidgetItem(str(c_date)))
+                        self.charter_table.setItem(i, 1, QTableWidgetItem(str(res)))
+                        self.charter_table.setItem(i, 2, QTableWidgetItem(str(pickup or "")))
+                        self.charter_table.setItem(i, 3, QTableWidgetItem(str(dest or "")))
+                        self.charter_table.setItem(i, 4, QTableWidgetItem(str(driver or "")))
+                        self.charter_table.setItem(i, 5, QTableWidgetItem(str(veh or "")))
                         self.charter_table.setItem(
                             i,
                             6,
                             QTableWidgetItem(f"${float(amount or 0): ,.2f} "),
                         )
-                        self.charter_table.setItem(
-                            i, 7, QTableWidgetItem("Complete")
-                        )
+                        self.charter_table.setItem(i, 7, QTableWidgetItem("Complete"))
                         total_rev += float(amount or 0)
 
-                    self.total_charters.setText(
-                        f"Total Charters: {len(charter_rows)}"
-                    )
-                    self.total_revenue.setText(
-                        f"Total Revenue: ${total_rev:,.2f}"
-                    )
+                    self.total_charters.setText(f"Total Charters: {len(charter_rows)}")
+                    self.total_revenue.setText(f"Total Revenue: ${total_rev:,.2f}")
                     if len(charter_rows) > 0:
                         self.avg_charter_value.setText(
-                            f"Avg Charter: $"
-                            f"{total_rev / len(charter_rows):,.2f}"
+                            f"Avg Charter: $" f"{total_rev / len(charter_rows):,.2f}"
                         )
                     self.lifetime_value.setValue(total_rev)
 
@@ -887,30 +853,18 @@ class ClientDetailDialog(QDialog):
                 )
 
                 payment_rows = cur.fetchall()
-                self.payment_table.setRowCount(
-                    len(payment_rows) if payment_rows else 0
-                )
+                self.payment_table.setRowCount(len(payment_rows) if payment_rows else 0)
                 if payment_rows:
                     total_pd = 0
-                    for i, (p_date, res, amt, method) in enumerate(
-                        payment_rows
-                    ):
-                        self.payment_table.setItem(
-                            i, 0, QTableWidgetItem(str(p_date))
-                        )
-                        self.payment_table.setItem(
-                            i, 1, QTableWidgetItem(str(res))
-                        )
+                    for i, (p_date, res, amt, method) in enumerate(payment_rows):
+                        self.payment_table.setItem(i, 0, QTableWidgetItem(str(p_date)))
+                        self.payment_table.setItem(i, 1, QTableWidgetItem(str(res)))
                         self.payment_table.setItem(
                             i, 2, QTableWidgetItem(f"${float(amt or 0):,.2f}")
                         )
-                        self.payment_table.setItem(
-                            i, 3, QTableWidgetItem(str(method or ""))
-                        )
+                        self.payment_table.setItem(i, 3, QTableWidgetItem(str(method or "")))
                         self.payment_table.setItem(i, 4, QTableWidgetItem(""))
-                        self.payment_table.setItem(
-                            i, 5, QTableWidgetItem("Yes")
-                        )
+                        self.payment_table.setItem(i, 5, QTableWidgetItem("Yes"))
                         self.payment_table.setItem(i, 6, QTableWidgetItem(""))
                         total_pd += float(amt or 0)
 
@@ -922,9 +876,7 @@ class ClientDetailDialog(QDialog):
 
         except Exception as e:
             logger.error(f"Failed to load client data: {e}")
-            QMessageBox.critical(
-                self, "Error", f"Failed to load client data: {e}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to load client data: {e}")
 
     @pyqtSlot()
     def save_client(self) -> None:
@@ -965,6 +917,9 @@ class ClientDetailDialog(QDialog):
                             primary_phone = %s,
                             email = %s,
                             address_line1 = %s,
+                            city = %s,
+                            province = %s,
+                            zip_code = %s,
                             first_name = %s,
                             last_name = %s,
                             parent_client_id = %s,
@@ -979,6 +934,9 @@ class ClientDetailDialog(QDialog):
                             self.phone.text(),
                             self.email.text(),
                             self.address.toPlainText(),
+                            self.city.text().strip() or None,
+                            self.province.text().strip() or None,
+                            self.postal.text().strip() or None,
                             first,
                             last,
                             self.corporate_parent_id.value(),
@@ -1006,6 +964,9 @@ class ClientDetailDialog(QDialog):
                             primary_phone,
                             email,
                             address_line1,
+                            city,
+                            province,
+                            zip_code,
                             first_name,
                             last_name,
                             parent_client_id,
@@ -1014,7 +975,7 @@ class ClientDetailDialog(QDialog):
                             contract_charter_reserve,
                             created_at
                         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                        %s, %s, NOW())
+                        %s, %s, %s, %s, %s, NOW())
                         RETURNING client_id
                     """,
                         (
@@ -1024,6 +985,9 @@ class ClientDetailDialog(QDialog):
                             self.phone.text(),
                             self.email.text(),
                             self.address.toPlainText(),
+                            self.city.text().strip() or None,
+                            self.province.text().strip() or None,
+                            self.postal.text().strip() or None,
                             first,
                             last,
                             self.corporate_parent_id.value() or None,
@@ -1034,13 +998,9 @@ class ClientDetailDialog(QDialog):
                     )
                     created = cur.fetchone()
                     self.client_id = int(created[0]) if created else None
-                    self.setWindowTitle(
-                        f"Client Detail - {self.client_id or 'New'}"
-                    )
+                    self.setWindowTitle(f"Client Detail - {self.client_id or 'New'}")
 
-            QMessageBox.information(
-                self, "Success", "Client saved successfully"
-            )
+            QMessageBox.information(self, "Success", "Client saved successfully")
             self.saved.emit({"action": "save", "client_id": self.client_id})
         except Exception as e:
             logger.error(f"Failed to save client: {e}")
@@ -1051,22 +1011,18 @@ class ClientDetailDialog(QDialog):
         reserve = self.contract_charter_input.text().strip()
         if not reserve:
             QMessageBox.information(
-                self, "No Contract Charter",
-                "Enter a contract charter reserve number first."
+                self, "No Contract Charter", "Enter a contract charter reserve number first."
             )
             return
         try:
             from charter_form_widget import CharterFormWidget
+
             with DatabaseContext(self.db, auto_commit=False) as cur:
-                cur.execute(
-                    "SELECT charter_id FROM charters WHERE reserve_number = %s",
-                    (reserve,)
-                )
+                cur.execute("SELECT charter_id FROM charters WHERE reserve_number = %s", (reserve,))
                 row = cur.fetchone()
             if not row:
                 QMessageBox.warning(
-                    self, "Not Found",
-                    f"Charter with reserve # {reserve} was not found."
+                    self, "Not Found", f"Charter with reserve # {reserve} was not found."
                 )
                 return
             charter_id = row[0]
@@ -1086,9 +1042,7 @@ class ClientDetailDialog(QDialog):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if reply == QMessageBox.StandardButton.Yes:
-            new_dialog = ClientDetailDialog(
-                self.db, client_id=None, parent=self.parent()
-            )
+            new_dialog = ClientDetailDialog(self.db, client_id=None, parent=self.parent())
             new_dialog.saved.connect(self.on_client_saved)
             new_dialog.exec()
 
@@ -1096,9 +1050,7 @@ class ClientDetailDialog(QDialog):
     def duplicate_client(self) -> None:
         """Duplicate current client with modified name"""
         if not self.client_id:
-            QMessageBox.warning(
-                self, "Warning", "No client loaded to duplicate."
-            )
+            QMessageBox.warning(self, "Warning", "No client loaded to duplicate.")
             return
 
         # Collect current client data
@@ -1109,9 +1061,7 @@ class ClientDetailDialog(QDialog):
             dialog.setGeometry(100, 100, 400, 150)
 
             dlg_layout = QVBoxLayout()
-            dlg_layout.addWidget(
-                QLabel("Enter a new name for the duplicate client:")
-            )
+            dlg_layout.addWidget(QLabel("Enter a new name for the duplicate client:"))
 
             name_input = QLineEdit()
             name_input.setText(self.client_name.text() + " (Copy)")
@@ -1159,9 +1109,7 @@ class ClientDetailDialog(QDialog):
                         ),
                     )
 
-                QMessageBox.information(
-                    self, "Success", f"Client duplicated as '{new_name}'."
-                )
+                QMessageBox.information(self, "Success", f"Client duplicated as '{new_name}'.")
                 self.load_client_data()
         except Exception as e:
             logger.error(f"Failed to duplicate client: {e}")
@@ -1177,8 +1125,7 @@ class ClientDetailDialog(QDialog):
         reply = QMessageBox.question(
             self,
             "Confirm Deletion",
-            f"Delete client '{self.client_name.text()}'?\nThis action cannot"
-            f"be undone.",
+            f"Delete client '{self.client_name.text()}'?\nThis action cannot" f"be undone.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if reply == QMessageBox.StandardButton.Yes:
@@ -1189,12 +1136,8 @@ class ClientDetailDialog(QDialog):
                         (self.client_id,),
                     )
 
-                QMessageBox.information(
-                    self, "Success", "Client deleted successfully."
-                )
-                self.saved.emit(
-                    {"action": "delete", "client_id": self.client_id}
-                )
+                QMessageBox.information(self, "Success", "Client deleted successfully.")
+                self.saved.emit({"action": "delete", "client_id": self.client_id})
                 self.close()
             except Exception as e:
                 logger.error(f"Failed to delete client: {e}")
@@ -1208,15 +1151,11 @@ class ClientDetailDialog(QDialog):
     # ===== STUB METHODS =====
     @pyqtSlot()
     def suspend_client(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Suspend client process (to be implemented)"
-        )
+        QMessageBox.information(self, "Info", "Suspend client process (to be implemented)")
 
     @pyqtSlot()
     def activate_client(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Activate client process (to be implemented)"
-        )
+        QMessageBox.information(self, "Info", "Activate client process (to be implemented)")
 
     @pyqtSlot()
     def link_child_account(self) -> None:
@@ -1248,9 +1187,7 @@ class ClientDetailDialog(QDialog):
 
         # Search/select field
         search_input = QLineEdit()
-        search_input.setPlaceholderText(
-            "Search by client name, ID, or company..."
-        )
+        search_input.setPlaceholderText("Search by client name, ID, or company...")
         layout.addWidget(search_input)
 
         # Client list
@@ -1264,10 +1201,7 @@ class ClientDetailDialog(QDialog):
             try:
                 with DatabaseContext(self.db, auto_commit=False) as cur:
                     # Only independent clients
-                    where = (
-                        "WHERE parent_client_id = 0"
-                        " OR parent_client_id IS NULL"
-                    )
+                    where = "WHERE parent_client_id = 0" " OR parent_client_id IS NULL"
                     params = []
 
                     if search_text:
@@ -1297,29 +1231,19 @@ class ClientDetailDialog(QDialog):
                 client_list.clear()
                 for cid, cname, ccompany in rows:
                     display = f"[{cid}] {ccompany or cname}"
-                    (
-                        QListWidget.item_type()
-                        if hasattr(QListWidget, "item_type")
-                        else None
-                    )
+                    (QListWidget.item_type() if hasattr(QListWidget, "item_type") else None)
                     client_list.addItem(display)
-                    client_list.item(client_list.count() - 1).setData(
-                        Qt.ItemDataRole.UserRole, cid
-                    )
+                    client_list.item(client_list.count() - 1).setData(Qt.ItemDataRole.UserRole, cid)
 
             except Exception as e:
                 logger.error(f"Failed to load clients: {e}")
-                QMessageBox.warning(
-                    dialog, "Error", f"Failed to load clients: {e}"
-                )
+                QMessageBox.warning(dialog, "Error", f"Failed to load clients: {e}")
 
         # Load initial list
         load_available_clients()
 
         # Search connection
-        search_input.textChanged.connect(
-            lambda: load_available_clients(search_input.text())
-        )
+        search_input.textChanged.connect(lambda: load_available_clients(search_input.text()))
 
         # Buttons
         btn_layout = QHBoxLayout()
@@ -1329,9 +1253,7 @@ class ClientDetailDialog(QDialog):
         def do_link() -> None:
             item = client_list.currentItem()
             if not item:
-                QMessageBox.warning(
-                    dialog, "Warning", "Select a client to link"
-                )
+                QMessageBox.warning(dialog, "Warning", "Select a client to link")
                 return
 
             child_id = item.data(Qt.ItemDataRole.UserRole)
@@ -1383,15 +1305,11 @@ class ClientDetailDialog(QDialog):
             self.last_name.setVisible(True)
 
     def open_charter_detail(self, index) -> None:
-        QMessageBox.information(
-            self, "Info", "Open charter detail (to be implemented)"
-        )
+        QMessageBox.information(self, "Info", "Open charter detail (to be implemented)")
 
     @pyqtSlot()
     def new_charter(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Create new charter (to be implemented)"
-        )
+        QMessageBox.information(self, "Info", "Create new charter (to be implemented)")
 
     @pyqtSlot()
     def record_payment(self) -> None:
@@ -1406,9 +1324,7 @@ class ClientDetailDialog(QDialog):
             return
         row = self.charter_table.currentRow()
         reserve_number = (
-            self.charter_table.item(row, 1).text()
-            if self.charter_table.item(row, 1)
-            else None
+            self.charter_table.item(row, 1).text() if self.charter_table.item(row, 1) else None
         )
         if not reserve_number:
             QMessageBox.warning(
@@ -1417,24 +1333,18 @@ class ClientDetailDialog(QDialog):
                 "Could not determine reserve number for selected charter.",
             )
             return
-        dlg = PaymentDialog(
-            self.db, reserve_number, client_id=self.client_id, parent=self
-        )
+        dlg = PaymentDialog(self.db, reserve_number, client_id=self.client_id, parent=self)
         dlg.exec()
         # Refresh payment table after dialog closes
         self.load_client_data()
 
     @pyqtSlot()
     def send_statement(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Send statement (to be implemented)"
-        )
+        QMessageBox.information(self, "Info", "Send statement (to be implemented)")
 
     @pyqtSlot()
     def add_favorite_driver(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Add favorite driver (to be implemented)"
-        )
+        QMessageBox.information(self, "Info", "Add favorite driver (to be implemented)")
 
     @pyqtSlot()
     def remove_favorite_driver(self) -> None:
@@ -1444,9 +1354,7 @@ class ClientDetailDialog(QDialog):
 
     @pyqtSlot()
     def add_favorite_vehicle(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Add favorite vehicle (to be implemented)"
-        )
+        QMessageBox.information(self, "Info", "Add favorite vehicle (to be implemented)")
 
     @pyqtSlot()
     def remove_favorite_vehicle(self) -> None:
@@ -1456,9 +1364,7 @@ class ClientDetailDialog(QDialog):
 
     @pyqtSlot()
     def log_call(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Log phone call (to be implemented)"
-        )
+        QMessageBox.information(self, "Info", "Log phone call (to be implemented)")
 
     @pyqtSlot()
     def log_email(self) -> None:
@@ -1468,9 +1374,7 @@ class ClientDetailDialog(QDialog):
     def upload_client_doc(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(self, "Select Document")
         if file_path:
-            QMessageBox.information(
-                self, "Info", f"Document uploaded: {file_path}"
-            )
+            QMessageBox.information(self, "Info", f"Document uploaded: {file_path}")
 
     @pyqtSlot()
     def view_client_doc(self) -> None:
@@ -1489,12 +1393,8 @@ class ClientDetailDialog(QDialog):
 
     @pyqtSlot()
     def log_dispute(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Log dispute (to be implemented)"
-        )
+        QMessageBox.information(self, "Info", "Log dispute (to be implemented)")
 
     @pyqtSlot()
     def resolve_dispute(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Resolve dispute (to be implemented)"
-        )
+        QMessageBox.information(self, "Info", "Resolve dispute (to be implemented)")

@@ -10,11 +10,12 @@ import json
 import logging
 import os
 import sys
+from contextlib import suppress
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Optional
 
 from dotenv import load_dotenv
+
 
 def _load_runtime_env() -> None:
     """Load environment files from common source/exe locations."""
@@ -66,12 +67,12 @@ def _load_runtime_env() -> None:
 _load_runtime_env()
 
 try:
-    import bcrypt  # noqa: E402
+    import bcrypt
 except Exception:  # pragma: no cover - optional dependency fallback
     bcrypt = None
-import psycopg2  # noqa: E402
+import psycopg2
 
-try:  # noqa: E402
+try:
     # Package import path (desktop_app.*) used by some entry points.
     from db_error_handling import DatabaseContext
 except Exception:  # pragma: no cover - fallback for top-level module execution
@@ -117,14 +118,10 @@ class LoginManager:
 
             # bcrypt hash format, requires bcrypt module.
             if stored_hash.startswith("$2") and bcrypt is None:
-                logger.error(
-                    "bcrypt hash encountered but bcrypt module is unavailable"
-                )
+                logger.error("bcrypt hash encountered but bcrypt module is unavailable")
                 return False
 
-            return bcrypt.checkpw(
-                password.encode("utf-8"), stored_hash.encode("utf-8")
-            )
+            return bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
         except Exception:
             return False
 
@@ -155,9 +152,7 @@ class LoginManager:
             sslmode=self.db_sslmode,
         )
 
-    def authenticate(
-        self, username: str, password: str, ip_address: str = "127.0.0.1"
-    ) -> Dict:
+    def authenticate(self, username: str, password: str, ip_address: str = "127.0.0.1") -> dict:
         """
         Authenticate user credentials against database
 
@@ -182,9 +177,7 @@ class LoginManager:
             raise AuthenticationError("Username and password required")
 
         try:
-            with DatabaseContext(
-                self._get_connection(), auto_commit=False
-            ) as cur:
+            with DatabaseContext(self._get_connection(), auto_commit=False) as cur:
                 # Check if account is locked
                 cur.execute(
                     """
@@ -199,15 +192,11 @@ class LoginManager:
                 if not user_row:
                     raise AuthenticationError("Invalid username or password")
 
-                user_id, locked_until = user_row
+                _user_id, locked_until = user_row
 
                 if locked_until and locked_until > datetime.now():
-                    minutes_left = int(
-                        (locked_until - datetime.now()).total_seconds() / 60
-                    )
-                    raise AccountLockedError(
-                        f"Account locked. Try again in {minutes_left} minutes"
-                    )
+                    minutes_left = int((locked_until - datetime.now()).total_seconds() / 60)
+                    raise AccountLockedError(f"Account locked. Try again in {minutes_left} minutes")
 
                 # Get user credentials
                 cur.execute(
@@ -243,7 +232,7 @@ class LoginManager:
 
                 # Verify password
                 pwd_check_result = self._verify_password(password, pwd_hash)
-                
+
                 # PASSWORD IS WRONG - handle failure
                 if not pwd_hash or not pwd_check_result:
                     # Increment failed attempts
@@ -255,9 +244,7 @@ class LoginManager:
                         )
 
                     # Update DB with failed attempt
-                    with DatabaseContext(
-                        self._get_connection(), auto_commit=True
-                    ) as cur:
+                    with DatabaseContext(self._get_connection(), auto_commit=True) as cur:
                         if locked_until:
                             cur.execute(
                                 """
@@ -284,9 +271,7 @@ class LoginManager:
                             raise AuthenticationError("Invalid username or password")
 
             # PASSWORD IS CORRECT - Login successful: reset failed attempts and update last_login
-            with DatabaseContext(
-                self._get_connection(), auto_commit=True
-            ) as cur:
+            with DatabaseContext(self._get_connection(), auto_commit=True) as cur:
                 cur.execute(
                     """
                     UPDATE users
@@ -305,9 +290,7 @@ class LoginManager:
             permissions = {}
             if perms:
                 try:
-                    permissions = (
-                        json.loads(perms) if isinstance(perms, str) else perms
-                    )
+                    permissions = json.loads(perms) if isinstance(perms, str) else perms
                 except Exception:
                     logger.error("Failed to parse permissions JSON")
                     permissions = {}
@@ -329,19 +312,16 @@ class LoginManager:
             raise
         except Exception as e:
             logger.error(f"Authentication error: {e}")
-            raise AuthenticationError(f"Authentication failed: {e}")  # noqa: B904
+            raise AuthenticationError(f"Authentication failed: {e}")
 
     def hash_password(self, password: str) -> str:
         """Hash password using bcrypt when available, else PBKDF2."""
         if len(password) < self.PASSWORD_MIN_LENGTH:
-            raise ValueError(
-                f"Password must be at least {self.PASSWORD_MIN_LENGTH}"
-                f"characters"
-            )
+            raise ValueError(f"Password must be at least {self.PASSWORD_MIN_LENGTH}" f"characters")
         if bcrypt is not None:
-            return bcrypt.hashpw(
-                password.encode("utf-8"), bcrypt.gensalt(rounds=12)
-            ).decode("utf-8")
+            return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode(
+                "utf-8"
+            )
 
         # Fallback keeps app usable even if bcrypt wheel is missing.
         salt = os.urandom(16).hex()
@@ -360,7 +340,7 @@ class LoginManager:
         email: str,
         password: str,
         role: str = "user",
-        permissions: Optional[Dict] = None,
+        permissions: dict | None = None,
     ) -> int:
         """Create new user in database"""
         username = username.strip()
@@ -370,18 +350,13 @@ class LoginManager:
             raise ValueError("Username, email, and password required")
 
         if len(password) < self.PASSWORD_MIN_LENGTH:
-            raise ValueError(
-                f"Password must be at least {self.PASSWORD_MIN_LENGTH}"
-                f"characters"
-            )
+            raise ValueError(f"Password must be at least {self.PASSWORD_MIN_LENGTH}" f"characters")
 
         pwd_hash = self.hash_password(password)
         perms_json = json.dumps(permissions or {})
 
         try:
-            with DatabaseContext(
-                self._get_connection(), auto_commit=True
-            ) as cur:
+            with DatabaseContext(self._get_connection(), auto_commit=True) as cur:
                 cur.execute(
                     """
                     INSERT INTO users (username, email, password_hash, role,
@@ -399,18 +374,14 @@ class LoginManager:
             logger.error(f"Failed to create user: {e}")
             raise
 
-    def update_last_activity(
-        self, user_id: int, ip_address: str = "127.0.0.1"
-    ) -> None:
+    def update_last_activity(self, user_id: int, ip_address: str = "127.0.0.1") -> None:
         """Update user's last activity timestamp"""
         # Convert 'localhost' to 127.0.0.1 for inet column
         if ip_address.lower() == "localhost":
             ip_address = "127.0.0.1"
 
         try:
-            with DatabaseContext(
-                self._get_connection(), auto_commit=True
-            ) as cur:
+            with DatabaseContext(self._get_connection(), auto_commit=True) as cur:
                 cur.execute(
                     """
                     UPDATE users
@@ -422,20 +393,14 @@ class LoginManager:
         except Exception as e:
             logger.error(f"Failed to update last activity: {e}")
 
-    def save_remember_token(
-        self, user_id: int, token_expiry_days: int = 30
-    ) -> None:
+    def save_remember_token(self, user_id: int, token_expiry_days: int = 30) -> None:
         """Save remember-me token (not password!)"""
-        token_hash = hashlib.sha256(
-            f"{user_id}_{datetime.now().isoformat()}".encode()
-        ).hexdigest()
+        token_hash = hashlib.sha256(f"{user_id}_{datetime.now().isoformat()}".encode()).hexdigest()
 
         token_data = {
             "user_id": user_id,
             "token_hash": token_hash,
-            "expires": (
-                datetime.now() + timedelta(days=token_expiry_days)
-            ).isoformat(),
+            "expires": (datetime.now() + timedelta(days=token_expiry_days)).isoformat(),
         }
 
         try:
@@ -446,13 +411,13 @@ class LoginManager:
         except Exception as e:
             logger.warning("Could not save remember token: %s", e)
 
-    def load_remember_token(self) -> Optional[int]:
+    def load_remember_token(self) -> int | None:
         """Load and validate remember-me token"""
         if not self.token_file.exists():
             return None
 
         try:
-            with open(self.token_file, "r") as f:
+            with open(self.token_file) as f:
                 token_data = json.load(f)
 
             expires = datetime.fromisoformat(token_data.get("expires", ""))
@@ -467,17 +432,13 @@ class LoginManager:
     def clear_remember_token(self) -> None:
         """Clear saved remember-me token"""
         if self.token_file.exists():
-            try:
+            with suppress(Exception):
                 self.token_file.unlink()
-            except Exception:
-                pass
 
-    def get_user_by_id(self, user_id: int) -> Optional[Dict]:
+    def get_user_by_id(self, user_id: int) -> dict | None:
         """Fetch user by ID (for remember-me restoration)"""
         try:
-            with DatabaseContext(
-                self._get_connection(), auto_commit=False
-            ) as cur:
+            with DatabaseContext(self._get_connection(), auto_commit=False) as cur:
                 cur.execute(
                     """
                     SELECT user_id, username, email, role, status, permissions,
@@ -492,15 +453,11 @@ class LoginManager:
                 if not row:
                     return None
 
-                uid, uname, email, role, status, perms, sess_ver = row
+                uid, uname, email, role, _status, perms, sess_ver = row
                 permissions = {}
                 if perms:
                     try:
-                        permissions = (
-                            json.loads(perms)
-                            if isinstance(perms, str)
-                            else perms
-                        )
+                        permissions = json.loads(perms) if isinstance(perms, str) else perms
                     except Exception:
                         logger.error("Failed to parse permissions JSON")
 

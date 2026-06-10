@@ -5,6 +5,7 @@ Matches LMSGold payment format with table view and action buttons
 
 import logging
 
+from db_error_handling import DatabaseContext
 from PyQt6.QtCore import QDate, Qt
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
@@ -24,8 +25,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-from db_error_handling import DatabaseContext
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +65,7 @@ class PaymentDialog(QDialog):
 
         # Tab 2: Add Payment
         add_payment_tab = self.create_add_payment_tab()
-        tabs.addTab(add_payment_tab, "➕ Add Payment")
+        tabs.addTab(add_payment_tab, "+ Add Payment")
 
         # Tab 3: Client CC Info
         cc_info_tab = self.create_cc_info_tab()
@@ -108,9 +107,7 @@ class PaymentDialog(QDialog):
 
         self.mark_nfd_btn = QPushButton("❌ Mark NFD (No Funds)")
         self.mark_nfd_btn.clicked.connect(self.mark_nfd)
-        self.mark_nfd_btn.setStyleSheet(
-            "background-color: #ff6b6b; color: white;"
-        )
+        self.mark_nfd_btn.setStyleSheet("background-color: #ff6b6b; color: white;")
         button_layout.addWidget(self.mark_nfd_btn)
 
         self.email_receipt_btn = QPushButton("📧 Email Receipt")
@@ -138,9 +135,7 @@ class PaymentDialog(QDialog):
 
         title = QLabel("PAYMENT & CHARGE HISTORY")
         title.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        title.setStyleSheet(
-            "color: #1a3d7a; border-bottom: 2px solid #e0e0e0; padding: 4px;"
-        )
+        title.setStyleSheet("color: #1a3d7a; border-bottom: 2px solid #e0e0e0; padding: 4px;")
         layout.addWidget(title)
 
         # Transaction table
@@ -159,12 +154,8 @@ class PaymentDialog(QDialog):
             ]
         )
         self.history_table.setColumnHidden(7, True)  # Hide ID column
-        self.history_table.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-        self.history_table.setSelectionMode(
-            QTableWidget.SelectionMode.SingleSelection
-        )
+        self.history_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.history_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.history_table.resizeColumnsToContents()
         layout.addWidget(self.history_table)
 
@@ -192,9 +183,7 @@ class PaymentDialog(QDialog):
 
         title = QLabel("ADD PAYMENT")
         title.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        title.setStyleSheet(
-            "color: #1a3d7a; border-bottom: 2px solid #e0e0e0; padding: 4px;"
-        )
+        title.setStyleSheet("color: #1a3d7a; border-bottom: 2px solid #e0e0e0; padding: 4px;")
         layout.addWidget(title)
 
         # Payment form
@@ -235,13 +224,14 @@ class PaymentDialog(QDialog):
         self.payment_method = QComboBox()
         self.payment_method.addItems(
             [
+                "E-Transfer",
                 "Credit Card",
                 "Debit Card",
                 "Cash",
-                "Check",
+                "Cheque",
+                "NRR Retainer",
                 "Bank Transfer",
-                "Email Money Transfer",
-                "Cryptocurrency",
+                "Deposit",
                 "Other",
             ]
         )
@@ -257,9 +247,7 @@ class PaymentDialog(QDialog):
         ref_label = QLabel("Reference/Check #:")
         ref_label.setMinimumWidth(100)
         self.payment_reference = QLineEdit()
-        self.payment_reference.setPlaceholderText(
-            "e.g., transaction ID, check number"
-        )
+        self.payment_reference.setPlaceholderText("e.g., transaction ID, check number")
         self.payment_reference.setMaximumWidth(300)
         row3.addWidget(ref_label)
         row3.addWidget(self.payment_reference)
@@ -284,8 +272,7 @@ class PaymentDialog(QDialog):
         submit_btn = QPushButton("💾 Record Payment")
         submit_btn.clicked.connect(self.record_payment)
         submit_btn.setStyleSheet(
-            "background-color: #28a745; color: white; padding: 8px;"
-            "font-weight: bold;"
+            "background-color: #28a745; color: white; padding: 8px;" "font-weight: bold;"
         )
         layout.addWidget(submit_btn)
 
@@ -303,9 +290,7 @@ class PaymentDialog(QDialog):
 
         title = QLabel("CLIENT PAYMENT INFORMATION")
         title.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        title.setStyleSheet(
-            "color: #1a3d7a; border-bottom: 2px solid #e0e0e0; padding: 4px;"
-        )
+        title.setStyleSheet("color: #1a3d7a; border-bottom: 2px solid #e0e0e0; padding: 4px;")
         layout.addWidget(title)
 
         # CC Info Section
@@ -464,9 +449,7 @@ class PaymentDialog(QDialog):
 
         except Exception as e:
             logger.error(f"Failed to load payment history: {e}")
-            QMessageBox.critical(
-                self, "Error", f"Failed to load payment history: {str(e)}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to load payment history: {e!s}")
 
     def load_summary(self) -> None:
         """Load and display payment summary (Total Charges, Payments,"
@@ -498,16 +481,12 @@ class PaymentDialog(QDialog):
 
         except Exception as e:
             logger.error(f"Failed to load summary: {e}")
-            QMessageBox.critical(
-                self, "Error", f"Failed to load summary: {str(e)}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to load summary: {e!s}")
 
     def record_payment(self) -> None:
         """Record a new payment"""
         if self.payment_amount.value() <= 0:
-            QMessageBox.warning(
-                self, "Invalid Amount", "Please enter a valid payment amount"
-            )
+            QMessageBox.warning(self, "Invalid Amount", "Please enter a valid payment amount")
             return
 
         try:
@@ -537,9 +516,7 @@ class PaymentDialog(QDialog):
                     ),
                 )
 
-            QMessageBox.information(
-                self, "Success", "Payment recorded successfully"
-            )
+            QMessageBox.information(self, "Success", "Payment recorded successfully")
 
             # Clear form
             self.payment_amount.setValue(0)
@@ -552,9 +529,7 @@ class PaymentDialog(QDialog):
 
         except Exception as e:
             logger.error(f"Failed to record payment: {e}")
-            QMessageBox.critical(
-                self, "Error", f"Failed to record payment: {str(e)}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to record payment: {e!s}")
 
     def mark_nfd(self) -> None:
         """Mark payment as No Funds Deposit (NFD)"""
@@ -588,9 +563,7 @@ class PaymentDialog(QDialog):
                         ),
                     )
 
-                QMessageBox.information(
-                    self, "Success", "NFD recorded - $25.00 fee applied"
-                )
+                QMessageBox.information(self, "Success", "NFD recorded - $25.00 fee applied")
 
                 # Reload
                 self.load_payment_history()
@@ -598,48 +571,37 @@ class PaymentDialog(QDialog):
 
             except Exception as e:
                 logger.error(f"Failed to record NFD: {e}")
-                QMessageBox.critical(
-                    self, "Error", f"Failed to record NFD: {str(e)}"
-                )
+                QMessageBox.critical(self, "Error", f"Failed to record NFD: {e!s}")
 
     def email_receipt(self) -> None:
         """Email payment receipt to client"""
         email = self.client_email.text().strip()
 
         if not email:
-            QMessageBox.warning(
-                self, "Missing Email", "Please enter client email address"
-            )
+            QMessageBox.warning(self, "Missing Email", "Please enter client email address")
             return
 
         QMessageBox.information(
             self,
             "Email Receipt",
-            f"Receipt would be sent to: {email}\n\n(Email integration not yet"
-            f"implemented)",
+            f"Receipt would be sent to: {email}\n\n(Email integration not yet" f"implemented)",
         )
 
     def delete_transaction(self) -> None:
         """Delete selected payment or charge (admin authority)"""
         selected = self.history_table.selectedIndexes()
         if not selected:
-            QMessageBox.warning(
-                self, "No Selection", "Please select a transaction to delete"
-            )
+            QMessageBox.warning(self, "No Selection", "Please select a transaction to delete")
             return
 
         row = selected[0].row()
         transaction_type = self.history_table.item(row, 1).text()
         amount = self.history_table.item(row, 3).text()
         description = self.history_table.item(row, 2).text()
-        record_id_item = self.history_table.item(
-            row, 7
-        )  # Hidden column with record_id
+        record_id_item = self.history_table.item(row, 7)  # Hidden column with record_id
 
         if not record_id_item:
-            QMessageBox.warning(
-                self, "Error", "Could not identify transaction ID"
-            )
+            QMessageBox.warning(self, "Error", "Could not identify transaction ID")
             return
 
         record_id = record_id_item.text()
@@ -675,9 +637,7 @@ class PaymentDialog(QDialog):
                             (record_id, self.reserve_number),
                         )
                     else:
-                        QMessageBox.warning(
-                            self, "Error", "Unknown transaction type"
-                        )
+                        QMessageBox.warning(self, "Error", "Unknown transaction type")
                         return
 
                     if cur.rowcount == 0:
@@ -699,13 +659,11 @@ class PaymentDialog(QDialog):
                 self.load_summary()
 
             except Exception as e:
-                logger.error(
-                    f"Failed to delete {transaction_type.lower()}: {e}"
-                )
+                logger.error(f"Failed to delete {transaction_type.lower()}: {e}")
                 QMessageBox.critical(
                     self,
                     "Error",
-                    f"Failed to delete {transaction_type.lower()}: {str(e)}",
+                    f"Failed to delete {transaction_type.lower()}: {e!s}",
                 )
 
     def edit_transaction(self) -> None:
@@ -714,9 +672,7 @@ class PaymentDialog(QDialog):
 
         selected = self.history_table.selectedIndexes()
         if not selected:
-            QMessageBox.warning(
-                self, "No Selection", "Please select a transaction to edit"
-            )
+            QMessageBox.warning(self, "No Selection", "Please select a transaction to edit")
             return
 
         row = selected[0].row()
@@ -726,8 +682,7 @@ class PaymentDialog(QDialog):
             QMessageBox.warning(
                 self,
                 "Cannot Edit",
-                "Only payments can be edited. To modify a charge, delete it"
-                "and add a new one.",
+                "Only payments can be edited. To modify a charge, delete it" "and add a new one.",
             )
             return
 
@@ -762,9 +717,7 @@ class PaymentDialog(QDialog):
 
             # Set payment method
             method_text = payment_data[2] or "Cash"
-            index = self.payment_method.findText(
-                method_text, Qt.MatchFlag.MatchFixedString
-            )
+            index = self.payment_method.findText(method_text, Qt.MatchFlag.MatchFixedString)
             if index >= 0:
                 self.payment_method.setCurrentIndex(index)
 
@@ -784,9 +737,7 @@ class PaymentDialog(QDialog):
 
         except Exception as e:
             logger.error(f"Failed to load payment: {e}")
-            QMessageBox.critical(
-                self, "Error", f"Failed to load payment: {str(e)}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to load payment: {e!s}")
 
     def save_contact_info(self) -> None:
         """Save client contact information"""
@@ -794,9 +745,7 @@ class PaymentDialog(QDialog):
         phone = self.client_phone.text().strip()
 
         if not email and not phone:
-            QMessageBox.warning(
-                self, "No Data", "Please enter email or phone number"
-            )
+            QMessageBox.warning(self, "No Data", "Please enter email or phone number")
             return
 
         try:
@@ -812,16 +761,10 @@ class PaymentDialog(QDialog):
                         (email or None, phone or None, self.client_id),
                     )
 
-                QMessageBox.information(
-                    self, "Success", "Contact information saved"
-                )
+                QMessageBox.information(self, "Success", "Contact information saved")
             else:
-                QMessageBox.warning(
-                    self, "No Client", "Client ID not available"
-                )
+                QMessageBox.warning(self, "No Client", "Client ID not available")
 
         except Exception as e:
             logger.error(f"Failed to save contact info: {e}")
-            QMessageBox.critical(
-                self, "Error", f"Failed to save contact info: {str(e)}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to save contact info: {e!s}")
