@@ -171,25 +171,30 @@ class ClientDetailDialog(QDialog):
         corporate_group = QGroupBox("Corporate Information")
         corporate_form = QFormLayout()
 
+        # Both type checkboxes on one row
         self.is_company = QCheckBox("This is a company (not an individual)")
         self.is_company.stateChanged.connect(self.on_is_company_toggled)
-        corporate_form.addRow("Company:", self.is_company)
-
         self.is_corporate = QCheckBox("This is a corporate client")
-        corporate_form.addRow("Corporate Client:", self.is_corporate)
+        type_row = QHBoxLayout()
+        type_row.addWidget(self.is_company)
+        type_row.addWidget(self.is_corporate)
+        type_row.addStretch()
+        corporate_form.addRow("Type:", type_row)
 
+        # First / last name on one row
         self.first_name = QLineEdit()
-        corporate_form.addRow("First Name (Individual):", self.first_name)
-
         self.last_name = QLineEdit()
-        corporate_form.addRow("Last Name (Individual):", self.last_name)
+        name_row = QHBoxLayout()
+        name_row.addWidget(self.first_name)
+        name_row.addWidget(QLabel("Last Name:"))
+        name_row.addWidget(self.last_name)
+        corporate_form.addRow("First Name (Individual):", name_row)
 
+        # Corporate parent ID and role on one row
         self.corporate_parent_id = QSpinBox()
         self.corporate_parent_id.setMinimum(0)
         self.corporate_parent_id.setMaximum(999999)
         self.corporate_parent_id.setValue(0)
-        corporate_form.addRow("Corporate Parent ID (0=Individual):", self.corporate_parent_id)
-
         self.corporate_role = QComboBox()
         self.corporate_role.addItems(
             [
@@ -205,50 +210,69 @@ class ClientDetailDialog(QDialog):
                 "employee_8",
             ]
         )
-        corporate_form.addRow("Role in Company:", self.corporate_role)
+        parent_role_row = QHBoxLayout()
+        parent_role_row.addWidget(self.corporate_parent_id)
+        parent_role_row.addWidget(QLabel("Role in Company:"))
+        parent_role_row.addWidget(self.corporate_role)
+        parent_role_row.addStretch()
+        corporate_form.addRow("Corporate Parent ID (0=Individual):", parent_role_row)
 
         corporate_group.setLayout(corporate_form)
         form.addRow(corporate_group)
 
+        # Phone / email on one row
         self.phone = SmartFormField.phone_field()
-        form.addRow("Phone:", self.phone)
-
         self.email = SmartFormField.email_field()
-        form.addRow("Email:", self.email)
+        contact_row = QHBoxLayout()
+        contact_row.addWidget(self.phone)
+        contact_row.addWidget(QLabel("Email:"))
+        contact_row.addWidget(self.email)
+        form.addRow("Phone:", contact_row)
 
         self.address = SmartFormField.auto_expanding_text(max_height=100)
         form.addRow("Address:", self.address)
 
+        # City / province / postal on one row
         self.city = QLineEdit()
-        form.addRow("City:", self.city)
-
         self.province = QLineEdit()
-        form.addRow("Province:", self.province)
-
+        self.province.setMaximumWidth(120)
         self.postal = SmartFormField.postal_code_field()
-        form.addRow("Postal Code:", self.postal)
+        city_row = QHBoxLayout()
+        city_row.addWidget(self.city)
+        city_row.addWidget(QLabel("Province:"))
+        city_row.addWidget(self.province)
+        city_row.addWidget(QLabel("Postal Code:"))
+        city_row.addWidget(self.postal)
+        form.addRow("City:", city_row)
 
         # Billing info
         billing_group = QGroupBox("Billing Information")
         billing_form = QFormLayout()
 
+        # Billing email / tax id on one row
         self.billing_email = SmartFormField.email_field()
-        billing_form.addRow("Billing Email:", self.billing_email)
-
         self.tax_id = QLineEdit()
-        billing_form.addRow("Tax ID/GST #:", self.tax_id)
+        billing_top_row = QHBoxLayout()
+        billing_top_row.addWidget(self.billing_email)
+        billing_top_row.addWidget(QLabel("Tax ID/GST #:"))
+        billing_top_row.addWidget(self.tax_id)
+        billing_form.addRow("Billing Email:", billing_top_row)
 
+        # Payment terms / preferred payment on one row
         self.payment_terms = QComboBox()
         self.payment_terms.addItems(
             ["Due on Receipt", "Net 15", "Net 30", "Net 60", "COD", "Prepaid"]
         )
-        billing_form.addRow("Payment Terms:", self.payment_terms)
-
         self.preferred_payment = QComboBox()
         self.preferred_payment.addItems(
             ["Credit Card", "Invoice", "Cash", "Check", "Bank Transfer"]
         )
-        billing_form.addRow("Preferred Payment:", self.preferred_payment)
+        billing_terms_row = QHBoxLayout()
+        billing_terms_row.addWidget(self.payment_terms)
+        billing_terms_row.addWidget(QLabel("Preferred Payment:"))
+        billing_terms_row.addWidget(self.preferred_payment)
+        billing_terms_row.addStretch()
+        billing_form.addRow("Payment Terms:", billing_terms_row)
 
         billing_group.setLayout(billing_form)
         form.addRow(billing_group)
