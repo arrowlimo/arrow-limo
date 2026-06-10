@@ -19,6 +19,7 @@ export function showToast({ message, type = 'info', timeout = 3000 }) {
 export const toast = {
   info(msg, timeout = 3000) { showToast({ message: msg, type: 'info', timeout }) },
   success(msg, timeout = 3000) { showToast({ message: msg, type: 'success', timeout }) },
+  warning(msg, timeout = 4000) { showToast({ message: msg, type: 'warning', timeout }) },
   error(msg, timeout = 5000) { showToast({ message: msg, type: 'error', timeout }) },
 }
 

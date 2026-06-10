@@ -3,13 +3,10 @@
     <h1>Drivers</h1>
     <div v-if="loading">Loading...</div>
     <div v-else>
+      <div v-if="!drivers.length">No drivers found.</div>
       <div v-for="driver in drivers" :key="driver.employee_id" class="driver-card">
-        <h3>{{ driver.name || driver.full_name || driver.employee_name }}</h3>
-        <p>Email: {{ driver.email }}</p>
-        <p>Phone: {{ driver.phone }}</p>
-        <p>License: {{ driver.license_number }}</p>
-        <p>Hire Date: {{ driver.date_hired }}</p>
-        <p>Status: {{ driver.status || driver.employment_status }}</p>
+        <h3>{{ driver.display || driver.name || `${driver.first_name || ''} ${driver.last_name || ''}`.trim() }}</h3>
+        <p>Employee ID: {{ driver.employee_id }}</p>
       </div>
     </div>
   </div>
@@ -22,7 +19,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-  const res = await fetch('/api/drivers')
+  const res = await fetch('/api/employees/drivers')
     if (res.ok) {
       drivers.value = await res.json()
     } else {

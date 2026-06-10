@@ -37,5 +37,6 @@ function dismiss(id) { dismissToast(id) }
 }
 .toast.info { background: #374151; }
 .toast.success { background: #059669; }
+.toast.warning { background: #b45309; }
 .toast.error { background: #b91c1c; }
 </style>
