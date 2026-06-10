@@ -1314,7 +1314,7 @@ class CharterPDFForm:
         if value in (None, ""):
             return ""
         try:
-            numeric_value = int(round(float(value)))
+            numeric_value = round(float(value))
             if numeric_value < 0:
                 return ""
             return str(numeric_value)[:7]

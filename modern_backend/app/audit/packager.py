@@ -84,7 +84,7 @@ def _write_text(path: Path, text: str) -> None:
 
 def _write_pdf(path: Path, title: str, lines: list[str]) -> None:
     pdf = canvas.Canvas(str(path), pagesize=LETTER)
-    width, height = LETTER
+    _, height = LETTER
     y = height - 36
     pdf.setTitle(title)
     pdf.setFont("Helvetica-Bold", 12)

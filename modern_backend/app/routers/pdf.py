@@ -888,7 +888,7 @@ def _simple_lines_pdf(title: str, lines: list[str]) -> bytes:
 
     buf = BytesIO()
     c = canvas.Canvas(buf, pagesize=letter)
-    width, height = letter
+    _, height = letter
     y = height - 0.75 * inch
 
     c.setFont("Helvetica-Bold", 14)

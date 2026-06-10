@@ -1,3 +1,4 @@
+import contextlib
 from datetime import date, timedelta
 from typing import Any
 
@@ -361,7 +362,7 @@ def update_booking(
 
 
 @router.post("/bookings/create")
-def create_booking(request: Request, payload: dict[str, Any] | None = None):
+def create_booking(request: Request, payload: dict[str, Any] | None = None):  # noqa: C901
     """Create a new charter booking with minimal required fields.
 
     This endpoint focuses on inserting into the `charters` table and
@@ -807,7 +808,7 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
 
         # Extra gratuity is driver cash, non-taxable, informational only.
         if extra_gratuity_cash > 0:
-            try:
+            with contextlib.suppress(Exception):
                 cur.execute(
                     """
                     INSERT INTO charges (reserve_number, charge_type,
@@ -824,8 +825,6 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
                         ),
                     ),
                 )
-            except Exception:
-                pass
 
         # Calculate and insert GST (tax-included: gst = total * 0.05 / 1.05)
         # Skip if client is GST exempt
