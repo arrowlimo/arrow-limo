@@ -611,7 +611,7 @@ def link_receipt_to_banking(
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(status_code=500, detail=f"Failed to link: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Failed to link: {e!s}")
 
 
 @router.post("/", status_code=201)
@@ -793,7 +793,7 @@ def create_receipt(receipt: SimpleReceiptCreate, request: Request):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to create receipt: {e!s}"
         )
 
@@ -1124,6 +1124,6 @@ def update_receipt(
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to update receipt: {e!s}"
         )

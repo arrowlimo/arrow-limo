@@ -92,7 +92,7 @@ def search_customers(
         ]
         return {"results": results, "count": len(results)}
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to search customers: {e}"
         )
     finally:
@@ -144,7 +144,7 @@ def list_all_customers():
             )
         return customers
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to list customers: {e}"
         )
     finally:
@@ -265,7 +265,7 @@ def upsert_customer(payload: dict[str, Any], request: Request):
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to save customer: {e}"
         )
     finally:

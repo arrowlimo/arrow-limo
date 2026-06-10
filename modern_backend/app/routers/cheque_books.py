@@ -136,7 +136,7 @@ async def get_cheque_books_summary():
         return summaries
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -272,7 +272,7 @@ async def search_cheques(search: ChequeSearchRequest):
         return cheques
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -352,7 +352,7 @@ async def update_cheque(transaction_id: int, update: ChequeUpdateRequest):
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -444,7 +444,7 @@ async def bulk_update_cheques(updates: list[ChequeUpdateRequest]):
 
     except Exception as e:
         conn.rollback()
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Bulk update failed: {e!s}"
         )
     finally:

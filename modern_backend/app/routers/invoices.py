@@ -380,7 +380,7 @@ def create_invoice(invoice: InvoiceCreate, request: Request):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to create invoice: {e!s}"
         )
 
@@ -485,7 +485,7 @@ def update_invoice(
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to update invoice: {e!s}"
         )
 
@@ -561,7 +561,7 @@ def mark_invoice_paid(
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to mark invoice as paid: {e!s}"
         )
 
@@ -622,7 +622,7 @@ def delete_invoice(invoice_id: int, request: Request):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to delete invoice: {e!s}"
         )
 

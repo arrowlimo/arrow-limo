@@ -3,8 +3,7 @@ PDF Generation Endpoints
 """
 
 import json
-from datetime import date
-from datetime import datetime
+from datetime import date, datetime
 from io import BytesIO
 from typing import Annotated, Any
 
@@ -110,7 +109,7 @@ def update_pdf_layout_settings(
         )
         return result
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to save layout settings: {e!s}"
         )
 
@@ -132,7 +131,7 @@ def reset_pdf_settings_to_default():
         )
         return result
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to reset layout settings: {e!s}"
         )
 
@@ -157,9 +156,9 @@ def apply_pdf_layout_settings_preset(
         )
         return result
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to apply preset: {e!s}"
         )
 
@@ -918,7 +917,7 @@ def get_charter_invoice_pdf(charter_id: int = Path(...)):
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"PDF generation failed: {e!s}"
         )
 
@@ -937,7 +936,7 @@ def preview_charter_invoice_pdf(charter_id: int = Path(...)):
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"PDF generation failed: {e!s}"
         )
 
@@ -961,7 +960,7 @@ def get_multi_charter_invoice_pdf(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500,
             detail=f"Multi-invoice PDF generation failed: {e!s}",
         )
@@ -991,7 +990,7 @@ def get_blank_run_sheet_pdf(charter_id: int = Path(...)):
     try:
         pdf_bytes = generate_charter_pdf(payload)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Blank run sheet generation failed: {e!s}"
         )
     reserve_number = str(ctx.get("reserve_number") or charter_id)
@@ -1139,7 +1138,7 @@ def get_confirmation_letter_pdf(charter_id: int = Path(...)):
     try:
         pdf_bytes = generate_confirmation_letter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"PDF generation failed: {e!s}"
         )
 
@@ -1157,7 +1156,7 @@ def get_run_sheet_pdf_from_payload(
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"PDF generation failed: {e!s}"
         )
 
@@ -1174,7 +1173,7 @@ def preview_run_sheet_pdf_from_payload(
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"PDF generation failed: {e!s}"
         )
 
@@ -1269,7 +1268,7 @@ def get_employee_t4_pdf(
     try:
         pdf_bytes = generate_t4_pdf(employee_data, t4_data, tax_year)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"T4 PDF generation failed: {e!s}"
         )
 
@@ -1371,7 +1370,7 @@ def preview_employee_t4_pdf(
     try:
         pdf_bytes = generate_t4_pdf(employee_data, t4_data, tax_year)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"T4 PDF generation failed: {e!s}"
         )
 

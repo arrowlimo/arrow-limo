@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
 from .api import receipt_verification as receipt_verification_router
+from .audit import router as audit_router
 from .auth import (
     get_current_user,
     is_auth_exempt_path,
@@ -27,9 +28,11 @@ from .routers import banking_allocations as banking_allocations_router
 from .routers import beverage_order as beverage_order_router
 from .routers import beverage_reconciliation as beverage_reconciliation_router
 from .routers import bookings as bookings_router
+from .routers import cash_box as cash_box_router
 from .routers import charges as charges_router
 from .routers import charter_sheet as charter_sheet_router
 from .routers import charters as charters_router
+from .routers import cheque_books as cheque_books_router
 from .routers import continuous_employment as continuous_employment_router
 from .routers import customers as customers_router
 from .routers import driver_auth as driver_auth_router
@@ -49,17 +52,14 @@ from .routers import receipts as receipts_router
 from .routers import receipts_linked_display as receipts_linked_display_router
 from .routers import receipts_simple as receipts_simple_router
 from .routers import receipts_split as receipts_split_router
+from .routers import received_payments as received_payments_router
 from .routers import reconciliation_report as reconciliation_report_router
 from .routers import reports as reports_router
-from .routers import cash_box as cash_box_router
-from .routers import year_end as year_end_router
 from .routers import t2_returns as t2_returns_router
 from .routers import table_management as table_management_router
 from .routers import vehicles as vehicles_router
 from .routers import vendor_standardization as vendor_standardization_router
-from .audit import router as audit_router
-from .routers import cheque_books as cheque_books_router
-from .routers import received_payments as received_payments_router
+from .routers import year_end as year_end_router
 from .settings import get_settings
 
 # Load environment variables from .env before settings resolution.

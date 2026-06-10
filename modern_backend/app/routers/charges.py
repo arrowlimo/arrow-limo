@@ -267,7 +267,7 @@ def get_charge_catalog(
 
         return {"results": results, "count": len(results)}
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to load charge catalog: {e}"
         )
     finally:
@@ -317,7 +317,7 @@ def get_charges_by_reserve(reserve_number: str):
 
         return {"results": results, "count": len(results)}
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to load charges: {e}"
         )
     finally:

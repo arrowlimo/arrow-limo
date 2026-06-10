@@ -6,8 +6,8 @@ Vendor Standardization Tool - identify and clean up vendor names
 - Track standardization history
 """
 
-from datetime import date
 import logging
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -87,7 +87,7 @@ async def get_all_vendors(
 
     except Exception as e:
         logger.error(f"Error listing vendors: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/find-variations")
@@ -126,7 +126,7 @@ async def find_vendor_variations(
 
     except Exception as e:
         logger.error(f"Error finding variations: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/merge-vendors")
@@ -226,7 +226,7 @@ async def merge_vendor_names(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error merging vendors: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/capitalize-all")
@@ -321,7 +321,7 @@ async def capitalize_all_vendors(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error capitalizing vendors: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/standardization-log")
@@ -367,7 +367,7 @@ async def get_standardization_log(
 
     except Exception as e:
         logger.error(f"Error getting standardization log: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/bulk-standardize")
@@ -496,4 +496,4 @@ async def bulk_standardize_vendors(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error bulk standardizing vendors: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))

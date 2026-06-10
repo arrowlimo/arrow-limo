@@ -201,7 +201,7 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -326,7 +326,7 @@ async def search_received_payments(
         return payments
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -412,7 +412,7 @@ async def update_received_payment(
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -451,7 +451,7 @@ async def delete_received_payment(payment_id: int):
 
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()

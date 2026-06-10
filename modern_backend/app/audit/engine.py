@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Any
 
 from .catalog import AUDIT_EVENT_SCHEMA
@@ -1112,9 +1112,7 @@ def generate_audit_check_report(
             """,
             (
                 hashlib.sha256(
-                    f"{request.fiscal_year}:{request.correlation_id or ''}:{datetime.utcnow().isoformat()}".encode(
-                        "utf-8"
-                    )
+                    f"{request.fiscal_year}:{request.correlation_id or ''}:{datetime.utcnow().isoformat()}".encode()
                 ).hexdigest(),
                 request.fiscal_year,
                 request.generated_by,

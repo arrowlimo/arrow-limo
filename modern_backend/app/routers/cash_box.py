@@ -171,7 +171,7 @@ def _resolve_legacy_transaction_type(conn, txn_type: str) -> str:
             WHERE transaction_type IS NOT NULL
             """
         )
-        values = [str((r[0] or "")).strip() for r in cur.fetchall() if r[0]]
+        values = [str(r[0] or "").strip() for r in cur.fetchall() if r[0]]
     except Exception:
         values = []
     finally:

@@ -43,11 +43,11 @@ def verify_jwt_token(credentials: HTTPAuthorizationCredentials) -> dict:
         )
         return payload
     except jwt.ExpiredSignatureError:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
         )
     except jwt.InvalidTokenError:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
         )
 
@@ -114,7 +114,7 @@ def check_authorization(user_id: int, user_role: str, charter_id: int) -> None:
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Authorization check failed",
         )
@@ -277,7 +277,7 @@ async def get_signed_url(
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate signed URL",
         )
@@ -413,7 +413,7 @@ async def download_inspection_form(
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to download inspection form",
         )
@@ -493,7 +493,7 @@ async def get_form_metadata(
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get form metadata",
         )

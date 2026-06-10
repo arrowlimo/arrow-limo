@@ -6,9 +6,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from psycopg2 import sql
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse
+from psycopg2 import sql
 from pydantic import BaseModel, Field
 
 from ..audit.engine import ensure_audit_storage, record_audit_event

@@ -562,7 +562,7 @@ async def submit_pd7a_month(
         raise
     except Exception as exc:
         conn.rollback()
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500, detail=f"Failed to submit PD7A month: {exc}"
         )
     finally:

@@ -338,12 +338,12 @@ def get_charter_routes(
             raise HTTPException(status_code=404, detail="charter_not_found")
 
         cur.execute(
-            """
-            SELECT {columns}
+            f"""
+            SELECT {_CHARTER_ROUTE_COLUMNS}
             FROM charter_routes
             WHERE charter_id = %s 
             ORDER BY route_sequence
-            """.format(columns=_CHARTER_ROUTE_COLUMNS),
+            """,
             (charter_id,),
         )
         rows = cur.fetchall()
@@ -391,12 +391,12 @@ def get_charter_with_routes(
 
         # Get all routes
         cur.execute(
-            """
-            SELECT {columns}
+            f"""
+            SELECT {_CHARTER_ROUTE_COLUMNS}
             FROM charter_routes
             WHERE charter_id = %s 
             ORDER BY route_sequence
-            """.format(columns=_CHARTER_ROUTE_COLUMNS),
+            """,
             (charter_id,),
         )
         route_rows = cur.fetchall()
