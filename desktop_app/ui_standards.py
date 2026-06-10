@@ -658,7 +658,9 @@ class GridStandardsManager(QObject):
         header = table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setSectionsMovable(True)
-        header.setStretchLastSection(False)
+        # Stretch the last column so grids fill the panel width instead of
+        # leaving a blank gap to the right; columns stay interactive/movable.
+        header.setStretchLastSection(True)
         header.setSortIndicatorShown(True)
 
         # Column chooser + reset layout from header context menu.
