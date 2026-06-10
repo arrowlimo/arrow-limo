@@ -6561,7 +6561,7 @@ class CharterFormWidget(CharterPdfMixin, QWidget):
             self.hos_table.item(1, col_index).setText(str(round(on_hours)))
             self.hos_table.item(0, col_index).setText(str(round(off_hours)))
             self.hos_table.item(2, col_index).setText("24")
-            # Persist to DB (driver_hos_log) - replace existing for that day
+            # Persist to DB (hos_log) - replace existing for that day
             try:
                 self.db.rollback()
             except Exception as _e:
