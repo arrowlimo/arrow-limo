@@ -177,14 +177,14 @@ async def search_cheques(search: ChequeSearchRequest):
         if search.status:
             if search.status.lower() == "nsf":
                 where_clauses.append(
-                    "(category ILIKE '%nsf%' OR description ILIKE '%nsf%' OR"
+                    "(category ILIKE '%nsf%' OR description ILIKE '%nsf%' OR "
                     "description ILIKE '%returned%')"
                 )
             elif search.status.lower() == "void":
                 where_clauses.append("(category ILIKE '%void%' OR description ILIKE '%void%')")
             elif search.status.lower() == "cleared":
                 where_clauses.append(
-                    "category IS NOT NULL AND category != '' AND category NOT"
+                    "category IS NOT NULL AND category != '' AND category NOT "
                     "ILIKE '%nsf%' AND category NOT ILIKE '%void%'"
                 )
             elif search.status.lower() == "pending":

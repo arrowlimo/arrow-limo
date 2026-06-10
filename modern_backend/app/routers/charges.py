@@ -137,8 +137,8 @@ def update_charge(
             raise HTTPException(status_code=404, detail="not_found")
 
         cur.execute(
-            f"UPDATE charter_charges SET {sets} WHERE charge_id = %s"
-            f"RETURNING charge_id, charter_id, charge_type, amount,"
+            f"UPDATE charter_charges SET {sets} WHERE charge_id = %s "
+            f"RETURNING charge_id, charter_id, charge_type, amount, "
             f"description, created_at",
             values,
         )

@@ -934,7 +934,7 @@ async def transition_t2_status(
         params.append(return_id)
 
         cur.execute(
-            f"UPDATE t2_return_metadata SET {', '.join(updates)} WHERE" f"return_id = %s",
+            f"UPDATE t2_return_metadata SET {', '.join(updates)} WHERE " f"return_id = %s",
             params,
         )
 

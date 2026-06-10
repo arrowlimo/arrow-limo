@@ -114,8 +114,8 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest, request: Request):
         # Idempotency: look for an existing child with signature
         signature = f"AUTO_SPLIT_FEE|parent={receipt_id}|fee={fee:.2f}"
         cur.execute(
-            "SELECT receipt_id FROM receipts WHERE description LIKE %s AND"
-            "(LOWER(vendor_name)=LOWER(%s) OR"
+            "SELECT receipt_id FROM receipts WHERE description LIKE %s AND "
+            "(LOWER(vendor_name)=LOWER(%s) OR "
             "LOWER(canonical_vendor)=LOWER(%s))",
             (signature + "%", row["vendor_name"], row["vendor_name"]),
         )
@@ -146,7 +146,7 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest, request: Request):
         # Update parent amount column to base AND mark as split
         # (parent_receipt_id points to itself)
         cur.execute(
-            f"UPDATE receipts SET {amt_col}=%s, parent_receipt_id=%s WHERE" f"receipt_id=%s",
+            f"UPDATE receipts SET {amt_col}=%s, parent_receipt_id=%s WHERE " f"receipt_id=%s",
             (base, receipt_id, receipt_id),
         )
 

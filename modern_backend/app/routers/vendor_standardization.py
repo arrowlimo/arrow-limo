@@ -210,8 +210,8 @@ async def merge_vendor_names(merge_request: VendorMerge, conn=Depends(get_connec
 
         return {
             "status": "success",
-            "message": f"Merged {len(merge_request.source_vendors)} vendor"
-            "names to '{canonical_name}'",
+            "message": f"Merged {len(merge_request.source_vendors)} vendor "
+            f"names to '{canonical_name}'",
             "affected_receipts": affected_rows,
             "canonical_name": canonical_name,
         }

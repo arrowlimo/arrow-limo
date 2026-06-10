@@ -146,9 +146,9 @@ def update_payment(
         if not before_snapshot:
             raise HTTPException(status_code=404, detail="not_found")
         cur.execute(
-            f"UPDATE payments SET {sets}, last_updated = NOW() WHERE"
-            f"payment_id = %s RETURNING payment_id, charter_id, amount,"
-            f"payment_date, payment_method, payment_key, notes, created_at,"
+            f"UPDATE payments SET {sets}, last_updated = NOW() WHERE "
+            f"payment_id = %s RETURNING payment_id, charter_id, amount, "
+            f"payment_date, payment_method, payment_key, notes, created_at, "
             f"last_updated",
             values,
         )

@@ -250,7 +250,7 @@ async def save_t4_entry(entry: T4Entry, request: Request, conn=Depends(get_conne
         if _using_legacy_t4_entries(conn):
             # Check if exists
             cur.execute(
-                "SELECT correction_id FROM t4_entries WHERE employee_id = %s" "AND tax_year = %s",
+                "SELECT correction_id FROM t4_entries WHERE employee_id = %s " "AND tax_year = %s",
                 (entry.employee_id, entry.tax_year),
             )
 

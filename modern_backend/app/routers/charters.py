@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException, Path, Query, Request
+from psycopg2.extras import execute_values
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
@@ -621,7 +622,7 @@ def reorder_charter_routes(
         # Verify all route_ids belong to this charter
         route_ids = list(sequence_map.keys())
         cur.execute(
-            f"SELECT route_id FROM charter_routes WHERE charter_id = %s AND"
+            f"SELECT route_id FROM charter_routes WHERE charter_id = %s AND "
             f"route_id IN ({','.join(['%s']*len(route_ids))})",
             (charter_id, *route_ids),
         )
@@ -630,19 +631,24 @@ def reorder_charter_routes(
             raise HTTPException(status_code=400, detail="invalid_route_ids")
 
         # Temporarily set sequences to high values to avoid conflicts
-        # Using route_id + 100000 ensures no overlap with valid sequences
-        for route_id in route_ids:
-            cur.execute(
-                "UPDATE charter_routes SET route_sequence = %s WHERE route_id" "= %s",
-                (route_id + 100000, route_id),
-            )
+        # Using route_id + 100000 ensures no overlap with valid sequences.
+        # Batched into a single round-trip instead of one UPDATE per route.
+        execute_values(
+            cur,
+            "UPDATE charter_routes AS cr SET route_sequence = data.seq "
+            "FROM (VALUES %s) AS data(route_id, seq) "
+            "WHERE cr.route_id = data.route_id::int",
+            [(route_id, route_id + 100000) for route_id in route_ids],
+        )
 
-        # Now apply the new sequences
-        for route_id, new_seq in sequence_map.items():
-            cur.execute(
-                "UPDATE charter_routes SET route_sequence = %s WHERE route_id" "= %s",
-                (new_seq, route_id),
-            )
+        # Now apply the new sequences (also a single batched round-trip).
+        execute_values(
+            cur,
+            "UPDATE charter_routes AS cr SET route_sequence = data.seq "
+            "FROM (VALUES %s) AS data(route_id, seq) "
+            "WHERE cr.route_id = data.route_id::int",
+            [(route_id, new_seq) for route_id, new_seq in sequence_map.items()],
+        )
 
         # Return updated routes in order
         cur.execute(
