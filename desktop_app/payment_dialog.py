@@ -751,12 +751,12 @@ class PaymentDialog(QDialog):
         try:
             if self.client_id:
                 with DatabaseContext(self.db, auto_commit=True) as cur:
-                    # Update account record with contact info
+                    # Update client record with contact info
                     cur.execute(
                         """
-                        UPDATE accounts
+                        UPDATE clients
                         SET email = %s, phone = %s, updated_at = NOW()
-                        WHERE account_id = %s
+                        WHERE client_id = %s
                     """,
                         (email or None, phone or None, self.client_id),
                     )
