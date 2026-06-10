@@ -221,8 +221,7 @@ class AccountingReceiptsWidget(QWidget):
             traceback.print_exc()
             raise
         logger.warning("    >> [init_ui] ReceiptSearchMatchWidget created,"
-            " setting parent_tab_widget...",
-            flush=True)
+            " setting parent_tab_widget...")
         search_match_widget.parent_tab_widget = self.parent_tab_widget
         logger.warning("    >> [init_ui] Adding to tabs...")
         tabs.addTab(search_match_widget, "🔍 Search, Match & Add")
