@@ -361,14 +361,14 @@ class ClientDetailDialog(QDialog):
         header.addWidget(title)
         help_icon = QLabel("i")
         help_icon.setToolTip(
-            "Manual ledger entry only — records payments already received"
+            "Manual ledger entry only — records payments already received "
             "(cash/check/bank). No online processing or auto-charging."
         )
         header.addWidget(help_icon)
         header.addStretch()
         layout.addLayout(header)
         hint = QLabel(
-            "Manual ledger entry only — records payments already received"
+            "Manual ledger entry only — records payments already received "
             "(cash/check/bank). No online processing or auto-charging."
         )
         hint.setWordWrap(True)
@@ -413,7 +413,7 @@ class ClientDetailDialog(QDialog):
         btn_layout = QHBoxLayout()
         record_payment_btn = QPushButton("+ Record Payment")
         record_payment_btn.setToolTip(
-            "Record a manually received client payment; no online processing" "or auto-charging."
+            "Record a manually received client payment; no online processing or auto-charging."
         )
         record_payment_btn.clicked.connect(self.record_payment)
         btn_layout.addWidget(record_payment_btn)
@@ -1125,7 +1125,7 @@ class ClientDetailDialog(QDialog):
         reply = QMessageBox.question(
             self,
             "Confirm Deletion",
-            f"Delete client '{self.client_name.text()}'?\nThis action cannot" f"be undone.",
+            f"Delete client '{self.client_name.text()}'?\nThis action cannot be undone.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if reply == QMessageBox.StandardButton.Yes:
@@ -1180,7 +1180,7 @@ class ClientDetailDialog(QDialog):
         # Instructions
         layout.addWidget(
             QLabel(
-                "Select a client to link as a child account:\n(This client"
+                "Select a client to link as a child account:\n(This client "
                 "becomes a subsidiary of the current company)"
             )
         )
@@ -1318,7 +1318,7 @@ class ClientDetailDialog(QDialog):
             QMessageBox.information(
                 self,
                 "Select a Charter",
-                "Please select a charter from the Charter History tab before"
+                "Please select a charter from the Charter History tab before "
                 "recording a payment.",
             )
             return

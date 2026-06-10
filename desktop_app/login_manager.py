@@ -312,12 +312,12 @@ class LoginManager:
             raise
         except Exception as e:
             logger.error(f"Authentication error: {e}")
-            raise AuthenticationError(f"Authentication failed: {e}")
+            raise AuthenticationError(f"Authentication failed: {e}") from e
 
     def hash_password(self, password: str) -> str:
         """Hash password using bcrypt when available, else PBKDF2."""
         if len(password) < self.PASSWORD_MIN_LENGTH:
-            raise ValueError(f"Password must be at least {self.PASSWORD_MIN_LENGTH}" f"characters")
+            raise ValueError(f"Password must be at least {self.PASSWORD_MIN_LENGTH} characters")
         if bcrypt is not None:
             return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode(
                 "utf-8"
@@ -350,7 +350,7 @@ class LoginManager:
             raise ValueError("Username, email, and password required")
 
         if len(password) < self.PASSWORD_MIN_LENGTH:
-            raise ValueError(f"Password must be at least {self.PASSWORD_MIN_LENGTH}" f"characters")
+            raise ValueError(f"Password must be at least {self.PASSWORD_MIN_LENGTH} characters")
 
         pwd_hash = self.hash_password(password)
         perms_json = json.dumps(permissions or {})
