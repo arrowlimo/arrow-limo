@@ -1054,20 +1054,22 @@ class _CharterSaveThread(QThread):
                 "NRR payment from escrow applied",
             ),
         ):
+            debit_amt = nrr_amount if entry_type == "DEBIT" else 0
+            credit_amt = nrr_amount if entry_type == "CREDIT" else 0
             cur.execute(
                 """
-                INSERT INTO general_ledger
-                    (charter_id, reserve_number, gl_code, account_name,
-                     amount, entry_type, description, created_at)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,NOW())
+                INSERT INTO accounting_entries
+                    (charter_id, entry_date, reference, account_code, account_name,
+                     debit_amount, credit_amount, description, source_type, created_date)
+                VALUES (%s, CURRENT_DATE, %s, %s, %s, %s, %s, %s, 'charter_desktop', NOW())
                 """,
                 (
                     charter_id,
-                    reserve_number,
+                    reserve_number or f"CH{charter_id}",
                     gl_code,
                     acct,
-                    nrr_amount,
-                    entry_type,
+                    debit_amt,
+                    credit_amt,
                     desc,
                 ),
             )
@@ -6010,8 +6012,8 @@ class CharterFormWidget(CharterPdfMixin, QWidget):
 
             # Get existing HOS for this day
             cur.execute(
-                "SELECT hours_on_duty FROM driver_hos_log WHERE employee_id = "
-                "%s AND shift_date = %s LIMIT 1",
+                "SELECT on_duty_hours FROM hos_log WHERE employee_id = "
+                "%s AND hos_date = %s LIMIT 1",
                 (employee_id, charter_date),
             )
 
@@ -6024,9 +6026,9 @@ class CharterFormWidget(CharterPdfMixin, QWidget):
 
             total_off_duty = 24 - total_on_duty
 
-            # Persist to driver_hos_log (replace existing for this day)
+            # Persist to hos_log (replace existing for this day)
             cur.execute(
-                "DELETE FROM driver_hos_log WHERE employee_id = %s AND " "shift_date = %s",
+                "DELETE FROM hos_log WHERE employee_id = %s AND " "hos_date = %s",
                 (employee_id, charter_date),
             )
 
@@ -6039,32 +6041,24 @@ class CharterFormWidget(CharterPdfMixin, QWidget):
 
             cur.execute(
                 """
-                INSERT INTO driver_hos_log (
+                INSERT INTO hos_log (
                     employee_id,
-                    charter_id,
-                    vehicle_id,
-                    shift_date,
-                    shift_start,
-                    shift_end,
-                    hours_on_duty,
-                    hours_driven,
-                    odometer_start,
-                    odometer_end,
-                    total_kms,
-                    notes
+                    hos_date,
+                    on_duty_start,
+                    off_duty_at,
+                    on_duty_hours,
+                    off_duty_hours,
+                    created_at
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, NULL, NULL, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, NOW())
                 """,
                 (
                     employee_id,
-                    None,
-                    None,
                     charter_date,
                     shift_start,
                     shift_end,
                     total_on_duty,
-                    0,
-                    "Auto-updated from charter entry",
+                    total_off_duty,
                 ),
             )
 
@@ -6576,24 +6570,21 @@ class CharterFormWidget(CharterPdfMixin, QWidget):
             employee_id = self.driver_combo.currentData()
             if employee_id:
                 cur.execute(
-                    "DELETE FROM driver_hos_log WHERE employee_id = %s AND " "shift_date = %s",
+                    "DELETE FROM hos_log WHERE employee_id = %s AND " "hos_date = %s",
                     (employee_id, d),
                 )
                 cur.execute(
                     """
-                    INSERT INTO driver_hos_log (
+                    INSERT INTO hos_log (
                         employee_id,
-                        shift_date,
-                        shift_start,
-                        shift_end,
-                        hours_on_duty,
-                        hours_driven,
-                        odometer_start,
-                        odometer_end,
-                        total_kms,
-                        notes
+                        hos_date,
+                        on_duty_start,
+                        off_duty_at,
+                        on_duty_hours,
+                        off_duty_hours,
+                        created_at
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, NULL, NULL, NULL, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
                     """,
                     (
                         employee_id,
@@ -6601,8 +6592,7 @@ class CharterFormWidget(CharterPdfMixin, QWidget):
                         start_dt,
                         end_dt,
                         on_hours,
-                        0,
-                        "Manual correction from dispatcher",
+                        off_hours,
                     ),
                 )
                 self.db.commit()
@@ -11118,19 +11108,18 @@ class CharterFormWidget(CharterPdfMixin, QWidget):
             # GL Code: Bank debit, Revenue credit (payment received)
             cur.execute(
                 """
-                INSERT INTO general_ledger
-                (charter_id, reserve_number, gl_code,
-                 account_name, amount, entry_type,
-                 description, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                INSERT INTO accounting_entries
+                (charter_id, entry_date, reference, account_code,
+                 account_name, debit_amount, credit_amount,
+                 description, source_type, created_date)
+                VALUES (%s, CURRENT_DATE, %s, %s, %s, 0, %s, %s, 'charter_desktop', NOW())
             """,
                 (
                     charter_id,
-                    reserve_number,
+                    reserve_number or f"CH{charter_id}",
                     "4000",  # Service Revenue
                     "Service Revenue",
-                    nrr_amount,
-                    "CREDIT",  # Revenue
+                    nrr_amount,  # credit (Revenue)
                     f"NRR applied from escrow " f"(cancelled reserve #{from_reserve})",
                 ),
             )
@@ -11138,19 +11127,18 @@ class CharterFormWidget(CharterPdfMixin, QWidget):
             # Also debit Bank to balance
             cur.execute(
                 """
-                INSERT INTO general_ledger
-                (charter_id, reserve_number, gl_code,
-                 account_name, amount, entry_type,
-                 description, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                INSERT INTO accounting_entries
+                (charter_id, entry_date, reference, account_code,
+                 account_name, debit_amount, credit_amount,
+                 description, source_type, created_date)
+                VALUES (%s, CURRENT_DATE, %s, %s, %s, %s, 0, %s, 'charter_desktop', NOW())
             """,
                 (
                     charter_id,
-                    reserve_number,
+                    reserve_number or f"CH{charter_id}",
                     "1010",  # Bank Account
                     "Bank - Deposit Account",
-                    nrr_amount,
-                    "DEBIT",  # Asset
+                    nrr_amount,  # debit (Asset)
                     "NRR payment from escrow applied",
                 ),
             )
