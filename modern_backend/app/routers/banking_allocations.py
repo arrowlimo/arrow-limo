@@ -121,13 +121,13 @@ def allocate_banking_to_receipts(
         for a in req.allocations:
             # Link receipt to banking transaction
             cur.execute(
-                "UPDATE receipts SET banking_transaction_id=%s WHERE" "receipt_id=%s",
+                "UPDATE receipts SET banking_transaction_id=%s WHERE " "receipt_id=%s",
                 (transaction_id, a.receipt_id),
             )
 
             # Insert ledger row if not present
             cur.execute(
-                "SELECT id FROM banking_receipt_matching_ledger WHERE"
+                "SELECT id FROM banking_receipt_matching_ledger WHERE "
                 "banking_transaction_id=%s AND receipt_id=%s",
                 (transaction_id, a.receipt_id),
             )
@@ -154,7 +154,7 @@ def allocate_banking_to_receipts(
             else:
                 # Update notes to reflect latest amount
                 cur.execute(
-                    "UPDATE banking_receipt_matching_ledger SET notes=%s" "WHERE id=%s",
+                    "UPDATE banking_receipt_matching_ledger SET notes=%s " "WHERE id=%s",
                     (f"amount={a.amount: .2f} ", existing[0]),
                 )
 

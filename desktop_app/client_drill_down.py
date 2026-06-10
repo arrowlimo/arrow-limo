@@ -947,13 +947,23 @@ class ClientDetailDialog(QDialog):
                         ),
                     )
                 else:
-                    # Auto-generate account_number (max numeric + 1)
-                    cur.execute(
-                        "SELECT MAX(CAST(account_number AS INTEGER))"
-                        " FROM clients WHERE account_number ~ '^[0-9]+$'"
-                    )
-                    max_acct = cur.fetchone()[0] or 7604
-                    new_account_number = str(int(max_acct) + 1)
+                    # Auto-generate account_number from the shared sequence
+                    # (same source the web backend uses, so the two never
+                    # collide). Falls back to MAX+1 if the sequence is missing,
+                    # using a savepoint so the transaction isn't aborted.
+                    try:
+                        cur.execute("SAVEPOINT acct_seq")
+                        cur.execute("SELECT nextval('account_number_seq')")
+                        new_account_number = str(int(cur.fetchone()[0]))
+                        cur.execute("RELEASE SAVEPOINT acct_seq")
+                    except Exception:
+                        cur.execute("ROLLBACK TO SAVEPOINT acct_seq")
+                        cur.execute(
+                            "SELECT MAX(CAST(account_number AS INTEGER))"
+                            " FROM clients WHERE account_number ~ '^[0-9]+$'"
+                        )
+                        max_acct = cur.fetchone()[0] or 7604
+                        new_account_number = str(int(max_acct) + 1)
 
                     cur.execute(
                         """

@@ -443,7 +443,7 @@ async def submit_pd7a_month(
             "year": tax_year,
             "month": tax_month,
             "submission_reference": sub_ref,
-            "message": "PD7A month marked submitted and remittance row" "updated.",
+            "message": "PD7A month marked submitted and remittance row " "updated.",
         }
     except HTTPException:
         conn.rollback()

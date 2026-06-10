@@ -609,7 +609,7 @@ def create_receipt(receipt: SimpleReceiptCreate, request: Request):
             gl_account_code = receipt.gl_account_code.strip()
             if gl_account_code:
                 cur.execute(
-                    "SELECT account_name FROM chart_of_accounts WHERE" "account_code = %s",
+                    "SELECT account_name FROM chart_of_accounts WHERE " "account_code = %s",
                     (gl_account_code,),
                 )
                 row = cur.fetchone()
@@ -912,7 +912,7 @@ def update_receipt(receipt_id: int, receipt: SimpleReceiptCreate, request: Reque
             gl_account_code = receipt.gl_account_code.strip()
             if gl_account_code:
                 cur.execute(
-                    "SELECT account_name FROM chart_of_accounts WHERE" "account_code = %s",
+                    "SELECT account_name FROM chart_of_accounts WHERE " "account_code = %s",
                     (gl_account_code,),
                 )
                 row = cur.fetchone()

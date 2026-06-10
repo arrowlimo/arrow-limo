@@ -238,21 +238,21 @@ class T2DataExtractor:
 
             if has_exclude:
                 select_cols.append(
-                    "COALESCE(r.exclude_from_reports, FALSE) AS" "exclude_from_reports"
+                    "COALESCE(r.exclude_from_reports, FALSE) AS " "exclude_from_reports"
                 )
             else:
                 select_cols.append("FALSE AS exclude_from_reports")
 
             if has_personal_flag:
                 select_cols.append(
-                    "COALESCE(r.is_personal_purchase, FALSE) AS" "is_personal_purchase"
+                    "COALESCE(r.is_personal_purchase, FALSE) AS " "is_personal_purchase"
                 )
             else:
                 select_cols.append("FALSE AS is_personal_purchase")
 
             if has_owner_personal_amount:
                 select_cols.append(
-                    "COALESCE(r.owner_personal_amount, 0) AS" "owner_personal_amount"
+                    "COALESCE(r.owner_personal_amount, 0) AS " "owner_personal_amount"
                 )
             else:
                 select_cols.append("0::numeric AS owner_personal_amount")
@@ -341,7 +341,7 @@ class T2DataExtractor:
                             "receipt_id": int(receipt_id),
                             "gl_code": gl_code or "UNASSIGNED",
                             "vendor": vendor_name,
-                            "message": "Risk keyword found in" "vendor/description",
+                            "message": "Risk keyword found in " "vendor/description",
                         }
                     )
 

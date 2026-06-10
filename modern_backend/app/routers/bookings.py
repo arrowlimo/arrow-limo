@@ -38,7 +38,10 @@ def _fetch_charter_snapshot(cur, charter_id: int) -> dict[str, Any] | None:
 
 
 @router.get("/bookings")
-def list_bookings():
+def list_bookings(
+    limit: int = Query(50, ge=1, le=500, description="Max rows to return"),
+    offset: int = Query(0, ge=0, description="Rows to skip (for pagination)"),
+):
     sql = """
         SELECT
             c.charter_id,
@@ -108,17 +111,17 @@ def list_bookings():
             WHERE (
                 payment_label IN (
                     'NRR', 'NRD', 'Non-Refundable Retainer', 'Retainer')
-                OR payment_key ILIKE '%NRR%'
-                OR payment_key ILIKE '%NRD%')
+                OR payment_key ILIKE '%%NRR%%'
+                OR payment_key ILIKE '%%NRD%%')
             AND payment_label NOT IN (
                 'Deposit', 'Security Deposit', 'Damage Deposit')
             GROUP BY reserve_number) nrr ON nrr.reserve_number =
             c.reserve_number
         ORDER BY c.charter_date DESC, c.charter_id DESC
-        LIMIT 50
+        LIMIT %s OFFSET %s
         """
     with cursor() as cur:
-        cur.execute(sql)
+        cur.execute(sql, (limit, offset))
         rows = cur.fetchall()
         cols = [d[0] for d in (cur.description or [])]
     items: list[dict[str, Any]] = []
@@ -419,13 +422,23 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):  # 
             if row:
                 client_id = row[0]
             else:
-                # Generate account_number (max numeric + 1)
-                cur.execute(
-                    "SELECT MAX(CAST(account_number AS INTEGER)) FROM clients"
-                    "WHERE account_number ~ '^[0-9]+$'"
-                )
-                max_account = cur.fetchone()[0] or 7604
-                new_account_number = str(int(max_account) + 1)
+                # Generate account_number from a shared sequence (avoids a
+                # full-table MAX scan and the race condition of MAX+1). The
+                # savepoint lets us fall back to MAX+1 if the sequence is
+                # unavailable without aborting the surrounding transaction.
+                try:
+                    cur.execute("SAVEPOINT acct_seq")
+                    cur.execute("SELECT nextval('account_number_seq')")
+                    new_account_number = str(int(cur.fetchone()[0]))
+                    cur.execute("RELEASE SAVEPOINT acct_seq")
+                except Exception:
+                    cur.execute("ROLLBACK TO SAVEPOINT acct_seq")
+                    cur.execute(
+                        "SELECT MAX(CAST(account_number AS INTEGER)) FROM clients "
+                        "WHERE account_number ~ '^[0-9]+$'"
+                    )
+                    max_account = cur.fetchone()[0] or 7604
+                    new_account_number = str(int(max_account) + 1)
 
                 # Create a basic client record
                 cur.execute(
@@ -458,7 +471,7 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):  # 
         except Exception:
             # Fallback: derive from current max reserve_number
             cur.execute(
-                "SELECT MAX(CAST(reserve_number AS INTEGER)) FROM charters"
+                "SELECT MAX(CAST(reserve_number AS INTEGER)) FROM charters "
                 "WHERE reserve_number ~ '^\\d+$'"
             )
             max_val = cur.fetchone()[0] or 0
