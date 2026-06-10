@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/receipts", tags=["receipts"])
 
@@ -139,7 +139,7 @@ def get_vendors():
     vendors = [row[0] for row in cur.fetchall()]
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return vendors
 
@@ -229,7 +229,7 @@ def get_receipts(
         )
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return receipts
 
@@ -256,7 +256,7 @@ def get_receipt(receipt_id: int):
     row = cur.fetchone()
     if not row:
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(status_code=404, detail="Receipt not found")
 
     receipt = {
@@ -275,7 +275,7 @@ def get_receipt(receipt_id: int):
     }
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return receipt
 
@@ -338,7 +338,7 @@ def create_receipt(receipt: ReceiptCreate, request: Request):
         )
         conn.commit()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         return {
             "receipt_id": receipt_id,
@@ -348,7 +348,7 @@ def create_receipt(receipt: ReceiptCreate, request: Request):
     except Exception as e:
         conn.rollback()
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(status_code=500, detail=f"Failed to create receipt: {e!s}")
 
 
@@ -362,7 +362,7 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate, request: Request):
         before_snapshot = _load_receipt_snapshot(conn, receipt_id)
         if before_snapshot is None:
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(status_code=404, detail="Receipt not found")
 
         # Build dynamic update query
@@ -452,7 +452,7 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate, request: Request):
         if cur.rowcount == 0:
             conn.rollback()
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(status_code=404, detail="Receipt not found")
 
         ensure_audit_storage(conn)
@@ -477,7 +477,7 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate, request: Request):
         )
         conn.commit()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         paper_status = "paper-verified" if receipt.is_paper_verified else "data-verified"
         return {"message": f"Receipt updated successfully ({paper_status})"}
@@ -487,7 +487,7 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate, request: Request):
     except Exception as e:
         conn.rollback()
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(status_code=500, detail=f"Failed to update receipt: {e!s}")
 
 
@@ -501,7 +501,7 @@ def delete_receipt(receipt_id: int, request: Request):
         before_snapshot = _load_receipt_snapshot(conn, receipt_id)
         if before_snapshot is None:
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(status_code=404, detail="Receipt not found")
 
         # Delete receipt
@@ -510,7 +510,7 @@ def delete_receipt(receipt_id: int, request: Request):
         if cur.rowcount == 0:
             conn.rollback()
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(status_code=404, detail="Receipt not found")
 
         ensure_audit_storage(conn)
@@ -534,7 +534,7 @@ def delete_receipt(receipt_id: int, request: Request):
         )
         conn.commit()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         return {"message": "Receipt deleted successfully"}
 
@@ -543,7 +543,7 @@ def delete_receipt(receipt_id: int, request: Request):
     except Exception as e:
         conn.rollback()
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(status_code=500, detail=f"Failed to delete receipt: {e!s}")
 
 
@@ -587,6 +587,6 @@ def get_expense_summary(start_date: dt_date | None = None, end_date: dt_date | N
         )
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return summary

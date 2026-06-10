@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/vehicles", tags=["vehicles"])
 
@@ -165,7 +165,7 @@ def list_vehicles():
         raise HTTPException(status_code=500, detail=f"Failed to list vehicles: {e}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.post("/", responses={500: {"description": "Failed to create vehicle"}})
@@ -229,7 +229,7 @@ def create_vehicle(vehicle_data: dict, request: Request):
         raise HTTPException(status_code=500, detail=f"Failed to create vehicle: {e}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.put("/{vehicle_id}", responses={500: {"description": "Failed to update vehicle"}})
@@ -306,4 +306,4 @@ def update_vehicle(vehicle_id: int, vehicle_data: dict, request: Request):
         raise HTTPException(status_code=500, detail=f"Failed to update vehicle: {e}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)

@@ -17,7 +17,7 @@ from pydantic import BaseModel
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/pricing", tags=["pricing"])
 
@@ -95,7 +95,7 @@ def get_all_pricing_defaults():
         raise HTTPException(status_code=500, detail=f"Failed to load pricing: {e}") from e
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/by-vehicle/{vehicle_type}")
@@ -143,7 +143,7 @@ def get_pricing_by_vehicle(vehicle_type: str):
         raise HTTPException(status_code=500, detail=f"Failed to load pricing: {e}") from e
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.post("/calculate-quotes")
@@ -372,7 +372,7 @@ def calculate_quotes(request: QuoteRequest, http_request: Request):
         raise HTTPException(status_code=500, detail=f"Failed to calculate quotes: {e}") from e
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/charter-types")
@@ -405,4 +405,4 @@ def get_charter_types():
         raise HTTPException(status_code=500, detail=f"Failed to load charter types: {e}") from e
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)

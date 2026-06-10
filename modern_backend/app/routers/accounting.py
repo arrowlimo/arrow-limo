@@ -6,7 +6,7 @@ from decimal import Decimal
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/accounting", tags=["accounting"])
 
@@ -87,7 +87,7 @@ def get_accounting_stats(month: int | None = None, year: int | None = None):
         gst_owed = 0
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return {
         "monthly_revenue": float(monthly_revenue) if monthly_revenue else 0,
@@ -164,7 +164,7 @@ def get_gst_summary(
     gst_paid = cur.fetchone()[0] or 0
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return {
         "collected": float(gst_collected),
@@ -208,7 +208,7 @@ def list_chart_of_accounts(only_active: bool = True):
         ]
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/reports/profit-loss")
@@ -282,7 +282,7 @@ def get_profit_loss_report(start_date: date | None = None, end_date: date | None
     net_profit = revenue["total_revenue"] - total_expenses
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return {
         "period_start": start_date,
@@ -336,7 +336,7 @@ def get_cash_flow_report(start_date: date | None = None, end_date: date | None =
     net_cash_flow = cash_in - cash_out
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return {
         "period_start": start_date,
@@ -420,7 +420,7 @@ def get_ar_aging_report():
             totals["over_90_days"] += amount
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return {
         "aging": aging,

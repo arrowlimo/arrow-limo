@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import cursor, get_connection
+from ..db import cursor, get_connection, return_connection
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -502,7 +502,7 @@ def legacy_ops_report(
             },
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 # ── Phase 2 endpoints ────────────────────────────────────────────────────────
@@ -650,7 +650,7 @@ def long_trip_report(
             "items": items,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/invoiced-charges")
@@ -747,7 +747,7 @@ def invoiced_charges_report(
             "items": items,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/driver-pay")
@@ -876,7 +876,7 @@ def driver_pay_report(
             "items": items,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/fleet")
@@ -1059,7 +1059,7 @@ def client_activity_report(
             "items": items,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/payment-list")
@@ -1248,7 +1248,7 @@ def aged_receivables_report(
             "items": items,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/income-summary")
@@ -1469,7 +1469,7 @@ def short_trip_report(
             "items": items,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/trial-balance")
@@ -1868,7 +1868,7 @@ def vehicle_performance(
             },
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/driver-costs")
@@ -1959,7 +1959,7 @@ def driver_costs(
             "totals": totals,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/driver-monthly-costs")
@@ -2028,7 +2028,7 @@ def driver_monthly_costs(
             "periods": periods,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/vehicle-insurance-yearly")
@@ -2079,7 +2079,7 @@ def vehicle_insurance_yearly(years: int = Query(5, ge=1, le=15)):
             "items": data,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/vehicle-damage-summary")
@@ -2146,7 +2146,7 @@ def vehicle_damage_summary(
             "totals": totals,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/pl-categories")
@@ -2280,7 +2280,7 @@ def vehicle_revenue(
             "totals": totals,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/driver-revenue-vs-pay")
@@ -2419,7 +2419,7 @@ def driver_revenue_vs_pay(
             "totals": totals,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/bank-reconciliation-suggestions")
@@ -2494,7 +2494,7 @@ def bank_reconciliation_suggestions(
             "items": suggestions,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/fleet-maintenance-summary")
@@ -2582,7 +2582,7 @@ def fleet_maintenance_summary(
             "totals": totals,
         }
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/cra-audit-export")
@@ -2934,7 +2934,7 @@ Generated via Arrow Limousine Reports Dashboard
 
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/accounting/views")
@@ -3000,7 +3000,7 @@ def get_accounting_export_views():
 
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/quickbooks/views")
@@ -3108,7 +3108,7 @@ def export_accounting_view(
 
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/quickbooks/export/{view_name}")
@@ -3261,7 +3261,7 @@ Generated via Arrow Limousine Accounting Export Dashboard
 
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/quickbooks/export-all")
@@ -3308,7 +3308,7 @@ def list_accounting_rules():
         ]
         return {"count": len(items), "items": items}
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.post("/accounting/rules")
@@ -3369,7 +3369,7 @@ def create_accounting_rule(payload: AccountingRuleUpsert, request: Request):
             detail=f"failed_to_create_rule: {exc}",
         ) from exc
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.put("/accounting/rules/{rule_id}")
@@ -3449,7 +3449,7 @@ def update_accounting_rule(
             detail=f"failed_to_update_rule: {exc}",
         ) from exc
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.delete("/accounting/rules/{rule_id}")
@@ -3496,7 +3496,7 @@ def delete_accounting_rule(rule_id: int, request: Request):
         conn.rollback()
         raise
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.post("/accounting/reclassify/receipts")
@@ -3577,7 +3577,7 @@ def reclassify_receipts_gl(payload: ReceiptGLReclassifyRequest, request: Request
         conn.rollback()
         raise
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.post("/accounting/reclassify/ledger")
@@ -3662,7 +3662,7 @@ def reclassify_ledger_rows(payload: LedgerReclassifyRequest, request: Request):
         conn.rollback()
         raise
     finally:
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/company-snapshot")

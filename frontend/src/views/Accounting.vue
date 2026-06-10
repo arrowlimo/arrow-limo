@@ -475,8 +475,15 @@ async function loadAccountingData() {
       query += '?' + params.join('&');
     }
     
-    // Fetch receipts from backend API with year filter
-    const receiptsResp = await fetch(query);
+    // These four endpoints are independent, so fetch them concurrently and
+    // process the results afterwards (cuts load time to the slowest call).
+    const [receiptsResp, statsResp, invoicesResp, gstResp] = await Promise.all([
+      fetch(query),
+      fetch('/api/accounting/stats').catch(() => null),
+      fetch('/api/invoices').catch(() => null),
+      fetch('/api/accounting/gst/summary').catch(() => null),
+    ]);
+
     if (!receiptsResp.ok) throw new Error('Failed to fetch receipts');
     const receiptsData = await receiptsResp.json();
     // Map backend fields to frontend expected fields
@@ -494,8 +501,7 @@ async function loadAccountingData() {
 
     // Dashboard stats from backend accounting endpoint.
     try {
-      const statsResp = await fetch('/api/accounting/stats');
-      if (statsResp.ok) {
+      if (statsResp && statsResp.ok) {
         const s = await statsResp.json();
         stats.value = {
           monthlyRevenue: Number(s.monthly_revenue || 0),
@@ -504,6 +510,8 @@ async function loadAccountingData() {
           outstandingReceivables: Number(s.outstanding_receivables || 0),
           gstOwed: Number(s.gst_owed || 0)
         };
+      } else {
+        throw new Error('stats unavailable');
       }
     } catch (_e) {
       stats.value = {
@@ -514,10 +522,9 @@ async function loadAccountingData() {
         gstOwed: 0
       };
     }
-    // Fetch invoices from backend API
+    // Invoices from backend API
     try {
-      const invoicesResp = await fetch('/api/invoices');
-      if (invoicesResp.ok) {
+      if (invoicesResp && invoicesResp.ok) {
         const invoicesData = await invoicesResp.json();
         // Defensive: handle both {results: [...]} and []
         const raw = Array.isArray(invoicesData) ? invoicesData : (invoicesData.results || []);
@@ -539,13 +546,14 @@ async function loadAccountingData() {
       invoices.value = [];
     }
     try {
-      const gstResp = await fetch('/api/accounting/gst/summary');
-      if (gstResp.ok) {
+      if (gstResp && gstResp.ok) {
         const g = await gstResp.json();
         gstData.value = {
           collected: Number(g.collected || 0),
           paid: Number(g.paid || 0)
         };
+      } else {
+        gstData.value = { collected: 0, paid: 0 };
       }
     } catch (_e) {
       gstData.value = {

@@ -58,14 +58,15 @@ def get_connection():
             conn_pool = _get_pool()
             conn = conn_pool.getconn()
 
-            # Test if connection is alive
+            # Set search_path (Neon's pooler rejects it as a startup option,
+            # so it must be issued post-connect). Running it in autocommit also
+            # makes it double as a liveness probe in a single round-trip
+            # (down from the previous SELECT 1 + SET + COMMIT).
             try:
-                with conn.cursor() as cur:
-                    cur.execute("SELECT 1")
-                # Set search_path for Neon compatibility
+                conn.autocommit = True
                 with conn.cursor() as cur:
                     cur.execute("SET search_path TO public")
-                conn.commit()
+                conn.autocommit = False
                 return conn
             except (psycopg2.OperationalError, psycopg2.InterfaceError):
                 # Connection is stale, return it and try again
@@ -91,9 +92,10 @@ def get_connection():
                         password=os.environ.get("DB_PASSWORD", ""),
                         **_ssl_kwargs2,
                     )
+                    conn.autocommit = True
                     with conn.cursor() as cur:
                         cur.execute("SET search_path TO public")
-                    conn.commit()
+                    conn.autocommit = False
                     return conn
                 except Exception as err:
                     raise e from err
@@ -103,7 +105,11 @@ def get_connection():
 
 
 def return_connection(conn):
-    """Return a connection to the pool"""
+    """Return a connection to the pool, rolled back so it's clean for reuse."""
+    # Clear any open/aborted transaction left by the caller so the next
+    # checkout of this pooled connection starts clean.
+    with suppress(Exception):
+        conn.rollback()
     try:
         conn_pool = _get_pool()
         conn_pool.putconn(conn)
