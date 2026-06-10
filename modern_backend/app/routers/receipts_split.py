@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/receipts", tags=["receipts-split"])
 
@@ -189,4 +189,4 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest, request: Request):
         return {"status": "error", "error": str(e)}
     finally:
         with contextlib.suppress(Exception):
-            conn.close()
+            return_connection(conn)

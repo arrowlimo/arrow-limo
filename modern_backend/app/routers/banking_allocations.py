@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/banking", tags=["banking-allocations"])
 
@@ -77,7 +77,7 @@ def preview_allocations(transaction_id: int):
         }
     finally:
         with contextlib.suppress(Exception):
-            conn.close()
+            return_connection(conn)
 
 
 @router.post("/{transaction_id}/allocate")
@@ -195,4 +195,4 @@ def allocate_banking_to_receipts(
         return {"status": "error", "error": str(e)}
     finally:
         with contextlib.suppress(Exception):
-            conn.close()
+            return_connection(conn)

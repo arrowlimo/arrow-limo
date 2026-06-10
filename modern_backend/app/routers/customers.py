@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/customers", tags=["customers"])
 
@@ -93,7 +93,7 @@ def search_customers(
         raise HTTPException(status_code=500, detail=f"Failed to search customers: {e}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/")
@@ -143,7 +143,7 @@ def list_all_customers():
         raise HTTPException(status_code=500, detail=f"Failed to list customers: {e}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.post("/")
@@ -262,4 +262,4 @@ def upsert_customer(payload: dict[str, Any], request: Request):
         raise HTTPException(status_code=500, detail=f"Failed to save customer: {e}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)

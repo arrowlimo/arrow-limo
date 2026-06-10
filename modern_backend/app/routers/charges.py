@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import cursor, get_connection
+from ..db import cursor, get_connection, return_connection
 
 router = APIRouter(prefix="/api", tags=["charges"])
 
@@ -264,7 +264,7 @@ def get_charge_catalog(
         raise HTTPException(status_code=500, detail=f"Failed to load charge catalog: {e}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
 
 
 @router.get("/charges/by-reserve/{reserve_number}")
@@ -312,4 +312,4 @@ def get_charges_by_reserve(reserve_number: str):
         raise HTTPException(status_code=500, detail=f"Failed to load charges: {e}")
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)

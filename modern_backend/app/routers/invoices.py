@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/invoices", tags=["invoices"])
 
@@ -210,7 +210,7 @@ def get_invoices(
         )
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return invoices
 
@@ -258,7 +258,7 @@ def get_invoice(invoice_id: int):
     row = cur.fetchone()
     if not row:
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
     invoice = {
@@ -279,7 +279,7 @@ def get_invoice(invoice_id: int):
     }
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return invoice
 
@@ -365,7 +365,7 @@ def create_invoice(invoice: InvoiceCreate, request: Request):
         conn.commit()
 
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         return {
             "invoice_id": invoice_id,
@@ -375,7 +375,7 @@ def create_invoice(invoice: InvoiceCreate, request: Request):
     except Exception as e:
         conn.rollback()
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(status_code=500, detail=f"Failed to create invoice: {e!s}")
 
 
@@ -393,7 +393,7 @@ def update_invoice(
         audit_before = _load_invoice_snapshot(conn, invoice_id)
         if audit_before is None:
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
         updates = []
@@ -458,7 +458,7 @@ def update_invoice(
         if cur.rowcount == 0:
             conn.rollback()
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
         audit_after = _load_invoice_snapshot(conn, invoice_id) or audit_before
@@ -483,7 +483,7 @@ def update_invoice(
         )
         conn.commit()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         return {"message": "Invoice updated successfully"}
 
@@ -492,7 +492,7 @@ def update_invoice(
     except Exception as e:
         conn.rollback()
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(status_code=500, detail=f"Failed to update invoice: {e!s}")
 
 
@@ -513,7 +513,7 @@ def mark_invoice_paid(
         before_snapshot = _load_invoice_snapshot(conn, invoice_id)
         if before_snapshot is None:
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
         cur.execute(
@@ -530,7 +530,7 @@ def mark_invoice_paid(
         if cur.rowcount == 0:
             conn.rollback()
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
         ensure_audit_storage(conn)
@@ -555,7 +555,7 @@ def mark_invoice_paid(
         )
         conn.commit()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         return {"message": "Invoice marked as paid"}
 
@@ -564,7 +564,7 @@ def mark_invoice_paid(
     except Exception as e:
         conn.rollback()
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(status_code=500, detail=f"Failed to mark invoice as paid: {e!s}")
 
 
@@ -578,7 +578,7 @@ def delete_invoice(invoice_id: int, request: Request):
         before_snapshot = _load_invoice_snapshot(conn, invoice_id)
         if before_snapshot is None:
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
         cur.execute("DELETE FROM invoices WHERE invoice_id = %s", (invoice_id,))
@@ -586,7 +586,7 @@ def delete_invoice(invoice_id: int, request: Request):
         if cur.rowcount == 0:
             conn.rollback()
             cur.close()
-            conn.close()
+            return_connection(conn)
             raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
         ensure_audit_storage(conn)
@@ -610,7 +610,7 @@ def delete_invoice(invoice_id: int, request: Request):
         )
         conn.commit()
         cur.close()
-        conn.close()
+        return_connection(conn)
 
         return {"message": "Invoice deleted successfully"}
 
@@ -619,7 +619,7 @@ def delete_invoice(invoice_id: int, request: Request):
     except Exception as e:
         conn.rollback()
         cur.close()
-        conn.close()
+        return_connection(conn)
         raise HTTPException(status_code=500, detail=f"Failed to delete invoice: {e!s}")
 
 
@@ -653,6 +653,6 @@ def get_invoice_stats():
     }
 
     cur.close()
-    conn.close()
+    return_connection(conn)
 
     return stats

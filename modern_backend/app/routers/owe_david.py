@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 
-from ..db import get_connection
+from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/owe-david", tags=["owe-david"])
 
@@ -71,4 +71,4 @@ def list_owe_david_transactions():
         ) from e
     finally:
         cur.close()
-        conn.close()
+        return_connection(conn)
