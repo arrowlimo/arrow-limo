@@ -524,14 +524,33 @@ class VehicleManagementWidget(QWidget):
         self.maintenance_notes_input = QTextEdit()
         self.maintenance_notes_input.setFixedHeight(100)
 
-        layout.addRow("Next Service Due", self.next_service_due_input)
-        layout.addRow("Last Service Date", self.last_service_date_input)
+        for _w in (
+            self.next_service_due_input, self.last_service_date_input,
+            self.service_cost_input, self.service_odometer_input,
+        ):
+            _w.setMaximumWidth(160)
+        self.service_type_input.setMaximumWidth(220)
+
+        def _pair(label1, widget1, label2, widget2):
+            row = QHBoxLayout()
+            row.addWidget(widget1)
+            row.addSpacing(24)
+            row.addWidget(QLabel(label2))
+            row.addWidget(widget2)
+            row.addStretch()
+            layout.addRow(label1, row)
+
+        _pair("Next Service Due", self.next_service_due_input,
+              "Last Service Date", self.last_service_date_input)
+        _pair("Service Cost", self.service_cost_input,
+              "Odometer", self.service_odometer_input)
         layout.addRow("Service Type", self.service_type_input)
-        layout.addRow("Service Cost", self.service_cost_input)
-        layout.addRow("Odometer", self.service_odometer_input)
         layout.addRow("Maintenance Notes", self.maintenance_notes_input)
 
-        widget.setLayout(layout)
+        layout.setVerticalSpacing(10)
+        outer = QVBoxLayout(widget)
+        outer.addLayout(layout)
+        outer.addStretch()
         return widget
 
     def _create_insurance_tab(self) -> object:
@@ -553,13 +572,32 @@ class VehicleManagementWidget(QWidget):
         self.financing_notes_input = QTextEdit()
         self.financing_notes_input.setFixedHeight(80)
 
-        layout.addRow("Insurance Policy Number", self.insurance_policy_input)
-        layout.addRow("Policy End Date", self.policy_end_date_input)
-        layout.addRow("Registration Expiry", self.registration_expiry_input)
-        layout.addRow("Financing Status", self.financing_status_input)
+        self.insurance_policy_input.setMaximumWidth(220)
+        self.financing_status_input.setMaximumWidth(160)
+        for _w in (
+            self.policy_end_date_input, self.registration_expiry_input,
+        ):
+            _w.setMaximumWidth(160)
+
+        def _pair(label1, widget1, label2, widget2):
+            row = QHBoxLayout()
+            row.addWidget(widget1)
+            row.addSpacing(24)
+            row.addWidget(QLabel(label2))
+            row.addWidget(widget2)
+            row.addStretch()
+            layout.addRow(label1, row)
+
+        _pair("Insurance Policy Number", self.insurance_policy_input,
+              "Financing Status", self.financing_status_input)
+        _pair("Policy End Date", self.policy_end_date_input,
+              "Registration Expiry", self.registration_expiry_input)
         layout.addRow("Financing Notes", self.financing_notes_input)
 
-        widget.setLayout(layout)
+        layout.setVerticalSpacing(10)
+        outer = QVBoxLayout(widget)
+        outer.addLayout(layout)
+        outer.addStretch()
         return widget
 
     def _create_documents_tab(self) -> object:
