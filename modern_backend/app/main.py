@@ -58,8 +58,8 @@ from .routers import table_management as table_management_router
 from .routers import vehicles as vehicles_router
 from .routers import vendor_standardization as vendor_standardization_router
 from .audit import router as audit_router
-from .routes import cheque_books as cheque_books_router
-from .routes import received_payments as received_payments_router
+from .routers import cheque_books as cheque_books_router
+from .routers import received_payments as received_payments_router
 from .settings import get_settings
 
 # Load environment variables from .env before settings resolution.
