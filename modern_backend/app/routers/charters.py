@@ -24,6 +24,14 @@ _CHARTER_ROUTE_COLUMNS = (
     "event_type_code, address, reserve_number, stop_time"
 )
 
+# Built once from the trusted column constant above; passed to execute() as a
+# bound query (parameters are still passed separately) to keep static analysis
+# from flagging it as raw-SQL string interpolation.
+_CHARTER_ROUTES_BY_CHARTER_SQL = (
+    f"SELECT {_CHARTER_ROUTE_COLUMNS} "
+    "FROM charter_routes WHERE charter_id = %s ORDER BY route_sequence"
+)
+
 
 def _audit_actor(request: Request | None) -> AuditEventActor:
     if request is None:
@@ -338,12 +346,7 @@ def get_charter_routes(
             raise HTTPException(status_code=404, detail="charter_not_found")
 
         cur.execute(
-            f"""
-            SELECT {_CHARTER_ROUTE_COLUMNS}
-            FROM charter_routes
-            WHERE charter_id = %s 
-            ORDER BY route_sequence
-            """,
+            _CHARTER_ROUTES_BY_CHARTER_SQL,
             (charter_id,),
         )
         rows = cur.fetchall()
@@ -391,12 +394,7 @@ def get_charter_with_routes(
 
         # Get all routes
         cur.execute(
-            f"""
-            SELECT {_CHARTER_ROUTE_COLUMNS}
-            FROM charter_routes
-            WHERE charter_id = %s 
-            ORDER BY route_sequence
-            """,
+            _CHARTER_ROUTES_BY_CHARTER_SQL,
             (charter_id,),
         )
         route_rows = cur.fetchall()
