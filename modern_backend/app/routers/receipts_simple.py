@@ -685,13 +685,13 @@ def create_receipt(receipt: SimpleReceiptCreate, request: Request):
         cur.execute(
             """
             INSERT INTO receipts (
-                receipt_date, vendor_name, canonical_vendor, invoice_number,
+                receipt_date, vendor_name, canonical_vendor,
                 gross_amount, gst_amount, gst_code,
                 category, description, vehicle_id, charter_id, employee_id,
                 reserve_number,
                 fuel_amount, owner_personal_amount, gl_account_code,
                 gl_account_name)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s)
             RETURNING receipt_id
         """,
@@ -699,7 +699,6 @@ def create_receipt(receipt: SimpleReceiptCreate, request: Request):
                 receipt.receipt_date,
                 receipt.vendor_name,
                 canonical_vendor,
-                receipt.invoice_number,
                 receipt.gross_amount,
                 gst,
                 effective_gst_code,
@@ -751,7 +750,7 @@ def create_receipt(receipt: SimpleReceiptCreate, request: Request):
         cur.execute(
             """
             SELECT receipt_id, receipt_date, vendor_name, canonical_vendor,
-            invoice_number, gross_amount,
+            NULL AS invoice_number, gross_amount,
                    gst_amount, gst_code, category, description, vehicle_id,
                    charter_id, 
                    employee_id, reserve_number, fuel_amount,
@@ -811,7 +810,7 @@ def get_receipts(
 
     query = """
          SELECT receipt_id, receipt_date, vendor_name, canonical_vendor,
-         invoice_number, gross_amount,
+         NULL AS invoice_number, gross_amount,
              gst_amount, gst_code, category, description, vehicle_id,
              fuel_amount,
              owner_personal_amount, gl_account_code, gl_account_name
@@ -873,7 +872,7 @@ def get_receipt(receipt_id: int):
     cur.execute(
         """
         SELECT receipt_id, receipt_date, vendor_name, canonical_vendor,
-        invoice_number, gross_amount,
+        NULL AS invoice_number, gross_amount,
                gst_amount, gst_code, category, description, vehicle_id,
                charter_id,
                employee_id, reserve_number, fuel_amount, owner_personal_amount,
@@ -1000,7 +999,6 @@ def update_receipt(
                 receipt_date = %s,
                 vendor_name = %s,
                 canonical_vendor = %s,
-                invoice_number = %s,
                 gross_amount = %s,
                 gst_amount = %s,
                 gst_code = %s,
@@ -1023,7 +1021,6 @@ def update_receipt(
                 receipt.receipt_date,
                 receipt.vendor_name,
                 canonical_vendor,
-                receipt.invoice_number,
                 receipt.gross_amount,
                 gst,
                 effective_gst_code,
@@ -1075,7 +1072,7 @@ def update_receipt(
         cur.execute(
             """
             SELECT receipt_id, receipt_date, vendor_name, canonical_vendor,
-            invoice_number, gross_amount,
+            NULL AS invoice_number, gross_amount,
                    gst_amount, gst_code, category, description, vehicle_id,
                    charter_id,
                    employee_id, reserve_number, fuel_amount,
