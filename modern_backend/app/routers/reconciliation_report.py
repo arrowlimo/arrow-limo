@@ -20,9 +20,7 @@ logger = logging.getLogger(__name__)
 def _audit_actor(request: Request | None) -> AuditEventActor:
     if request is None:
         return AuditEventActor(actor_type="system", username="system")
-    username = request.headers.get("X-User-Name") or request.headers.get(
-        "X-User"
-    )
+    username = request.headers.get("X-User-Name") or request.headers.get("X-User")
     role = request.headers.get("X-User-Role")
     user_id = request.headers.get("X-User-Id")
     if not username:
@@ -89,9 +87,7 @@ async def get_banking_receipt_reconciliation(
             WHERE table_schema = 'public' AND table_name = 'receipts'
             """)
         receipt_cols = {row[0] for row in cur.fetchall()}
-        receipt_total_expr = (
-            "r.gross_amount" if "gross_amount" in receipt_cols else "r.amount"
-        )
+        receipt_total_expr = "r.gross_amount" if "gross_amount" in receipt_cols else "r.amount"
         if "gl_account_code" in receipt_cols and "gl_code" in receipt_cols:
             receipt_gl_expr = "COALESCE(r.gl_account_code, r.gl_code)"
         elif "gl_account_code" in receipt_cols:
@@ -148,9 +144,7 @@ async def get_banking_receipt_reconciliation(
             tx_date = row[1]
             banking_debit = float(row[2] or 0)
             banking_credit = float(row[3] or 0)
-            banking_amount = (
-                banking_debit if banking_debit > 0 else banking_credit
-            )
+            banking_amount = banking_debit if banking_debit > 0 else banking_credit
             tx_desc = row[4]
 
             receipt_id = row[5]
@@ -205,7 +199,7 @@ async def get_banking_receipt_reconciliation(
 
     except Exception as e:
         logger.error(f"Error generating reconciliation report: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.put("/link-banking-receipt")
@@ -257,14 +251,13 @@ async def link_banking_to_receipt(
 
         return {
             "status": "success",
-            "message": f"Linked receipt {receipt_id} to banking tx"
-            "{banking_id}",
+            "message": f"Linked receipt {receipt_id} to banking tx" "{banking_id}",
         }
 
     except Exception as e:
         conn.rollback()
         logger.error(f"Error linking banking to receipt: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.put("/update-receipt-inline")
@@ -335,7 +328,7 @@ async def update_receipt_field(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error updating receipt: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/unlinked-banking")
@@ -388,4 +381,4 @@ async def get_unlinked_banking(
 
     except Exception as e:
         logger.error(f"Error getting unlinked banking: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))

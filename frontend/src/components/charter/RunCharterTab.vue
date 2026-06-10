@@ -489,8 +489,9 @@ async function refreshPricingEstimate() {
     charterForm.value.charter_fee_amount = Number(selected.total_before_gratuity || 0)
     charterForm.value.hourly_rate = Number(selected.base_rate || 0)
     charterForm.value.wait_time_rate = Number(selected.standby_rate || charterForm.value.wait_time_rate || 0)
-  } catch (_) {
+  } catch (e) {
     // Non-blocking: form remains editable even if pricing service is unavailable.
+    console.warn('Pricing estimate unavailable:', e)
   }
 }
 
@@ -881,7 +882,19 @@ async function saveCharter() {
         driver_name: completeCharterData.driver_name || currentCharter.value?.driver_name || '',
         notes: completeCharterData.client_notes || completeCharterData.dispatcher_notes || '',
         total_amount_due: completeCharterData.grand_total || charterGrandTotal.value,
-        status: completeCharterData.status || currentCharter.value?.status || 'pending'
+        status: completeCharterData.status || currentCharter.value?.status || 'pending',
+        // Billing breakdown — keep charters table in sync so invoice PDF matches
+        subtotal: charterSubtotal.value,
+        gst_amount: charterGstAmount.value,
+        grand_total: charterGrandTotal.value,
+        gst_exempt: charterForm.value.gst_exempt || false,
+        charter_fee_amount: charterForm.value.charter_fee_amount || 0,
+        beverage_total: charterForm.value.beverage_total || 0,
+        fuel_litres: charterForm.value.fuel_litres || 0,
+        fuel_price: charterForm.value.fuel_price || 0,
+        gratuity_amount: charterForm.value.gratuity_amount || 0,
+        extra_gratuity: charterForm.value.extra_gratuity || 0,
+        custom_charges: charterForm.value.custom_charges || []
       }
       response = await authFetch(`/api/charters/${currentCharterId}`, {
         method: 'PATCH',
@@ -912,9 +925,6 @@ async function saveCharter() {
       console.log('Charter saved successfully:', result)
       alert('Charter saved successfully!')
       currentCharter.value = result
-      
-      // Reload the charter to ensure form shows updated data
-      await loadCharter(result)
     } else {
       throw new Error(`Save failed with status ${response.status}`)
     }
@@ -1043,11 +1053,12 @@ async function emailConfirmation() {
       recipient = recipient || booking?.email || booking?.client_email || ''
       reserveNumber = reserveNumber || booking?.reserve_number || ''
     }
-  } catch (_) {
+  } catch (e) {
     // Non-fatal; we'll continue with what we already have.
+    console.warn('Could not prefetch booking for confirmation email:', e)
   }
 
-  const confirmationUrl = `${window.location.origin}/api/charters/${currentCharterId}/confirmation-letter-pdf`
+  const confirmationUrl = `${globalThis.location.origin}/api/charters/${currentCharterId}/confirmation-letter-pdf`
   const subject = `Charter Confirmation ${reserveNumber ? `- ${reserveNumber}` : ''}`
   const body = [
     'Hi,',
@@ -1060,7 +1071,7 @@ async function emailConfirmation() {
   ].join('\n')
 
   const mailto = `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-  window.location.href = mailto
+  globalThis.location.href = mailto
 }
 
 async function emailInvoice() {
@@ -1079,11 +1090,12 @@ async function emailInvoice() {
       recipient = recipient || booking?.email || booking?.client_email || ''
       reserveNumber = reserveNumber || booking?.reserve_number || ''
     }
-  } catch (_) {
+  } catch (e) {
     // non-fatal
+    console.warn('Could not prefetch booking for invoice email:', e)
   }
 
-  const invoiceUrl = `${window.location.origin}/api/charters/${currentCharterId}/invoice-pdf-preview`
+  const invoiceUrl = `${globalThis.location.origin}/api/charters/${currentCharterId}/invoice-pdf-preview`
   const subject = `Charter Invoice ${reserveNumber ? `- ${reserveNumber}` : ''}`
   const body = [
     'Hi,',
@@ -1096,7 +1108,7 @@ async function emailInvoice() {
   ].join('\n')
 
   const mailto = `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-  window.location.href = mailto
+  globalThis.location.href = mailto
 }
 
 async function deleteCharter() {
@@ -1126,7 +1138,90 @@ async function deleteCharter() {
   }
 }
 
-// Watchers for auto-calculations
+// ── Split-run auto-clock helpers ─────────────────────────────────────────────
+
+// Minutes difference t1→t2, midnight-crossing aware
+const _timeDiffHours = (t1, t2) => {
+  if (!t1 || !t2) return 0
+  const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
+  let diff = toMin(t2) - toMin(t1)
+  if (diff < 0) diff += 24 * 60
+  return diff / 60
+}
+
+// Normalise a route row to { eventType, time }
+const _routeInfo = (r) => ({
+  eventType: r.event_type_code || r.route_type || r.type || '',
+  time: r.pickup_time || r.time_start || r.time || '',
+})
+
+/**
+ * For hourly split runs: auto-derive split_time_before, split_time_after,
+ * do_time, and split_run_pickup_time from the route event timestamps.
+ *
+ * Clock stops  → return_red_deer  / return_to_red_deer
+ * Clock resumes → depart_red_deer  / leave_red_deer  (the SECOND occurrence)
+ */
+const autoCalcSplitFromRoutes = () => {
+  if (!charterForm.value.split_run_enabled) return
+  if (charterForm.value.charter_fee_type !== 'hourly') return
+
+  const routes = charterForm.value.routes || []
+  const RETURN_TYPES  = new Set(['return_red_deer', 'return_to_red_deer'])
+  const DEPART_TYPES  = new Set(['depart_red_deer', 'leave_red_deer'])
+
+  // 1. Find the return-to-Red-Deer event
+  let returnIdx = -1; let returnTime = null
+  for (let i = 0; i < routes.length; i++) {
+    const { eventType, time } = _routeInfo(routes[i])
+    if (RETURN_TYPES.has(eventType) && time) { returnIdx = i; returnTime = time; break }
+  }
+  if (returnIdx < 0) return
+
+  // 2. Find the second leave-Red-Deer event (after the return)
+  let secondDepartIdx = -1; let secondDepartTime = null
+  for (let i = returnIdx + 1; i < routes.length; i++) {
+    const { eventType, time } = _routeInfo(routes[i])
+    if (DEPART_TYPES.has(eventType) && time) {
+      secondDepartIdx = i; secondDepartTime = time; break
+    }
+  }
+  if (secondDepartIdx < 0) return
+
+  // 3. First event time (for timeBefore start)
+  let firstTime = null
+  for (let i = 0; i < returnIdx; i++) {
+    const { time } = _routeInfo(routes[i])
+    if (time) { firstTime = time; break }
+  }
+  if (!firstTime) firstTime = charterForm.value.pickup_time
+
+  // 4. Last event time (for timeAfter end)
+  let lastTime = null
+  for (let i = routes.length - 1; i > secondDepartIdx; i--) {
+    const { time } = _routeInfo(routes[i])
+    if (time) { lastTime = time; break }
+  }
+  if (!lastTime) lastTime = secondDepartTime
+
+  const tBefore = Math.max(0, Math.round(_timeDiffHours(firstTime, returnTime) * 100) / 100)
+  const tAfter  = Math.max(0, Math.round(_timeDiffHours(secondDepartTime, lastTime) * 100) / 100)
+  if (tBefore === 0 && tAfter === 0) return
+
+  charterForm.value.split_time_before     = tBefore
+  charterForm.value.split_time_after      = tAfter
+  charterForm.value.do_time               = returnTime
+  charterForm.value.split_run_pickup_time = secondDepartTime
+
+  // Recalculate fee if hourly_rate is set
+  const rate = charterForm.value.hourly_rate || 0
+  if (rate > 0) {
+    charterForm.value.charter_fee_amount =
+      Math.round((tBefore + tAfter) * rate * 100) / 100
+  }
+}
+
+// ── Watchers for auto-calculations ───────────────────────────────────────────
 watch(() => charterForm.value.gratuity_percent, () => {
   calculateGratuity()
 })
@@ -1142,6 +1237,17 @@ watch(() => charterForm.value.out_of_town, (isOutOfTown) => {
     charterForm.value.routes[charterForm.value.routes.length - 1].type = 'Return'
   }
 })
+
+// Auto-clock: recalculate split times from route events for hourly bookings
+watch(
+  [
+    () => charterForm.value.routes,
+    () => charterForm.value.split_run_enabled,
+    () => charterForm.value.charter_fee_type,
+  ],
+  () => { autoCalcSplitFromRoutes() },
+  { deep: true }
+)
 
 watch(
   () => [route.params.id, route.query.id],

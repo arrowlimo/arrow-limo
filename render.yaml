@@ -52,6 +52,28 @@ services:
         value: $PORT
       - key: ENVIRONMENT
         value: production
+      - key: TRUSTED_HOSTS
+        value: arrow-limousine-api.onrender.com
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: "0.05"
+      - key: VUE_APP_SENTRY_DSN
+        sync: false
+      - key: VUE_APP_SENTRY_TRACES_SAMPLE_RATE
+        value: "0.05"
+      - key: VUE_APP_ENVIRONMENT
+        value: production
+      - key: LOG_REQUESTS
+        value: "true"
+      - key: SECURITY_HEADERS_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_REQUESTS
+        value: "120"
+      - key: RATE_LIMIT_WINDOW_SECONDS
+        value: "60"
       
       # Session
       - key: SESSION_TIMEOUT_MINUTES

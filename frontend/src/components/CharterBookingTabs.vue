@@ -176,14 +176,26 @@ const tabs = [
   { id: 'history', label: 'History', icon: '📊' }
 ]
 
-// Vehicle pricing lookup (would come from API in production)
-const vehicleRates = {
-  sedan: 150,
-  suv: 200,
-  stretch: 350,
-  shuttle: 400,
-  party_bus: 600,
-  coach: 800
+// Vehicle pricing — loaded from DB via /api/lookup/vehicle-types on mount
+const vehicleRates = ref({})
+
+const loadVehicleRates = async () => {
+  try {
+    const res = await authFetch('/api/lookup/vehicle-types')
+    if (res.ok) {
+      const data = await res.json()
+      const map = {}
+      data.forEach(vt => {
+        // Store hourly_rate keyed by normalised type name for calculateVehicleRate()
+        const key = vt.vehicle_type.toLowerCase().replace(/[^a-z0-9]/g, '_')
+        map[key] = vt.hourly_rate || 0
+        map[vt.vehicle_type] = vt.hourly_rate || 0  // also store exact name
+      })
+      vehicleRates.value = map
+    }
+  } catch (e) {
+    console.warn('Could not load vehicle rates from API:', e)
+  }
 }
 
 // Methods
@@ -235,7 +247,7 @@ function formatVehicleType(type) {
 }
 
 function calculateVehicleRate(type) {
-  return vehicleRates[type] || 0
+  return vehicleRates.value[type] || vehicleRates.value[String(type).toLowerCase().replace(/[^a-z0-9]/g, '_')] || 0
 }
 
 function calculateGrandTotal() {
@@ -287,6 +299,7 @@ function closeBooking() {
 }
 
 onMounted(() => {
+  loadVehicleRates()
   // Load charter if editing existing
   const charterId = route.params.id
   if (charterId) {

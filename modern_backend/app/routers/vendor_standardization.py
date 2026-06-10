@@ -6,8 +6,8 @@ Vendor Standardization Tool - identify and clean up vendor names
 - Track standardization history
 """
 
-from datetime import date
 import logging
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -47,9 +47,7 @@ class VendorMerge(BaseModel):
 
 
 @router.get("/list-all")
-async def get_all_vendors(
-    min_receipts: int = Query(1, ge=1), conn=Depends(get_connection)
-):
+async def get_all_vendors(min_receipts: int = Query(1, ge=1), conn=Depends(get_connection)):
     """Get list of all vendors with receipt counts, sorted by frequency"""
     try:
         cur = conn.cursor()
@@ -87,14 +85,12 @@ async def get_all_vendors(
 
     except Exception as e:
         logger.error(f"Error listing vendors: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/find-variations")
 async def find_vendor_variations(
-    vendor_prefix: str = Query(
-        ..., min_length=3, description="First few chars"
-    ),
+    vendor_prefix: str = Query(..., min_length=3, description="First few chars"),
     conn=Depends(get_connection),
 ):
     """Find all vendor name variations starting with prefix"
@@ -126,13 +122,11 @@ async def find_vendor_variations(
 
     except Exception as e:
         logger.error(f"Error finding variations: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/merge-vendors")
-async def merge_vendor_names(
-    merge_request: VendorMerge, conn=Depends(get_connection)
-):
+async def merge_vendor_names(merge_request: VendorMerge, conn=Depends(get_connection)):
     """
     Merge multiple vendor names into one canonical name.
 
@@ -161,8 +155,7 @@ async def merge_vendor_names(
             SET vendor_name = %s
             WHERE LOWER(vendor_name) IN ({placeholders})
         """,
-            [canonical_name]
-            + [v.lower() for v in merge_request.source_vendors],
+            [canonical_name] + [v.lower() for v in merge_request.source_vendors],
         )
 
         affected_rows = cur.rowcount
@@ -226,13 +219,11 @@ async def merge_vendor_names(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error merging vendors: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/capitalize-all")
-async def capitalize_all_vendors(
-    dry_run: bool = Query(True), conn=Depends(get_connection)
-):
+async def capitalize_all_vendors(dry_run: bool = Query(True), conn=Depends(get_connection)):
     """
     Capitalize all vendor names (UPPER CASE).
     Use dry_run=true to preview changes before applying.
@@ -311,17 +302,14 @@ async def capitalize_all_vendors(
 
             return {
                 "status": "success",
-                "message": (
-                    f"Capitalized {affected} vendor names "
-                    f"to UPPER CASE"
-                ),
+                "message": (f"Capitalized {affected} vendor names " f"to UPPER CASE"),
                 "affected_receipts": affected,
             }
 
     except Exception as e:
         conn.rollback()
         logger.error(f"Error capitalizing vendors: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/standardization-log")
@@ -367,7 +355,7 @@ async def get_standardization_log(
 
     except Exception as e:
         logger.error(f"Error getting standardization log: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/bulk-standardize")
@@ -399,9 +387,7 @@ async def bulk_standardize_vendors(
         for correction in corrections:
             try:
                 canonical_name = correction.target_vendor.upper()
-                placeholders = ",".join(
-                    ["%s"] * len(correction.source_vendors)
-                )
+                placeholders = ",".join(["%s"] * len(correction.source_vendors))
 
                 if dry_run:
                     # Count what would change
@@ -432,8 +418,7 @@ async def bulk_standardize_vendors(
                         SET vendor_name = %s
                         WHERE LOWER(vendor_name) IN ({placeholders})
                     """,
-                        [canonical_name]
-                        + [v.lower() for v in correction.source_vendors],
+                        [canonical_name] + [v.lower() for v in correction.source_vendors],
                     )
 
                     count = cur.rowcount
@@ -496,4 +481,4 @@ async def bulk_standardize_vendors(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error bulk standardizing vendors: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))

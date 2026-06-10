@@ -1,4 +1,4 @@
-"""Owe David dashboard – reads from david_account_tracking table."""
+"""Owe David dashboard - reads from david_account_tracking table."""
 
 from fastapi import APIRouter, HTTPException
 

@@ -1,0 +1,161 @@
+2026-05-26 14:17:28 | INFO | root | Logging initialized
+ΓÜá∩╕Å ChromaDB not available - vector search disabled
+================================================================================
+Widget Smoke Test - Testing all 136 widgets
+================================================================================
+[DB TARGET] [2026-05-26 14:17:28] ACTIVE_DB_TARGET=neon host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech db=neondb user=neondb_owner sslmode=require
+Γ£à Database connected
+
+Found 113 widgets to test
+
+[1/113] Testing: ≡ƒÅó Core Operations > Fleet Management > Fleet Management... [OK] Fleet Management loaded 26 vehicles
+[OK] Fleet Management loaded 26 vehicles
+[OK] Fleet Management loaded 26 vehicles
+Γ£à
+[2/113] Testing: ≡ƒÅó Core Operations > Fleet Management > Vehicle Analytics... Γ£à
+[3/113] Testing: ≡ƒÅó Core Operations > Fleet Management > Fleet Cost Analysis... Γ£à Vehicle Fleet Cost Analysis loaded 26 vehicles
+Γ£à Vehicle Fleet Cost Analysis loaded 26 vehicles
+Γ£à Vehicle Fleet Cost Analysis loaded 26 vehicles
+Γ£à
+[4/113] Testing: ≡ƒÅó Core Operations > Fleet Management > Maintenance Tracking... Γ£à
+[5/113] Testing: ≡ƒÅó Core Operations > Fleet Management > Fuel Efficiency... Γ£à Fuel Efficiency loaded 26 vehicles
+Γ£à Fuel Efficiency loaded 26 vehicles
+Γ£à Fuel Efficiency loaded 26 vehicles
+Γ£à
+[6/113] Testing: ≡ƒÅó Core Operations > Fleet Management > Utilization Analysis... Γ£à
+[7/113] Testing: ≡ƒÅó Core Operations > Fleet Management > Fleet Age Analysis... Γ£à Fleet Age Analysis loaded 26 vehicles
+Γ£à Fleet Age Analysis loaded 26 vehicles
+Γ£à Fleet Age Analysis loaded 26 vehicles
+Γ£à
+[8/113] Testing: ≡ƒÅó Core Operations > Driver Management > Driver Performance... [OK] Driver Performance loaded 13 drivers
+[OK] Driver Performance loaded 13 drivers
+[OK] Driver Performance loaded 13 drivers
+Γ£à
+[9/113] Testing: ≡ƒÅó Core Operations > Driver Management > Driver Pay Analysis... Γ£à Driver Pay Analysis loaded 13 drivers
+Γ£à Driver Pay Analysis loaded 13 drivers
+Γ£à Driver Pay Analysis loaded 13 drivers
+Γ£à
+[10/113] Testing: ≡ƒÅó Core Operations > Driver Management > Employee Performance... Γ£à
+[11/113] Testing: ≡ƒÅó Core Operations > Driver Management > Payroll Tax Complian... Γ£à
+[12/113] Testing: ≡ƒÅó Core Operations > Driver Management > Payroll Audit... Γ£à
+[13/113] Testing: ≡ƒÅó Core Operations > Driver Management > Manual Payroll Entry... Γ£à
+[14/113] Testing: ≡ƒÅó Core Operations > Driver Management > Schedule Management... Γ£à
+[15/113] Testing: ≡ƒÅó Core Operations > Financial Core > Financial Dashboard... [OK] Financial Dashboard: Revenue $9,671,141.60, Expenses$7,672,501.39
+[OK] Financial Dashboard: Revenue $9,671,141.60, Expenses$7,672,501.39
+Γ£à
+[16/113] Testing: ≡ƒÅó Core Operations > Financial Core > Payment Reconciliation... [OK] Payment Reconciliation loaded 50 outstandingcharters
+[OK] Payment Reconciliation loaded 50 outstandingcharters
+Γ£à
+[17/113] Testing: ≡ƒÅó Core Operations > Financial Core > Advanced Reconciliation... Γ£à Customer Payments Dashboard loaded 100 charters
+Γ£à Customer Payments Dashboard loaded 100 charters
+Γ£à Customer Payments Dashboard loaded 100 charters
+Γ£à
+[18/113] Testing: ≡ƒÅó Core Operations > Financial Core > AR Aging... Γ£à
+[19/113] Testing: ≡ƒÅó Core Operations > Financial Core > Cash Flow Report... Γ£à
+[20/113] Testing: ≡ƒÅó Core Operations > Financial Core > P&L Report... Γ£à Profit & Loss Dashboard loaded
+Γ£à Profit & Loss Dashboard loaded
+Γ£à Profit & Loss Dashboard loaded
+Γ£à
+[21/113] Testing: ≡ƒÅó Core Operations > Compliance & Audit > Compliance Tracking... Γ£à
+[22/113] Testing: ≡ƒÅó Core Operations > Compliance & Audit > WCB Rates... Γ£à
+[23/113] Testing: ≡ƒÅó Core Operations > Compliance & Audit > ROE Form (One-Click... Γ£à
+[24/113] Testing: ≡ƒÅó Core Operations > Compliance & Audit > QuickBooks Recon... Γ£à
+[25/113] Testing: ≡ƒÅó Core Operations > Compliance & Audit > Budget Analysis... Γ£à
+[26/113] Testing: ≡ƒÅó Core Operations > Compliance & Audit > Insurance Tracking... Γ£à
+[27/113] Testing: ≡ƒÅó Core Operations > Compliance & Audit > Accountant Year Not... Γ£à
+[28/113] Testing: ≡ƒÜù Charter Operations > Charter Management > Charter Manageme... Γ£à
+[29/113] Testing: ≡ƒÜù Charter Operations > Charter Management > Charter Analytic... Γ£à
+[30/113] Testing: ≡ƒÜù Charter Operations > Charter Management > Advanced Analyti... Γ£à
+[31/113] Testing: ≡ƒÜù Charter Operations > Charter Management > Customer Lifetim... Γ£à
+[32/113] Testing: ≡ƒÜù Charter Operations > Charter Management > Cancellation Ana... Γ£à
+[33/113] Testing: ≡ƒÜù Charter Operations > Charter Management > Lead Time Analys... Γ£à
+[34/113] Testing: ≡ƒÜù Charter Operations > Operational Analytics > Customer Segm... Γ£à
+[35/113] Testing: ≡ƒÜù Charter Operations > Operational Analytics > Route Profita... Γ£à
+[36/113] Testing: ≡ƒÜù Charter Operations > Operational Analytics > Geographic Re... Γ£à
+[37/113] Testing: ≡ƒÜù Charter Operations > Operational Analytics > Beverage Reco... Γ£à
+[38/113] Testing: ≡ƒÜù Charter Operations > Compliance & Monitoring > HOS Complia... Γ£à
+[39/113] Testing: ≡ƒÜù Charter Operations > Compliance & Monitoring > Advanced Ma... Γ£à
+[40/113] Testing: ≡ƒÜù Charter Operations > Compliance & Monitoring > Safety Inci... Γ£à
+[41/113] Testing: ≡ƒÜù Charter Operations > Compliance & Monitoring > Vendor Perf... Γ£à
+[42/113] Testing: ≡ƒÜù Charter Operations > Real-Time Monitoring > Fleet Monitori... Γ£à
+[43/113] Testing: ≡ƒÜù Charter Operations > Real-Time Monitoring > System Health... Γ£à
+[44/113] Testing: ≡ƒÜù Charter Operations > Real-Time Monitoring > Data Quality A... Γ£à
+[45/113] Testing: ≡ƒö« Predictive Analytics > Demand & Revenue > Demand Forecasti... Γ£à
+[46/113] Testing: ≡ƒö« Predictive Analytics > Demand & Revenue > Churn Prediction... Γ£à
+[47/113] Testing: ≡ƒö« Predictive Analytics > Demand & Revenue > Revenue Optimiza... Γ£à
+[48/113] Testing: ≡ƒö« Predictive Analytics > Demand & Revenue > Customer Worth... Γ£à
+[49/113] Testing: ≡ƒö« Predictive Analytics > Demand & Revenue > Next Best Action... Γ£à
+[50/113] Testing: ≡ƒö« Predictive Analytics > Advanced Analysis > Seasonality Ana... Γ£à
+[51/113] Testing: ≡ƒö« Predictive Analytics > Advanced Analysis > Cost Behavior... Γ£à
+[52/113] Testing: ≡ƒö« Predictive Analytics > Advanced Analysis > Break-Even Anal... Γ£à
+[53/113] Testing: ≡ƒö« Predictive Analytics > Advanced Analysis > Email Campaign ... Γ£à
+[54/113] Testing: ≡ƒö« Predictive Analytics > Advanced Analysis > Customer Journe... Γ£à
+[55/113] Testing: ≡ƒö« Predictive Analytics > Market & Compliance > Competitive I... Γ£à
+[56/113] Testing: ≡ƒö« Predictive Analytics > Market & Compliance > Regulatory Co... Γ£à
+[57/113] Testing: ≡ƒö« Predictive Analytics > Market & Compliance > CRA Complianc... Γ£à
+[58/113] Testing: ≡ƒö« Predictive Analytics > Market & Compliance > Productivity ... Γ£à
+[59/113] Testing: ≡ƒö« Predictive Analytics > Market & Compliance > Promotional E... Γ£à
+[60/113] Testing: ≡ƒö« Predictive Analytics > Real-Time Systems > Fleet Tracking ... Γ£à
+[61/113] Testing: ≡ƒö« Predictive Analytics > Real-Time Systems > Dispatch Monito... Γ£à
+[62/113] Testing: ≡ƒö« Predictive Analytics > Real-Time Systems > Mobile Customer... Γ£à
+[63/113] Testing: ≡ƒö« Predictive Analytics > Real-Time Systems > Mobile Driver D... Γ£à
+[64/113] Testing: ≡ƒö« Predictive Analytics > Real-Time Systems > API Performance... Γ£à
+[65/113] Testing: ≡ƒö« Predictive Analytics > Real-Time Systems > Third-Party Int... Γ£à
+[66/113] Testing: ≡ƒö« Predictive Analytics > Visualization Tools > Time Series C... Γ£à
+[67/113] Testing: ≡ƒö« Predictive Analytics > Visualization Tools > Heatmaps... Γ£à
+[68/113] Testing: ≡ƒö« Predictive Analytics > Visualization Tools > Comparative A... Γ£à
+[69/113] Testing: ≡ƒö« Predictive Analytics > Visualization Tools > Distribution ... Γ£à
+[70/113] Testing: ≡ƒö« Predictive Analytics > Visualization Tools > Correlation M... Γ£à
+[71/113] Testing: ≡ƒö« Predictive Analytics > Automation & Alerts > Automation Wo... Γ£à
+[72/113] Testing: ≡ƒö« Predictive Analytics > Automation & Alerts > Alert Managem... Γ£à
+[73/113] Testing: ≡ƒæñ Customer Experience > Booking & Reservations > Self-Servic... Γ£à
+[74/113] Testing: ≡ƒæñ Customer Experience > Booking & Reservations > Recurring B... Γ£à
+[75/113] Testing: ≡ƒæñ Customer Experience > Account Management > Trip History... 2026-05-26 14:17:49 | INFO | dashboards_phase13 | Trip History loaded 50 charters
+2026-05-26 14:17:49 | INFO | dashboards_phase13 | Trip History loaded 50 charters
+2026-05-26 14:17:49 | INFO | dashboards_phase13 | Trip History loaded 50 charters
+Γ£à
+[76/113] Testing: ≡ƒæñ Customer Experience > Account Management > Invoices & Rece... 2026-05-26 14:17:50 | INFO | dashboards_phase13 | Invoice Management loaded 0 invoices from database
+2026-05-26 14:17:50 | INFO | dashboards_phase13 | Invoice Management loaded 0 invoices from database
+2026-05-26 14:17:50 | INFO | dashboards_phase13 | Invoice Management loaded 0 invoices from database
+Γ£à
+[77/113] Testing: ≡ƒæñ Customer Experience > Account Management > Account Setting... Γ£à
+[78/113] Testing: ≡ƒæñ Customer Experience > Account Management > Saved Preferenc... Γ£à
+[79/113] Testing: ≡ƒæñ Customer Experience > Account Management > Fleet Preferenc... Γ£à
+[80/113] Testing: ≡ƒæñ Customer Experience > Loyalty & Rewards > Loyalty Program... Γ£à
+[81/113] Testing: ≡ƒæñ Customer Experience > Loyalty & Rewards > Referral Program... Γ£à
+[82/113] Testing: ≡ƒæñ Customer Experience > Loyalty & Rewards > Subscription Pla... Γ£à
+[83/113] Testing: ≡ƒæñ Customer Experience > Support & Communication > Chat Integ... Γ£à
+[84/113] Testing: ≡ƒæñ Customer Experience > Support & Communication > Support Ti... Γ£à
+[85/113] Testing: ≡ƒæñ Customer Experience > Support & Communication > Ratings & ... Γ£à
+[86/113] Testing: ≡ƒæñ Customer Experience > Support & Communication > Driver Fee... Γ£à
+[87/113] Testing: ≡ƒæñ Customer Experience > Support & Communication > Communicat... Γ£à
+[88/113] Testing: ≡ƒæñ Customer Experience > Corporate Accounts > Corporate Manag... Γ£à
+[89/113] Testing: ≡ƒôè Advanced Analytics > Reporting Suite > Custom Report Build... Γ£à
+[90/113] Testing: ≡ƒôè Advanced Analytics > Reporting Suite > Executive Dashboard... Γ£à
+[91/113] Testing: ≡ƒôè Advanced Analytics > Reporting Suite > Report Scheduler... Γ£à
+[92/113] Testing: ≡ƒôè Advanced Analytics > Reporting Suite > Export Management... Γ£à
+[93/113] Testing: ≡ƒôè Advanced Analytics > Financial Analysis > Budget vs Actual... Γ£à
+[94/113] Testing: ≡ƒôè Advanced Analytics > Financial Analysis > Trend Analysis... Γ£à
+[95/113] Testing: ≡ƒôè Advanced Analytics > Financial Analysis > ROI Analysis... Γ£à
+[96/113] Testing: ≡ƒôè Advanced Analytics > Financial Analysis > Forecasting... Γ£à
+[97/113] Testing: ≡ƒôè Advanced Analytics > Data Analysis > Anomaly Detection... Γ£à
+[98/113] Testing: ≡ƒôè Advanced Analytics > Data Analysis > Segmentation... Γ£à
+[99/113] Testing: ≡ƒôè Advanced Analytics > Data Analysis > Competitive Analysis... Γ£à
+[100/113] Testing: ≡ƒôè Advanced Analytics > Data Analysis > Operational Metrics... Γ£à
+[101/113] Testing: ≡ƒôè Advanced Analytics > Data Analysis > Data Quality... Γ£à
+[102/113] Testing: ≡ƒôè Advanced Analytics > Compliance & Audit > Compliance Repor... Γ£à
+[103/113] Testing: ≡ƒôè Advanced Analytics > Compliance & Audit > Audit Trail... Γ£à
+[104/113] Testing: ≡ƒñû Machine Learning > Demand & Pricing > Demand Forecasting (... Γ£à
+[105/113] Testing: ≡ƒñû Machine Learning > Demand & Pricing > Pricing Optimization... Γ£à
+[106/113] Testing: ≡ƒñû Machine Learning > Customer Insights > Churn Prediction (M... Γ£à
+[107/113] Testing: ≡ƒñû Machine Learning > Customer Insights > Customer Clustering... Γ£à
+[108/113] Testing: ≡ƒñû Machine Learning > Customer Insights > Recommendation Engi... Γ£à
+[109/113] Testing: ≡ƒñû Machine Learning > Operational Optimization > Anomaly Dete... Γ£à
+[110/113] Testing: ≡ƒñû Machine Learning > Operational Optimization > Resource Opt... Γ£à
+[111/113] Testing: ≡ƒñû Machine Learning > Operational Optimization > Predictive M... Γ£à
+[112/113] Testing: ≡ƒñû Machine Learning > Marketing & Models > Marketing ML... Γ£à
+[113/113] Testing: ≡ƒñû Machine Learning > Marketing & Models > Model Performance... Γ£à
+
+================================================================================
+RESULTS: 113 passed, 0 failed
+================================================================================

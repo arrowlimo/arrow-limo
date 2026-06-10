@@ -1,0 +1,298 @@
+
+> [WARNING] swallowed_db_error  (161 occurrences)
+    accounting_receipts_widget.py:1253  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    accounting_receipts_widget.py:1623  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    accounting_receipts_widget.py:1681  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    accounting_receipts_widget.py:1108  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    accounting_receipts_widget.py:1716  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    accounting_receipts_widget.py:1372  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    accounting_receipts_widget.py:1407  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    accounting_receipts_widget.py:1456  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    accounting_receipts_widget.py:1576  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    accounting_receipts_widget.py:1777  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    accounting_receipts_widget.py:1504  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    admin_management_widget.py:2794  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    ai_functions.py:107  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    banking_transaction_picker_dialog.py:174  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    beverage_dispatch_widget.py:312  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    beverage_management_widget.py:566  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    billing_management_widget.py:654  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    billing_management_widget.py:721  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    billing_management_widget.py:775  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:14086  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:14531  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:4073  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:5659  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:5784  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:6395  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:6594  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:7116  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:7257  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:7352  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:11818  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:14769  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:671  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:4103  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:4414  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:5682  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:5856  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:6649  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:7330  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:7433  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:8902  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:9535  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:9616  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:9727  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:10136  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:10964  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:11213  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:11807  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:11865  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:12174  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:13009  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:13562  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:13848  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:14068  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:14345  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:14523  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:14597  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:664  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:6554  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:7074  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:8952  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:9511  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:11302  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:11385  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:13061  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:6811  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:6974  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:7029  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:7102  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:7180  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:11511  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:11719  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:11734  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_form_widget.py:11746  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_pdf_mixin.py:1528  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_pdf_mixin.py:2205  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_pdf_mixin.py:1110  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_pdf_mixin.py:1737  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_pdf_mixin.py:1831  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_pdf_mixin.py:1918  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    charter_pdf_mixin.py:748  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    client_drill_down.py:78  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    crystal_reports_widget.py:1484  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    crystal_reports_widget.py:1538  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    crystal_reports_widget.py:473  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    custom_report_builder.py:774  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    custom_report_builder.py:803  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    custom_report_builder.py:819  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    db_connection.py:181  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    db_error_handling.py:60  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    db_error_handling.py:109  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    db_error_handling.py:136  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    db_error_handling.py:357  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    document_management_widget.py:159  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    drill_down_widgets.py:5662  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    enhanced_banking_manager.py:1067  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    enhanced_banking_manager.py:1175  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    enhanced_banking_manager.py:1400  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    enhanced_banking_manager.py:1619  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    enhanced_banking_manager.py:1779  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    enhanced_banking_manager.py:1882  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    enhanced_receipts_manager.py:1261  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    enhanced_receipts_manager.py:1511  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    main.py:204  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    main.py:412  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    main.py:439  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    main.py:453  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    main.py:489  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    main.py:1086  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    main.py:1438  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    main.py:2667  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    main.py:2609  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    main.py:426  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    manage_banking_widget.py:709  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    manage_banking_widget.py:713  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    nsf_pair_manager_widget.py:366  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:2302  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:911  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:1835  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:3492  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:3848  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4598  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4832  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:356  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:1019  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:2189  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:2431  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:3423  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:3736  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:3860  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:3883  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:3975  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4506  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4590  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4673  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4683  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4721  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4787  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4821  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4859  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4977  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:5720  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:5760  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:5863  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:1867  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4614  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:5653  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:5801  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4566  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:4654  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    receipt_search_match_widget.py:5401  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    split_receipt_manager_dialog.py:141  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    split_receipt_manager_dialog.py:481  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    split_receipt_manager_dialog.py:720  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    split_receipt_manager_dialog.py:786  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    split_receipt_manager_dialog.py:823  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    split_receipt_manager_dialog.py:841  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    split_receipt_manager_dialog.py:1025  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    tax_optimization_module.py:88  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    vehicle_management_widget.py:1939  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    vendor_lookup_widget.py:164  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+    vendor_lookup_widget.py:259  bare/broad except: pass around probable DB call ù errors will be silently swallowed
+  
+  [INFO] dead_method  (59 occurrences)
+    accounting_receipts_widget.py:276  AccountingReceiptsWidget._create_add_receipt_tab ù defined but never referenced in this file
+    accounting_receipts_widget.py:1348  AccountingReceiptsWidget._bulk_change_category ù defined but never referenced in this file
+    accounting_receipts_widget.py:1605  AccountingReceiptsWidget._change_receipt_category ù defined but never referenced in this file
+    accounting_reports.py:1221  GeneralLedgerWidget._coa_exists ù defined but never referenced in this file
+    charter_form_widget.py:1592  CharterFormWidget._open_routing_charges_dialog ù defined but never referenced in this file
+    charter_form_widget.py:2749  CharterFormWidget._update_run_type_details ù defined but never referenced in this file
+    charter_form_widget.py:2778  CharterFormWidget._search_flight_times ù defined but never referenced in this file
+    charter_form_widget.py:2852  CharterFormWidget._search_outlook_direct ù defined but never referenced in this file
+    charter_form_widget.py:3940  CharterFormWidget._init_default_charges ù defined but never referenced in this file
+    charter_form_widget.py:5118  CharterFormWidget._auto_populate_pricing_from_vehicle_type ù defined but never referenced in this file
+    charter_form_widget.py:5334  CharterFormWidget._on_nrr_received ù defined but never referenced in this file
+    charter_form_widget.py:6191  CharterFormWidget._update_driver_info_name ù defined but never referenced in this file
+    charter_form_widget.py:7005  CharterFormWidget._get_selected_driver_name ù defined but never referenced in this file
+    charter_form_widget.py:7083  CharterFormWidget._get_driver_code_for_inspection ù defined but never referenced in this file
+    charter_form_widget.py:7110  CharterFormWidget._get_inspection_date_parts_from_charter ù defined but never referenced in this file
+    charter_form_widget.py:7135  CharterFormWidget._get_shift_start_time_for_inspection ù defined but never referenced in this file
+    charter_form_widget.py:7155  CharterFormWidget._normalize_hhmm ù defined but never referenced in this file
+    charter_form_widget.py:7163  CharterFormWidget._get_vehicle_id_for_inspection ù defined but never referenced in this file
+    charter_form_widget.py:7205  CharterFormWidget._open_file_default ù defined but never referenced in this file
+    charter_form_widget.py:7614  CharterFormWidget._renumber_route_stops ù defined but never referenced in this file
+    charter_form_widget.py:8791  CharterFormWidget._refresh_beverage_table ù defined but never referenced in this file
+    charter_form_widget.py:9258  CharterFormWidget._sync_charter_payments_from_table ù defined but never referenced in this file
+    charter_form_widget.py:9620  CharterFormWidget._check_contract_charter ù defined but never referenced in this file
+    charter_form_widget.py:10863  CharterFormWidget._gl_code_escrow_nrr_as_payment ù defined but never referenced in this file
+    charter_form_widget.py:10968  CharterFormWidget._prompt_calendar_event ù defined but never referenced in this file
+    charter_form_widget.py:12037  CharterFormWidget._build_liability_terms_block ù defined but never referenced in this file
+    charter_form_widget.py:12181  CharterFormWidget._prompt_quote_options ù defined but never referenced in this file
+    charter_form_widget.py:12640  CharterFormWidget._show_quote_dialog ù defined but never referenced in this file
+    charter_form_widget.py:13122  CharterFormWidget._normalize_beverage_cart_items ù defined but never referenced in this file
+    charter_form_widget.py:13302  CharterFormWidget._draw_multi_client_grouped_boxes ù defined but never referenced in this file
+    charter_form_widget.py:14538  CharterFormWidget._gather_run_sheet_data ù defined but never referenced in this file
+    charter_pdf_mixin.py:44  CharterPdfMixin._handle_print_action_menu ù defined but never referenced in this file
+    charter_pdf_mixin.py:70  CharterPdfMixin._mark_invoice_sent_today ù defined but never referenced in this file
+    charter_pdf_mixin.py:280  CharterPdfMixin._generate_inspection_pdf ù defined but never referenced in this file
+    charter_pdf_mixin.py:500  CharterPdfMixin._email_hos_pdf ù defined but never referenced in this file
+    charter_pdf_mixin.py:522  CharterPdfMixin._text_hos_pdf ù defined but never referenced in this file
+    charter_pdf_mixin.py:599  CharterPdfMixin._print_monthly_hos_form ù defined but never referenced in this file
+    charter_pdf_mixin.py:637  CharterPdfMixin._handle_lookup_print_run_sheet ù defined but never referenced in this file
+    charter_pdf_mixin.py:1241  CharterPdfMixin._save_quote_as_letterhead_pdf ù defined but never referenced in this file
+    charter_pdf_mixin.py:2432  CharterPdfMixin._draw_invoice_overlay ù defined but never referenced in this file
+    ... and 19 more
+  
+  [INFO] hasattr_not_in_init  (231 occurrences)
+    accounting_receipts_widget.py:264  AccountingReceiptsWidget: hasattr(self, 'search_match_widget') ù 'search_match_widget' not assigned in __init__
+    accounting_receipts_widget.py:949  AccountingReceiptsWidget: hasattr(self, '_receipt_vehicle_types') ù '_receipt_vehicle_types' not assigned in __init__
+    admin_management_widget.py:1109  AdminManagementWidget: hasattr(self, '_backup_timer') ù '_backup_timer' not assigned in __init__
+    charter_form_widget.py:1293  CharterFormWidget: hasattr(self, 'invoice_sent_checkbox') ù 'invoice_sent_checkbox' not assigned in __init__
+    charter_form_widget.py:1301  CharterFormWidget: hasattr(self, 'charter_sent_checkbox') ù 'charter_sent_checkbox' not assigned in __init__
+    charter_form_widget.py:1549  CharterFormWidget: hasattr(self, 'routing_edit_btn') ù 'routing_edit_btn' not assigned in __init__
+    charter_form_widget.py:1567  CharterFormWidget: hasattr(self, 'out_of_town_checkbox') ù 'out_of_town_checkbox' not assigned in __init__
+    charter_form_widget.py:1570  CharterFormWidget: hasattr(self, 'route_table') ù 'route_table' not assigned in __init__
+    charter_form_widget.py:3251  CharterFormWidget: hasattr(self, 'charter_sent_checkbox') ù 'charter_sent_checkbox' not assigned in __init__
+    charter_form_widget.py:3253  CharterFormWidget: hasattr(self, 'invoice_sent_checkbox') ù 'invoice_sent_checkbox' not assigned in __init__
+    charter_form_widget.py:3257  CharterFormWidget: hasattr(self, 'charter_status_combo') ù 'charter_status_combo' not assigned in __init__
+    charter_form_widget.py:3264  CharterFormWidget: hasattr(self, 'payments_table') ù 'payments_table' not assigned in __init__
+    charter_form_widget.py:3276  CharterFormWidget: hasattr(self, 'active_charter_label') ù 'active_charter_label' not assigned in __init__
+    charter_form_widget.py:3284  CharterFormWidget: hasattr(self, 'booking_tab_widget') ù 'booking_tab_widget' not assigned in __init__
+    charter_form_widget.py:5394  CharterFormWidget: hasattr(self, 'cc_show_cvv_btn') ù 'cc_show_cvv_btn' not assigned in __init__
+    charter_form_widget.py:6589  CharterFormWidget: hasattr(self, 'run_type_combo') ù 'run_type_combo' not assigned in __init__
+    charter_form_widget.py:7007  CharterFormWidget: hasattr(self, 'driver_combo') ù 'driver_combo' not assigned in __init__
+    charter_form_widget.py:7034  CharterFormWidget: hasattr(self, 'driver_combo') ù 'driver_combo' not assigned in __init__
+    charter_form_widget.py:7085  CharterFormWidget: hasattr(self, 'driver_combo') ù 'driver_combo' not assigned in __init__
+    charter_form_widget.py:7164  CharterFormWidget: hasattr(self, 'vehicle_combo') ù 'vehicle_combo' not assigned in __init__
+    charter_form_widget.py:7186  CharterFormWidget: hasattr(self, 'vehicle_combo') ù 'vehicle_combo' not assigned in __init__
+    charter_form_widget.py:8918  CharterFormWidget: hasattr(self, 'bev_cart_charter_label') ù 'bev_cart_charter_label' not assigned in __init__
+    charter_form_widget.py:8931  CharterFormWidget: hasattr(self, 'beverages_list_widget') ù 'beverages_list_widget' not assigned in __init__
+    charter_form_widget.py:9019  CharterFormWidget: hasattr(self, 'add_payment_btn') ù 'add_payment_btn' not assigned in __init__
+    charter_form_widget.py:9021  CharterFormWidget: hasattr(self, 'delete_payment_btn') ù 'delete_payment_btn' not assigned in __init__
+    charter_form_widget.py:9546  CharterFormWidget: hasattr(self, 'save_btn') ù 'save_btn' not assigned in __init__
+    charter_form_widget.py:9904  CharterFormWidget: hasattr(self, '_field_save_timer') ù '_field_save_timer' not assigned in __init__
+    charter_form_widget.py:10097  CharterFormWidget: hasattr(self, 'notes_save_status_label') ù 'notes_save_status_label' not assigned in __init__
+    charter_form_widget.py:10099  CharterFormWidget: hasattr(self, '_notes_status_clear_timer') ù '_notes_status_clear_timer' not assigned in __init__
+    charter_form_widget.py:10101  CharterFormWidget: hasattr(self, '_notes_save_timer') ù '_notes_save_timer' not assigned in __init__
+    charter_form_widget.py:10105  CharterFormWidget: hasattr(self, 'notes_save_status_label') ù 'notes_save_status_label' not assigned in __init__
+    charter_form_widget.py:10376  CharterFormWidget: hasattr(self, 'run_type_combo') ù 'run_type_combo' not assigned in __init__
+    charter_form_widget.py:10380  CharterFormWidget: hasattr(self, 'rate_type_combo') ù 'rate_type_combo' not assigned in __init__
+    charter_form_widget.py:10427  CharterFormWidget: hasattr(self, 'vehicle_type_requested_combo') ù 'vehicle_type_requested_combo' not assigned in __init__
+    charter_form_widget.py:10697  CharterFormWidget: hasattr(self, 'save_btn') ù 'save_btn' not assigned in __init__
+    charter_form_widget.py:10716  CharterFormWidget: hasattr(self, 'save_btn') ù 'save_btn' not assigned in __init__
+    charter_form_widget.py:10728  CharterFormWidget: hasattr(self, 'active_charter_label') ù 'active_charter_label' not assigned in __init__
+    charter_form_widget.py:10760  CharterFormWidget: hasattr(self, 'save_btn') ù 'save_btn' not assigned in __init__
+    charter_form_widget.py:10764  CharterFormWidget: hasattr(self, 'save_btn') ù 'save_btn' not assigned in __init__
+    charter_form_widget.py:10781  CharterFormWidget: hasattr(self, 'save_btn') ù 'save_btn' not assigned in __init__
+    ... and 191 more
+  
+  [INFO] unprotected_execute  (246 occurrences)
+    _gen_runsheet_pdf.py:26  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    _gen_runsheet_pdf.py:48  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    _gen_runsheet_pdf.py:75  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    _gen_runsheet_pdf.py:88  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    _gen_runsheet_pdf.py:96  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_control_center_widget.py:1747  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_control_center_widget.py:2273  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:39  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:46  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:521  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:536  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:582  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1030  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1222  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:296  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:307  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:363  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:438  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:662  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:893  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:947  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1078  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1126  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1246  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1329  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1387  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1417  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1428  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1601  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1618  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1635  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1653  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1671  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1686  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1698  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:1945  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:2320  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:2338  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:2359  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    accounting_reports.py:2550  cursor.execute() is not inside a try block ù DB errors will propagate unhandled
+    ... and 206 more
+  
+  ========================================================================
+  Audit complete.  0 errors, 161 warnings.
+  ========================================================================
+  
+

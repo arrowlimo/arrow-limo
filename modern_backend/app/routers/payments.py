@@ -14,9 +14,7 @@ router = APIRouter(prefix="/api", tags=["payments"])
 def _audit_actor(request: Request | None) -> AuditEventActor:
     if request is None:
         return AuditEventActor(actor_type="system", username="system")
-    username = request.headers.get("X-User-Name") or request.headers.get(
-        "X-User"
-    )
+    username = request.headers.get("X-User-Name") or request.headers.get("X-User")
     role = request.headers.get("X-User-Role")
     user_id = request.headers.get("X-User-Id")
     if not username:
@@ -187,9 +185,7 @@ def delete_payment(payment_id: int, request: Request) -> dict[str, Any]:
         before_snapshot = _load_payment_snapshot(cur, payment_id)
         if not before_snapshot:
             raise HTTPException(status_code=404, detail="not_found")
-        cur.execute(
-            "DELETE FROM payments WHERE payment_id = %s", (payment_id,)
-        )
+        cur.execute("DELETE FROM payments WHERE payment_id = %s", (payment_id,))
         deleted = cur.rowcount
         if not deleted:
             raise HTTPException(status_code=404, detail="not_found")

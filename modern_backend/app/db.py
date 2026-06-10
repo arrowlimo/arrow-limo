@@ -20,8 +20,7 @@ def _log_db_target_once():
     user = os.environ.get("DB_USER", "postgres")
     sslmode = os.environ.get("DB_SSLMODE") or "none"
     print(
-        f"[DB TARGET] target={target} host={host} db={name} user={user}"
-        f"sslmode={sslmode}",
+        f"[DB TARGET] target={target} host={host} db={name} user={user}" f"sslmode={sslmode}",
         flush=True,
     )
 
@@ -83,9 +82,7 @@ def get_connection():
                     if os.environ.get("DB_SSLMODE"):
                         _ssl_kwargs2["sslmode"] = os.environ["DB_SSLMODE"]
                     if os.environ.get("DB_CHANNEL_BINDING"):
-                        _ssl_kwargs2["channel_binding"] = os.environ[
-                            "DB_CHANNEL_BINDING"
-                        ]
+                        _ssl_kwargs2["channel_binding"] = os.environ["DB_CHANNEL_BINDING"]
                     conn = psycopg2.connect(
                         host=os.environ.get("DB_HOST", "localhost"),
                         port=int(os.environ.get("DB_PORT", "5432")),
@@ -102,9 +99,7 @@ def get_connection():
                     raise e from err
             continue
 
-    raise psycopg2.OperationalError(
-        "Failed to get database connection after retries"
-    )
+    raise psycopg2.OperationalError("Failed to get database connection after retries")
 
 
 def return_connection(conn):
@@ -119,9 +114,7 @@ def return_connection(conn):
 
 
 @contextmanager
-def cursor() -> Iterator[
-    psycopg2.extensions.cursor
-]:  # type: ignore[name-defined]
+def cursor() -> Iterator[psycopg2.extensions.cursor]:  # type: ignore[name-defined]
     conn = get_connection()
     cur: psycopg2.extensions.cursor | None = None  # type: ignore[name-defined]
     try:

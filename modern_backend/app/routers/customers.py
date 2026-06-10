@@ -14,9 +14,7 @@ router = APIRouter(prefix="/api/customers", tags=["customers"])
 
 
 def _audit_actor(request: Request) -> AuditEventActor:
-    username = request.headers.get("X-User-Name") or request.headers.get(
-        "X-User"
-    )
+    username = request.headers.get("X-User-Name") or request.headers.get("X-User")
     role = request.headers.get("X-User-Role")
     user_id = request.headers.get("X-User-Id")
     return AuditEventActor(
@@ -92,9 +90,7 @@ def search_customers(
         ]
         return {"results": results, "count": len(results)}
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to search customers: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to search customers: {e}")
     finally:
         cur.close()
         conn.close()
@@ -144,9 +140,7 @@ def list_all_customers():
             )
         return customers
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to list customers: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to list customers: {e}")
     finally:
         cur.close()
         conn.close()
@@ -265,9 +259,7 @@ def upsert_customer(payload: dict[str, Any], request: Request):
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to save customer: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to save customer: {e}")
     finally:
         cur.close()
         conn.close()

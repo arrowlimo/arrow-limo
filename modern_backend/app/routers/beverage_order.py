@@ -145,9 +145,7 @@ def get_beverage_order_print_data(
             "charter_number": charter.get("reserve_number"),
             "client_name": charter.get("client_name") or "",
             "charter_date": (
-                charter.get("charter_date").isoformat()
-                if charter.get("charter_date")
-                else ""
+                charter.get("charter_date").isoformat() if charter.get("charter_date") else ""
             ),
             "vehicle": charter.get("vehicle") or "",
             "run_id": run_id,

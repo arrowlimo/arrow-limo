@@ -92,17 +92,9 @@
           @change="$emit('update:vehicleType', $event.target.value); $emit('vehicle-type-changed')"
         >
           <option value="">-- Select Vehicle Type --</option>
-          <option value="Sedan">Sedan</option>
-          <option value="Luxury Sedan">Luxury Sedan</option>
-          <option value="6 Pax Executive SUV">6 Pax Executive SUV</option>
-          <option value="6 Pax Stretch Limo">6 Pax Stretch Limo</option>
-          <option value="13 Pax Stretch SUV">13 Pax Stretch SUV</option>
-          <option value="14 Pax Charter bus">14 Pax Charter bus</option>
-          <option value="18 Pax Charter bus">18 Pax Charter bus</option>
-          <option value="20 Pax Party Bus">20 Pax Party Bus</option>
-          <option value="20 Pax Party Bus / Lavatory">20 Pax Party Bus / Lavatory</option>
-          <option value="27 Pax Charter bus">27 Pax Charter bus</option>
-          <option value="27 Pax Extreme Party bus">27 Pax Extreme Party bus</option>
+          <option v-for="vt in vehicleTypes" :key="vt.vehicle_type" :value="vt.vehicle_type">
+            {{ vt.vehicle_type }}
+          </option>
         </select>
       </div>
 
@@ -113,27 +105,24 @@
           :value="runType"
           @change="$emit('update:runType', $event.target.value); $emit('run-type-changed')"
         >
-          <option value="hourly">Hourly</option>
-          <option value="flat">Flat Rate</option>
-          <option value="package_3hr">Package 3hr</option>
-          <option value="package_4hr">Package 4hr</option>
-          <option value="package_8hr">Package 8hr</option>
-          <option value="airport">Airport Transfer</option>
-          <option value="custom">Custom</option>
+          <option value="">-- Select Run Type --</option>
+          <option v-for="rt in runTypes" :key="rt.id" :value="rt.name">
+            {{ rt.name }}
+          </option>
         </select>
       </div>
 
       <!-- Airport Location (if airport run) -->
-      <div v-if="runType === 'airport'" class="form-field">
+      <div v-if="runType === 'airport' || (runType && runType.toLowerCase().includes('airport'))" class="form-field">
         <label>Airport Location</label>
         <select 
           :value="airportLocation"
           @change="$emit('update:airportLocation', $event.target.value); $emit('airport-changed')"
         >
           <option value="">-- Select Airport --</option>
-          <option value="edmonton">Edmonton International ($45 pickup fee)</option>
-          <option value="calgary">Calgary International ($65 pickup fee)</option>
-          <option value="red_deer">Red Deer Regional (no pickup fee)</option>
+          <option v-for="ap in airports" :key="ap.value" :value="ap.value">
+            {{ ap.label }}
+          </option>
         </select>
       </div>
 
@@ -165,6 +154,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { authFetch } from '@/utils/authFetch'
 
 defineProps({
   customerSearch: String,
@@ -199,25 +189,45 @@ defineEmits([
 ])
 
 const customers = ref([])
+const vehicleTypes = ref([])
+const runTypes = ref([])
+const airports = ref([
+  { value: 'edmonton', label: 'Edmonton International ($45 pickup fee)', fee: 45 },
+  { value: 'calgary', label: 'Calgary International ($65 pickup fee)', fee: 65 },
+  { value: 'red_deer', label: 'Red Deer Regional (no pickup fee)', fee: 0 },
+])
 
 const loadCustomers = async () => {
   try {
-    // TODO: Replace with actual API call
-    const response = await fetch('/api/clients')
+    const response = await authFetch('/api/clients')
     customers.value = await response.json()
   } catch (error) {
-    console.error('Failed to load customers:', error)
-    // Mock data
-    customers.value = [
-      { client_id: 1, first_name: 'John', last_name: 'Smith', company_name: 'Smith Corp' },
-      { client_id: 2, first_name: 'Jane', last_name: 'Doe', company_name: null },
-      { client_id: 3, first_name: 'Acme', company_name: 'Acme Industries' }
-    ]
+    console.warn('Failed to load customers:', error)
+    customers.value = []
+  }
+}
+
+const loadReferenceData = async () => {
+  try {
+    const [vtRes, rtRes, apRes] = await Promise.all([
+      authFetch('/api/lookup/vehicle-types'),
+      authFetch('/api/lookup/run-types'),
+      authFetch('/api/lookup/airport-fees'),
+    ])
+    if (vtRes.ok) vehicleTypes.value = await vtRes.json()
+    if (rtRes.ok) runTypes.value = await rtRes.json()
+    if (apRes.ok) {
+      const apData = await apRes.json()
+      if (apData.airports && apData.airports.length) airports.value = apData.airports
+    }
+  } catch (e) {
+    console.warn('Could not load reference data from API, dropdowns may be limited:', e)
   }
 }
 
 onMounted(() => {
   loadCustomers()
+  loadReferenceData()
 })
 </script>
 

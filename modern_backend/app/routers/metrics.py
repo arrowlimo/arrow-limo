@@ -25,11 +25,8 @@ def _existing_columns(cur, table_name: str) -> set[str]:
 def get_dashboard_metrics(
     date_filter: str = Query(
         "",
-        description=(
-            "Date filter: today, upcoming_week, "
-            "this_month, this_year, future_all"
-        ),
-    )
+        description=("Date filter: today, upcoming_week, " "this_month, this_year, future_all"),
+    ),
 ):
     """
     Return operational dashboard metrics as JSON
@@ -70,9 +67,9 @@ def get_dashboard_metrics(
                 end_date = today + timedelta(days=7)
             elif date_filter == "this_month":
                 start_date = today.replace(day=1)
-                end_date = (today.replace(day=1) + timedelta(days=32)).replace(
-                    day=1
-                ) - timedelta(days=1)
+                end_date = (today.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(
+                    days=1
+                )
             elif date_filter == "this_year":
                 start_date = today.replace(month=1, day=1)
                 end_date = today.replace(month=12, day=31)
@@ -91,10 +88,7 @@ def get_dashboard_metrics(
             open_quotes = cur.fetchone()[0] or 0
 
             # Open charters (not closed)
-            query = (
-                "SELECT COUNT(*) FROM charters "
-                f"WHERE {open_expr} AND {not_cancelled_expr}"
-            )
+            query = "SELECT COUNT(*) FROM charters " f"WHERE {open_expr} AND {not_cancelled_expr}"
             params = []
             if start_date and end_date:
                 query += """ AND charter_date BETWEEN %s AND %s"""
@@ -167,9 +161,7 @@ def get_dashboard_metrics(
                 base_filter = "TRUE"
                 if "status" in vehicle_cols:
                     base_filter = "COALESCE(v.status, '') != 'retired'"
-                warning_filter = " OR ".join(
-                    p for p in vehicle_predicates if p != base_filter
-                )
+                warning_filter = " OR ".join(p for p in vehicle_predicates if p != base_filter)
                 if warning_filter:
                     cur.execute(
                         f"""

@@ -80,9 +80,7 @@ def get_linked_split_receipts(receipt_id: int):
 
         base_receipt = cur.fetchone()
         if not base_receipt:
-            raise HTTPException(
-                status_code=404, detail=f"Receipt {receipt_id} not found"
-            )
+            raise HTTPException(status_code=404, detail=f"Receipt {receipt_id} not found")
 
         banking_id = base_receipt[9]  # banking_transaction_id
         parent_id = base_receipt[10]  # parent_receipt_id
@@ -180,9 +178,7 @@ def get_linked_split_receipts(receipt_id: int):
                     "split_group_id": row_split_group_id,
                     "split_key": row_split_key,
                     "is_personal": bool(row[14]),
-                    "is_paper_verified": (
-                        bool(row[16]) if row[16] is not None else False
-                    ),
+                    "is_paper_verified": (bool(row[16]) if row[16] is not None else False),
                     "is_split": is_split,
                     "split_marker": split_marker,
                 }
@@ -209,9 +205,7 @@ def get_linked_split_receipts(receipt_id: int):
     except Exception as e:
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to fetch linked receipts: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to fetch linked receipts: {e!s}")
 
 
 @router.get("/by-banking/{transaction_id}")
@@ -278,9 +272,7 @@ def get_receipts_by_banking_transaction(transaction_id: int):
                     "split_group_id": row_split_group_id,
                     "split_key": row_split_key,
                     "is_personal": bool(row[14]),
-                    "is_paper_verified": (
-                        bool(row[16]) if row[16] is not None else False
-                    ),
+                    "is_paper_verified": (bool(row[16]) if row[16] is not None else False),
                     "is_split": is_split,
                     "split_marker": split_marker,
                 }
@@ -305,6 +297,4 @@ def get_receipts_by_banking_transaction(transaction_id: int):
     except Exception as e:
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to fetch receipts: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to fetch receipts: {e!s}")

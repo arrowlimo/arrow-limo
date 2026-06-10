@@ -3,17 +3,17 @@ PDF Generation Endpoints
 """
 
 import json
-from datetime import date
-from datetime import datetime
+from datetime import date, datetime
 from io import BytesIO
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, HTTPException, Path, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query
 from fastapi.responses import StreamingResponse
 from pypdf import PdfReader, PdfWriter
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
+from ..auth import get_current_user, has_module_access
 from ..db import cursor, get_connection
 from ..services.pdf_generator import (
     generate_charter_pdf,
@@ -30,6 +30,21 @@ from ..services.pdf_layout_settings import (
 )
 
 router = APIRouter(prefix="/api", tags=["pdf"])
+
+
+def _ensure_employee_self_or_privileged(current_user: dict, employee_id: int) -> None:
+    try:
+        current_employee_id = int(current_user.get("employee_id"))
+    except (TypeError, ValueError):
+        current_employee_id = None
+
+    if current_employee_id == employee_id:
+        return
+
+    if has_module_access(current_user, "accounting") or has_module_access(current_user, "admin"):
+        return
+
+    raise HTTPException(status_code=403, detail="Access denied")
 
 
 def _record_pdf_event(action: str, after: dict[str, Any], note: str) -> None:
@@ -98,9 +113,7 @@ def update_pdf_layout_settings(
 ):
     """Update layout settings (partial patch) for charter PDF generation."""
     if not isinstance(settings_patch, dict):
-        raise HTTPException(
-            status_code=400, detail="Request body must be a JSON object"
-        )
+        raise HTTPException(status_code=400, detail="Request body must be a JSON object")
     try:
         result = save_pdf_layout_settings(settings_patch)
         _record_pdf_event(
@@ -110,9 +123,7 @@ def update_pdf_layout_settings(
         )
         return result
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to save layout settings: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to save layout settings: {e!s}")
 
 
 @router.post(
@@ -132,9 +143,7 @@ def reset_pdf_settings_to_default():
         )
         return result
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to reset layout settings: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to reset layout settings: {e!s}")
 
 
 @router.post(
@@ -157,11 +166,9 @@ def apply_pdf_layout_settings_preset(
         )
         return result
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to apply preset: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to apply preset: {e!s}")
 
 
 def _normalize_exchange_details(charter_data: dict) -> None:
@@ -180,7 +187,7 @@ def _normalize_exchange_details(charter_data: dict) -> None:
 def _parse_jsonish(value: Any, default: Any):
     if value in (None, "", []):
         return default
-    if isinstance(value, (dict, list)):
+    if isinstance(value, dict | list):
         return value
     if isinstance(value, str):
         try:
@@ -314,9 +321,7 @@ def _resolve_driver_details(cur, charter_data: dict) -> None:
     if not charter_data.get("employee_number"):
         charter_data["employee_number"] = driver.get("employee_number")
     if not charter_data.get("driver_license_number"):
-        charter_data["driver_license_number"] = driver.get(
-            "driver_license_number"
-        )
+        charter_data["driver_license_number"] = driver.get("driver_license_number")
     if not charter_data.get("driver_hourly_rate"):
         charter_data["driver_hourly_rate"] = driver.get("hourly_rate")
 
@@ -341,8 +346,7 @@ def _load_beverage_items(cur, charter_data: dict) -> list[dict[str, Any]]:
             return beverages
 
     order_ids = _coerce_order_ids(
-        charter_data.get("beverage_cart_ids")
-        or charter_data.get("cart_order_list")
+        charter_data.get("beverage_cart_ids") or charter_data.get("cart_order_list")
     )
     if not order_ids and charter_data.get("reserve_number"):
         cur.execute(
@@ -382,8 +386,7 @@ def _build_payload_routes(payload: dict[str, Any]) -> list[dict[str, Any]]:
         normalized_routes.append(
             {
                 "route_sequence": index,
-                "event_type_code": route.get("event_type_code")
-                or route.get("type"),
+                "event_type_code": route.get("event_type_code") or route.get("type"),
                 "address": route.get("address") or route.get("location"),
                 "stop_time": route.get("stop_time") or route.get("time"),
                 "at_by": route.get("at_by") or "at",
@@ -406,7 +409,10 @@ def _build_payload_charges(payload: dict[str, Any]) -> list[dict[str, Any]]:
 
     charges: list[dict[str, Any]] = []
     charter_fee = _amount("charter_fee_amount")
+    subtotal = _amount("subtotal")
+
     if charter_fee:
+        # Full component breakdown is available — list each item individually.
         charges.append(
             {
                 "charge_type": "base_rate",
@@ -415,37 +421,50 @@ def _build_payload_charges(payload: dict[str, Any]) -> list[dict[str, Any]]:
             }
         )
 
-    beverage_total = _amount("beverage_total")
-    if beverage_total:
+        beverage_total = _amount("beverage_total")
+        if beverage_total:
+            charges.append(
+                {
+                    "charge_type": "additional",
+                    "description": "Beverages",
+                    "amount": beverage_total,
+                }
+            )
+
+        fuel_total = _amount("fuel_litres") * _amount("fuel_price")
+        if fuel_total:
+            charges.append(
+                {
+                    "charge_type": "additional",
+                    "description": "Fuel",
+                    "amount": fuel_total,
+                }
+            )
+
+        for charge in _parse_jsonish(payload.get("custom_charges"), []):
+            if not isinstance(charge, dict):
+                continue
+            charges.append(
+                {
+                    "charge_type": "additional",
+                    "description": charge.get("description") or "Custom Charge",
+                    "amount": charge.get("amount") or 0,
+                }
+            )
+
+    elif subtotal:
+        # Only the aggregate pre-tax subtotal is available (legacy records where
+        # charter_fee_amount was not stored).  Show it as a single service line
+        # so the invoice does not look like it has no line items.
         charges.append(
             {
-                "charge_type": "additional",
-                "description": "Beverages",
-                "amount": beverage_total,
+                "charge_type": "base_rate",
+                "description": "Charter Service Fee",
+                "amount": subtotal,
             }
         )
 
-    fuel_total = _amount("fuel_litres") * _amount("fuel_price")
-    if fuel_total:
-        charges.append(
-            {
-                "charge_type": "additional",
-                "description": "Fuel",
-                "amount": fuel_total,
-            }
-        )
-
-    for charge in _parse_jsonish(payload.get("custom_charges"), []):
-        if not isinstance(charge, dict):
-            continue
-        charges.append(
-            {
-                "charge_type": "additional",
-                "description": charge.get("description") or "Custom Charge",
-                "amount": charge.get("amount") or 0,
-            }
-        )
-
+    # Gratuity and GST are always shown as their own lines regardless of mode.
     gratuity = _amount("gratuity_amount")
     if gratuity:
         charges.append(
@@ -468,9 +487,7 @@ def _build_payload_charges(payload: dict[str, Any]) -> list[dict[str, Any]]:
 
     gst_amount = _amount("gst_amount")
     if gst_amount:
-        charges.append(
-            {"charge_type": "gst", "description": "GST", "amount": gst_amount}
-        )
+        charges.append({"charge_type": "gst", "description": "GST", "amount": gst_amount})
 
     if not charges:
         total_due = _amount("grand_total") or _amount("total_amount_due")
@@ -496,13 +513,21 @@ def _apply_pdf_field_aliases(charter_data: dict[str, Any]) -> dict[str, Any]:
     if not charter_data.get("special_requirements"):
         charter_data["special_requirements"] = charter_data.get("vehicle_notes")
     if not charter_data.get("fuel_added"):
-        charter_data["fuel_added"] = charter_data.get("fuel_added_liters") or charter_data.get("fuel_litres")
+        charter_data["fuel_added"] = charter_data.get("fuel_added_liters") or charter_data.get(
+            "fuel_litres"
+        )
     if not charter_data.get("total_amount_due"):
-        charter_data["total_amount_due"] = charter_data.get("grand_total") or charter_data.get("subtotal")
+        charter_data["total_amount_due"] = charter_data.get("grand_total") or charter_data.get(
+            "subtotal"
+        )
     if not charter_data.get("total_paid"):
-        charter_data["total_paid"] = charter_data.get("amount_paid") or charter_data.get("paid_amount") or 0
+        charter_data["total_paid"] = (
+            charter_data.get("amount_paid") or charter_data.get("paid_amount") or 0
+        )
     if not charter_data.get("vehicle_id"):
-        charter_data["vehicle_id"] = charter_data.get("vehicle_number") or charter_data.get("vehicle")
+        charter_data["vehicle_id"] = charter_data.get("vehicle_number") or charter_data.get(
+            "vehicle"
+        )
     if not charter_data.get("driver_name"):
         charter_data["driver_name"] = charter_data.get("driver")
     return charter_data
@@ -552,9 +577,7 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
             else "NULL::text AS payment_method"
         )
         payment_deleted_filter = (
-            "AND deleted_at IS NULL"
-            if _column_exists(cur, "payments", "deleted_at")
-            else ""
+            "AND deleted_at IS NULL" if _column_exists(cur, "payments", "deleted_at") else ""
         )
 
         cur.execute(
@@ -605,6 +628,9 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
                 c.duty_log,
                 c.cart_order_list,
                 c.custom_charges,
+                c.charter_fee_amount,
+                c.beverage_total,
+                c.gratuity_amount,
                 c.subtotal,
                 c.gst_amount,
                 c.grand_total,
@@ -713,11 +739,24 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
             dict(zip(charge_columns, row, strict=False)) for row in cur.fetchall()
         ]
 
-        if not charter_data["charges"]:
+        if charter_data["charges"]:
+            # Validate that stored charges are consistent with saved total_amount_due.
+            # If the charter was edited after booking creation the charges table may
+            # still hold the original (stale) amounts while total_amount_due has been
+            # updated via PATCH.  When the two diverge by more than 2 cents, fall back
+            # to rebuilding from the charter's individual billing columns so the
+            # invoice reflects what was actually saved.
+            charges_sum = sum(float(c.get("amount") or 0) for c in charter_data["charges"])
+            total_due = float(
+                charter_data.get("total_amount_due") or charter_data.get("grand_total") or 0
+            )
+            if total_due and abs(charges_sum - total_due) > 0.02:
+                charter_data["charges"] = _build_payload_charges(charter_data)
+        else:
             charter_data["charges"] = _build_payload_charges(charter_data)
 
         cur.execute(
-                        f"""
+            f"""
             SELECT payment_label, payment_method, amount, payment_date, notes,
             reference_number
             FROM payments
@@ -759,23 +798,16 @@ def _load_charter_pdf_data(charter_id: int) -> dict:
                 pcols = [d[0] for d in cur.description]
                 prior_dict = dict(zip(pcols, prior, strict=False))
                 charter_data["is_second_trip"] = True
-                charter_data["prior_trip_charter_id"] = prior_dict.get(
-                    "charter_id"
-                )
-                charter_data["prior_trip_workshift_start"] = (
-                    prior_dict.get("workshift_start")
-                    or prior_dict.get("on_duty_started_at")
-                )
-                charter_data["prior_trip_duty_log"] = prior_dict.get(
-                    "duty_log"
-                )
+                charter_data["prior_trip_charter_id"] = prior_dict.get("charter_id")
+                charter_data["prior_trip_workshift_start"] = prior_dict.get(
+                    "workshift_start"
+                ) or prior_dict.get("on_duty_started_at")
+                charter_data["prior_trip_duty_log"] = prior_dict.get("duty_log")
 
     return charter_data
 
 
-def _stream_pdf_response(
-    pdf_bytes: bytes, filename: str, inline: bool
-) -> StreamingResponse:
+def _stream_pdf_response(pdf_bytes: bytes, filename: str, inline: bool) -> StreamingResponse:
     disposition = "inline" if inline else "attachment"
     return StreamingResponse(
         iter([pdf_bytes]),
@@ -889,7 +921,7 @@ def _simple_lines_pdf(title: str, lines: list[str]) -> bytes:
 
     buf = BytesIO()
     c = canvas.Canvas(buf, pagesize=letter)
-    width, height = letter
+    _, height = letter
     y = height - 0.75 * inch
 
     c.setFont("Helvetica-Bold", 14)
@@ -918,9 +950,7 @@ def get_charter_invoice_pdf(charter_id: int = Path(...)):
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"PDF generation failed: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e!s}")
 
     return _stream_pdf_response(
         pdf_bytes,
@@ -937,9 +967,7 @@ def preview_charter_invoice_pdf(charter_id: int = Path(...)):
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"PDF generation failed: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e!s}")
 
     return _stream_pdf_response(
         pdf_bytes,
@@ -961,7 +989,7 @@ def get_multi_charter_invoice_pdf(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=500,
             detail=f"Multi-invoice PDF generation failed: {e!s}",
         )
@@ -991,9 +1019,7 @@ def get_blank_run_sheet_pdf(charter_id: int = Path(...)):
     try:
         pdf_bytes = generate_charter_pdf(payload)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Blank run sheet generation failed: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Blank run sheet generation failed: {e!s}")
     reserve_number = str(ctx.get("reserve_number") or charter_id)
     return _stream_pdf_response(
         pdf_bytes,
@@ -1099,11 +1125,12 @@ def get_beverage_guest_invoice_pdf(charter_id: int = Path(...)):
     ctx = _load_charter_basic_context(charter_id)
     items = _load_charter_beverage_snapshot(charter_id)
     reserve = str(ctx.get("reserve_number") or charter_id)
+    bev_invoice_num = f"{reserve}B"
 
     subtotal = 0.0
     gst_total = 0.0
     lines = [
-        f"Charter ID: {charter_id}",
+        f"Invoice #: {bev_invoice_num}",
         f"Reserve: {reserve}",
         f"Client: {ctx.get('client_name') or ''}",
         "",
@@ -1139,9 +1166,7 @@ def get_confirmation_letter_pdf(charter_id: int = Path(...)):
     try:
         pdf_bytes = generate_confirmation_letter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"PDF generation failed: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e!s}")
 
     reserve_number = str(charter_data.get("reserve_number") or "quote")
     filename = f"Confirmation_{reserve_number}.pdf"
@@ -1157,9 +1182,7 @@ def get_run_sheet_pdf_from_payload(
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"PDF generation failed: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e!s}")
 
     filename = f"Charter_{charter_data.get('reserve_number', 'RunSheet')}.pdf"
     return _stream_pdf_response(pdf_bytes, filename, inline=False)
@@ -1174,9 +1197,7 @@ def preview_run_sheet_pdf_from_payload(
     try:
         pdf_bytes = generate_charter_pdf(charter_data)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"PDF generation failed: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e!s}")
 
     filename = f"Charter_{charter_data.get('reserve_number', 'RunSheet')}.pdf"
     return _stream_pdf_response(pdf_bytes, filename, inline=True)
@@ -1184,9 +1205,13 @@ def preview_run_sheet_pdf_from_payload(
 
 @router.get("/employees/{employee_id}/t4-pdf/{tax_year}")
 def get_employee_t4_pdf(
-    employee_id: int = Path(...), tax_year: int = Path(...)
+    employee_id: int = Path(...),
+    tax_year: int = Path(...),
+    current_user: Annotated[dict | None, Depends(get_current_user)] = None,
 ):
     """Generate and download T4 tax form for an employee"""
+
+    _ensure_employee_self_or_privileged(current_user or {}, employee_id)
 
     with cursor() as cur:
         # Get employee information
@@ -1208,9 +1233,7 @@ def get_employee_t4_pdf(
         employee_row = cur.fetchone()
 
         if not employee_row:
-            raise HTTPException(
-                status_code=404, detail=f"Employee {employee_id} not found"
-            )
+            raise HTTPException(status_code=404, detail=f"Employee {employee_id} not found")
 
         employee_data = dict(employee_row)
 
@@ -1269,9 +1292,7 @@ def get_employee_t4_pdf(
     try:
         pdf_bytes = generate_t4_pdf(employee_data, t4_data, tax_year)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"T4 PDF generation failed: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"T4 PDF generation failed: {e!s}")
 
     # Return as download
     return StreamingResponse(
@@ -1287,9 +1308,13 @@ def get_employee_t4_pdf(
 
 @router.get("/employees/{employee_id}/t4-pdf-preview/{tax_year}")
 def preview_employee_t4_pdf(
-    employee_id: int = Path(...), tax_year: int = Path(...)
+    employee_id: int = Path(...),
+    tax_year: int = Path(...),
+    current_user: Annotated[dict | None, Depends(get_current_user)] = None,
 ):
     """Preview T4 tax form for an employee (inline)"""
+
+    _ensure_employee_self_or_privileged(current_user or {}, employee_id)
 
     with cursor() as cur:
         # Get employee information
@@ -1311,9 +1336,7 @@ def preview_employee_t4_pdf(
         employee_row = cur.fetchone()
 
         if not employee_row:
-            raise HTTPException(
-                status_code=404, detail=f"Employee {employee_id} not found"
-            )
+            raise HTTPException(status_code=404, detail=f"Employee {employee_id} not found")
 
         employee_data = dict(employee_row)
 
@@ -1371,9 +1394,7 @@ def preview_employee_t4_pdf(
     try:
         pdf_bytes = generate_t4_pdf(employee_data, t4_data, tax_year)
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"T4 PDF generation failed: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"T4 PDF generation failed: {e!s}")
 
     # Return as inline display
     return StreamingResponse(iter([pdf_bytes]), media_type="application/pdf")

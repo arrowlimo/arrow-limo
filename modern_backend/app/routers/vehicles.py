@@ -162,9 +162,7 @@ def list_vehicles():
             )
         return vehicles
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to list vehicles: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to list vehicles: {e}")
     finally:
         cur.close()
         conn.close()
@@ -223,16 +221,12 @@ def create_vehicle(vehicle_data: dict, request: Request):
                 create_vehicle_folder(vehicle_number)
             except Exception as folder_err:
                 # Log error but don't fail the vehicle creation
-                print(
-                    f"Warning: Failed to create vehicle folder: {folder_err}"
-                )
+                print(f"Warning: Failed to create vehicle folder: {folder_err}")
 
         return {"vehicle_id": vehicle_id, "status": "created"}
     except Exception as e:
         conn.rollback()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to create vehicle: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to create vehicle: {e}")
     finally:
         cur.close()
         conn.close()
@@ -309,9 +303,7 @@ def update_vehicle(vehicle_id: int, vehicle_data: dict, request: Request):
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to update vehicle: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to update vehicle: {e}")
     finally:
         cur.close()
         conn.close()

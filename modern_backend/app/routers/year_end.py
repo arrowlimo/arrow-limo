@@ -1,5 +1,5 @@
-from datetime import date, datetime
 import json
+from datetime import date, datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -168,9 +168,11 @@ def _compute_capital_gains(conn, fiscal_year: int) -> dict[str, Any]:
     total = 0.0
     items: list[dict[str, Any]] = []
 
-    if _has_column(conn, "fixed_assets", "sold_date") and _has_column(
-        conn, "fixed_assets", "sale_price"
-    ) and _has_column(conn, "fixed_assets", "cost_basis"):
+    if (
+        _has_column(conn, "fixed_assets", "sold_date")
+        and _has_column(conn, "fixed_assets", "sale_price")
+        and _has_column(conn, "fixed_assets", "cost_basis")
+    ):
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -198,18 +200,16 @@ def _compute_capital_gains(conn, fiscal_year: int) -> dict[str, Any]:
         return {"capital_gains": round(total, 2), "items": items}
 
     # Fallback on general ledger signal words.
-    if _has_column(conn, "general_ledger", "date") and _has_column(
-        conn, "general_ledger", "credit"
-    ) and _has_column(conn, "general_ledger", "debit"):
+    if (
+        _has_column(conn, "general_ledger", "date")
+        and _has_column(conn, "general_ledger", "credit")
+        and _has_column(conn, "general_ledger", "debit")
+    ):
         memo_col = (
-            "memo_description"
-            if _has_column(conn, "general_ledger", "memo_description")
-            else None
+            "memo_description" if _has_column(conn, "general_ledger", "memo_description") else None
         )
         acct_name_col = (
-            "account_name"
-            if _has_column(conn, "general_ledger", "account_name")
-            else None
+            "account_name" if _has_column(conn, "general_ledger", "account_name") else None
         )
         name_col = "name" if _has_column(conn, "general_ledger", "name") else None
 
@@ -326,7 +326,14 @@ def _insert_rollover_marker(conn, fiscal_year: int, net_income: float) -> dict[s
         debit_val = amount if direction == "debit" else 0.0
         credit_val = amount if direction == "credit" else 0.0
         cols = ["date", "transaction_type", "account", "account_name", "debit", "credit"]
-        vals = [datetime(fiscal_year, 12, 31).date(), "year_end_rollover", "3000", "Retained Earnings", debit_val, credit_val]
+        vals = [
+            datetime(fiscal_year, 12, 31).date(),
+            "year_end_rollover",
+            "3000",
+            "Retained Earnings",
+            debit_val,
+            credit_val,
+        ]
 
         optional = {
             "num": f"YE-{fiscal_year}",
@@ -434,7 +441,9 @@ def upsert_year_end_checklist_item(fiscal_year: int, item: YearEndChecklistItem)
         return {"status": "saved", "fiscal_year": fiscal_year, "item_id": item.item_id}
     except Exception as exc:
         conn.rollback()
-        raise HTTPException(status_code=400, detail=f"failed_to_save_checklist_item: {exc}") from exc
+        raise HTTPException(
+            status_code=400, detail=f"failed_to_save_checklist_item: {exc}"
+        ) from exc
     finally:
         conn.close()
 
@@ -663,7 +672,9 @@ def get_year_end_report(fiscal_year: int):
             "closed": close_row is not None,
             "notes": close_row[2] if close_row else None,
             "executed_by": close_row[3] if close_row else None,
-            "closed_at": close_row[4].isoformat() if close_row and hasattr(close_row[4], "isoformat") else None,
+            "closed_at": close_row[4].isoformat()
+            if close_row and hasattr(close_row[4], "isoformat")
+            else None,
             "summary": {
                 **summary,
                 "capital_gains": gains["capital_gains"],

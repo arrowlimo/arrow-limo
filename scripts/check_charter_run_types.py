@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Check charter_run_types columns."""
+
+import os
+
 import psycopg2
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
@@ -30,7 +32,7 @@ print("\nSample data:")
 cur.execute("SELECT * FROM charter_run_types LIMIT 3")
 cols = [desc[0] for desc in cur.description]
 for row in cur.fetchall():
-    print(f"  {dict(zip(cols, row))}")
+    print(f"  {dict(zip(cols, row, strict=False))}")
 
 cur.close()
 conn.close()

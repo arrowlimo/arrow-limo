@@ -11,11 +11,11 @@ Implements 5 main endpoints:
 
 from datetime import date, datetime
 
-from app.database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import String, cast, text
 from sqlalchemy.orm import Session
 
+from app.database import get_db
 from app.models import (
     Charge,
     Charter,
@@ -92,9 +92,7 @@ async def create_charter(request: ChartRequest, db: Session = Depends(get_db)):
         # ===== STEP 2: Validate vehicle exists (if provided) =====
         if request.vehicle_booked_id:
             vehicle = (
-                db.query(Vehicle)
-                .filter(Vehicle.vehicle_id == request.vehicle_booked_id)
-                .first()
+                db.query(Vehicle).filter(Vehicle.vehicle_id == request.vehicle_booked_id).first()
             )
             if not vehicle:
                 raise HTTPException(
@@ -140,9 +138,7 @@ async def create_charter(request: ChartRequest, db: Session = Depends(get_db)):
         # PostgreSQL sequence: SELECT nextval('reserve_number_seq')
         result = db.execute(text("SELECT nextval('reserve_number_seq')"))
         seq_value = result.scalar()
-        reserve_number = (
-            f"{seq_value:06d}"  # Zero-padded to 6 digits (e.g., "019233")
-        )
+        reserve_number = f"{seq_value:06d}"  # Zero-padded to 6 digits (e.g., "019233")
 
         charter.reserve_number = reserve_number
         db.add(charter)
@@ -230,9 +226,7 @@ async def create_charter(request: ChartRequest, db: Session = Depends(get_db)):
     except Exception as e:
         # Rollback on any database error
         db.rollback()
-        raise HTTPException(  # noqa: B904
-            status_code=400, detail=f"Failed to create charter: {e!s}"
-        )
+        raise HTTPException(status_code=400, detail=f"Failed to create charter: {e!s}")
 
 
 # =============================================================================
@@ -290,7 +284,7 @@ async def search_charters(
             "count": len(results),
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Search failed: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=400, detail=f"Search failed: {e!s}")
 
 
 # =============================================================================
@@ -315,8 +309,7 @@ async def search_customers(
         if q:
             search_term = f"%{q}%"
             query = query.filter(
-                (Customer.client_name.ilike(search_term))
-                | (Customer.phone.ilike(search_term))
+                (Customer.client_name.ilike(search_term)) | (Customer.phone.ilike(search_term))
             )
 
         results = query.limit(limit).all()
@@ -334,7 +327,7 @@ async def search_customers(
             "count": len(results),
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Search failed: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=400, detail=f"Search failed: {e!s}")
 
 
 # =============================================================================
@@ -367,9 +360,7 @@ async def list_vehicles(db: Session = Depends(get_db)):
             "count": len(vehicles),
         }
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=400, detail=f"Failed to list vehicles: {e!s}"
-        )
+        raise HTTPException(status_code=400, detail=f"Failed to list vehicles: {e!s}")
 
 
 # =============================================================================
@@ -387,9 +378,7 @@ async def list_drivers(db: Session = Depends(get_db)):
     try:
         # Query employees with role = 'driver' or 'driver_supervisor'
         drivers = (
-            db.query(Employee)
-            .filter(Employee.role.in_(["driver", "driver_supervisor"]))
-            .all()
+            db.query(Employee).filter(Employee.role.in_(["driver", "driver_supervisor"])).all()
         )
 
         return {
@@ -405,9 +394,7 @@ async def list_drivers(db: Session = Depends(get_db)):
             "count": len(drivers),
         }
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=400, detail=f"Failed to list drivers: {e!s}"
-        )
+        raise HTTPException(status_code=400, detail=f"Failed to list drivers: {e!s}")
 
 
 # =============================================================================

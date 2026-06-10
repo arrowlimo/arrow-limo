@@ -16,9 +16,7 @@ router = APIRouter(prefix="/api/banking", tags=["banking"])
 def _audit_actor(request: Request | None) -> AuditEventActor:
     if request is None:
         return AuditEventActor(actor_type="system", username="system")
-    username = request.headers.get("X-User-Name") or request.headers.get(
-        "X-User"
-    )
+    username = request.headers.get("X-User-Name") or request.headers.get("X-User")
     role = request.headers.get("X-User-Role")
     user_id = request.headers.get("X-User-Id")
     if not username:
@@ -114,10 +112,7 @@ def get_banking_transactions(
         query += " AND category = %s"
         params.append(category)
 
-    query += (
-        " ORDER BY transaction_date DESC, "
-        "transaction_id DESC LIMIT %s OFFSET %s"
-    )
+    query += " ORDER BY transaction_date DESC, " "transaction_id DESC LIMIT %s OFFSET %s"
     params.extend([limit, offset])
 
     cur.execute(query, params)
@@ -180,10 +175,7 @@ def search_banking_transactions(
     params = []
 
     if amount is not None:
-        query += (
-            " AND (ABS(debit_amount - %s) < 0.01 "
-            "OR ABS(credit_amount - %s) < 0.01)"
-        )
+        query += " AND (ABS(debit_amount - %s) < 0.01 " "OR ABS(credit_amount - %s) < 0.01)"
         params.extend([amount, amount])
 
     if vendor:
@@ -197,10 +189,7 @@ def search_banking_transactions(
         query += " AND transaction_date <= %s"
         params.append(end_date)
 
-    query += (
-        " ORDER BY transaction_date DESC, "
-        "transaction_id DESC LIMIT %s OFFSET %s"
-    )
+    query += " ORDER BY transaction_date DESC, " "transaction_id DESC LIMIT %s OFFSET %s"
     params.extend([limit, offset])
 
     cur.execute(query, params)
@@ -277,9 +266,7 @@ def categorize_transaction(
         if before_snapshot is None:
             cur.close()
             conn.close()
-            raise HTTPException(
-                status_code=404, detail="Transaction not found"
-            )
+            raise HTTPException(status_code=404, detail="Transaction not found")
 
         cur.execute(
             """
@@ -294,9 +281,7 @@ def categorize_transaction(
             conn.rollback()
             cur.close()
             conn.close()
-            raise HTTPException(
-                status_code=404, detail="Transaction not found"
-            )
+            raise HTTPException(status_code=404, detail="Transaction not found")
 
         after_snapshot = _load_banking_snapshot(conn, transaction_id)
         ensure_audit_storage(conn)
@@ -331,9 +316,7 @@ def categorize_transaction(
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to categorize: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to categorize: {e!s}")
 
 
 class BankingTransactionUpdate(BaseModel):
@@ -357,9 +340,7 @@ def update_banking_transaction(
         if before_snapshot is None:
             cur.close()
             conn.close()
-            raise HTTPException(
-                status_code=404, detail="Transaction not found"
-            )
+            raise HTTPException(status_code=404, detail="Transaction not found")
 
         # Build dynamic update query based on provided fields
         update_fields = []
@@ -393,9 +374,7 @@ def update_banking_transaction(
             conn.rollback()
             cur.close()
             conn.close()
-            raise HTTPException(
-                status_code=404, detail="Transaction not found"
-            )
+            raise HTTPException(status_code=404, detail="Transaction not found")
 
         after_snapshot = _load_banking_snapshot(conn, transaction_id)
         ensure_audit_storage(conn)
@@ -457,9 +436,7 @@ def update_banking_transaction(
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to update transaction: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to update transaction: {e!s}")
 
 
 @router.get("/reconciliation/status")
@@ -515,24 +492,16 @@ def get_reconciliation_status():
     return {
         "deposits": {
             "unmatched_count": unmatched_deposits[0],
-            "unmatched_amount": (
-                float(unmatched_deposits[1]) if unmatched_deposits[1] else 0.0
-            ),
+            "unmatched_amount": (float(unmatched_deposits[1]) if unmatched_deposits[1] else 0.0),
             "match_rate": (
-                (deposit_match[0] / deposit_match[1] * 100)
-                if deposit_match[1] > 0
-                else 0.0
+                (deposit_match[0] / deposit_match[1] * 100) if deposit_match[1] > 0 else 0.0
             ),
         },
         "expenses": {
             "unmatched_count": unmatched_expenses[0],
-            "unmatched_amount": (
-                float(unmatched_expenses[1]) if unmatched_expenses[1] else 0.0
-            ),
+            "unmatched_amount": (float(unmatched_expenses[1]) if unmatched_expenses[1] else 0.0),
             "match_rate": (
-                (expense_match[0] / expense_match[1] * 100)
-                if expense_match[1] > 0
-                else 0.0
+                (expense_match[0] / expense_match[1] * 100) if expense_match[1] > 0 else 0.0
             ),
         },
     }

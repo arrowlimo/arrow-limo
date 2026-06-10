@@ -52,9 +52,7 @@ def default_pdf_layout_settings() -> dict[str, Any]:
     }
 
 
-def _deep_merge(
-    base: dict[str, Any], override: dict[str, Any]
-) -> dict[str, Any]:
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
     merged = deepcopy(base)
     for key, value in (override or {}).items():
         if isinstance(value, dict) and isinstance(merged.get(key), dict):

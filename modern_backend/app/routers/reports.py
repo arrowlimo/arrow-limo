@@ -6,9 +6,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from psycopg2 import sql
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse
+from psycopg2 import sql
 from pydantic import BaseModel, Field
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
@@ -91,9 +91,7 @@ def _validate_rule_field(match_field: str) -> None:
 def _audit_actor(request: Request | None) -> AuditEventActor:
     if request is None:
         return AuditEventActor(actor_type="system", username="system")
-    username = request.headers.get("X-User-Name") or request.headers.get(
-        "X-User"
-    )
+    username = request.headers.get("X-User-Name") or request.headers.get("X-User")
     role = request.headers.get("X-User-Role")
     user_id = request.headers.get("X-User-Id")
     if not username:
@@ -135,7 +133,7 @@ def _load_rule_snapshot(conn, rule_id: int) -> dict[str, Any] | None:
     }
 
 
-def _write_cursor_rows_to_csv(cur, writer: csv.writer, chunk_size: int = 5000) -> int:
+def _write_cursor_rows_to_csv(cur, writer: Any, chunk_size: int = 5000) -> int:
     """Write cursor rows in chunks to avoid loading entire result sets."""
     total_rows = 0
     while True:
@@ -149,9 +147,7 @@ def _write_cursor_rows_to_csv(cur, writer: csv.writer, chunk_size: int = 5000) -
 
 @router.get("/export")
 def export(
-    type: str = Query(
-        ..., regex="^(booking-trends|revenue-summary|driver-hours)$"
-    ),
+    type: str = Query(..., regex="^(booking-trends|revenue-summary|driver-hours)$"),
     format: str = "csv",
     start_date: str | None = None,
     end_date: str | None = None,
@@ -166,9 +162,7 @@ def export(
         try:
             return datetime.fromisoformat(s)
         except Exception as exc:
-            raise HTTPException(
-                status_code=400, detail="invalid_date_format"
-            ) from exc
+            raise HTTPException(status_code=400, detail="invalid_date_format") from exc
 
     end = parse_date(end_date) or datetime.now()
     start = parse_date(start_date) or (end - timedelta(days=365))
@@ -195,9 +189,7 @@ def export(
     w = csv.writer(buf)
     w.writerow(headers)
     for r in rows:
-        w.writerow(
-            [c.isoformat() if hasattr(c, "isoformat") else c for c in r]
-        )
+        w.writerow([c.isoformat() if hasattr(c, "isoformat") else c for c in r])
     data = buf.getvalue()
     buf.close()
     return Response(
@@ -205,25 +197,20 @@ def export(
         media_type="text/csv",
         headers={
             "Content-Disposition": (
-                f"attachment; filename="
-                f'"{type}_{int(datetime.now().timestamp())}.csv"'
+                f"attachment; filename=" f'"{type}_{int(datetime.now().timestamp())}.csv"'
             )
         },
     )
 
 
-def _parse_iso_date(
-    value: str | None, fallback: datetime | None = None
-) -> datetime | None:
+def _parse_iso_date(value: str | None, fallback: datetime | None = None) -> datetime | None:
     """Safe ISO date parser with optional fallback."""
     if not value:
         return fallback
     try:
         return datetime.fromisoformat(value)
     except Exception as exc:
-        raise HTTPException(
-            status_code=400, detail="invalid_date_format"
-        ) from exc
+        raise HTTPException(status_code=400, detail="invalid_date_format") from exc
 
 
 def _has_column(conn, table: str, column: str) -> bool:
@@ -242,9 +229,7 @@ def _has_column(conn, table: str, column: str) -> bool:
         return cur.fetchone() is not None
 
 
-def _first_existing_column(
-    conn, table: str, candidates: list[str]
-) -> str | None:
+def _first_existing_column(conn, table: str, candidates: list[str]) -> str | None:
     """Return first existing column name from candidates, else None."""
     for col in candidates:
         if _has_column(conn, table, col):
@@ -279,9 +264,7 @@ def _build_legacy_ops_select(conn) -> tuple[str, str | None]:
         "charters",
         ["total_amount_due", "amount", "total", "quoted_amount"],
     )
-    paid_col = _first_existing_column(
-        conn, "charters", ["paid_amount", "total_paid"]
-    )
+    paid_col = _first_existing_column(conn, "charters", ["paid_amount", "total_paid"])
 
     destination_col = _first_existing_column(
         conn,
@@ -298,47 +281,27 @@ def _build_legacy_ops_select(conn) -> tuple[str, str | None]:
         "charters",
         ["bill_to", "client_display_name", "client_name"],
     )
-    account_number_col = _first_existing_column(
-        conn, "charters", ["account_number"]
-    )
-    account_type_col = _first_existing_column(
-        conn, "charters", ["account_type"]
-    )
-    agency_number_col = _first_existing_column(
-        conn, "charters", ["agency_number"]
-    )
-    payment_type_col = _first_existing_column(
-        conn, "charters", ["payment_type", "payment_method"]
-    )
-    profit_center_col = _first_existing_column(
-        conn, "charters", ["profit_center"]
-    )
-    driver_col = _first_existing_column(
-        conn, "charters", ["driver_name", "driver"]
-    )
-    vehicle_col = _first_existing_column(
-        conn, "charters", ["vehicle", "vehicle_number"]
-    )
+    account_number_col = _first_existing_column(conn, "charters", ["account_number"])
+    account_type_col = _first_existing_column(conn, "charters", ["account_type"])
+    agency_number_col = _first_existing_column(conn, "charters", ["agency_number"])
+    payment_type_col = _first_existing_column(conn, "charters", ["payment_type", "payment_method"])
+    profit_center_col = _first_existing_column(conn, "charters", ["profit_center"])
+    driver_col = _first_existing_column(conn, "charters", ["driver_name", "driver"])
+    vehicle_col = _first_existing_column(conn, "charters", ["vehicle", "vehicle_number"])
     vehicle_type_col = _first_existing_column(
         conn,
         "charters",
         ["vehicle_type_requested", "vehicle_type", "vehicle_description"],
     )
-    run_type_col = _first_existing_column(
-        conn, "charters", ["run_type", "charter_type"]
-    )
+    run_type_col = _first_existing_column(conn, "charters", ["run_type", "charter_type"])
     status_col = _first_existing_column(conn, "charters", ["status"])
     sales_person_col = _first_existing_column(
         conn,
         "charters",
         ["sales_person", "taken_by", "booked_by", "created_by"],
     )
-    taken_by_col = _first_existing_column(
-        conn, "charters", ["taken_by", "booked_by", "created_by"]
-    )
-    group_number_col = _first_existing_column(
-        conn, "charters", ["group_number", "group_no"]
-    )
+    taken_by_col = _first_existing_column(conn, "charters", ["taken_by", "booked_by", "created_by"])
+    group_number_col = _first_existing_column(conn, "charters", ["group_number", "group_no"])
     _date_expr = f"c.{date_col}::date" if date_col else "NULL::date"
 
     select_sql = f"""
@@ -391,9 +354,7 @@ def _to_csv_response(rows: list[dict[str, Any]], filename: str) -> Response:
 
 @router.get("/legacy-ops")
 def legacy_ops_report(
-    report_family: str = Query(
-        "manifest", regex="^(manifest|reserve_list|sales_summary)$"
-    ),
+    report_family: str = Query("manifest", regex="^(manifest|reserve_list|sales_summary)$"),
     group_by: str = Query(
         "none",
         regex=(
@@ -521,10 +482,7 @@ def legacy_ops_report(
 
         if format == "csv":
             csv_rows = grouped_rows if group_by != "none" else items
-            filename = (
-                f"{report_family}_{group_by}_"
-                f"{start_dt.date()}_{end_dt.date()}.csv"
-            )
+            filename = f"{report_family}_{group_by}_" f"{start_dt.date()}_{end_dt.date()}.csv"
             return _to_csv_response(csv_rows, filename)
 
         return {
@@ -549,13 +507,12 @@ def legacy_ops_report(
 
 # ── Phase 2 endpoints ────────────────────────────────────────────────────────
 
+
 @router.get("/long-trip")
 def long_trip_report(
     start_date: str | None = None,
     end_date: str | None = None,
-    group_by: str = Query(
-        "none", regex="^(none|driver|vehicle|order_date|destination)$"
-    ),
+    group_by: str = Query("none", regex="^(none|driver|vehicle|order_date|destination)$"),
     include_cancelled: bool = True,
     limit: int = Query(2000, ge=1, le=50000),
     format: str = Query("json", regex="^(json|csv)$"),
@@ -566,6 +523,7 @@ def long_trip_report(
 
     conn = get_connection()
     try:
+
         def fc(candidates):
             return _first_existing_column(conn, "charters", candidates)
 
@@ -625,11 +583,7 @@ def long_trip_report(
         if not include_cancelled and cancel_col:
             conds.append(f"COALESCE(c.{cancel_col},false)=false")
         where = (" WHERE " + " AND ".join(conds)) if conds else ""
-        sql = (
-            sel
-            + where
-            + " ORDER BY order_date NULLS LAST,order_number LIMIT %s"
-        )
+        sql = sel + where + " ORDER BY order_date NULLS LAST,order_number LIMIT %s"
         params.append(limit)
 
         with conn.cursor() as cur:
@@ -682,9 +636,7 @@ def long_trip_report(
                 r["total_paid"] += item["paid_amount"]
                 r["total_balance"] += item["balance"]
                 r["total_kms"] += item["total_kms"]
-            grouped = sorted(
-                agg.values(), key=lambda x: (x["group_value"] or "").lower()
-            )
+            grouped = sorted(agg.values(), key=lambda x: (x["group_value"] or "").lower())
 
         if format == "csv":
             return _to_csv_response(
@@ -718,15 +670,14 @@ def invoiced_charges_report(
 
     conn = get_connection()
     try:
+
         def fc(candidates):
             return _first_existing_column(conn, "charters", candidates)
 
         date_col = fc(["charter_date", "pickup_date", "created_at"])
         client_col = fc(["client_display_name", "client_name"])
         date_expr = f"c.{date_col}::date" if date_col else "NULL::date"
-        client_expr = (
-            f"COALESCE(c.{client_col}::text,'')" if client_col else "''"
-        )
+        client_expr = f"COALESCE(c.{client_col}::text,'')" if client_col else "''"
 
         sql = f"""
             SELECT cc.reserve_number,
@@ -782,9 +733,7 @@ def invoiced_charges_report(
                 r["runs"] += 1
                 r["total_amount"] += item["amount"]
                 r["total_gst"] += item["gst_amount"]
-            grouped = sorted(
-                agg.values(), key=lambda x: (x["group_value"] or "").lower()
-            )
+            grouped = sorted(agg.values(), key=lambda x: (x["group_value"] or "").lower())
 
         if format == "csv":
             return _to_csv_response(
@@ -818,6 +767,7 @@ def driver_pay_report(
 
     conn = get_connection()
     try:
+
         def fc(candidates):
             return _first_existing_column(conn, "charters", candidates)
 
@@ -912,9 +862,7 @@ def driver_pay_report(
                 r["total_gratuity"] += item["driver_gratuity"]
                 r["total_pay"] += item["driver_total_expense"]
                 r["total_hours"] += item["driver_hours_worked"]
-            grouped = sorted(
-                agg.values(), key=lambda x: (x["group_value"] or "").lower()
-            )
+            grouped = sorted(agg.values(), key=lambda x: (x["group_value"] or "").lower())
 
         if format == "csv":
             return _to_csv_response(
@@ -971,21 +919,15 @@ def fleet_report(
 
     grouped: list[dict[str, Any]] = []
     if group_by != "none":
-        agg: dict[str, Any] = defaultdict(
-            lambda: {"group_value": "", "count": 0}
-        )
+        agg: dict[str, Any] = defaultdict(lambda: {"group_value": "", "count": 0})
         for item in items:
             gv = str(item.get(group_by) or "")
             agg[gv]["group_value"] = gv
             agg[gv]["count"] += 1
-        grouped = sorted(
-            agg.values(), key=lambda x: (x["group_value"] or "").lower()
-        )
+        grouped = sorted(agg.values(), key=lambda x: (x["group_value"] or "").lower())
 
     if format == "csv":
-        return _to_csv_response(
-            grouped if group_by != "none" else items, "fleet_status.csv"
-        )
+        return _to_csv_response(grouped if group_by != "none" else items, "fleet_status.csv")
     return {
         "count": len(items),
         "totals": totals,
@@ -996,13 +938,12 @@ def fleet_report(
 
 # ── Phase 3 endpoints ────────────────────────────────────────────────────────
 
+
 @router.get("/client-activity")
 def client_activity_report(
     start_date: str | None = None,
     end_date: str | None = None,
-    group_by: str = Query(
-        "none", regex="^(none|account_number|company_name|run_type)$"
-    ),
+    group_by: str = Query("none", regex="^(none|account_number|company_name|run_type)$"),
     include_cancelled: bool = True,
     limit: int = Query(5000, ge=1, le=50000),
     format: str = Query("json", regex="^(json|csv)$"),
@@ -1013,23 +954,20 @@ def client_activity_report(
 
     conn = get_connection()
     try:
+
         def fc(tbl, candidates):
             return _first_existing_column(conn, tbl, candidates)
 
-        date_col = fc(
-            "charters", ["charter_date", "pickup_date", "created_at"]
-        )
-        reserve_col = fc(
-            "charters", ["reserve_number", "reserve_no", "order_number"]
-        )
+        date_col = fc("charters", ["charter_date", "pickup_date", "created_at"])
+        reserve_col = fc("charters", ["reserve_number", "reserve_no", "order_number"])
         amount_col = fc("charters", ["total_amount_due", "amount", "total"])
         paid_col = fc("charters", ["paid_amount", "total_paid"])
         cancel_col = fc("charters", ["cancelled"])
         acct_col = fc("charters", ["account_number"])
         client_col = fc("charters", ["client_display_name", "client_name"])
         ctype_col = fc("charters", ["charter_type", "run_type"])
-        acct_cl = fc("clients",  ["account_number"])
-        company_col = fc("clients",  ["company_name", "client_name", "name"])
+        acct_cl = fc("clients", ["account_number"])
+        company_col = fc("clients", ["company_name", "client_name", "name"])
 
         def t(tbl, col):
             return f"COALESCE({tbl}.{col}::text,'')" if col else "''"
@@ -1038,12 +976,8 @@ def client_activity_report(
             return f"COALESCE(c.{col}::numeric,0)" if col else "0"
 
         date_expr = f"c.{date_col}::date" if date_col else "NULL::date"
-        company_expr = (
-            f"COALESCE(cl.{company_col}::text,'')" if company_col else "''"
-        )
-        acct_join = (
-            f"c.{acct_col}=cl.{acct_cl}" if acct_col and acct_cl else "false"
-        )
+        company_expr = f"COALESCE(cl.{company_col}::text,'')" if company_col else "''"
+        acct_join = f"c.{acct_col}=cl.{acct_cl}" if acct_col and acct_cl else "false"
 
         conds: list[str] = []
         params: list[Any] = []
@@ -1111,9 +1045,7 @@ def client_activity_report(
                 r["total_amount"] += item["amount"]
                 r["total_paid"] += item["paid_amount"]
                 r["total_balance"] += item["balance"]
-            grouped = sorted(
-                agg.values(), key=lambda x: (x["group_value"] or "").lower()
-            )
+            grouped = sorted(agg.values(), key=lambda x: (x["group_value"] or "").lower())
 
         if format == "csv":
             return _to_csv_response(
@@ -1134,9 +1066,7 @@ def client_activity_report(
 def payment_list_report(
     start_date: str | None = None,
     end_date: str | None = None,
-    group_by: str = Query(
-        "none", regex="^(none|payment_method|source|client_name)$"
-    ),
+    group_by: str = Query("none", regex="^(none|payment_method|source|client_name)$"),
     limit: int = Query(10000, ge=1, le=100000),
     format: str = Query("json", regex="^(json|csv)$"),
 ):
@@ -1145,7 +1075,8 @@ def payment_list_report(
     start_dt = _parse_iso_date(start_date, end_dt - timedelta(days=365))
 
     with cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT payment_date,
                    COALESCE(client_name,'') AS client_name,
                    COALESCE(charter_id::text,'') AS charter_id,
@@ -1157,7 +1088,9 @@ def payment_list_report(
             WHERE payment_date BETWEEN %s AND %s
             ORDER BY payment_date, client_name
             LIMIT %s
-        """, [start_dt.date(), end_dt.date(), limit])
+        """,
+            [start_dt.date(), end_dt.date(), limit],
+        )
         rows = cur.fetchall()
         col_names = [d[0] for d in cur.description]
 
@@ -1184,9 +1117,7 @@ def payment_list_report(
             r["group_value"] = gv
             r["runs"] += 1
             r["total_amount"] += item["amount"]
-        grouped = sorted(
-            agg.values(), key=lambda x: (x["group_value"] or "").lower()
-        )
+        grouped = sorted(agg.values(), key=lambda x: (x["group_value"] or "").lower())
 
     if format == "csv":
         return _to_csv_response(
@@ -1203,9 +1134,7 @@ def payment_list_report(
 
 @router.get("/aged-receivables")
 def aged_receivables_report(
-    group_by: str = Query(
-        "none", regex="^(none|age_bracket|account_number|driver)$"
-    ),
+    group_by: str = Query("none", regex="^(none|age_bracket|account_number|driver)$"),
     include_cancelled: bool = True,
     limit: int = Query(5000, ge=1, le=50000),
     format: str = Query("json", regex="^(json|csv)$"),
@@ -1213,6 +1142,7 @@ def aged_receivables_report(
     """Unpaid charters, aging brackets — all-time, no date filter."""
     conn = get_connection()
     try:
+
         def fc(candidates):
             return _first_existing_column(conn, "charters", candidates)
 
@@ -1304,9 +1234,7 @@ def aged_receivables_report(
                 r["runs"] += 1
                 r["total_amount"] += item["amount"]
                 r["total_balance"] += item["balance"]
-            grouped = sorted(
-                agg.values(), key=lambda x: (x["group_value"] or "").lower()
-            )
+            grouped = sorted(agg.values(), key=lambda x: (x["group_value"] or "").lower())
 
         if format == "csv":
             return _to_csv_response(
@@ -1330,8 +1258,7 @@ def income_summary_report(
     group_by: str = Query(
         "none",
         regex=(
-            "^(none|revenue_category|fiscal_year|fiscal_quarter"
-            "|payment_method|source_system)$"
+            "^(none|revenue_category|fiscal_year|fiscal_quarter" "|payment_method|source_system)$"
         ),
     ),
     limit: int = Query(10000, ge=1, le=100000),
@@ -1342,7 +1269,8 @@ def income_summary_report(
     start_dt = _parse_iso_date(start_date, end_dt - timedelta(days=365))
 
     with cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT transaction_date,
                    COALESCE(reserve_number,'') AS reserve_number,
                    COALESCE(revenue_category,'') AS revenue_category,
@@ -1359,7 +1287,9 @@ def income_summary_report(
             WHERE transaction_date BETWEEN %s AND %s
             ORDER BY transaction_date, revenue_category
             LIMIT %s
-        """, [start_dt.date(), end_dt.date(), limit])
+        """,
+            [start_dt.date(), end_dt.date(), limit],
+        )
         rows = cur.fetchall()
         col_names = [d[0] for d in cur.description]
 
@@ -1397,9 +1327,7 @@ def income_summary_report(
             r["total_gross"] += item["gross_amount"]
             r["total_gst"] += item["gst_collected"]
             r["total_net"] += item["net_amount"]
-        grouped = sorted(
-            agg.values(), key=lambda x: (x["group_value"] or "").lower()
-        )
+        grouped = sorted(agg.values(), key=lambda x: (x["group_value"] or "").lower())
 
     if format == "csv":
         return _to_csv_response(
@@ -1432,6 +1360,7 @@ def short_trip_report(
 
     conn = get_connection()
     try:
+
         def fc(candidates):
             return _first_existing_column(conn, "charters", candidates)
 
@@ -1526,9 +1455,7 @@ def short_trip_report(
                 r["total_amount"] += item["amount"]
                 r["total_paid"] += item["paid_amount"]
                 r["total_balance"] += item["balance"]
-            grouped = sorted(
-                agg.values(), key=lambda x: (x["group_value"] or "").lower()
-            )
+            grouped = sorted(agg.values(), key=lambda x: (x["group_value"] or "").lower())
 
         if format == "csv":
             return _to_csv_response(
@@ -1584,9 +1511,7 @@ def trial_balance(as_of: str | None = None):
         "total_debits": round(sum(a["total_debit"] for a in accounts), 2),
         "total_credits": round(sum(a["total_credit"] for a in accounts), 2),
     }
-    totals["difference"] = round(
-        totals["total_debits"] - totals["total_credits"], 2
-    )
+    totals["difference"] = round(totals["total_debits"] - totals["total_credits"], 2)
     return {"as_o": str(as_of_date), "accounts": accounts, "totals": totals}
 
 
@@ -1723,10 +1648,7 @@ def bank_reconciliation(
 
     total_debits = round(sum(i["debit"] for i in items), 2)
     total_credits = round(sum(i["credit"] for i in items), 2)
-    outstanding = [
-        i for i in items
-        if i["status"] in (None, "unreconciled", "ignored")
-    ]
+    outstanding = [i for i in items if i["status"] in (None, "unreconciled", "ignored")]
 
     return {
         "bank_id": bank_id,
@@ -1737,9 +1659,7 @@ def bank_reconciliation(
             "credits": total_credits,
             "net": round(total_credits - total_debits, 2),
             "outstanding_count": len(outstanding),
-            "outstanding_net": round(
-                sum(o["credit"] - o["debit"] for o in outstanding), 2
-            ),
+            "outstanding_net": round(sum(o["credit"] - o["debit"] for o in outstanding), 2),
         },
         "items": items,
     }
@@ -1785,9 +1705,7 @@ def pl_summary(
         expenses = float(r[3] or 0)
         periods.append(
             {
-                "period": r[0].date().isoformat()
-                if hasattr(r[0], "date")
-                else str(r[0]),
+                "period": r[0].date().isoformat() if hasattr(r[0], "date") else str(r[0]),
                 "revenue": round(revenue, 2),
                 "expenses": round(expenses, 2),
                 "profit": round(revenue - expenses, 2),
@@ -1904,9 +1822,7 @@ def vehicle_performance(
                 """
             )
             for vid, num, make, model, year in cur.fetchall():
-                rev = revenue_by_vehicle.get(
-                    int(vid or 0), {"revenue": 0.0, "trips": 0}
-                )
+                rev = revenue_by_vehicle.get(int(vid or 0), {"revenue": 0.0, "trips": 0})
                 exp = expense_by_vehicle.get(
                     int(vid or 0),
                     {"expense": 0.0, "maintenance": 0.0, "insurance": 0.0},
@@ -1925,9 +1841,7 @@ def vehicle_performance(
                         "maintenance": round(exp.get("maintenance", 0.0), 2),
                         "insurance": round(exp.get("insurance", 0.0), 2),
                         "profit": round(profit, 2),
-                        "margin_pct": round(
-                            (profit / rev.get("revenue", 1)) * 100, 2
-                        )
+                        "margin_pct": round((profit / rev.get("revenue", 1)) * 100, 2)
                         if rev.get("revenue", 0)
                         else 0.0,
                     }
@@ -1974,9 +1888,7 @@ def driver_costs(
     try:
         has_pay_date = _has_column(conn, "driver_payroll", "pay_date")
         if not has_pay_date:
-            raise HTTPException(
-                status_code=400, detail="driver_payroll_missing_pay_date"
-            )
+            raise HTTPException(status_code=400, detail="driver_payroll_missing_pay_date")
 
         columns = []
         if _has_column(conn, "driver_payroll", "employee_id"):
@@ -2006,9 +1918,7 @@ def driver_costs(
         )
 
         if not id_col:
-            raise HTTPException(
-                status_code=400, detail="driver_payroll_missing_driver_id"
-            )
+            raise HTTPException(status_code=400, detail="driver_payroll_missing_driver_id")
 
         with conn.cursor() as cur:
             cur.execute(
@@ -2068,9 +1978,7 @@ def driver_monthly_costs(
     conn = get_connection()
     try:
         if not _has_column(conn, "driver_payroll", "pay_date"):
-            raise HTTPException(
-                status_code=400, detail="driver_payroll_missing_pay_date"
-            )
+            raise HTTPException(status_code=400, detail="driver_payroll_missing_pay_date")
 
         id_col = (
             "employee_id"
@@ -2080,9 +1988,7 @@ def driver_monthly_costs(
             else None
         )
         if not id_col:
-            raise HTTPException(
-                status_code=400, detail="driver_payroll_missing_driver_id"
-            )
+            raise HTTPException(status_code=400, detail="driver_payroll_missing_driver_id")
 
         with conn.cursor() as cur:
             cur.execute(
@@ -2105,10 +2011,7 @@ def driver_monthly_costs(
 
         periods: dict[str, list[dict[str, Any]]] = {}
         for period, did, name, payruns, total_cost, gross_total in rows:
-            key = (
-                period.date().isoformat() if hasattr(period, "date")
-                else str(period)
-            )
+            key = period.date().isoformat() if hasattr(period, "date") else str(period)
             periods.setdefault(key, []).append(
                 {
                     "driver_id": did,
@@ -2139,9 +2042,7 @@ def vehicle_insurance_yearly(years: int = Query(5, ge=1, le=15)):
         _has_rdate = _has_column(conn, "receipts", "receipt_date")
         _has_date = _has_column(conn, "receipts", "date")
         if not _has_rdate and not _has_date:
-            raise HTTPException(
-                status_code=400, detail="receipts_missing_date"
-            )
+            raise HTTPException(status_code=400, detail="receipts_missing_date")
         date_col = "receipt_date" if _has_rdate else "date"
 
         with conn.cursor() as cur:
@@ -2204,9 +2105,7 @@ def vehicle_damage_summary(
             else None
         )
         if not date_col:
-            raise HTTPException(
-                status_code=400, detail="receipts_missing_date"
-            )
+            raise HTTPException(status_code=400, detail="receipts_missing_date")
 
         with conn.cursor() as cur:
             cur.execute(
@@ -2283,10 +2182,7 @@ def pl_categories(
 
     periods: dict[str, list[dict[str, Any]]] = {}
     for period, acct_type, acct_name, net in rows:
-        key = (
-            period.date().isoformat() if hasattr(period, "date")
-            else str(period)
-        )
+        key = period.date().isoformat() if hasattr(period, "date") else str(period)
         periods.setdefault(key, []).append(
             {
                 "account_type": acct_type,
@@ -2306,10 +2202,7 @@ def pl_categories(
             2,
         ),
         "expenses": round(
-            sum(
-                -r[3] for r in rows
-                if (r[1] or "").lower().startswith("expense")
-            ),
+            sum(-r[3] for r in rows if (r[1] or "").lower().startswith("expense")),
             2,
         ),
     }
@@ -2340,9 +2233,7 @@ def vehicle_revenue(
     conn = get_connection()
     try:
         if not _has_column(conn, "charters", "vehicle_id"):
-            raise HTTPException(
-                status_code=400, detail="charters_missing_vehicle_id"
-            )
+            raise HTTPException(status_code=400, detail="charters_missing_vehicle_id")
 
         # Prefer pickup_date; fallback to charter_date
         charter_date_col = (
@@ -2353,9 +2244,7 @@ def vehicle_revenue(
             else None
         )
         if not charter_date_col:
-            raise HTTPException(
-                status_code=400, detail="charters_missing_date"
-            )
+            raise HTTPException(status_code=400, detail="charters_missing_date")
 
         with conn.cursor() as cur:
             cur.execute(
@@ -2418,9 +2307,7 @@ def driver_revenue_vs_pay(
             else None
         )
         if not driver_col:
-            raise HTTPException(
-                status_code=400, detail="charters_missing_driver"
-            )
+            raise HTTPException(status_code=400, detail="charters_missing_driver")
 
         date_col = (
             "pickup_date"
@@ -2430,9 +2317,7 @@ def driver_revenue_vs_pay(
             else None
         )
         if not date_col:
-            raise HTTPException(
-                status_code=400, detail="charters_missing_date"
-            )
+            raise HTTPException(status_code=400, detail="charters_missing_date")
 
         with conn.cursor() as cur:
             cur.execute(
@@ -2458,9 +2343,7 @@ def driver_revenue_vs_pay(
 
         # Payroll
         if not _has_column(conn, "driver_payroll", "pay_date"):
-            raise HTTPException(
-                status_code=400, detail="driver_payroll_missing_pay_date"
-            )
+            raise HTTPException(status_code=400, detail="driver_payroll_missing_pay_date")
         pay_driver_col = (
             "employee_id"
             if _has_column(conn, "driver_payroll", "employee_id")
@@ -2469,9 +2352,7 @@ def driver_revenue_vs_pay(
             else None
         )
         if not pay_driver_col:
-            raise HTTPException(
-                status_code=400, detail="driver_payroll_missing_driver_id"
-            )
+            raise HTTPException(status_code=400, detail="driver_payroll_missing_driver_id")
 
         with conn.cursor() as cur:
             cur.execute(
@@ -2503,9 +2384,7 @@ def driver_revenue_vs_pay(
                     "payruns": int(payruns or 0),
                     "profit_after_pay": round(profit, 2),
                     "margin_pct": (
-                        round(
-                            (profit / rev.get("revenue", 1)) * 100, 2
-                        )
+                        round((profit / rev.get("revenue", 1)) * 100, 2)
                         if rev.get("revenue", 0)
                         else 0.0
                     ),
@@ -2531,9 +2410,7 @@ def driver_revenue_vs_pay(
         totals = {
             "revenue": round(sum(d["revenue"] for d in data), 2),
             "net_pay": round(sum(d["net_pay"] for d in data), 2),
-            "profit_after_pay": round(
-                sum(d["profit_after_pay"] for d in data), 2
-            ),
+            "profit_after_pay": round(sum(d["profit_after_pay"] for d in data), 2),
         }
         return {
             "start_date": str(start_dt.date()),
@@ -2644,9 +2521,7 @@ def fleet_maintenance_summary(
             else None
         )
         if not has_vehicle or not receipt_date_col:
-            raise HTTPException(
-                status_code=400, detail="receipts_missing_vehicle_or_date"
-            )
+            raise HTTPException(status_code=400, detail="receipts_missing_vehicle_or_date")
 
         with conn.cursor() as cur:
             cur.execute(
@@ -2731,16 +2606,17 @@ def cra_audit_export(
     Returns:
         ZIP file containing XML exports in CRA audit format
     """
-    import xml.etree.ElementTree as ET
+    import copy
     import zipfile
     from decimal import Decimal
-    from xml.dom import minidom
+
+    from defusedxml import ElementTree as ET
 
     def prettify_xml(elem):
         """Return a pretty-printed XML string"""
-        rough_string = ET.tostring(elem, encoding="unicode")
-        reparsed = minidom.parseString(rough_string)
-        return reparsed.toprettyxml(indent="  ")
+        pretty_elem = copy.deepcopy(elem)
+        ET.indent(pretty_elem, space="  ")
+        return ET.tostring(pretty_elem, encoding="unicode")
 
     conn = get_connection()
     cur = conn.cursor()
@@ -2794,25 +2670,13 @@ def cra_audit_export(
                         break
                     for acc in accounts:
                         acc_elem = ET.SubElement(root, "Account")
-                        ET.SubElement(
-                            acc_elem, "Name"
-                        ).text = str(acc[0] or "")
-                        ET.SubElement(
-                            acc_elem, "AccountCode"
-                        ).text = str(acc[1] or "")
-                        ET.SubElement(
-                            acc_elem, "FullName"
-                        ).text = str(acc[2] or "")
-                        ET.SubElement(
-                            acc_elem, "Number"
-                        ).text = str(acc[3] or "")
-                        ET.SubElement(
-                            acc_elem, "Type"
-                        ).text = str(acc[4] or "")
+                        ET.SubElement(acc_elem, "Name").text = str(acc[0] or "")
+                        ET.SubElement(acc_elem, "AccountCode").text = str(acc[1] or "")
+                        ET.SubElement(acc_elem, "FullName").text = str(acc[2] or "")
+                        ET.SubElement(acc_elem, "Number").text = str(acc[3] or "")
+                        ET.SubElement(acc_elem, "Type").text = str(acc[4] or "")
 
-                with open(
-                    tmppath / "Accounts.xml", "w", encoding="utf-8"
-                ) as f:
+                with open(tmppath / "Accounts.xml", "w", encoding="utf-8") as f:
                     f.write(prettify_xml(root))
 
                 # Export vendors
@@ -2848,24 +2712,12 @@ def cra_audit_export(
                         break
                     for vendor in vendors:
                         vendor_elem = ET.SubElement(root, "Vendor")
-                        ET.SubElement(vendor_elem, "Name").text = str(
-                            vendor[0]
-                        )
-                        ET.SubElement(
-                            vendor_elem, "TransactionCount"
-                        ).text = str(vendor[1])
-                        ET.SubElement(
-                            vendor_elem, "FirstTransaction"
-                        ).text = str(vendor[2])
-                        ET.SubElement(
-                            vendor_elem, "LastTransaction"
-                        ).text = str(vendor[3])
-                        ET.SubElement(
-                            vendor_elem, "TotalDebit"
-                        ).text = str(vendor[4] or 0)
-                        ET.SubElement(
-                            vendor_elem, "TotalCredit"
-                        ).text = str(vendor[5] or 0)
+                        ET.SubElement(vendor_elem, "Name").text = str(vendor[0])
+                        ET.SubElement(vendor_elem, "TransactionCount").text = str(vendor[1])
+                        ET.SubElement(vendor_elem, "FirstTransaction").text = str(vendor[2])
+                        ET.SubElement(vendor_elem, "LastTransaction").text = str(vendor[3])
+                        ET.SubElement(vendor_elem, "TotalDebit").text = str(vendor[4] or 0)
+                        ET.SubElement(vendor_elem, "TotalCredit").text = str(vendor[5] or 0)
 
                 with open(tmppath / "Vendors.xml", "w", encoding="utf-8") as f:
                     f.write(prettify_xml(root))
@@ -2904,25 +2756,13 @@ def cra_audit_export(
                     for emp in employees:
                         emp_elem = ET.SubElement(root, "Employee")
                         ET.SubElement(emp_elem, "Name").text = str(emp[0])
-                        ET.SubElement(
-                            emp_elem, "TransactionCount"
-                        ).text = str(emp[1])
-                        ET.SubElement(
-                            emp_elem, "FirstTransaction"
-                        ).text = str(emp[2])
-                        ET.SubElement(
-                            emp_elem, "LastTransaction"
-                        ).text = str(emp[3])
-                        ET.SubElement(
-                            emp_elem, "TotalDebit"
-                        ).text = str(emp[4] or 0)
-                        ET.SubElement(
-                            emp_elem, "TotalCredit"
-                        ).text = str(emp[5] or 0)
+                        ET.SubElement(emp_elem, "TransactionCount").text = str(emp[1])
+                        ET.SubElement(emp_elem, "FirstTransaction").text = str(emp[2])
+                        ET.SubElement(emp_elem, "LastTransaction").text = str(emp[3])
+                        ET.SubElement(emp_elem, "TotalDebit").text = str(emp[4] or 0)
+                        ET.SubElement(emp_elem, "TotalCredit").text = str(emp[5] or 0)
 
-                with open(
-                    tmppath / "Employees.xml", "w", encoding="utf-8"
-                ) as f:
+                with open(tmppath / "Employees.xml", "w", encoding="utf-8") as f:
                     f.write(prettify_xml(root))
 
                 # Export trial balance
@@ -2959,40 +2799,22 @@ def cra_audit_export(
                         break
                     for balance in balances:
                         balance_elem = ET.SubElement(root, "AccountBalance")
-                        ET.SubElement(balance_elem, "AccountName").text = str(
-                            balance[0] or ""
-                        )
-                        ET.SubElement(balance_elem, "AccountCode").text = str(
-                            balance[1] or ""
-                        )
-                        ET.SubElement(balance_elem, "AccountType").text = str(
-                            balance[2] or ""
-                        )
-                        ET.SubElement(balance_elem, "TotalDebit").text = str(
-                            balance[3] or 0
-                        )
-                        ET.SubElement(balance_elem, "TotalCredit").text = str(
-                            balance[4] or 0
-                        )
-                        ET.SubElement(
-                            balance_elem, "Balance"
-                        ).text = str(balance[5] or 0)
+                        ET.SubElement(balance_elem, "AccountName").text = str(balance[0] or "")
+                        ET.SubElement(balance_elem, "AccountCode").text = str(balance[1] or "")
+                        ET.SubElement(balance_elem, "AccountType").text = str(balance[2] or "")
+                        ET.SubElement(balance_elem, "TotalDebit").text = str(balance[3] or 0)
+                        ET.SubElement(balance_elem, "TotalCredit").text = str(balance[4] or 0)
+                        ET.SubElement(balance_elem, "Balance").text = str(balance[5] or 0)
 
                         total_debits += Decimal(balance[3] or 0)
                         total_credits += Decimal(balance[4] or 0)
 
                 summary = ET.SubElement(root, "Summary")
                 ET.SubElement(summary, "TotalDebits").text = str(total_debits)
-                ET.SubElement(
-                    summary, "TotalCredits"
-                ).text = str(total_credits)
-                ET.SubElement(summary, "Difference").text = str(
-                    total_debits - total_credits
-                )
+                ET.SubElement(summary, "TotalCredits").text = str(total_credits)
+                ET.SubElement(summary, "Difference").text = str(total_debits - total_credits)
 
-                with open(
-                    tmppath / "TrialBalance.xml", "w", encoding="utf-8"
-                ) as f:
+                with open(tmppath / "TrialBalance.xml", "w", encoding="utf-8") as f:
                     f.write(prettify_xml(root))
 
             # Export transactions if not summary-only
@@ -3035,57 +2857,28 @@ def cra_audit_export(
                         txn_elem = ET.SubElement(root, "Transaction")
                         ET.SubElement(txn_elem, "ID").text = str(txn[0])
                         ET.SubElement(txn_elem, "Date").text = str(txn[1])
-                        ET.SubElement(
-                            txn_elem, "Type"
-                        ).text = str(txn[2] or "")
-                        ET.SubElement(
-                            txn_elem, "Number"
-                        ).text = str(txn[3] or "")
-                        ET.SubElement(
-                            txn_elem, "Name"
-                        ).text = str(txn[4] or "")
-                        ET.SubElement(
-                            txn_elem, "AccountName"
-                        ).text = str(txn[5] or "")
-                        ET.SubElement(
-                            txn_elem, "Account"
-                        ).text = str(txn[6] or "")
-                        ET.SubElement(
-                            txn_elem, "Memo"
-                        ).text = str(txn[7] or "")
-                        ET.SubElement(txn_elem, "AccountFullName").text = str(
-                            txn[8] or ""
-                        )
-                        ET.SubElement(
-                            txn_elem, "Debit"
-                        ).text = str(txn[9] or 0)
-                        ET.SubElement(
-                            txn_elem, "Credit"
-                        ).text = str(txn[10] or 0)
-                        ET.SubElement(
-                            txn_elem, "Balance"
-                        ).text = str(txn[11] or 0)
-                        ET.SubElement(
-                            txn_elem, "Supplier"
-                        ).text = str(txn[12] or "")
-                        ET.SubElement(
-                            txn_elem, "Employee"
-                        ).text = str(txn[13] or "")
-                        ET.SubElement(
-                            txn_elem, "Customer"
-                        ).text = str(txn[14] or "")
+                        ET.SubElement(txn_elem, "Type").text = str(txn[2] or "")
+                        ET.SubElement(txn_elem, "Number").text = str(txn[3] or "")
+                        ET.SubElement(txn_elem, "Name").text = str(txn[4] or "")
+                        ET.SubElement(txn_elem, "AccountName").text = str(txn[5] or "")
+                        ET.SubElement(txn_elem, "Account").text = str(txn[6] or "")
+                        ET.SubElement(txn_elem, "Memo").text = str(txn[7] or "")
+                        ET.SubElement(txn_elem, "AccountFullName").text = str(txn[8] or "")
+                        ET.SubElement(txn_elem, "Debit").text = str(txn[9] or 0)
+                        ET.SubElement(txn_elem, "Credit").text = str(txn[10] or 0)
+                        ET.SubElement(txn_elem, "Balance").text = str(txn[11] or 0)
+                        ET.SubElement(txn_elem, "Supplier").text = str(txn[12] or "")
+                        ET.SubElement(txn_elem, "Employee").text = str(txn[13] or "")
+                        ET.SubElement(txn_elem, "Customer").text = str(txn[14] or "")
 
                         total_exported += 1
 
-                with open(
-                    tmppath / "Transactions.xml", "w", encoding="utf-8"
-                ) as f:
+                with open(tmppath / "Transactions.xml", "w", encoding="utf-8") as f:
                     f.write(prettify_xml(root))
 
             # Create README
             cur.execute(
-                "SELECT MIN(date), MAX(date), COUNT(*)"
-                f" FROM general_ledger{date_filter}",
+                "SELECT MIN(date), MAX(date), COUNT(*)" f" FROM general_ledger{date_filter}",
                 date_params,
             )
             _min_date, _max_date, _total_txns = cur.fetchone()
@@ -3120,16 +2913,11 @@ DATE FORMAT: YYYY-MM-DD
 Generated via Arrow Limousine Reports Dashboard
 """
 
-            with open(
-                tmppath / "README.txt", "w", encoding="utf-8"
-            ) as f:
+            with open(tmppath / "README.txt", "w", encoding="utf-8") as f:
                 f.write(readme)
 
             # Create ZIP file
-            zip_filename = (
-                f"CRA_Audit_Export_"
-                f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
-            )
+            zip_filename = f"CRA_Audit_Export_" f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
             zip_path = tmppath / zip_filename
 
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
@@ -3171,8 +2959,7 @@ def get_accounting_export_views():
             return {
                 "status": "not_initialized",
                 "message": (
-                    "Accounting export views not found."
-                    " Run the migration script first."
+                    "Accounting export views not found." " Run the migration script first."
                 ),
                 "migration_script": "migrations/create_accounting_export_views.sql",
             }
@@ -3194,20 +2981,14 @@ def get_accounting_export_views():
 
         view_info = []
         for view_name in views:
-            friendly_name = (
-                view_name.replace("qb_export_", "")
-                .replace("_", " ")
-                .title()
-            )
+            friendly_name = view_name.replace("qb_export_", "").replace("_", " ").title()
 
             view_info.append(
                 {
                     "view_name": view_name,
                     "friendly_name": friendly_name,
                     "record_count": counts_by_view.get(view_name, 0),
-                    "export_filename": (
-                        f"{friendly_name.replace(' ', '_')}.csv"
-                    ),
+                    "export_filename": (f"{friendly_name.replace(' ', '_')}.csv"),
                 }
             )
 
@@ -3316,11 +3097,7 @@ def export_accounting_view(
             return Response(
                 content=output.getvalue(),
                 media_type="text/csv",
-                headers={
-                    "Content-Disposition": (
-                        f'attachment; filename="{filename}"'
-                    )
-                },
+                headers={"Content-Disposition": (f'attachment; filename="{filename}"')},
             )
 
         else:
@@ -3339,17 +3116,12 @@ def deprecated_quickbooks_export(view_name: str):
     """Deprecated endpoint retained for backwards compatibility."""
     raise HTTPException(
         status_code=410,
-        detail=(
-            "deprecated_endpoint_use_/api/reports/accounting/export/"
-            f"{view_name}"
-        ),
+        detail=("deprecated_endpoint_use_/api/reports/accounting/export/" f"{view_name}"),
     )
 
 
 @router.get("/accounting/export-all")
-def export_all_accounting_views(
-    start_date: str | None = None, end_date: str | None = None
-):
+def export_all_accounting_views(start_date: str | None = None, end_date: str | None = None):
     """Export all accounting views to a single ZIP file."""
     import zipfile
 
@@ -3442,16 +3214,8 @@ EXPORTED FILES
             for view_name in views:
                 cur.execute(f"SELECT COUNT(*) FROM {view_name}")
                 count = cur.fetchone()[0]
-                friendly_name = (
-                    view_name
-                    .replace("qb_export_", "")
-                    .replace("_", " ")
-                    .title()
-                )
-                readme += (
-                    f"✓ {view_name}.csv - "
-                    f"{friendly_name} ({count:,} records)\n"
-                )
+                friendly_name = view_name.replace("qb_export_", "").replace("_", " ").title()
+                readme += f"✓ {view_name}.csv - " f"{friendly_name} ({count:,} records)\n"
 
             readme += """
 {'=' * 70}
@@ -3470,9 +3234,7 @@ Start with Chart of Accounts, then Customers/Vendors, then Transactions.
 Generated via Arrow Limousine Accounting Export Dashboard
 """
 
-            with open(
-                tmppath / "README.txt", "w", encoding="utf-8"
-            ) as f:
+            with open(tmppath / "README.txt", "w", encoding="utf-8") as f:
                 f.write(readme)
 
             # Create ZIP file
@@ -3481,8 +3243,7 @@ Generated via Arrow Limousine Accounting Export Dashboard
                 date_suffix = f"_{start_date}_to_{end_date}"
 
             zip_filename = (
-                f"Accounting_Export_"
-                f"{datetime.now().strftime('%Y%m%d_%H%M%S')}{date_suffix}.zip"
+                f"Accounting_Export_" f"{datetime.now().strftime('%Y%m%d_%H%M%S')}{date_suffix}.zip"
             )
             zip_path = tmppath / zip_filename
 
@@ -3540,12 +3301,8 @@ def list_accounting_rules():
                 "account_type": r[5],
                 "sort_order": int(r[6] or 0),
                 "is_active": bool(r[7]),
-                "created_at": (
-                    r[8].isoformat() if hasattr(r[8], "isoformat") else None
-                ),
-                "updated_at": (
-                    r[9].isoformat() if hasattr(r[9], "isoformat") else None
-                ),
+                "created_at": (r[8].isoformat() if hasattr(r[8], "isoformat") else None),
+                "updated_at": (r[9].isoformat() if hasattr(r[9], "isoformat") else None),
             }
             for r in rows
         ]
@@ -3576,9 +3333,7 @@ def create_accounting_rule(payload: AccountingRuleUpsert, request: Request):
                     payload.match_field,
                     payload.match_pattern.strip(),
                     payload.gl_code.strip(),
-                    payload.account_type.strip()
-                    if payload.account_type
-                    else None,
+                    payload.account_type.strip() if payload.account_type else None,
                     payload.sort_order,
                     payload.is_active,
                 ),
@@ -3652,9 +3407,7 @@ def update_accounting_rule(
                     payload.match_field,
                     payload.match_pattern.strip(),
                     payload.gl_code.strip(),
-                    payload.account_type.strip()
-                    if payload.account_type
-                    else None,
+                    payload.account_type.strip() if payload.account_type else None,
                     payload.sort_order,
                     payload.is_active,
                     rule_id,
@@ -3847,19 +3600,13 @@ def reclassify_ledger_rows(payload: LedgerReclassifyRequest, request: Request):
         updates: list[str] = []
         params: list[Any] = []
 
-        if payload.gl_code is not None and _has_column(
-            conn, "general_ledger", "account"
-        ):
+        if payload.gl_code is not None and _has_column(conn, "general_ledger", "account"):
             updates.append("account = %s")
             params.append(payload.gl_code)
-        if payload.account_name is not None and _has_column(
-            conn, "general_ledger", "account_name"
-        ):
+        if payload.account_name is not None and _has_column(conn, "general_ledger", "account_name"):
             updates.append("account_name = %s")
             params.append(payload.account_name)
-        if payload.account_type is not None and _has_column(
-            conn, "general_ledger", "account_type"
-        ):
+        if payload.account_type is not None and _has_column(conn, "general_ledger", "account_type"):
             updates.append("account_type = %s")
             params.append(payload.account_type)
 
@@ -3931,20 +3678,14 @@ def get_company_snapshot(
         # Calculate date range
         end_dt = datetime.now()
         if date_range == "today":
-            start_dt = end_dt.replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
+            start_dt = end_dt.replace(hour=0, minute=0, second=0, microsecond=0)
         elif date_range == "wtd":
             start_dt = end_dt - timedelta(days=end_dt.weekday())
         elif date_range == "mtd":
             start_dt = end_dt.replace(day=1)
         elif date_range == "ytd":
             start_dt = end_dt.replace(month=1, day=1)
-        elif (
-            date_range == "custom"
-            and start_date
-            and end_date
-        ):
+        elif date_range == "custom" and start_date and end_date:
             start_dt = datetime.fromisoformat(start_date)
             end_dt = datetime.fromisoformat(end_date)
         else:
@@ -3992,9 +3733,7 @@ def get_company_snapshot(
         total_revenue = float(revenue_data[1] or 0)
         total_expenses = float(expense_data[1] or 0)
         profit = total_revenue - total_expenses
-        profit_margin = (
-            (profit / total_revenue * 100) if total_revenue > 0 else 0
-        )
+        profit_margin = (profit / total_revenue * 100) if total_revenue > 0 else 0
         charter_count = int(revenue_data[0] or 0)
         active_vehicles = int(vehicle_data[0] or 0)
 
@@ -4005,9 +3744,7 @@ def get_company_snapshot(
                 "amount": round(profit, 2),
                 "count": charter_count,
                 "percent": 100,
-                "avgAmount": round(profit / charter_count, 2)
-                if charter_count > 0
-                else 0,
+                "avgAmount": round(profit / charter_count, 2) if charter_count > 0 else 0,
             },
             "totals": {
                 "revenue": round(total_revenue, 2),

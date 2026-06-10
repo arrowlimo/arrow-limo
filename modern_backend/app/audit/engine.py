@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Any
 
 from .catalog import AUDIT_EVENT_SCHEMA
@@ -48,9 +48,7 @@ def _has_column(conn, table_name: str, column_name: str) -> bool:
         return cur.fetchone() is not None
 
 
-def _first_existing_column(
-    conn, table_name: str, candidates: list[str]
-) -> str | None:
+def _first_existing_column(conn, table_name: str, candidates: list[str]) -> str | None:
     for candidate in candidates:
         if _has_column(conn, table_name, candidate):
             return candidate
@@ -71,7 +69,13 @@ def _safe_sum(conn, sql: str, params: tuple[Any, ...] = ()) -> float:
         return float(row[0] or 0.0) if row else 0.0
 
 
+_audit_storage_initialized: bool = False
+
+
 def ensure_audit_storage(conn) -> None:
+    global _audit_storage_initialized
+    if _audit_storage_initialized:
+        return
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -199,6 +203,7 @@ def ensure_audit_storage(conn) -> None:
             """
         )
     conn.commit()
+    _audit_storage_initialized = True
 
 
 def record_audit_event(
@@ -213,15 +218,11 @@ def record_audit_event(
     payload = event.model_dump(mode="json")
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT event_hash FROM audit_events ORDER BY audit_event_pk DESC LIMIT 1"
-        )
+        cur.execute("SELECT event_hash FROM audit_events ORDER BY audit_event_pk DESC LIMIT 1")
         row = cur.fetchone()
         prev_hash = row[0] if row else None
     event.prev_hash = prev_hash
-    event.event_hash = hashlib.sha256(
-        ((prev_hash or "") + canonical).encode("utf-8")
-    ).hexdigest()
+    event.event_hash = hashlib.sha256(((prev_hash or "") + canonical).encode("utf-8")).hexdigest()
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -580,7 +581,10 @@ def _check_pd7a_reconciliation(conn, fiscal_year: int) -> AuditCheckFinding:
             "high",
             f"PD7A remittance amounts do not tie for months: {', '.join(mismatches)}.",
             mismatches,
-            ["Reconcile remittance due against payroll deductions withheld.", "Correct PD7A totals before filing."],
+            [
+                "Reconcile remittance due against payroll deductions withheld.",
+                "Correct PD7A totals before filing.",
+            ],
             ["cra_pd7a_returns"],
         )
     return _finding(
@@ -611,12 +615,10 @@ def _check_t4_reconciliation(conn, fiscal_year: int) -> AuditCheckFinding:
             requires_confirmation=True,
             data_sources=["driver_payroll"],
         )
-    table_name = "employee_t4_records" if _table_exists(conn, "employee_t4_records") else "t4_entries"
-    box14_col = (
-        "box_14_employment_income"
-        if table_name == "employee_t4_records"
-        else "t4_box_14"
+    table_name = (
+        "employee_t4_records" if _table_exists(conn, "employee_t4_records") else "t4_entries"
     )
+    box14_col = "box_14_employment_income" if table_name == "employee_t4_records" else "t4_box_14"
     with conn.cursor() as cur:
         cur.execute(
             f"""
@@ -642,7 +644,10 @@ def _check_t4_reconciliation(conn, fiscal_year: int) -> AuditCheckFinding:
         "low",
         f"T4 records exist for {len(rows)} employees; automated box tie-out requires business confirmation of source mappings.",
         [str(r[0]) for r in rows[:20]],
-        ["Confirm which payroll table is authoritative for T4 box 14 tie-out.", "Compare stored T4 boxes against payroll extracts."],
+        [
+            "Confirm which payroll table is authoritative for T4 box 14 tie-out.",
+            "Compare stored T4 boxes against payroll extracts.",
+        ],
         [table_name, "driver_payroll"],
         requires_confirmation=True,
     )
@@ -651,7 +656,9 @@ def _check_t4_reconciliation(conn, fiscal_year: int) -> AuditCheckFinding:
 def _check_invoice_and_trip_uniqueness(conn) -> list[AuditCheckFinding]:
     findings: list[AuditCheckFinding] = []
     if _table_exists(conn, "invoices"):
-        invoice_col = _first_existing_column(conn, "invoices", ["invoice_number", "invoice_no", "number"])
+        invoice_col = _first_existing_column(
+            conn, "invoices", ["invoice_number", "invoice_no", "number"]
+        )
         if invoice_col:
             with conn.cursor() as cur:
                 cur.execute(
@@ -810,7 +817,9 @@ def _check_period_close(conn, fiscal_year: int) -> AuditCheckFinding:
         "low",
         f"Year-end close record exists for {fiscal_year} with status {row[1]}.",
         [str(fiscal_year)],
-        ["Confirm whether post-close modification prevention is enforced at the router and DB layer."],
+        [
+            "Confirm whether post-close modification prevention is enforced at the router and DB layer."
+        ],
         ["year_end_closes"],
         requires_confirmation=True,
     )
@@ -823,7 +832,9 @@ def _check_audit_trail_storage(conn) -> AuditCheckFinding:
             "FAIL",
             "critical",
             "audit_events table is missing; core financial audit trail is not yet implemented.",
-            suggested_fix_steps=["Create audit_events storage and wire mutation logging into write paths."],
+            suggested_fix_steps=[
+                "Create audit_events storage and wire mutation logging into write paths."
+            ],
             data_sources=["audit_events"],
         )
     count = _safe_count(conn, "SELECT COUNT(*) FROM audit_events")
@@ -834,7 +845,9 @@ def _check_audit_trail_storage(conn) -> AuditCheckFinding:
             "high",
             "audit_events table exists but contains no rows yet; mutation logging coverage remains to be wired.",
             requires_confirmation=True,
-            suggested_fix_steps=["Attach audit-event writes to financial, payroll, and year-end mutations."],
+            suggested_fix_steps=[
+                "Attach audit-event writes to financial, payroll, and year-end mutations."
+            ],
             data_sources=["audit_events"],
         )
     return _finding(
@@ -853,7 +866,9 @@ def _check_package_retention(conn) -> AuditCheckFinding:
             "FAIL",
             "high",
             "audit_package_runs table is missing; year-end package retention cannot be proven.",
-            suggested_fix_steps=["Create audit_package_runs storage and persist package manifests."],
+            suggested_fix_steps=[
+                "Create audit_package_runs storage and persist package manifests."
+            ],
             data_sources=["audit_package_runs"],
         )
     count = _safe_count(conn, "SELECT COUNT(*) FROM audit_package_runs")
@@ -949,9 +964,7 @@ def _check_impossible_values(conn, fiscal_year: int) -> list[AuditCheckFinding]:
                     else "No negative PD7A remittance totals detected."
                 ),
                 data_sources=["cra_pd7a_returns"],
-                suggested_fix_steps=["Correct PD7A totals before filing."]
-                if pd7a_total
-                else [],
+                suggested_fix_steps=["Correct PD7A totals before filing."] if pd7a_total else [],
             )
         )
 
@@ -1071,9 +1084,7 @@ def _check_audit_coverage(conn) -> AuditCheckFinding:
     )
 
 
-def generate_audit_check_report(
-    conn, request: AuditCheckRequest
-) -> AuditCheckReport:
+def generate_audit_check_report(conn, request: AuditCheckRequest) -> AuditCheckReport:
     ensure_audit_storage(conn)
     findings = [
         _check_employee_identity(conn),
@@ -1112,9 +1123,7 @@ def generate_audit_check_report(
             """,
             (
                 hashlib.sha256(
-                    f"{request.fiscal_year}:{request.correlation_id or ''}:{datetime.utcnow().isoformat()}".encode(
-                        "utf-8"
-                    )
+                    f"{request.fiscal_year}:{request.correlation_id or ''}:{datetime.utcnow().isoformat()}".encode()
                 ).hexdigest(),
                 request.fiscal_year,
                 request.generated_by,

@@ -136,7 +136,7 @@ async def get_cheque_books_summary():
         return summaries
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -167,9 +167,7 @@ async def search_cheques(search: ChequeSearchRequest):
             params.append(search.amount)
 
         if search.payee:
-            where_clauses.append(
-                "(check_recipient ILIKE %s OR vendor_extracted ILIKE %s)"
-            )
+            where_clauses.append("(check_recipient ILIKE %s OR vendor_extracted ILIKE %s)")
             params.extend([f"%{search.payee}%", f"%{search.payee}%"])
 
         if search.bank_account:
@@ -183,9 +181,7 @@ async def search_cheques(search: ChequeSearchRequest):
                     "description ILIKE '%returned%')"
                 )
             elif search.status.lower() == "void":
-                where_clauses.append(
-                    "(category ILIKE '%void%' OR description ILIKE '%void%')"
-                )
+                where_clauses.append("(category ILIKE '%void%' OR description ILIKE '%void%')")
             elif search.status.lower() == "cleared":
                 where_clauses.append(
                     "category IS NOT NULL AND category != '' AND category NOT"
@@ -272,7 +268,7 @@ async def search_cheques(search: ChequeSearchRequest):
         return cheques
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -352,7 +348,7 @@ async def update_cheque(transaction_id: int, update: ChequeUpdateRequest):
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -407,9 +403,7 @@ async def bulk_update_cheques(updates: list[ChequeUpdateRequest]):
                         "cleared": "Expense - Other",
                         "pending": None,
                     }
-                    category = status_map.get(
-                        update.status.lower(), update.status
-                    )
+                    category = status_map.get(update.status.lower(), update.status)
                     update_fields.append("category = %s")
                     params.append(category)
 
@@ -444,9 +438,7 @@ async def bulk_update_cheques(updates: list[ChequeUpdateRequest]):
 
     except Exception as e:
         conn.rollback()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Bulk update failed: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Bulk update failed: {e!s}")
     finally:
         cur.close()
         conn.close()

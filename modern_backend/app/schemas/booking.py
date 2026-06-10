@@ -18,9 +18,7 @@ class RouteItem(BaseModel):
     Types: pickup, dropoff, stop, depart, return
     """
 
-    type: str = Field(
-        ..., description="Route type: pickup, dropoff, stop, depart, return"
-    )
+    type: str = Field(..., description="Route type: pickup, dropoff, stop, depart, return")
     address: str = Field(..., min_length=5, description="Address of the stop")
     time24: str | None = Field(None, description="Time in HH:MM format")
 
@@ -60,9 +58,7 @@ class ChartRequest(BaseModel):
     client_name: str = Field(..., min_length=2, description="Customer name")
     phone: str = Field(..., min_length=10, description="Phone number")
     email: str = Field(..., description="Email address")
-    billing_address: str = Field(
-        ..., min_length=5, description="Billing address"
-    )
+    billing_address: str = Field(..., min_length=5, description="Billing address")
     city: str = Field(..., min_length=2, description="City")
     province: str = Field(default="AB", description="Province/State")
     postal_code: str = Field(..., min_length=5, description="Postal code")
@@ -70,18 +66,10 @@ class ChartRequest(BaseModel):
     # Charter Details
     charter_date: date = Field(..., description="Charter date (>= today)")
     pickup_time: str = Field(..., description="Pickup time in HH:MM format")
-    passenger_load: int = Field(
-        ..., ge=1, le=50, description="Passenger count 1-50"
-    )
-    vehicle_type_requested: str | None = Field(
-        None, description="Vehicle type preference"
-    )
-    vehicle_booked_id: int | None = Field(
-        None, description="Assigned vehicle ID"
-    )
-    assigned_driver_id: int | None = Field(
-        None, description="Assigned driver ID"
-    )
+    passenger_load: int = Field(..., ge=1, le=50, description="Passenger count 1-50")
+    vehicle_type_requested: str | None = Field(None, description="Vehicle type preference")
+    vehicle_booked_id: int | None = Field(None, description="Assigned vehicle ID")
+    assigned_driver_id: int | None = Field(None, description="Assigned driver ID")
 
     # Itinerary
     itinerary: list[RouteItem] = Field(
@@ -90,12 +78,8 @@ class ChartRequest(BaseModel):
 
     # Notes
     customer_notes: str | None = Field(None, description="Notes for customer")
-    dispatcher_notes: str | None = Field(
-        None, description="Internal notes for dispatcher"
-    )
-    special_requests: str | None = Field(
-        None, description="Special requests (alcohol, AV, etc)"
-    )
+    dispatcher_notes: str | None = Field(None, description="Internal notes for dispatcher")
+    special_requests: str | None = Field(None, description="Special requests (alcohol, AV, etc)")
 
     # Pricing
     base_charge: Decimal = Field(..., gt=0, description="Base charge amount")
@@ -107,27 +91,16 @@ class ChartRequest(BaseModel):
     additional_charges_amount: Decimal = Field(
         default=Decimal("0.00"), ge=0, description="Additional charges"
     )
-    total_amount_due: Decimal = Field(
-        ..., gt=0, description="Total amount (includes GST)"
-    )
-    deposit_paid: Decimal = Field(
-        default=Decimal("0.00"), ge=0, description="Deposit paid upfront"
-    )
+    total_amount_due: Decimal = Field(..., gt=0, description="Total amount (includes GST)")
+    deposit_paid: Decimal = Field(default=Decimal("0.00"), ge=0, description="Deposit paid upfront")
 
     # Status
     status: str = Field(
         default="Quote",
-        description=(
-            "Quote, Confirmed, Assigned, "
-            "In Progress, Completed, Cancelled"
-        ),
+        description=("Quote, Confirmed, Assigned, " "In Progress, Completed, Cancelled"),
     )
-    cancellation_reason: str | None = Field(
-        None, description="Reason for cancellation"
-    )
-    reference_number: str | None = Field(
-        None, description="Customer reference (PO, etc)"
-    )
+    cancellation_reason: str | None = Field(None, description="Reason for cancellation")
+    reference_number: str | None = Field(None, description="Customer reference (PO, etc)")
 
     @validator("charter_date")
     def validate_date(cls, v):
@@ -164,9 +137,7 @@ class ChartRequest(BaseModel):
     def validate_itinerary(cls, v):
         """Itinerary must have at least 2 stops (pickup + dropoff)."""
         if len(v) < 2:
-            raise ValueError(
-                "itinerary must have at least 2 stops (pickup + dropoff)"
-            )
+            raise ValueError("itinerary must have at least 2 stops (pickup + dropoff)")
         return v
 
     @validator("total_amount_due")
@@ -195,9 +166,7 @@ class ChartResponse(BaseModel):
     """
 
     charter_id: int = Field(..., description="Internal charter ID")
-    reserve_number: str = Field(
-        ..., description="6-digit business key (e.g., '019233')"
-    )
+    reserve_number: str = Field(..., description="6-digit business key (e.g., '019233')")
     status: str = Field(..., description="Current booking status")
     created_at: datetime = Field(..., description="Timestamp of creation")
 

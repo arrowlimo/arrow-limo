@@ -1,0 +1,500 @@
+scripts\2012_migrate_remaining_negatives.py:17:def calculate_gst(gross_amount):
+scripts\2012_migrate_remaining_negatives.py:24:def extract_vendor(notes):
+scripts\2012_migrate_remaining_negatives.py:40:def categorize(vendor, notes):
+scripts\2012_reconciliation_baseline.py:87:def daterange(year: int):
+scripts\2012_reconciliation_baseline.py:91:def run():
+scripts\2012_reconciliation_baseline.py:97:    def fetch(name, sql):
+scripts\accounting_lock_control_granular.py:44:def main():
+scripts\2012_receipts_banking_match.py:19:def build_sql(id_col: str, vendor_col: str, desc_col: str):
+scripts\2012_receipts_banking_match.py:81:def main():
+scripts\accounting_lock_control.py:20:def main():
+scripts\2012_migrate_negative_payments.py:41:def extract_vendor(notes: str) -> str:
+scripts\2012_migrate_negative_payments.py:56:def categorize(vendor: str, notes: str) -> str:
+scripts\2012_migrate_negative_payments.py:66:def calculate_gst(gross_amount) -> tuple:
+scripts\2012_migrate_negative_payments.py:73:def main():
+scripts\achieve_100_percent_refund_linkage.py:12:def get_db_connection():
+scripts\achieve_100_percent_refund_linkage.py:20:def create_business_expenses_table(cur):
+scripts\achieve_100_percent_refund_linkage.py:49:def move_qbo_expenses(cur, dry_run=True):
+scripts\achieve_100_percent_refund_linkage.py:113:def create_manual_linkage_file(cur):
+scripts\achieve_100_percent_refund_linkage.py:172:def main():
+scripts\2012_match_orphaned_payments.py:22:def main():
+scripts\2012_reconciliation_audit.py:47:def write_csv(path: str, headers, rows):
+scripts\2012_reconciliation_audit.py:55:def calculate_gst_included(gross_amount: float, tax_rate: float = 0.05):
+scripts\2012_reconciliation_audit.py:63:def load_policy():
+scripts\2012_reconciliation_audit.py:69:def load_manual_receipt_exceptions():
+scripts\2012_reconciliation_audit.py:88:def table_has_column(cur, table_name: str, column_name: str) -> bool:
+scripts\2012_reconciliation_audit.py:101:def main():
+scripts\2012_reconciliation_audit.py:303:                def match_any(keys):
+scripts\add_active_vehicle_number_unique_index.py:4:def get_conn():
+scripts\2012_list_paid_mismatches.py:37:def main():
+scripts\add_2015_caddy_repossessed.py:17:def main():
+scripts\achieve_100_percent_refund_linkage.bak_20260123_224847.py:12:def get_db_connection():
+scripts\achieve_100_percent_refund_linkage.bak_20260123_224847.py:20:def create_business_expenses_table(cur):
+scripts\achieve_100_percent_refund_linkage.bak_20260123_224847.py:49:def move_qbo_expenses(cur, dry_run=True):
+scripts\achieve_100_percent_refund_linkage.bak_20260123_224847.py:113:def create_manual_linkage_file(cur):
+scripts\achieve_100_percent_refund_linkage.bak_20260123_224847.py:172:def main():
+scripts\add_5_of_diamonds.py:11:def add_product():
+scripts\achieve_100_percent_refund_linkage.bak_20260123_224941.py:12:def get_db_connection():
+scripts\achieve_100_percent_refund_linkage.bak_20260123_224941.py:20:def create_business_expenses_table(cur):
+scripts\achieve_100_percent_refund_linkage.bak_20260123_224941.py:49:def move_qbo_expenses(cur, dry_run=True):
+scripts\achieve_100_percent_refund_linkage.bak_20260123_224941.py:113:def create_manual_linkage_file(cur):
+scripts\achieve_100_percent_refund_linkage.bak_20260123_224941.py:172:def main():
+scripts\add_alley_kat.py:11:def add_products():
+scripts\add_batch2_products.py:11:def add_products():
+scripts\add_agd_sawback.py:11:def add_products():
+scripts\2012_analyze_orphaned_payments.py:20:def main():
+desktop_app\advanced_charter_search_dialog.py:36:    def __init__(self, db_connection, parent=None) -> None:
+desktop_app\advanced_charter_search_dialog.py:47:    def init_ui(self) -> None:
+desktop_app\advanced_charter_search_dialog.py:249:    def load_charters(self) -> None:
+desktop_app\advanced_charter_search_dialog.py:291:    def on_filter_changed(self) -> None:
+desktop_app\advanced_charter_search_dialog.py:295:    def load_filtered_charters(self) -> None:
+desktop_app\advanced_charter_search_dialog.py:461:    def on_table_double_click(self, index) -> None:
+desktop_app\advanced_charter_search_dialog.py:483:    def on_view_charter(self) -> None:
+desktop_app\advanced_charter_search_dialog.py:503:    def on_view_vehicle(self) -> None:
+desktop_app\advanced_charter_search_dialog.py:534:    def on_view_driver(self) -> None:
+desktop_app\advanced_charter_search_dialog.py:581:    def on_back(self) -> None:
+desktop_app\advanced_charter_search_dialog.py:586:    def close_all_dialogs(self) -> None:
+scripts\add_batch3_products.py:11:def add_products():
+desktop_app\accounting_gifi.py:258:def gl_to_sch125_field(
+desktop_app\accountant_notes_widget.py:49:    def __init__(self, field: str, label: str, parent=None) -> None:
+desktop_app\accountant_notes_widget.py:93:    def _toggle(self) -> None:
+desktop_app\accountant_notes_widget.py:99:    def get_text(self) -> str:
+desktop_app\accountant_notes_widget.py:102:    def set_text(self, text: str) -> None:
+desktop_app\accountant_notes_widget.py:109:    def __init__(self, conn: psycopg2.extensions.connection, parent=None) -> None:
+desktop_app\accountant_notes_widget.py:120:    def _build_ui(self) -> None:
+desktop_app\accountant_notes_widget.py:202:    def _on_year_changed(self, current, previous) -> None:
+desktop_app\accountant_notes_widget.py:235:    def _load_year(self, year: int) -> None:
+desktop_app\accountant_notes_widget.py:284:    def _save(self) -> None:
+desktop_app\accountant_notes_widget.py:333:    def _mark_dirty(self) -> None:
+modern_backend\migrations\create_audit_logs.py:10:def setup_audit_logs_table():
+desktop_app\accounting_control_center_widget.py:46:    def __init__(self, title: str, parent=None) -> None:
+desktop_app\accounting_control_center_widget.py:55:    def set_data(self, slices: list[dict], subtitle: str = "") -> None:
+desktop_app\accounting_control_center_widget.py:61:    def paintEvent(self, _event) -> None:
+desktop_app\accounting_control_center_widget.py:169:    def __init__(self, title: str, parent=None) -> None:
+desktop_app\accounting_control_center_widget.py:195:    def set_metric(self, value: str, caption: str = "") -> None:
+desktop_app\accounting_control_center_widget.py:203:    def __init__(self, db, parent=None) -> None:
+desktop_app\accounting_control_center_widget.py:217:    def _build_ui(self) -> None:
+desktop_app\accounting_control_center_widget.py:517:    def showEvent(self, event) -> None:
+desktop_app\accounting_control_center_widget.py:521:    def _ensure_tab_hooks(self) -> None:
+desktop_app\accounting_control_center_widget.py:534:    def _on_parent_tab_changed(self, _index: int) -> None:
+desktop_app\accounting_control_center_widget.py:546:    def _create_banking_panel(self) -> QWidget:
+desktop_app\accounting_control_center_widget.py:611:    def _create_t2_panel(self) -> QWidget:
+desktop_app\accounting_control_center_widget.py:656:    def _create_payroll_panel(self) -> QWidget:
+desktop_app\accounting_control_center_widget.py:701:    def _set_status(self, text: str, error: bool = False) -> None:
+desktop_app\accounting_control_center_widget.py:709:    def _json_default(self, obj) -> object:
+desktop_app\accounting_control_center_widget.py:716:    def _export_hub_snapshot(self) -> None:
+desktop_app\accounting_control_center_widget.py:758:    def _export_hub_snapshot_csv(self) -> None:
+desktop_app\accounting_control_center_widget.py:852:    def _snapshot_output_dir(self) -> Path:
+desktop_app\accounting_control_center_widget.py:856:    def _open_snapshot_folder(self) -> None:
+desktop_app\accounting_control_center_widget.py:878:    def _money(self, amount) -> str:
+desktop_app\accounting_control_center_widget.py:881:    def _jump_to_accounting_subtab(self, target_text: str) -> None:
+desktop_app\accounting_control_center_widget.py:921:    def _get_columns(self, table_name: str) -> set[str]:
+desktop_app\accounting_control_center_widget.py:936:    def _status_level(self, ok: bool, warn: bool = False) -> str:
+desktop_app\accounting_control_center_widget.py:943:    def _status_rank(self, status: str) -> int:
+desktop_app\accounting_control_center_widget.py:947:    def _priority_rank(self, priority: str) -> int:
+desktop_app\accounting_control_center_widget.py:951:    def _populate_check_table(self, table: QTableWidget, rows: list[tuple]) -> None:
+desktop_app\accounting_control_center_widget.py:986:    def _on_warning_row_activated(self, row: int, _column: int) -> None:
+desktop_app\accounting_control_center_widget.py:993:    def _on_check_row_activated(self, row: int, _column: int) -> None:
+desktop_app\accounting_control_center_widget.py:1003:    def _open_action_target(self, action_text: str) -> None:
+desktop_app\accounting_control_center_widget.py:1015:    def _render_sequence_table(self) -> None:
+desktop_app\accounting_control_center_widget.py:1051:    def _sequence_settings_key(self, year: int) -> str:
+desktop_app\accounting_control_center_widget.py:1054:    def _sequence_history_key(self, year: int) -> str:
+desktop_app\accounting_control_center_widget.py:1057:    def _write_sequence_history(
+desktop_app\accounting_control_center_widget.py:1076:    def _read_sequence_history(self, year: int) -> dict | None:
+desktop_app\accounting_control_center_widget.py:1088:    def _render_sequence_history(self) -> None:
+desktop_app\accounting_control_center_widget.py:1243:    def _on_sequence_history_row_activated(self, row: int, _column: int) -> None:
+desktop_app\accounting_control_center_widget.py:1257:    def _get_history_row_year(self, row: int) -> int | None:
+desktop_app\accounting_control_center_widget.py:1266:    def _get_selected_history_year(self) -> int | None:
+desktop_app\accounting_control_center_widget.py:1277:    def _load_selected_history_year(self) -> None:
+desktop_app\accounting_control_center_widget.py:1294:    def _resume_selected_history_year(self) -> None:
+desktop_app\accounting_control_center_widget.py:1317:    def _save_sequence_state(self) -> None:
+desktop_app\accounting_control_center_widget.py:1353:    def _load_sequence_state(self, year: int) -> None:
+desktop_app\accounting_control_center_widget.py:1441:    def _start_fix_sequence(self, title: str, actions: list[str]) -> None:
+desktop_app\accounting_control_center_widget.py:1473:    def _open_current_sequence_step(self) -> None:
+desktop_app\accounting_control_center_widget.py:1482:    def _mark_sequence_step_complete(self) -> None:
+desktop_app\accounting_control_center_widget.py:1524:    def _clear_sequence(
+desktop_app\accounting_control_center_widget.py:1562:    def _collect_actions_from_table(
+desktop_app\accounting_control_center_widget.py:1588:    def _run_overview_fix_sequence(self) -> None:
+desktop_app\accounting_control_center_widget.py:1618:    def _run_t2_fix_sequence(self) -> None:
+desktop_app\accounting_control_center_widget.py:1632:    def _run_payroll_fix_sequence(self) -> None:
+desktop_app\accounting_control_center_widget.py:1646:    def _fetch_banking_classification_data(self, year: int) -> dict:
+desktop_app\accounting_control_center_widget.py:1806:    def _fetch_t2_readiness_data(
+desktop_app\accounting_control_center_widget.py:1918:    def _fetch_payroll_close_data(self, year: int) -> dict:
+desktop_app\accounting_control_center_widget.py:2096:    def _fetch_dashboard_data(self, year: int) -> dict:
+desktop_app\accounting_control_center_widget.py:2117:        def _row_value(row, index, default=0) -> object:
+desktop_app\accounting_control_center_widget.py:2351:    def refresh_dashboard(self) -> None:
+scripts\add_blind_man.py:11:def add_products():
+desktop_app\admin_management_widget.py:42:def _is_users_email_unique_violation(error: psycopg2.Error) -> bool:
+desktop_app\admin_management_widget.py:53:    def __init__(self, db) -> None:
+desktop_app\admin_management_widget.py:59:    def init_ui(self) -> None:
+desktop_app\admin_management_widget.py:77:    def _create_overview_tab(self) -> object:
+desktop_app\admin_management_widget.py:136:    def _create_users_tab(self) -> object:
+desktop_app\admin_management_widget.py:205:    def _hash_password(self, password: str) -> str:
+desktop_app\admin_management_widget.py:212:    def _parse_permissions(self, permissions) -> dict:
+desktop_app\admin_management_widget.py:225:    def _current_theme_value(self) -> str:
+desktop_app\admin_management_widget.py:229:    def _set_display_theme(self, theme_name: str) -> None:
+desktop_app\admin_management_widget.py:236:    def _build_permissions_payload(self, existing_permissions=None) -> str:
+desktop_app\admin_management_widget.py:242:    def _log_audit(self, action: str, details: str) -> None:
+desktop_app\admin_management_widget.py:269:    def _create_settings_tab(self) -> object:
+desktop_app\admin_management_widget.py:306:    def _create_audit_tab(self) -> object:
+desktop_app\admin_management_widget.py:354:    def _create_backup_tab(self) -> object:
+desktop_app\admin_management_widget.py:408:    def _load_overview_stats(
+desktop_app\admin_management_widget.py:449:    def load_users(self) -> None:
+desktop_app\admin_management_widget.py:524:    def load_selected_user(self) -> None:
+desktop_app\admin_management_widget.py:555:    def add_user(self) -> None:
+desktop_app\admin_management_widget.py:720:    def update_user(self) -> None:
+desktop_app\admin_management_widget.py:924:    def delete_user(self) -> None:
+desktop_app\admin_management_widget.py:982:    def load_settings(self) -> None:
+desktop_app\admin_management_widget.py:999:    def save_settings(self) -> None:
+desktop_app\admin_management_widget.py:1013:    def _setup_auto_backup_timer(self) -> None:
+desktop_app\admin_management_widget.py:1038:    def _check_and_run_auto_backup(self) -> None:
+desktop_app\admin_management_widget.py:1053:    def _run_auto_backup(self) -> None:
+desktop_app\admin_management_widget.py:1103:    def _infer_department(self, role: str, permissions) -> str:
+desktop_app\admin_management_widget.py:1145:    def _get_users_table_columns(self) -> set:
+desktop_app\admin_management_widget.py:1159:    def clear_audit_log(self) -> None:
+desktop_app\admin_management_widget.py:1183:    def export_audit_log(self) -> None:
+desktop_app\admin_management_widget.py:1210:    def _ensure_security_audit_table(self) -> None:
+desktop_app\admin_management_widget.py:1225:    def load_audit_log(self) -> None:
+desktop_app\admin_management_widget.py:1282:    def _get_db_target_from_env(self) -> object:
+desktop_app\admin_management_widget.py:1293:    def _build_pg_env(self, db_target) -> object:
+desktop_app\admin_management_widget.py:1307:    def _build_restore_command(self, backup_path, db_target) -> object:
+desktop_app\admin_management_widget.py:1346:    def create_backup(self) -> None:
+desktop_app\admin_management_widget.py:1436:    def restore_backup(self) -> None:
+desktop_app\admin_management_widget.py:1488:    def download_backup(self) -> None:
+desktop_app\admin_management_widget.py:1501:    def _create_run_types_tab(self) -> object:
+desktop_app\admin_management_widget.py:1550:    def _load_run_types(self) -> None:
+desktop_app\admin_management_widget.py:1591:    def _add_run_type(self) -> None:
+desktop_app\admin_management_widget.py:1610:    def _delete_run_type(self) -> None:
+desktop_app\admin_management_widget.py:1626:    def _save_run_types(self) -> None:
+desktop_app\admin_management_widget.py:1723:    def _vehicle_pricing_table_columns(self) -> object:
+desktop_app\admin_management_widget.py:1739:    def _vehicle_pricing_rate_columns(self, cols) -> object:
+desktop_app\admin_management_widget.py:1752:    def _create_vehicle_types_tab(self) -> object:
+desktop_app\admin_management_widget.py:1796:    def _load_vehicle_types(self) -> None:
+desktop_app\admin_management_widget.py:1848:    def _add_vehicle_type_row(self) -> None:
+desktop_app\admin_management_widget.py:1857:    def _delete_vehicle_type_row(self) -> None:
+desktop_app\admin_management_widget.py:1868:    def _save_vehicle_types(self) -> object:
+desktop_app\admin_management_widget.py:1870:        def _fval(item) -> object:
+desktop_app\admin_management_widget.py:2016:    def _create_error_log_tab(self) -> object:
+desktop_app\audit_signals.py:5:def get_py_files(root_dir) -> object:
+desktop_app\audit_signals.py:16:def audit_file(filepath) -> object:
+desktop_app\accounting_receipts_widget.py:54:    def __init__(self, db: DatabaseConnection, parent_tab_widget=None) -> None:
+desktop_app\accounting_receipts_widget.py:114:    def _show_error(self, error_msg: str) -> None:
+desktop_app\accounting_receipts_widget.py:139:    def _create_simplified_receipts_tab(self) -> QWidget:
+desktop_app\accounting_receipts_widget.py:203:    def init_ui(self) -> None:
+desktop_app\accounting_receipts_widget.py:266:    def open_receipt_by_id(self, receipt_id: int) -> object:
+desktop_app\accounting_receipts_widget.py:292:    def _create_add_receipt_tab(self) -> object:
+desktop_app\accounting_receipts_widget.py:509:    def _create_recent_receipts_tab(self) -> object:
+desktop_app\accounting_receipts_widget.py:693:    def _show_receipt_context_menu(self, position) -> None:
+desktop_app\accounting_receipts_widget.py:738:    def _on_vendor_selected(self, vendor_name) -> None:
+desktop_app\accounting_receipts_widget.py:752:    def _maybe_set_gst_exempt_from_gl(self) -> None:
+desktop_app\accounting_receipts_widget.py:763:    def _on_amount_changed(self, text) -> None:
+desktop_app\accounting_receipts_widget.py:769:    def auto_calc_gst(self) -> None:
+desktop_app\accounting_receipts_widget.py:878:    def load_chart_accounts(self) -> None:
+desktop_app\accounting_receipts_widget.py:906:    def load_vehicles(self) -> None:
+desktop_app\accounting_receipts_widget.py:972:    def _update_receipt_vehicle_type_display(self) -> None:
+desktop_app\accounting_receipts_widget.py:988:    def load_receipts(self, filters=None) -> None:
+desktop_app\accounting_receipts_widget.py:1144:    def clear_receipt_filters(self) -> None:
+desktop_app\accounting_receipts_widget.py:1153:    def _get_default_receipt_filters(self) -> object:
+desktop_app\accounting_receipts_widget.py:1163:    def _on_receipt_filters_changed(self, filters_list) -> None:
+desktop_app\accounting_receipts_widget.py:1168:    def apply_receipt_filters(self) -> None:
+desktop_app\accounting_receipts_widget.py:1218:    def _get_receipt_id(self, row) -> object:
+desktop_app\accounting_receipts_widget.py:1224:    def _parse_date_value(self, text) -> object:
+desktop_app\accounting_receipts_widget.py:1237:    def _parse_amount_value(self, text) -> object:
+desktop_app\accounting_receipts_widget.py:1243:    def _reload_receipts(self) -> None:
+desktop_app\accounting_receipts_widget.py:1247:    def _on_receipt_cell_changed(self, row, column) -> None:
+desktop_app\accounting_receipts_widget.py:1318:    def _receipt_table_keypress(self, event) -> None:
+desktop_app\accounting_receipts_widget.py:1343:    def _bulk_select_all(self) -> None:
+desktop_app\accounting_receipts_widget.py:1350:    def _bulk_clear_selection(self) -> None:
+desktop_app\accounting_receipts_widget.py:1357:    def _get_selected_receipt_rows(self) -> object:
+desktop_app\accounting_receipts_widget.py:1369:    def _bulk_change_category(self) -> None:
+desktop_app\accounting_receipts_widget.py:1413:    def _bulk_mark_verified(self) -> None:
+desktop_app\accounting_receipts_widget.py:1453:    def _bulk_delete(self) -> None:
+desktop_app\accounting_receipts_widget.py:1499:    def _toggle_row_expansion(self, row, column) -> None:
+desktop_app\accounting_receipts_widget.py:1584:    def _duplicate_receipt(self, row) -> None:
+desktop_app\accounting_receipts_widget.py:1626:    def _change_receipt_category(self, row) -> None:
+desktop_app\accounting_receipts_widget.py:1658:    def _mark_receipt_verified(self, row) -> None:
+desktop_app\accounting_receipts_widget.py:1683:    def _delete_receipt_row(self, row) -> None:
+desktop_app\accounting_receipts_widget.py:1715:    def save_receipt(self) -> None:
+desktop_app\accounting_receipts_widget.py:1847:    def reset_form(self) -> None:
+scripts\add_breezer_coco_rum.py:11:def add_products():
+desktop_app\app_settings.py:72:def get_fiscal_year() -> object:
+desktop_app\app_settings.py:85:def get_year_range(start_year=None, end_year=None) -> object:
+desktop_app\app_settings.py:92:def is_valid_year(year: int) -> bool:
+desktop_app\app_settings.py:97:def get_working_year_dates() -> object:
+desktop_app\app_settings.py:102:def get_current_year() -> object:
+desktop_app\app_logger.py:15:def setup_logging(
+desktop_app\app_logger.py:59:def install_excepthook(logger: Optional[logging.Logger] = None) -> None:
+desktop_app\app_logger.py:64:    def _excepthook(exc_type, exc_value, exc_traceback) -> None:
+desktop_app\accounting_reports.py:34:def _ensure_normalized_general_ledger_view(cur) -> bool:
+desktop_app\accounting_reports.py:240:    def _init_date_controls(self, months_back: int = 12) -> object:
+desktop_app\accounting_reports.py:256:    def _date_range(self) -> object:
+desktop_app\accounting_reports.py:277:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:293:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:343:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:356:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:420:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:435:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:458:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:504:    def refresh(self) -> None:
+desktop_app\accounting_reports.py:508:    def _is_monthly_mode(self) -> bool:
+desktop_app\accounting_reports.py:512:    def _update_columns_for_mode(self) -> None:
+desktop_app\accounting_reports.py:520:    def _has_required_columns(self, cur) -> bool:
+desktop_app\accounting_reports.py:535:    def _fetch_detail_rows(self, cur, start, end) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:581:    def _fetch_monthly_rows(self, cur, start, end) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:631:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:645:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:659:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:690:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:779:    def refresh(self) -> None:
+desktop_app\accounting_reports.py:783:    def _update_columns_for_grouping(self) -> None:
+desktop_app\accounting_reports.py:791:    def _should_group_by_vendor(self) -> bool:
+desktop_app\accounting_reports.py:795:    def _parse_csv_list(self, raw: str) -> List[str]:
+desktop_app\accounting_reports.py:801:    def _build_date_filter(self, params: List[Any]) -> str:
+desktop_app\accounting_reports.py:813:    def _build_gl_filter(self, params: List[Any]) -> str:
+desktop_app\accounting_reports.py:828:    def _build_vendor_filter(self, params: List[Any]) -> str:
+desktop_app\accounting_reports.py:841:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:930:    def open_drill_down_dialog(self, index) -> None:
+desktop_app\accounting_reports.py:935:    def save_row_corrections(self, row_index: int, row_data: Dict[str, Any]) -> object:
+desktop_app\accounting_reports.py:940:        def _to_float(val) -> object:
+desktop_app\accounting_reports.py:981:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:1029:    def _has_banking_receipt_id_column(self, cur) -> bool:
+desktop_app\accounting_reports.py:1042:    def _receipt_sort_sql(self) -> str:
+desktop_app\accounting_reports.py:1054:    def _flags_text(
+desktop_app\accounting_reports.py:1065:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:1170:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:1205:    def _parse_gl_filter(self) -> list:
+desktop_app\accounting_reports.py:1215:    def _coa_exists(self, cur) -> bool:
+desktop_app\accounting_reports.py:1225:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:1299:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:1316:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:1360:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:1374:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:1542:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:1566:    def _close_reference(self, start, end) -> str:
+desktop_app\accounting_reports.py:1569:    def _reverse_reference(self, close_reference: str) -> str:
+desktop_app\accounting_reports.py:1572:    def _build_close_plan(self) -> Dict[str, Any]:
+desktop_app\accounting_reports.py:1767:    def post_year_end_close(self) -> None:
+desktop_app\accounting_reports.py:1915:    def reverse_year_end_close(self) -> None:
+desktop_app\accounting_reports.py:2094:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:2291:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:2307:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:2506:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:2526:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:2588:    def __init__(self, db, account_number: str = '0228362') -> None:
+desktop_app\accounting_reports.py:2606:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:2639:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:2653:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:2698:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:2709:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:2774:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:2798:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:2874:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:2887:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:2918:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:2933:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:3006:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:3024:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:3071:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:3082:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:3122:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:3132:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:3160:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:3171:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:3202:    def __init__(self, db) -> None:
+desktop_app\accounting_reports.py:3216:    def fetch_rows(self) -> List[Dict[str, Any]]:
+desktop_app\accounting_reports.py:3260:    def __init__(self, db, parent=None) -> None:
+desktop_app\accounting_reports.py:3266:    def _init_ui(self) -> None:
+desktop_app\accounting_reports.py:3311:    def load_mappings(self) -> None:
+desktop_app\accounting_reports.py:3378:    def _save_mappings(self) -> None:
+desktop_app\beverage_dispatch_widget.py:27:def _neon_conn() -> object:
+desktop_app\beverage_dispatch_widget.py:57:def _beverage_write_enabled() -> bool:
+desktop_app\beverage_dispatch_widget.py:68:    def __init__(self, db=None, parent=None) -> None:
+desktop_app\beverage_dispatch_widget.py:79:    def _init_ui(self) -> None:
+desktop_app\beverage_dispatch_widget.py:181:    def _apply_write_mode_to_controls(self) -> None:
+desktop_app\beverage_dispatch_widget.py:192:    def _require_write_enabled(self) -> bool:
+desktop_app\beverage_dispatch_widget.py:205:    def reload(self) -> None:
+desktop_app\beverage_dispatch_widget.py:297:    def _ensure_columns(self) -> None:
+desktop_app\beverage_dispatch_widget.py:315:    def _populate_table(self) -> None:
+desktop_app\beverage_dispatch_widget.py:361:    def _get_selected_charter_id(self) -> int | None:
+desktop_app\beverage_dispatch_widget.py:368:    def _toggle_purchased(self, purchased: bool) -> None:
+desktop_app\beverage_dispatch_widget.py:378:    def _toggle_purchased_for(self, charter_id: int, purchased: bool) -> None:
+desktop_app\beverage_dispatch_widget.py:397:    def _on_double_click(self, index) -> None:
+desktop_app\beverage_dispatch_widget.py:403:    def _edit_selected_cart(self) -> None:
+desktop_app\beverage_dispatch_widget.py:410:    def _show_cart_detail(self, charter_id: int) -> None:
+desktop_app\beverage_dispatch_widget.py:427:    def _delete_selected_cart(self) -> None:
+desktop_app\beverage_dispatch_widget.py:462:    def print_shopping_list(self) -> None:
+desktop_app\beverage_dispatch_widget.py:534:    def _get_conn(self) -> object:
+desktop_app\beverage_dispatch_widget.py:549:    def __init__(self, charter_id: int, row_data: dict, items: list,
+desktop_app\beverage_dispatch_widget.py:564:    def _init_ui(self) -> None:
+desktop_app\beverage_dispatch_widget.py:645:    def _load_items(self) -> None:
+desktop_app\beverage_dispatch_widget.py:662:    def _save(self) -> None:
+desktop_app\beverage_dispatch_widget.py:685:    def _print_cart(self) -> None:
+desktop_app\beverage_dispatch_widget.py:715:def _show_text_print_dialog(parent: QWidget, title: str, text: str) -> None:
+desktop_app\beverage_dispatch_widget.py:737:    def do_print() -> None:
+desktop_app\asset_management_widget.py:53:    def __init__(self, parent=None) -> None:
+desktop_app\asset_management_widget.py:58:    def init_ui(self) -> None:
+desktop_app\asset_management_widget.py:91:    def create_all_assets_tab(self) -> object:
+desktop_app\asset_management_widget.py:152:    def _selected_asset_id(self) -> object:
+desktop_app\asset_management_widget.py:165:    def edit_selected_asset(self) -> None:
+desktop_app\asset_management_widget.py:334:    def delete_selected_asset(self) -> None:
+desktop_app\asset_management_widget.py:375:    def create_ownership_status_tab(self) -> object:
+desktop_app\asset_management_widget.py:428:    def create_depreciation_tab(self) -> object:
+desktop_app\asset_management_widget.py:484:    def create_cra_compliance_tab(self) -> object:
+desktop_app\asset_management_widget.py:556:    def load_assets(self) -> None:
+desktop_app\asset_management_widget.py:677:    def export_assets_csv(self) -> None:
+desktop_app\asset_management_widget.py:714:    def generate_cra_report(self) -> None:
+desktop_app\asset_management_widget.py:742:    def export_cra_compliance_report(self) -> None:
+desktop_app\asset_management_widget.py:776:    def create_photo_tracking_tab(self) -> object:
+desktop_app\asset_management_widget.py:852:    def load_asset_photos(self) -> None:
+desktop_app\asset_management_widget.py:901:    def show_asset_documentation(self, asset_id) -> None:
+desktop_app\asset_management_widget.py:979:    def upload_photo(self) -> None:
+desktop_app\asset_management_widget.py:1026:    def upload_document(self) -> None:
+desktop_app\asset_management_widget.py:1072:    def open_file(self, file_path) -> None:
+desktop_app\asset_management_widget.py:1087:    def show_photo_audit(self) -> None:
+modern_backend\app\auth.py:22:def _matches_prefix(path: str, prefix: str) -> bool:
+modern_backend\app\auth.py:26:def is_protected_path(path: str) -> bool:
+modern_backend\app\auth.py:32:def is_auth_exempt_path(path: str) -> bool:
+modern_backend\app\auth.py:40:def resolve_authenticated_user(request: Request) -> dict | None:
+modern_backend\app\auth.py:62:def get_current_user(request: Request) -> dict:
+modern_backend\app\auth.py:78:def require_roles(*allowed_roles: str):
+modern_backend\app\auth.py:81:    def dependency(request: Request) -> dict:
+modern_backend\app\db.py:12:def _log_db_target_once():
+modern_backend\app\db.py:29:def _get_pool():
+modern_backend\app\db.py:52:def get_connection():
+modern_backend\app\db.py:110:def return_connection(conn):
+modern_backend\app\db.py:122:def cursor() -> Iterator[
+modern_backend\app\db.py:141:def close_all_connections():
+scripts\add_centratech_to_verified_vendors.py:8:def main():
+modern_backend\app\main.py:119:async def add_correlation_and_timing(request: Request, call_next):
+modern_backend\app\main.py:131:async def require_authenticated_api_user(request: Request, call_next):
+modern_backend\app\main.py:148:async def unhandled_exception_handler(request: Request, exc: Exception):
+modern_backend\app\main.py:161:async def health():
+modern_backend\app\main.py:168:async def shutdown_event():
+modern_backend\app\main.py:174:async def db_ping():
+modern_backend\app\main.py:297:def get_frontend_dist_dir() -> str | None:
+modern_backend\app\main.py:313:def get_frontend_index_path() -> str | None:
+modern_backend\app\main.py:323:def get_frontend_file_path(request_path: str) -> str | None:
+modern_backend\app\main.py:339:async def spa_beverage_order_print():
+modern_backend\app\main.py:348:async def spa_charter_confirmation_print():
+modern_backend\app\main.py:357:async def spa_root():
+modern_backend\app\main.py:365:async def spa_fallback(full_path: str):
+modern_backend\app\api\receipt_verification.py:17:def get_db_connection():
+modern_backend\app\api\receipt_verification.py:34:async def get_verification_summary():
+modern_backend\app\api\receipt_verification.py:59:async def get_verification_by_year():
+modern_backend\app\api\receipt_verification.py:77:async def get_unverified_receipts(
+modern_backend\app\api\receipt_verification.py:118:async def mark_receipt_verified(
+modern_backend\app\api\receipt_verification.py:157:async def mark_receipt_unverified(receipt_id: int):
+modern_backend\app\api\receipt_verification.py:188:async def get_verified_receipts(
+desktop_app\auto_updater.py:33:    def __init__(self, onedrive_path: str = None) -> None:
+desktop_app\auto_updater.py:38:    def run(self) -> None:
+desktop_app\auto_updater.py:70:    def _is_newer_version(self, new_ver: str, current_ver: str) -> bool:
+desktop_app\auto_updater.py:94:    def __init__(self, parent_widget=None, onedrive_path: str = None) -> None:
+desktop_app\auto_updater.py:100:    def check_for_updates(self, silent: bool = False) -> None:
+desktop_app\auto_updater.py:115:    def _on_update_available(self, update_info: dict) -> None:
+desktop_app\auto_updater.py:170:    def _on_no_update(self, silent: bool) -> None:
+desktop_app\auto_updater.py:179:    def _on_error(self, error_msg: str) -> None:
+desktop_app\auto_updater.py:183:    def _download_and_install(self, update_info: dict) -> None:
+desktop_app\auto_updater.py:234:    def get_current_version() -> str:
+desktop_app\auto_updater.py:239:    def get_build_date() -> str:
+desktop_app\auto_updater.py:244:def create_sample_manifest() -> None:
+desktop_app\beverage_accounting_widget.py:19:def _neon_conn() -> object:
+desktop_app\beverage_accounting_widget.py:35:    def __init__(self, db=None, parent=None) -> None:
+desktop_app\beverage_accounting_widget.py:45:    def _init_ui(self) -> None:
+desktop_app\beverage_accounting_widget.py:108:    def _make_summary_box(self, bar: QHBoxLayout, title: str,
+desktop_app\beverage_accounting_widget.py:123:    def run_report(self) -> None:
+desktop_app\beverage_accounting_widget.py:276:    def print_report(self) -> None:
+desktop_app\beverage_accounting_widget.py:329:        def do_print() -> None:
+desktop_app\beverage_accounting_widget.py:346:    def _get_conn(self) -> object:
+modern_backend\app\audit\catalog.py:221:def get_audit_event_catalog() -> list[dict]:
+modern_backend\app\audit\catalog.py:225:def get_system_inventory() -> dict:
+desktop_app\banking_transaction_picker_dialog.py:35:    def __init__(
+desktop_app\banking_transaction_picker_dialog.py:58:    def _build_ui(self) -> None:
+desktop_app\banking_transaction_picker_dialog.py:162:    def _load_account_list(self) -> None:
+desktop_app\banking_transaction_picker_dialog.py:177:    def _load_unmatched_transactions(self) -> None:
+desktop_app\banking_transaction_picker_dialog.py:319:    def _on_transaction_selected(self) -> None:
+desktop_app\banking_transaction_picker_dialog.py:341:    def _link_selected_transaction(self) -> None:
+desktop_app\banking_transaction_picker_dialog.py:400:    def get_result(self) -> Optional[Tuple[int, float]]:
+desktop_app\beverage_reconciliation_widget.py:84:    def __init__(
+desktop_app\beverage_reconciliation_widget.py:137:    def set_value(
+desktop_app\beverage_reconciliation_widget.py:158:    def set_highlight(self, color: str) -> None:
+desktop_app\beverage_reconciliation_widget.py:175:    def __init__(self, conn) -> None:
+desktop_app\beverage_reconciliation_widget.py:184:    def _init_ui(self) -> None:
+desktop_app\beverage_reconciliation_widget.py:438:    def _on_mode_changed(self, mode_id: int) -> None:
+desktop_app\beverage_reconciliation_widget.py:442:    def _on_month_btn(self, month: int) -> None:
+desktop_app\beverage_reconciliation_widget.py:448:    def _on_week_selected(self) -> None:
+desktop_app\beverage_reconciliation_widget.py:463:    def _get_date_range(self) -> tuple[date, date]:
+desktop_app\beverage_reconciliation_widget.py:492:    def _refresh(self) -> None:
+scripts\add_charter_record_type.py:21:def add_record_type_column():
+desktop_app\beverage_ordering.py:44:    def __init__(self, db) -> None:
+desktop_app\beverage_ordering.py:51:    def _load_beverages_from_db(self) -> object:
+desktop_app\beverage_ordering.py:163:    def add_to_cart(self, beverage_id, quantity, notes="") -> None:
+desktop_app\beverage_ordering.py:190:    def remove_from_cart(self, index) -> None:
+desktop_app\beverage_ordering.py:195:    def get_cart_totals(self) -> object:
+desktop_app\beverage_ordering.py:225:    def parse_email_list(self, email_text) -> object:
+desktop_app\beverage_ordering.py:306:    def __init__(self, db, parent=None) -> None:
+desktop_app\beverage_ordering.py:518:    def update_beverage_list(self) -> None:
+desktop_app\beverage_ordering.py:565:    def add_selected_beverage(self) -> None:
+desktop_app\beverage_ordering.py:571:    def add_from_row(self, row) -> None:
+desktop_app\beverage_ordering.py:594:    def update_cart_display(self) -> None:
+desktop_app\beverage_ordering.py:665:    def _parse_currency_value(self, value_text) -> object:
+desktop_app\beverage_ordering.py:673:    def handle_cart_cell_changed(self, row, column) -> None:
+desktop_app\beverage_ordering.py:718:    def remove_item(self, index) -> None:
+desktop_app\beverage_ordering.py:724:    def parse_email_list(self) -> None:
+desktop_app\beverage_ordering.py:734:    def apply_adjustment(self) -> None:
+desktop_app\beverage_ordering.py:753:    def print_order(self) -> None:
+desktop_app\beverage_ordering.py:792:    def add_to_charter(self) -> None:
+desktop_app\beverage_ordering.py:822:    def __init__(self, db, parent=None, existing_beverages=None) -> None:
+desktop_app\beverage_ordering.py:835:    def load_existing_beverages(self, existing_beverages) -> None:
+desktop_app\beverage_ordering.py:865:    def init_ui(self) -> None:
+desktop_app\beverage_ordering.py:1009:    def update_beverage_list(self) -> None:
+desktop_app\beverage_ordering.py:1060:    def _reload_beverage_catalog(self) -> None:
+desktop_app\beverage_ordering.py:1081:    def open_add_new_beverage_dialog(self) -> None:
+desktop_app\beverage_ordering.py:1170:    def add_from_row(self, row, beverage_id) -> None:
+desktop_app\beverage_ordering.py:1186:    def update_cart_display(self) -> None:
+desktop_app\beverage_ordering.py:1238:    def remove_item(self, index) -> None:
+desktop_app\beverage_ordering.py:1243:    def _parse_currency_value(self, value_text) -> object:
+desktop_app\beverage_ordering.py:1251:    def _recalculate_cart_item(self, item) -> None:
+desktop_app\beverage_ordering.py:1271:    def _get_selected_cart_row(self) -> object:
+desktop_app\beverage_ordering.py:1284:    def set_selected_item_free(self) -> None:
+desktop_app\beverage_ordering.py:1295:    def apply_discount_to_selected(self) -> None:
+desktop_app\beverage_ordering.py:1310:    def apply_markup_to_selected(self) -> None:
+desktop_app\beverage_ordering.py:1325:    def add_fixed_to_selected(self) -> None:
+desktop_app\beverage_ordering.py:1338:    def handle_cart_cell_changed(self, row, column) -> None:
+desktop_app\beverage_ordering.py:1363:    def clear_cart(self) -> None:
+desktop_app\beverage_ordering.py:1368:    def get_cart_totals(self) -> object:
+desktop_app\beverage_management_widget.py:43:def _beverage_write_enabled() -> bool:
+desktop_app\beverage_management_widget.py:56:    def __init__(self, db_conn, parent=None) -> None:
+desktop_app\beverage_management_widget.py:71:    def init_ui(self) -> None:
+desktop_app\beverage_management_widget.py:113:    def create_catalog_tab(self) -> object:
+desktop_app\beverage_management_widget.py:240:    def create_bulk_adjust_tab(self) -> object:
+desktop_app\beverage_management_widget.py:339:    def _apply_write_mode_to_catalog_controls(self) -> None:
+desktop_app\beverage_management_widget.py:350:    def _apply_write_mode_to_bulk_controls(self) -> None:
+desktop_app\beverage_management_widget.py:362:    def _require_write_enabled(self) -> bool:
+desktop_app\beverage_management_widget.py:372:    def create_cost_tracking_tab(self) -> object:
+desktop_app\beverage_management_widget.py:422:    def create_charter_costs_tab(self) -> object:
+desktop_app\beverage_management_widget.py:484:    def load_data(self) -> None:
+desktop_app\beverage_management_widget.py:574:    def refresh_products_table(self, filter_text="") -> None:
+desktop_app\beverage_management_widget.py:640:    def filter_products(self) -> None:
+desktop_app\beverage_management_widget.py:649:    def auto_calc_cost(self) -> None:
+desktop_app\beverage_management_widget.py:657:    def normalize_deposit_and_markup(self) -> None:
+desktop_app\beverage_management_widget.py:747:    def add_new_product(self) -> None:
+desktop_app\beverage_management_widget.py:826:    def preview_bulk_adjust(self) -> None:
+desktop_app\beverage_management_widget.py:902:    def apply_bulk_adjust(self) -> None:
+desktop_app\beverage_management_widget.py:970:    def update_margin_stats(self) -> None:
+desktop_app\beverage_management_widget.py:1044:    def delete_selected_product(self) -> None:
+desktop_app\beverage_management_widget.py:1096:    def save_catalog_changes(self) -> None:
+desktop_app\beverage_management_widget.py:1166:    def export_margins(self) -> None:
+desktop_app\beverage_management_widget.py:1214:    def search_charter_costs(self) -> None:
+desktop_app\beverage_management_widget.py:1300:    def export_charter_costs(self) -> None:
+desktop_app\charter_browse_dialog.py:28:    def __init__(self, db, parent=None) -> None:
+desktop_app\charter_browse_dialog.py:135:    def search_charters(self) -> None:
+desktop_app\charter_browse_dialog.py:232:    def on_charter_selected(self) -> None:
+scripts\add_charter_sheet_features.py:17:def main():
+desktop_app\business_entity_drill_down.py:60:    def __init__(self, db, parent=None) -> None:
+desktop_app\business_entity_drill_down.py:116:    def create_company_info_tab(self) -> object:
+desktop_app\business_entity_drill_down.py:200:    def create_financials_tab(self) -> object:
+desktop_app\business_entity_drill_down.py:291:    def create_taxes_tab(self) -> object:
+desktop_app\business_entity_drill_down.py:362:    def create_licenses_tab(self) -> object:
+desktop_app\business_entity_drill_down.py:410:    def create_insurance_tab(self) -> object:
+desktop_app\business_entity_drill_down.py:460:    def create_banking_tab(self) -> object:
+desktop_app\business_entity_drill_down.py:529:    def create_liabilities_tab(self) -> object:

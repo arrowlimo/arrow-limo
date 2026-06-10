@@ -12,60 +12,81 @@ from reportlab.pdfgen import canvas
 
 # Checklist sections — each item: (label, indent_level)
 CHECKLIST_SECTIONS = [
-    ("EXTERIOR", [
-        "Body damage / dents / scratches",
-        "Doors latch & seal properly",
-        "Windows & mirrors clean / uncracked",
-        "Windshield wipers & washers",
-        "Licence plates (front & rear) legible",
-        "Fuel cap secured",
-        "Mud flaps present",
-    ]),
-    ("LIGHTS", [
-        "Headlights (low & high beam)",
-        "Tail lights & brake lights",
-        "Turn signals / hazard flashers",
-        "Reverse lights",
-        "Interior cabin lights",
-        "Dash warning lights (none on at start)",
-    ]),
-    ("ENGINE & FLUIDS", [
-        "Engine oil level",
-        "Coolant level",
-        "Brake fluid level",
-        "Washer fluid level",
-        "Power steering fluid level",
-        "No visible leaks under vehicle",
-        "Battery cables secure",
-    ]),
-    ("BRAKES & STEERING", [
-        "Brake pedal firm (pump test)",
-        "Parking / emergency brake holds",
-        "Steering — no excessive play",
-        "No brake warning light",
-    ]),
-    ("TIRES & WHEELS", [
-        "Tire tread depth adequate",
-        "Tire pressure correct (all 4 + spare)",
-        "No cuts, bulges, or embedded objects",
-        "Lug nuts tight / no missing",
-    ]),
-    ("INTERIOR", [
-        "Horn operational",
-        "Seat belts functional (all positions)",
-        "Seats / carpet clean & undamaged",
-        "HVAC / climate control functional",
-        "GPS / dispatch device operational",
-        "Divider window operational (if equipped)",
-        "Odometer reading recorded",
-    ]),
-    ("SAFETY EQUIPMENT", [
-        "First aid kit present & stocked",
-        "Fire extinguisher charged & mounted",
-        "Reflective triangles / flares present",
-        "Vehicle registration & insurance in vehicle",
-        "Driver licence & chauffeur permit present",
-    ]),
+    (
+        "EXTERIOR",
+        [
+            "Body damage / dents / scratches",
+            "Doors latch & seal properly",
+            "Windows & mirrors clean / uncracked",
+            "Windshield wipers & washers",
+            "Licence plates (front & rear) legible",
+            "Fuel cap secured",
+            "Mud flaps present",
+        ],
+    ),
+    (
+        "LIGHTS",
+        [
+            "Headlights (low & high beam)",
+            "Tail lights & brake lights",
+            "Turn signals / hazard flashers",
+            "Reverse lights",
+            "Interior cabin lights",
+            "Dash warning lights (none on at start)",
+        ],
+    ),
+    (
+        "ENGINE & FLUIDS",
+        [
+            "Engine oil level",
+            "Coolant level",
+            "Brake fluid level",
+            "Washer fluid level",
+            "Power steering fluid level",
+            "No visible leaks under vehicle",
+            "Battery cables secure",
+        ],
+    ),
+    (
+        "BRAKES & STEERING",
+        [
+            "Brake pedal firm (pump test)",
+            "Parking / emergency brake holds",
+            "Steering — no excessive play",
+            "No brake warning light",
+        ],
+    ),
+    (
+        "TIRES & WHEELS",
+        [
+            "Tire tread depth adequate",
+            "Tire pressure correct (all 4 + spare)",
+            "No cuts, bulges, or embedded objects",
+            "Lug nuts tight / no missing",
+        ],
+    ),
+    (
+        "INTERIOR",
+        [
+            "Horn operational",
+            "Seat belts functional (all positions)",
+            "Seats / carpet clean & undamaged",
+            "HVAC / climate control functional",
+            "GPS / dispatch device operational",
+            "Divider window operational (if equipped)",
+            "Odometer reading recorded",
+        ],
+    ),
+    (
+        "SAFETY EQUIPMENT",
+        [
+            "First aid kit present & stocked",
+            "Fire extinguisher charged & mounted",
+            "Reflective triangles / flares present",
+            "Vehicle registration & insurance in vehicle",
+            "Driver licence & chauffeur permit present",
+        ],
+    ),
 ]
 
 
@@ -120,7 +141,7 @@ def generate_pre_trip_pdf() -> bytes:
 
     LEFT = 0.4 * inch
     RIGHT = width - 0.4 * inch
-    COL_W = (RIGHT - LEFT)
+    COL_W = RIGHT - LEFT
 
     y = height - 0.45 * inch
 
@@ -128,20 +149,32 @@ def generate_pre_trip_pdf() -> bytes:
     y = _header(c, width, y)
 
     # ── Info fields row 1 ──────────────────────────────────────────────────
-    y = _info_row(c, LEFT, y, [
-        ("Date:", 90),
-        ("Departure Time:", 80),
-        ("Return Time:", 80),
-        ("Trip / Reserve #:", 90),
-    ], row_height=22)
+    y = _info_row(
+        c,
+        LEFT,
+        y,
+        [
+            ("Date:", 90),
+            ("Departure Time:", 80),
+            ("Return Time:", 80),
+            ("Trip / Reserve #:", 90),
+        ],
+        row_height=22,
+    )
 
     # ── Info fields row 2 ──────────────────────────────────────────────────
-    y = _info_row(c, LEFT, y, [
-        ("Driver Name:", 140),
-        ("Vehicle # / Unit:", 80),
-        ("Licence Plate:", 70),
-        ("Odometer (out):", 100),
-    ], row_height=22)
+    y = _info_row(
+        c,
+        LEFT,
+        y,
+        [
+            ("Driver Name:", 140),
+            ("Vehicle # / Unit:", 80),
+            ("Licence Plate:", 70),
+            ("Odometer (out):", 100),
+        ],
+        row_height=22,
+    )
 
     y -= 4
     c.setLineWidth(0.5)
@@ -162,7 +195,9 @@ def generate_pre_trip_pdf() -> bytes:
         c.drawString(lx + box_size + 3, y, lbl)
         lx += 60
     c.setFont("Helvetica", 7)
-    c.drawString(lx + 10, y, "Mark each item with P / F / N — circle defective items and describe below.")
+    c.drawString(
+        lx + 10, y, "Mark each item with P / F / N — circle defective items and describe below."
+    )
     y -= 14
 
     # ── Checklist columns ──────────────────────────────────────────────────
@@ -170,10 +205,10 @@ def generate_pre_trip_pdf() -> bytes:
     COL_X = [LEFT, LEFT + COL_W / 2 + 4]
     col_y = [y, y]
     NUM_COLS = 2
-    SECTION_H = 11   # section header row height
-    ITEM_H = 11      # item row height
+    SECTION_H = 11  # section header row height
+    ITEM_H = 11  # item row height
     CHECK_SIZE = 7
-    CHECK_GAP = 9    # gap between P / F / N boxes
+    CHECK_GAP = 9  # gap between P / F / N boxes
 
     for col in range(NUM_COLS):
         num_sections = (len(CHECKLIST_SECTIONS) + NUM_COLS - 1) // NUM_COLS
@@ -221,7 +256,7 @@ def generate_pre_trip_pdf() -> bytes:
             cy -= 4  # spacing between sections
 
     # ── Defects / Notes section ────────────────────────────────────────────
-        # Use a safe fixed y based on available page space.
+    # Use a safe fixed y based on available page space.
     y = 2.6 * inch
 
     c.setLineWidth(0.5)

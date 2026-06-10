@@ -77,9 +77,7 @@ def audit_packages(
 
 
 @router.post("/package/year-end")
-def audit_year_end_package(
-    payload: AuditCheckRequest, conn=Depends(get_connection)
-):
+def audit_year_end_package(payload: AuditCheckRequest, conn=Depends(get_connection)):
     manifest = generate_year_end_package(conn, payload)
     return manifest.model_dump(mode="json")
 

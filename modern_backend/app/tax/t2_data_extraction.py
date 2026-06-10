@@ -53,16 +53,8 @@ class T2DataExtractor:
 
             if ledger_data and ledger_data[0] > 0:
                 charter_count = ledger_data[0]
-                charter_revenue = (
-                    ledger_data[1]
-                    if ledger_data[1] is not None
-                    else Decimal("0")
-                )
-                charter_gst = (
-                    ledger_data[2]
-                    if ledger_data[2] is not None
-                    else Decimal("0")
-                )
+                charter_revenue = ledger_data[1] if ledger_data[1] is not None else Decimal("0")
+                charter_gst = ledger_data[2] if ledger_data[2] is not None else Decimal("0")
             else:
                 # Fallback for environments where income_ledger has not yet
                 # been backfilled.
@@ -83,9 +75,7 @@ class T2DataExtractor:
                     if fallback_data and fallback_data[1] is not None
                     else Decimal("0")
                 )
-                charter_gst = (
-                    charter_revenue * Decimal("0.05") / Decimal("1.05")
-                )
+                charter_gst = charter_revenue * Decimal("0.05") / Decimal("1.05")
 
             # Other income from receipts
             # Note: Skip this query for now, as most income comes from charters
@@ -115,15 +105,13 @@ class T2DataExtractor:
                     "gst": charter_gst,
                 },
                 "other_income": [
-                    {"category": row[0], "count": row[1], "amount": row[2]}
-                    for row in other_income
+                    {"category": row[0], "count": row[1], "amount": row[2]} for row in other_income
                 ],
                 "banking_credits": {
                     "count": banking_credits[1],
                     "amount": banking_credits[0],
                 },
-                "total_revenue": charter_revenue
-                + sum(row[2] for row in other_income),
+                "total_revenue": charter_revenue + sum(row[2] for row in other_income),
             }
 
         finally:
@@ -250,32 +238,27 @@ class T2DataExtractor:
 
             if has_exclude:
                 select_cols.append(
-                    "COALESCE(r.exclude_from_reports, FALSE) AS"
-                    "exclude_from_reports"
+                    "COALESCE(r.exclude_from_reports, FALSE) AS" "exclude_from_reports"
                 )
             else:
                 select_cols.append("FALSE AS exclude_from_reports")
 
             if has_personal_flag:
                 select_cols.append(
-                    "COALESCE(r.is_personal_purchase, FALSE) AS"
-                    "is_personal_purchase"
+                    "COALESCE(r.is_personal_purchase, FALSE) AS" "is_personal_purchase"
                 )
             else:
                 select_cols.append("FALSE AS is_personal_purchase")
 
             if has_owner_personal_amount:
                 select_cols.append(
-                    "COALESCE(r.owner_personal_amount, 0) AS"
-                    "owner_personal_amount"
+                    "COALESCE(r.owner_personal_amount, 0) AS" "owner_personal_amount"
                 )
             else:
                 select_cols.append("0::numeric AS owner_personal_amount")
 
             if has_business_personal:
-                select_cols.append(
-                    "COALESCE(r.business_personal, '') AS business_personal"
-                )
+                select_cols.append("COALESCE(r.business_personal, '') AS business_personal")
             else:
                 select_cols.append("'' AS business_personal")
 
@@ -344,9 +327,7 @@ class T2DataExtractor:
                     deductible = Decimal("0")
                     notes.append("Non-expense account type")
                 elif gl_code == "6100":
-                    deductible = (amount * Decimal("0.5")).quantize(
-                        Decimal("0.01")
-                    )
+                    deductible = (amount * Decimal("0.5")).quantize(Decimal("0.01"))
                     notes.append("50% meals rule")
 
                 add_back = amount - deductible
@@ -360,8 +341,7 @@ class T2DataExtractor:
                             "receipt_id": int(receipt_id),
                             "gl_code": gl_code or "UNASSIGNED",
                             "vendor": vendor_name,
-                            "message": "Risk keyword found in"
-                            "vendor/description",
+                            "message": "Risk keyword found in" "vendor/description",
                         }
                     )
 
@@ -394,11 +374,7 @@ class T2DataExtractor:
                         "book_amount": item["book_amount"],
                         "deductible_amount": item["deductible_amount"],
                         "add_back_amount": item["add_back_amount"],
-                        "notes": (
-                            "; ".join(sorted(item["notes"]))
-                            if item["notes"]
-                            else ""
-                        ),
+                        "notes": ("; ".join(sorted(item["notes"])) if item["notes"] else ""),
                     }
                 )
 
@@ -518,9 +494,7 @@ class T2DataExtractor:
             "total_revenue": total_revenue,
             "total_expenses": total_expenses,
             "net_income": net_income,
-            "profit_margin": (
-                (net_income / total_revenue * 100) if total_revenue > 0 else 0
-            ),
+            "profit_margin": ((net_income / total_revenue * 100) if total_revenue > 0 else 0),
         }
 
     def get_tax_rates(self, tax_year: int) -> dict | None:
@@ -563,9 +537,7 @@ class T2DataExtractor:
             cur.close()
             conn.close()
 
-    def extract_complete_financial_package(
-        self, tax_year: int, fiscal_year_end: date
-    ) -> dict:
+    def extract_complete_financial_package(self, tax_year: int, fiscal_year_end: date) -> dict:
         """
         Extract complete financial data package for T2 return generation.
 
@@ -631,9 +603,7 @@ def main():
 
     try:
         # Extract complete package
-        package = extractor.extract_complete_financial_package(
-            test_year, fiscal_end
-        )
+        package = extractor.extract_complete_financial_package(test_year, fiscal_end)
 
         # Display summary
         print(f"\n{'='*70}")
@@ -645,47 +615,22 @@ def main():
             f"  Charter Revenue:       "
             f"${package['revenue']['charter_revenue']['amount']:>15,.2f}"
         )
-        print(
-            f"  Charter Count:         "
-            f"{package['revenue']['charter_revenue']['count']:>15,}"
-        )
-        _other_total = sum(
-            i["amount"] for i in package["revenue"]["other_income"]
-        )
-        print(
-            f"  Other Income:           ${_other_total:>15,.2f}"
-        )
+        print(f"  Charter Count:         " f"{package['revenue']['charter_revenue']['count']:>15,}")
+        _other_total = sum(i["amount"] for i in package["revenue"]["other_income"])
+        print(f"  Other Income:           ${_other_total:>15,.2f}")
         print(f"  {'─'*45}")
-        print(
-            f"  TOTAL REVENUE:         "
-            f"${package['revenue']['total_revenue']:>15,.2f}"
-        )
+        print(f"  TOTAL REVENUE:         " f"${package['revenue']['total_revenue']:>15,.2f}")
 
         print("\nEXPENSES:")
-        print(
-            f"  Total Expenses:        "
-            f"${package['expenses']['total_expenses']:>15,.2f}"
-        )
-        print(
-            f"  GST Paid:              "
-            f"${package['expenses']['total_gst_paid']:>15,.2f}"
-        )
+        print(f"  Total Expenses:        " f"${package['expenses']['total_expenses']:>15,.2f}")
+        print(f"  GST Paid:              " f"${package['expenses']['total_gst_paid']:>15,.2f}")
 
         print("\nNET INCOME:")
-        print(
-            f"  Net Income (Loss):     "
-            f"${package['net_income']['net_income']:>15,.2f}"
-        )
-        print(
-            f"  Profit Margin:         "
-            f"{package['net_income']['profit_margin']:>15.1f}%"
-        )
+        print(f"  Net Income (Loss):     " f"${package['net_income']['net_income']:>15,.2f}")
+        print(f"  Profit Margin:         " f"{package['net_income']['profit_margin']:>15.1f}%")
 
         print(f"\nBALANCE SHEET (as of {fiscal_end}):")
-        print(
-            f"  Cash:                  "
-            f"${package['balance_sheet']['assets']['cash']:>15,.2f}"
-        )
+        print(f"  Cash:                  " f"${package['balance_sheet']['assets']['cash']:>15,.2f}")
         print(
             f"  Accounts Receivable:   "
             f"${package['balance_sheet']['assets']['accounts_receivable']:>15,.2f}"
@@ -706,8 +651,7 @@ def main():
         if package["tax_rates"]:
             print(f"\nTAX RATES ({test_year}):")
             print(
-                f"  Combined SBD Rate:     "
-                f"{package['tax_rates']['combined_sbd']*100:>15.1f}%"
+                f"  Combined SBD Rate:     " f"{package['tax_rates']['combined_sbd']*100:>15.1f}%"
             )
             print(
                 f"  Combined General Rate: "
@@ -717,10 +661,7 @@ def main():
                 f"  Small Business Limit:  "
                 f"${package['tax_rates']['small_business_limit']:>15,.2f}"
             )
-            print(
-                f"  GST Rate:              "
-                f"{package['tax_rates']['gst_rate']*100:>15.1f}%"
-            )
+            print(f"  GST Rate:              " f"{package['tax_rates']['gst_rate']*100:>15.1f}%")
 
         print(f"\n{'='*70}")
         print("✓ DATA EXTRACTION SUCCESSFUL")

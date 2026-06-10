@@ -92,9 +92,7 @@ def get_all_pricing_defaults():
 
         return {"results": results, "count": len(results)}
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to load pricing: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to load pricing: {e}") from e
     finally:
         cur.close()
         conn.close()
@@ -136,17 +134,13 @@ def get_pricing_by_vehicle(vehicle_type: str):
             )
 
         if not results:
-            raise HTTPException(
-                status_code=404, detail=f"No pricing found for {vehicle_type}"
-            )
+            raise HTTPException(status_code=404, detail=f"No pricing found for {vehicle_type}")
 
         return {"vehicle_type": vehicle_type, "pricing_options": results}
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to load pricing: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to load pricing: {e}") from e
     finally:
         cur.close()
         conn.close()
@@ -219,9 +213,7 @@ def calculate_quotes(request: QuoteRequest, http_request: Request):
             gratuity_amt = None
             total_with_tip = None
             if request.include_gratuity:
-                gratuity_amt = round(
-                    hourly_total * request.gratuity_percentage / 100, 2
-                )
+                gratuity_amt = round(hourly_total * request.gratuity_percentage / 100, 2)
                 total_with_tip = hourly_total + gratuity_amt
 
             quotes.append(
@@ -274,9 +266,7 @@ def calculate_quotes(request: QuoteRequest, http_request: Request):
                 gratuity_amt = None
                 total_with_tip = None
                 if request.include_gratuity:
-                    gratuity_amt = round(
-                        total * request.gratuity_percentage / 100, 2
-                    )
+                    gratuity_amt = round(total * request.gratuity_percentage / 100, 2)
                     total_with_tip = total + gratuity_amt
 
                 quotes.append(
@@ -308,9 +298,7 @@ def calculate_quotes(request: QuoteRequest, http_request: Request):
             gratuity_amt = None
             total_with_tip = None
             if request.include_gratuity:
-                gratuity_amt = round(
-                    standby_cost * request.gratuity_percentage / 100, 2
-                )
+                gratuity_amt = round(standby_cost * request.gratuity_percentage / 100, 2)
                 total_with_tip = standby_cost + gratuity_amt
 
             if standby_hours > 0:
@@ -345,9 +333,7 @@ def calculate_quotes(request: QuoteRequest, http_request: Request):
             "quoted_hours": quoted_hours,
             "include_gratuity": request.include_gratuity,
             "gratuity_percentage": (
-                request.gratuity_percentage
-                if request.include_gratuity
-                else None
+                request.gratuity_percentage if request.include_gratuity else None
             ),
             "quotes": quotes,
             "count": len(quotes),
@@ -383,9 +369,7 @@ def calculate_quotes(request: QuoteRequest, http_request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to calculate quotes: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to calculate quotes: {e}") from e
     finally:
         cur.close()
         conn.close()
@@ -418,9 +402,7 @@ def get_charter_types():
 
         return {"results": results, "count": len(results)}
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to load charter types: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to load charter types: {e}") from e
     finally:
         cur.close()
         conn.close()

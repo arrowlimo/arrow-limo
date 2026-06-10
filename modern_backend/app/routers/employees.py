@@ -90,9 +90,7 @@ def list_employees():
             )
         return employees
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to list employees: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to list employees: {e}")
     finally:
         cur.close()
         conn.close()
@@ -134,9 +132,7 @@ def list_drivers():
             )
         return drivers
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to list drivers: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to list drivers: {e}")
     finally:
         cur.close()
         conn.close()
@@ -165,9 +161,7 @@ def get_employee(employee_id: int):
         )
         row = cur.fetchone()
         if not row:
-            raise HTTPException(
-                status_code=404, detail=f"Employee {employee_id} not found"
-            )
+            raise HTTPException(status_code=404, detail=f"Employee {employee_id} not found")
 
         return {
             "employee_id": row[0],
@@ -181,9 +175,7 @@ def get_employee(employee_id: int):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to get employee: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to get employee: {e}")
     finally:
         cur.close()
         conn.close()
@@ -341,9 +333,7 @@ def create_employee(employee_data: dict, request: Request):
         return {"employee_id": employee_id, "status": status}
     except Exception as e:
         conn.rollback()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to create employee: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to create employee: {e}")
     finally:
         cur.close()
         conn.close()

@@ -1,0 +1,10 @@
+{
+  "latest_version": "1.0.0",
+  "release_date": "2026-05-12",
+  "mandatory": false,
+  "installer_path": "ArrowLimousineApp.exe",
+  "file_size_mb": 0,
+  "changelog": [
+    "Replace with release notes for the dispatcher update."
+  ]
+}

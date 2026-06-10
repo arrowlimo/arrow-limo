@@ -81,9 +81,7 @@ def get_accounting_stats(month: int | None = None, year: int | None = None):
         monthly_revenue_f = float(monthly_revenue) if monthly_revenue else 0
         monthly_expenses_f = float(monthly_expenses) if monthly_expenses else 0
         gst_collected = monthly_revenue_f * 0.05
-        gst_paid = (
-            (monthly_expenses_f * 0.95) * 0.05 if monthly_expenses_f > 0 else 0
-        )
+        gst_paid = (monthly_expenses_f * 0.95) * 0.05 if monthly_expenses_f > 0 else 0
         gst_owed = gst_collected - gst_paid
     except Exception:
         gst_owed = 0
@@ -214,9 +212,7 @@ def list_chart_of_accounts(only_active: bool = True):
 
 
 @router.get("/reports/profit-loss")
-def get_profit_loss_report(
-    start_date: date | None = None, end_date: date | None = None
-):
+def get_profit_loss_report(start_date: date | None = None, end_date: date | None = None):
     """Generate Profit & Loss report"""
     conn = get_connection()
     cur = conn.cursor()
@@ -301,9 +297,7 @@ def get_profit_loss_report(
 
 
 @router.get("/reports/cash-flow")
-def get_cash_flow_report(
-    start_date: date | None = None, end_date: date | None = None
-):
+def get_cash_flow_report(start_date: date | None = None, end_date: date | None = None):
     """Generate Cash Flow report"""
     conn = get_connection()
     cur = conn.cursor()

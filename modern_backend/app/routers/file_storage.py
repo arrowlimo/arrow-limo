@@ -40,6 +40,7 @@ ROLE_PERMISSIONS = {
     "dispatcher": ["employees", "vehicles", "business_documents", "reports"],
     # Drivers can only access their own employee folder
     "driver": ["employees"],
+    "operator": ["employees"],
     "accountant": ["business_documents", "banking_records", "reports"],
 }
 
@@ -52,11 +53,7 @@ class FileInfo(BaseModel):
 
 
 def _audit_actor_from_user(current_user: dict) -> AuditEventActor:
-    username = (
-        current_user.get("username")
-        or current_user.get("email")
-        or current_user.get("user")
-    )
+    username = current_user.get("username") or current_user.get("email") or current_user.get("user")
     return AuditEventActor(
         actor_type="user" if username else "service",
         user_id=(str(current_user.get("id")) if current_user.get("id") else None),
@@ -114,7 +111,7 @@ def check_access(
         return False
 
     # Drivers can only access their own employee folder
-    if user_role == "driver" and category == "employees":
+    if user_role in {"driver", "operator"} and category == "employees":
         return employee_id == target_employee_id
 
     return True
@@ -264,9 +261,7 @@ async def download_file(
     if not check_access(category, user_role, employee_id, target_employee_id):
         raise HTTPException(status_code=403, detail=ACCESS_DENIED_DETAIL)
 
-    target_path = (
-        FILE_STORAGE_ROOT / category / entity_id / subfolder / filename
-    )
+    target_path = FILE_STORAGE_ROOT / category / entity_id / subfolder / filename
     if not target_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
 
@@ -307,13 +302,9 @@ async def delete_file(
 
     # Only admin can delete files
     if user_role != "admin":
-        raise HTTPException(
-            status_code=403, detail="Only admins can delete files"
-        )
+        raise HTTPException(status_code=403, detail="Only admins can delete files")
 
-    target_path = (
-        FILE_STORAGE_ROOT / category / entity_id / subfolder / filename
-    )
+    target_path = FILE_STORAGE_ROOT / category / entity_id / subfolder / filename
     if not target_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
 
@@ -342,9 +333,7 @@ async def delete_file(
 @router.post("/employees/{employee_id}/create-folder")
 async def create_employee_folder_endpoint(
     employee_id: int,
-    current_user: Annotated[
-        dict, Depends(require_roles("admin", "manager", "super_user"))
-    ],
+    current_user: Annotated[dict, Depends(require_roles("admin", "manager", "super_user"))],
 ):
     """Create employee folder structure (called when new employee is added)."""
     folder = create_employee_folder(employee_id)
@@ -362,9 +351,7 @@ async def create_employee_folder_endpoint(
 @router.post("/vehicles/{vehicle_number}/create-folder")
 async def create_vehicle_folder_endpoint(
     vehicle_number: str,
-    current_user: Annotated[
-        dict, Depends(require_roles("admin", "manager", "super_user"))
-    ],
+    current_user: Annotated[dict, Depends(require_roles("admin", "manager", "super_user"))],
 ):
     """Create vehicle folder structure (called when new vehicle is added)."""
     folder = create_vehicle_folder(vehicle_number)

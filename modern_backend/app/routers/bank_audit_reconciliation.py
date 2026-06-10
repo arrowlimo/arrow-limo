@@ -86,9 +86,7 @@ async def list_bank_accounts():
 async def get_account_reconciliation(
     start_date: str = Query(..., description="Start date (YYYY-MM-DD)"),
     end_date: str = Query(..., description="End date (YYYY-MM-DD)"),
-    account_number: str | None = Query(
-        None, description="Filter by account number"
-    ),
+    account_number: str | None = Query(None, description="Filter by account number"),
 ):
     """
     Get bank account reconciliation report with opening/closing balances and
@@ -146,9 +144,7 @@ async def get_account_reconciliation(
             )
 
             opening_bal = cur.fetchone()[0]
-            summary.opening_balance = (
-                float(opening_bal) if opening_bal else 0.0
-            )
+            summary.opening_balance = float(opening_bal) if opening_bal else 0.0
 
             # Get transactions in period with receipt info
             cur.execute(
@@ -184,9 +180,7 @@ async def get_account_reconciliation(
                 summary.transactions.append(trans)
                 summary.transaction_count += 1
                 summary.total_debits += trans.amount if trans.amount < 0 else 0
-                summary.total_credits += (
-                    trans.amount if trans.amount > 0 else 0
-                )
+                summary.total_credits += trans.amount if trans.amount > 0 else 0
 
                 if trans.linked:
                     summary.linked_count += 1

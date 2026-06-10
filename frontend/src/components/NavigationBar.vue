@@ -42,7 +42,15 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const userRole = ref(localStorage.getItem('user_role') || 'user')
+const normalizeRole = (role) => {
+  const aliases = {
+    superuser: 'super_user'
+  }
+  const lowered = (role || 'user').toLowerCase()
+  return aliases[lowered] || lowered
+}
+
+const userRole = ref(normalizeRole(localStorage.getItem('user_role') || 'user'))
 const permissions = ref(JSON.parse(localStorage.getItem('user_permissions') || '{}'))
 const selectedTheme = ref(localStorage.getItem('theme') || 'light')
 
@@ -72,7 +80,11 @@ function canAccess(section) {
     return ['drivers', 'driver-hos'].includes(section)
   }
 
-  if (userRole.value === 'admin' || userRole.value === 'superuser') {
+  if (userRole.value === 'dispatch' || userRole.value === 'dispatcher') {
+    return ['dispatch', 'charter', 'vehicles', 'customers'].includes(section)
+  }
+
+  if (userRole.value === 'admin' || userRole.value === 'super_user') {
     return true
   }
 

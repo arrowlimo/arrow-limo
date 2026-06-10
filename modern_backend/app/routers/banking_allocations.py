@@ -14,9 +14,7 @@ router = APIRouter(prefix="/banking", tags=["banking-allocations"])
 def _audit_actor(request: Request | None) -> AuditEventActor:
     if request is None:
         return AuditEventActor(actor_type="system", username="system")
-    username = request.headers.get("X-User-Name") or request.headers.get(
-        "X-User"
-    )
+    username = request.headers.get("X-User-Name") or request.headers.get("X-User")
     role = request.headers.get("X-User-Role")
     user_id = request.headers.get("X-User-Id")
     if not username:
@@ -123,8 +121,7 @@ def allocate_banking_to_receipts(
         for a in req.allocations:
             # Link receipt to banking transaction
             cur.execute(
-                "UPDATE receipts SET banking_transaction_id=%s WHERE"
-                "receipt_id=%s",
+                "UPDATE receipts SET banking_transaction_id=%s WHERE" "receipt_id=%s",
                 (transaction_id, a.receipt_id),
             )
 
@@ -149,11 +146,7 @@ def allocate_banking_to_receipts(
                         a.receipt_id,
                         "allocation",
                         "linked",
-                        (
-                            "exact"
-                            if abs(a.amount - debit_amount) < 0.01
-                            else "partial"
-                        ),
+                        ("exact" if abs(a.amount - debit_amount) < 0.01 else "partial"),
                         f"amount={a.amount:.2f}",
                         req.created_by,
                     ),
@@ -161,8 +154,7 @@ def allocate_banking_to_receipts(
             else:
                 # Update notes to reflect latest amount
                 cur.execute(
-                    "UPDATE banking_receipt_matching_ledger SET notes=%s"
-                    "WHERE id=%s",
+                    "UPDATE banking_receipt_matching_ledger SET notes=%s" "WHERE id=%s",
                     (f"amount={a.amount: .2f} ", existing[0]),
                 )
 

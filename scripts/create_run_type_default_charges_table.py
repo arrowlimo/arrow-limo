@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Create run_type_default_charges table for storing default charges by run type."""
-import psycopg2
-from dotenv import load_dotenv
+
 import os
 import sys
+
+import psycopg2
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -73,14 +75,15 @@ airport_charges = [
 for rt_id, rt_name in run_types:
     rt_name_lower = rt_name.lower()
     charges_to_add = list(common_charges)
-    
+
     # Add airport charges if applicable
     if "airport" in rt_name_lower:
         charges_to_add.extend(airport_charges)
-    
+
     for desc, ctype, amount, calc_type, value, taxable, seq in charges_to_add:
         try:
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO run_type_default_charges 
                 (run_type_id, charge_description, charge_type, amount, calc_type, value, is_taxable, sequence)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -90,7 +93,9 @@ for rt_id, rt_name in run_types:
                     is_taxable = EXCLUDED.is_taxable,
                     sequence = EXCLUDED.sequence,
                     updated_at = CURRENT_TIMESTAMP
-            """, (rt_id, desc, ctype, amount, calc_type, value, taxable, seq))
+            """,
+                (rt_id, desc, ctype, amount, calc_type, value, taxable, seq),
+            )
         except Exception as e:
             print(f"  Warning: Could not insert {desc} for run type {rt_id}: {e}")
 

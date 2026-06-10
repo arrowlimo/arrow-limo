@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Check charter_run_types and related tables."""
-import psycopg2
-from dotenv import load_dotenv
+
 import os
 import sys
+
+import psycopg2
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -37,7 +39,7 @@ print("\nSample run types:")
 cur.execute("SELECT * FROM charter_run_types LIMIT 5")
 cols = [desc[0] for desc in cur.description]
 for row in cur.fetchall():
-    print(f"  {dict(zip(cols, row))}")
+    print(f"  {dict(zip(cols, row, strict=False))}")
 
 cur.close()
 conn.close()

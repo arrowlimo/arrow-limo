@@ -10,4 +10,4 @@ This module handles:
 
 from .t2_data_extraction import T2DataExtractor
 
-__all__ = ['T2DataExtractor']
+__all__ = ["T2DataExtractor"]

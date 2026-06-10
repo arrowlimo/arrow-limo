@@ -19,9 +19,7 @@ ERROR_INVOICE_NOT_FOUND = "Invoice not found"
 def _audit_actor(request: Request | None) -> AuditEventActor:
     if request is None:
         return AuditEventActor(actor_type="system", username="system")
-    username = request.headers.get("X-User-Name") or request.headers.get(
-        "X-User"
-    )
+    username = request.headers.get("X-User-Name") or request.headers.get("X-User")
     role = request.headers.get("X-User-Role")
     user_id = request.headers.get("X-User-Id")
     if not username:
@@ -185,9 +183,7 @@ def get_invoices(
         query += " AND c.client_id = %s"
         params.append(customer_id)
 
-    query += (
-        " ORDER BY i.invoice_date DESC, i.invoice_id DESC LIMIT %s OFFSET %s"
-    )
+    query += " ORDER BY i.invoice_date DESC, i.invoice_id DESC LIMIT %s OFFSET %s"
     params.extend([limit, offset])
 
     cur.execute(query, params)
@@ -380,9 +376,7 @@ def create_invoice(invoice: InvoiceCreate, request: Request):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to create invoice: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to create invoice: {e!s}")
 
 
 @router.put("/{invoice_id}")
@@ -429,13 +423,29 @@ def update_invoice(
                 updates.append("invoice_status = 'unpaid'")
 
         if invoice.amount is not None or invoice.gst is not None:
+            # Use %s placeholders for updated fields so the recalculation uses
+            # the NEW values. PostgreSQL evaluates all SET RHS expressions
+            # against the original row — column refs here would return old
+            # values even though subtotal_taxable/gst_amount were just set
+            # earlier in the same SET clause.
+            sub_expr = "%s" if invoice.amount is not None else "COALESCE(subtotal_taxable, 0)"
+            gst_expr = "%s" if invoice.gst is not None else "COALESCE(gst_amount, 0)"
             updates.append(
-                "invoice_total = COALESCE(subtotal_taxable, 0) + "
-                "COALESCE(subtotal_non_taxable, 0) + COALESCE(gst_amount, 0)"
+                f"invoice_total = {sub_expr} + COALESCE(subtotal_non_taxable, 0) + {gst_expr}"
             )
             updates.append(
-                "balance_due = GREATEST((COALESCE(subtotal_taxable, 0) + COALESCE(subtotal_non_taxable, 0) + COALESCE(gst_amount, 0)) - COALESCE(total_payments, 0), 0)"
+                f"balance_due = GREATEST(({sub_expr} + COALESCE(subtotal_non_taxable, 0) + {gst_expr}) - COALESCE(total_payments, 0), 0)"
             )
+            # Params for invoice_total expression
+            if invoice.amount is not None:
+                params.append(invoice.amount)
+            if invoice.gst is not None:
+                params.append(invoice.gst)
+            # Params for balance_due expression (same order, repeated)
+            if invoice.amount is not None:
+                params.append(invoice.amount)
+            if invoice.gst is not None:
+                params.append(invoice.gst)
 
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")
@@ -449,9 +459,7 @@ def update_invoice(
             conn.rollback()
             cur.close()
             conn.close()
-            raise HTTPException(
-                status_code=404, detail=ERROR_INVOICE_NOT_FOUND
-            )
+            raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
         audit_after = _load_invoice_snapshot(conn, invoice_id) or audit_before
         ensure_audit_storage(conn)
@@ -485,9 +493,7 @@ def update_invoice(
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to update invoice: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to update invoice: {e!s}")
 
 
 @router.put("/{invoice_id}/mark-paid")
@@ -525,9 +531,7 @@ def mark_invoice_paid(
             conn.rollback()
             cur.close()
             conn.close()
-            raise HTTPException(
-                status_code=404, detail=ERROR_INVOICE_NOT_FOUND
-            )
+            raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
         ensure_audit_storage(conn)
         after_snapshot = _load_invoice_snapshot(conn, invoice_id) or before_snapshot
@@ -561,9 +565,7 @@ def mark_invoice_paid(
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to mark invoice as paid: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to mark invoice as paid: {e!s}")
 
 
 @router.delete("/{invoice_id}")
@@ -579,17 +581,13 @@ def delete_invoice(invoice_id: int, request: Request):
             conn.close()
             raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
-        cur.execute(
-            "DELETE FROM invoices WHERE invoice_id = %s", (invoice_id,)
-        )
+        cur.execute("DELETE FROM invoices WHERE invoice_id = %s", (invoice_id,))
 
         if cur.rowcount == 0:
             conn.rollback()
             cur.close()
             conn.close()
-            raise HTTPException(
-                status_code=404, detail=ERROR_INVOICE_NOT_FOUND
-            )
+            raise HTTPException(status_code=404, detail=ERROR_INVOICE_NOT_FOUND)
 
         ensure_audit_storage(conn)
         record_audit_event(
@@ -622,9 +620,7 @@ def delete_invoice(invoice_id: int, request: Request):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to delete invoice: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to delete invoice: {e!s}")
 
 
 @router.get("/stats/summary")

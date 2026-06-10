@@ -8,7 +8,6 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-
 AuditStatus = Literal["PASS", "WARN", "FAIL"]
 PackageMode = Literal["standard", "print", "email"]
 

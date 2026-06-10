@@ -18,9 +18,7 @@ router = APIRouter(prefix="/api/receipts", tags=["receipts"])
 def _audit_actor(request: Request | None) -> AuditEventActor:
     if request is None:
         return AuditEventActor(actor_type="system", username="system")
-    username = request.headers.get("X-User-Name") or request.headers.get(
-        "X-User"
-    )
+    username = request.headers.get("X-User-Name") or request.headers.get("X-User")
     role = request.headers.get("X-User-Role")
     user_id = request.headers.get("X-User-Id")
     if not username:
@@ -351,9 +349,7 @@ def create_receipt(receipt: ReceiptCreate, request: Request):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to create receipt: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to create receipt: {e!s}")
 
 
 @router.put("/{receipt_id}")
@@ -409,8 +405,7 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate, request: Request):
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        "Invalid review status. Must be one of: "
-                        f"{', '.join(valid_statuses)}"
+                        "Invalid review status. Must be one of: " f"{', '.join(valid_statuses)}"
                     ),
                 )
             updates.append("receipt_review_status = %s")
@@ -484,9 +479,7 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate, request: Request):
         cur.close()
         conn.close()
 
-        paper_status = (
-            "paper-verified" if receipt.is_paper_verified else "data-verified"
-        )
+        paper_status = "paper-verified" if receipt.is_paper_verified else "data-verified"
         return {"message": f"Receipt updated successfully ({paper_status})"}
 
     except HTTPException:
@@ -495,9 +488,7 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate, request: Request):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to update receipt: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to update receipt: {e!s}")
 
 
 @router.delete("/{receipt_id}")
@@ -514,9 +505,7 @@ def delete_receipt(receipt_id: int, request: Request):
             raise HTTPException(status_code=404, detail="Receipt not found")
 
         # Delete receipt
-        cur.execute(
-            "DELETE FROM receipts WHERE receipt_id = %s", (receipt_id,)
-        )
+        cur.execute("DELETE FROM receipts WHERE receipt_id = %s", (receipt_id,))
 
         if cur.rowcount == 0:
             conn.rollback()
@@ -555,15 +544,11 @@ def delete_receipt(receipt_id: int, request: Request):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to delete receipt: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to delete receipt: {e!s}")
 
 
 @router.get("/summary/by-category")
-def get_expense_summary(
-    start_date: dt_date | None = None, end_date: dt_date | None = None
-):
+def get_expense_summary(start_date: dt_date | None = None, end_date: dt_date | None = None):
     """Get expense summary grouped by category"""
     conn = get_connection()
     cur = conn.cursor()

@@ -14,9 +14,7 @@ router = APIRouter(prefix="/api/cash-box", tags=["cash-box"])
 def _audit_actor(request: Request | None) -> AuditEventActor:
     if request is None:
         return AuditEventActor(actor_type="system", username="system")
-    username = request.headers.get("X-User-Name") or request.headers.get(
-        "X-User"
-    )
+    username = request.headers.get("X-User-Name") or request.headers.get("X-User")
     role = request.headers.get("X-User-Role")
     user_id = request.headers.get("X-User-Id")
     if not username:
@@ -124,13 +122,17 @@ def _ensure_table(conn):
         if "description" not in cols:
             cur.execute("ALTER TABLE cash_box_transactions ADD COLUMN description TEXT")
         if "amount" not in cols:
-            cur.execute("ALTER TABLE cash_box_transactions ADD COLUMN amount NUMERIC(12,2) DEFAULT 0")
+            cur.execute(
+                "ALTER TABLE cash_box_transactions ADD COLUMN amount NUMERIC(12,2) DEFAULT 0"
+            )
         if "reference" not in cols:
             cur.execute("ALTER TABLE cash_box_transactions ADD COLUMN reference TEXT")
         if "notes" not in cols:
             cur.execute("ALTER TABLE cash_box_transactions ADD COLUMN notes TEXT")
         if "updated_at" not in cols:
-            cur.execute("ALTER TABLE cash_box_transactions ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT NOW()")
+            cur.execute(
+                "ALTER TABLE cash_box_transactions ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT NOW()"
+            )
 
         conn.commit()
     finally:
@@ -171,7 +173,7 @@ def _resolve_legacy_transaction_type(conn, txn_type: str) -> str:
             WHERE transaction_type IS NOT NULL
             """
         )
-        values = [str((r[0] or "")).strip() for r in cur.fetchall() if r[0]]
+        values = [str(r[0] or "").strip() for r in cur.fetchall() if r[0]]
     except Exception:
         values = []
     finally:

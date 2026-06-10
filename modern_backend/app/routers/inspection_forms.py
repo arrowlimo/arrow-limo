@@ -6,7 +6,7 @@ eHOS compliance: Inspection forms with digital signatures and timestamps
 import hashlib
 import hmac
 import os
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import jwt
@@ -33,44 +33,32 @@ def verify_jwt_token(credentials: HTTPAuthorizationCredentials) -> dict:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=(
-                "SECRET_KEY environment variable is required for "
-                "inspection form authentication"
+                "SECRET_KEY environment variable is required for " "inspection form authentication"
             ),
         )
     try:
-        payload = jwt.decode(
-            credentials.credentials, SECRET_KEY, algorithms=["HS256"]
-        )
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=["HS256"])
         return payload
     except jwt.ExpiredSignatureError:
-        raise HTTPException(  # noqa: B904
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
     except jwt.InvalidTokenError:
-        raise HTTPException(  # noqa: B904
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 
-def verify_signature(
-    reserve_number: str, expires: int, signature: str
-) -> None:
+def verify_signature(reserve_number: str, expires: int, signature: str) -> None:
     """Verify HMAC signature (prevents URL tampering)"""
     if not SECRET_KEY:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=(
-                "SECRET_KEY environment variable is required for "
-                "inspection form authentication"
+                "SECRET_KEY environment variable is required for " "inspection form authentication"
             ),
         )
     current_time = int(datetime.now().timestamp())
 
     # Check expiration (30 minutes default)
     if current_time > expires:
-        raise HTTPException(
-            status_code=status.HTTP_410_GONE, detail="Link expired"
-        )
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Link expired")
 
     # Verify HMAC signature
     expected_sig = hmac.new(
@@ -80,9 +68,7 @@ def verify_signature(
     ).hexdigest()
 
     if not hmac.compare_digest(signature, expected_sig):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid signature"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid signature")
 
 
 def check_authorization(user_id: int, user_role: str, charter_id: int) -> None:
@@ -114,15 +100,13 @@ def check_authorization(user_id: int, user_role: str, charter_id: int) -> None:
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Authorization check failed",
         )
 
 
-def audit_log_access(
-    user_id: int, charter_id: int, action: str, ip_address: str
-) -> None:
+def audit_log_access(user_id: int, charter_id: int, action: str, ip_address: str) -> None:
     """Log file access for compliance audit trail"""
     try:
         conn = get_connection()
@@ -220,11 +204,7 @@ async def get_signed_url(
         check_authorization(user_id, user_role, charter_id)
 
         # 4. Generate signature
-        expires = int(
-            (
-                datetime.now() + timedelta(minutes=expires_in_minutes)
-            ).timestamp()
-        )
+        expires = int((datetime.now() + timedelta(minutes=expires_in_minutes)).timestamp())
         signature = hmac.new(
             SECRET_KEY.encode(),
             f"{reserve_number}{expires}".encode(),
@@ -277,7 +257,7 @@ async def get_signed_url(
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate signed URL",
         )
@@ -352,14 +332,10 @@ async def download_inspection_form(
         check_authorization(user_id, user_role, charter_id)
 
         # 5. Audit log the access
-        audit_log_access(
-            user_id, charter_id, "download_inspection_form", ip_address
-        )
+        audit_log_access(user_id, charter_id, "download_inspection_form", ip_address)
 
         # 6. Find and return the file
-        inspections_dir = (
-            Path("L:/limo/data/inspections") / f"charter_{reserve_number}"
-        )
+        inspections_dir = Path("L:/limo/data/inspections") / f"charter_{reserve_number}"
 
         if not inspections_dir.exists():
             raise HTTPException(
@@ -384,11 +360,7 @@ async def download_inspection_form(
         form_path = forms[0]
 
         # Determine media type
-        media_type = (
-            "application/pdf"
-            if form_path.suffix.lower() == ".pdf"
-            else "image/jpeg"
-        )
+        media_type = "application/pdf" if form_path.suffix.lower() == ".pdf" else "image/jpeg"
 
         # Return file with security headers
         return FileResponse(
@@ -397,12 +369,8 @@ async def download_inspection_form(
             filename=form_path.name,
             headers={
                 "X-Content-Type-Options": "nosniff",
-                "Cache-Control": (
-                    "no-store, no-cache, must-revalidate, max-age=0"
-                ),
-                "Content-Disposition": (
-                    f"attachment; filename={form_path.name}"
-                ),
+                "Cache-Control": ("no-store, no-cache, must-revalidate, max-age=0"),
+                "Content-Disposition": (f"attachment; filename={form_path.name}"),
                 "X-Charter-ID": str(charter_id),
                 "X-Reserve-Number": reserve_number,
                 "X-Downloaded-At": datetime.now().isoformat(),
@@ -413,7 +381,7 @@ async def download_inspection_form(
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to download inspection form",
         )
@@ -461,23 +429,17 @@ async def get_form_metadata(
         check_authorization(user_id, user_role, charter_id)
 
         # 4. Get form metadata
-        inspections_dir = (
-            Path("L:/limo/data/inspections") / f"charter_{reserve_number}"
-        )
+        inspections_dir = Path("L:/limo/data/inspections") / f"charter_{reserve_number}"
 
         forms = []
         if inspections_dir.exists():
-            for form_file in sorted(
-                inspections_dir.glob("inspection_*"), reverse=True
-            ):
+            for form_file in sorted(inspections_dir.glob("inspection_*"), reverse=True):
                 stat = form_file.stat()
                 forms.append(
                     {
                         "filename": form_file.name,
                         "size_bytes": stat.st_size,
-                        "uploaded_at": datetime.fromtimestamp(
-                            stat.st_mtime
-                        ).isoformat(),
+                        "uploaded_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
                         "type": form_file.suffix.lower(),
                     }
                 )
@@ -493,7 +455,7 @@ async def get_form_metadata(
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(  # noqa: B904
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get form metadata",
         )

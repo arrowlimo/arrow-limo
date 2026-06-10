@@ -16,11 +16,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install fastapi[standard] psycopg2-binary
-          pip install ruff mypy pytest httpx pytest-asyncio
+          pip install -r modern_backend/requirements.txt
+          pip install ruff bandit mypy pytest httpx pytest-asyncio
       - name: Lint
         run: |
-          ruff modern_backend || true
+          ruff check modern_backend/app
+      - name: Security checks
+        run: |
+          bandit -q -r modern_backend/app -ll -x modern_backend/tests
       - name: Type check
         run: |
           mypy modern_backend || true
@@ -35,4 +38,4 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build Docker image
         run: |
-          docker build -f modern_backend/Dockerfile -t limo-modern-backend:ci .
+          docker build -f Dockerfile -t limo-modern-backend:ci .

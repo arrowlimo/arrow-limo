@@ -1,3 +1,4 @@
+from contextlib import suppress
 from datetime import date, timedelta
 from typing import Any
 
@@ -14,9 +15,7 @@ router = APIRouter(prefix="/api", tags=["bookings"])
 def _audit_actor(request: Request | None) -> AuditEventActor:
     if request is None:
         return AuditEventActor(actor_type="system", username="system")
-    username = request.headers.get("X-User-Name") or request.headers.get(
-        "X-User"
-    )
+    username = request.headers.get("X-User-Name") or request.headers.get("X-User")
     role = request.headers.get("X-User-Role")
     user_id = request.headers.get("X-User-Id")
     if not username:
@@ -130,9 +129,7 @@ def list_bookings():
             {
                 "charter_id": rec.get("charter_id", ""),
                 "charter_date": str(rec.get("charter_date", "")),
-                "client_name": rec.get("client_name", "")
-                or rec.get("client_id", "")
-                or "",
+                "client_name": rec.get("client_name", "") or rec.get("client_id", "") or "",
                 "client_id": rec.get("client_id", ""),
                 "vehicle": rec.get("vehicle", ""),
                 "vehicle_description": rec.get("vehicle_description", ""),
@@ -143,47 +140,32 @@ def list_bookings():
                 "passenger_load": rec.get("passenger_count", 0),
                 "vehicle_capacity": rec.get("vehicle_capacity", 0),
                 "retainer": float(rec.get("retainer", 0) or 0.0),
-                "retainer_received": float(
-                    rec.get("retainer_received", 0) or 0.0
-                ),
+                "retainer_received": float(rec.get("retainer_received", 0) or 0.0),
                 "retainer_amount": float(rec.get("retainer_amount", 0) or 0.0),
                 "odometer_start": rec.get("odometer_start", ""),
                 "odometer_end": rec.get("odometer_end", ""),
                 "fuel_added": rec.get("fuel_added", ""),
-                "vehicle_notes": rec.get("vehicle_notes", "")
-                or rec.get("notes", ""),
+                "vehicle_notes": rec.get("vehicle_notes", "") or rec.get("notes", ""),
                 "itinerary": [],
                 "reserve_number": rec.get("reserve_number", ""),
                 "pickup_address": rec.get("pickup_address", ""),
-                "pickup_time": (
-                    str(rec.get("pickup_time", ""))
-                    if rec.get("pickup_time")
-                    else ""
-                ),
+                "pickup_time": (str(rec.get("pickup_time", "")) if rec.get("pickup_time") else ""),
                 "dropoff_address": rec.get("dropoff_address", ""),
                 "status": rec.get("status", ""),
                 "closed": bool(rec.get("closed", False)),
                 "cancelled": bool(rec.get("cancelled", False)),
                 "charter_type": rec.get("charter_type", "standard"),
-                "exchange_of_services_details": rec.get(
-                    "exchange_of_services_details", {}
-                ),
+                "exchange_of_services_details": rec.get("exchange_of_services_details", {}),
                 "gl_revenue_code": rec.get("gl_revenue_code", "4000"),
                 "gl_expense_code": rec.get("gl_expense_code", "6100"),
-                "reconciliation_status": rec.get(
-                    "reconciliation_status", "Unknown"
-                ),
-                "total_amount_due": float(
-                    rec.get("total_amount_due", 0) or 0.0
-                ),
+                "reconciliation_status": rec.get("reconciliation_status", "Unknown"),
+                "total_amount_due": float(rec.get("total_amount_due", 0) or 0.0),
                 "paid_amount": float(rec.get("paid_amount", 0) or 0.0),
                 "total_paid": float(rec.get("total_paid", 0) or 0.0),
                 "balance": float(rec.get("balance", 0) or 0.0),
                 "nrr_amount": float(rec.get("nrr_amount", 0) or 0.0),
                 "nrr_received": bool(rec.get("nrr_received", False)),
-                "beverage_orders_this_week": bool(
-                    rec.get("beverage_orders_this_week", False)
-                ),
+                "beverage_orders_this_week": bool(rec.get("beverage_orders_this_week", False)),
             }
         )
     return {"bookings": items}
@@ -326,9 +308,7 @@ def update_booking(
         if not before_snapshot:
             raise HTTPException(status_code=404, detail="not_found")
 
-        cur.execute(
-            f"UPDATE charters SET {set_clauses}  WHERE charter_id = %s", values
-        )
+        cur.execute(f"UPDATE charters SET {set_clauses}  WHERE charter_id = %s", values)
         after_snapshot = _fetch_charter_snapshot(cur, charter_id)
         if not after_snapshot:
             raise HTTPException(status_code=404, detail="not_found")
@@ -361,7 +341,7 @@ def update_booking(
 
 
 @router.post("/bookings/create")
-def create_booking(request: Request, payload: dict[str, Any] | None = None):
+def create_booking(request: Request, payload: dict[str, Any] | None = None):  # noqa: C901
     """Create a new charter booking with minimal required fields.
 
     This endpoint focuses on inserting into the `charters` table and
@@ -379,9 +359,7 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
     ]
     missing = [k for k in required if not payload.get(k)]
     if missing:
-        raise HTTPException(
-            status_code=400, detail=f"missing_fields: {', '.join(missing)}"
-        )
+        raise HTTPException(status_code=400, detail=f"missing_fields: {', '.join(missing)}")
 
     client_id = payload.get("client_id")
     client_name = (payload.get("client_name") or "").strip()
@@ -405,9 +383,7 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
     status = payload.get("status") or "Quote"
     total_amount_due = payload.get("total_amount_due")
     try:
-        total_amount_due_float = (
-            float(total_amount_due) if total_amount_due is not None else 0.0
-        )
+        total_amount_due_float = float(total_amount_due) if total_amount_due is not None else 0.0
     except Exception:
         total_amount_due_float = 0.0
 
@@ -498,16 +474,12 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
                 assigned_driver_id = None  # Invalid employee_id, set to NULL
 
         # Check if client is GST exempt
-        cur.execute(
-            "SELECT gst_exempt FROM clients WHERE client_id = %s", (client_id,)
-        )
+        cur.execute("SELECT gst_exempt FROM clients WHERE client_id = %s", (client_id,))
         client_row = cur.fetchone()
         is_gst_exempt = client_row[0] if client_row else False
 
         # Get separate_customer_printout flag from payload
-        separate_customer_printout = payload.get(
-            "separate_customer_printout", False
-        )
+        separate_customer_printout = payload.get("separate_customer_printout", False)
 
         # Insert into charters table using correct column names
         cur.execute(
@@ -630,9 +602,9 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
         # Insert charges line items (business key: reserve_number)
         base_charge = payload.get("base_charge")
         airport_fee = payload.get("airport_fee")
-        additional_charges = payload.get(
-            "additional_charges_amount"
-        ) or payload.get("additional_charges")
+        additional_charges = payload.get("additional_charges_amount") or payload.get(
+            "additional_charges"
+        )
 
         # Primary charter charge used for gratuity base (charter run-time only)
         charter_fee_amount = payload.get("charter_fee_amount")
@@ -734,9 +706,7 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
                 pass
 
         # Insert gratuity (applies to charter run-time charges only)
-        gratuity_percentage = payload.get(
-            "gratuity_percentage"
-        )  # e.g., 18.0 for 18%
+        gratuity_percentage = payload.get("gratuity_percentage")  # e.g., 18.0 for 18%
         # Override with fixed amount
         gratuity_amount = payload.get("gratuity_amount")
         extra_gratuity_cash = _to_float(
@@ -784,9 +754,7 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
                 gratuity_percentage = float(gratuity_percentage)
                 if gratuity_percentage > 0 and gratuity_base > 0:
                     # Gratuity is based on charter run-time charges only.
-                    gratuity_calc = round(
-                        gratuity_base * gratuity_percentage / 100, 2
-                    )
+                    gratuity_calc = round(gratuity_base * gratuity_percentage / 100, 2)
                     if gratuity_calc > 0:
                         inserted_gratuity_amount = gratuity_calc
                         cur.execute(
@@ -807,7 +775,7 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
 
         # Extra gratuity is driver cash, non-taxable, informational only.
         if extra_gratuity_cash > 0:
-            try:
+            with suppress(Exception):
                 cur.execute(
                     """
                     INSERT INTO charges (reserve_number, charge_type,
@@ -824,18 +792,13 @@ def create_booking(request: Request, payload: dict[str, Any] | None = None):
                         ),
                     ),
                 )
-            except Exception:
-                pass
-
         # Calculate and insert GST (tax-included: gst = total * 0.05 / 1.05)
         # Skip if client is GST exempt
         if not is_gst_exempt and total_amount_due_float > 0:
             # GST excludes gratuities, including cash extra gratuity.
             gst_taxable_total = max(
                 0.0,
-                total_amount_due_float
-                - inserted_gratuity_amount
-                - extra_gratuity_cash,
+                total_amount_due_float - inserted_gratuity_amount - extra_gratuity_cash,
             )
             gst_amount = round(gst_taxable_total * 0.05 / 1.05, 2)
             if gst_amount > 0:

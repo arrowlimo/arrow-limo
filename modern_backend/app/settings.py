@@ -1,5 +1,7 @@
+import json
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,12 +15,36 @@ class Settings(BaseSettings):
     db_user: str = "postgres"
     db_password: str | None = None
     sentry_dsn: str | None = None
+    sentry_traces_sample_rate: float = 0.0
     cors_origins: list[str] = ["*"]
+    trusted_hosts: list[str] = ["*"]
+    log_requests: bool = True
+    security_headers_enabled: bool = True
+    rate_limit_enabled: bool = False
+    rate_limit_requests: int = 120
+    rate_limit_window_seconds: int = 60
 
     # Pydantic v2 config
-    model_config = SettingsConfigDict(
-        env_file=".env", case_sensitive=False, extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
+
+    @field_validator("cors_origins", "trusted_hosts", mode="before")
+    @classmethod
+    def parse_list_env(cls, value: object) -> object:
+        if isinstance(value, list):
+            return value
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                return ["*"]
+            if stripped.startswith("["):
+                try:
+                    parsed = json.loads(stripped)
+                    if isinstance(parsed, list):
+                        return [str(item).strip() for item in parsed if str(item).strip()]
+                except json.JSONDecodeError:
+                    return [item.strip() for item in stripped.split(",") if item.strip()]
+            return [item.strip() for item in stripped.split(",") if item.strip()]
+        return value
 
 
 @lru_cache

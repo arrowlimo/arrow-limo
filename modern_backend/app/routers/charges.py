@@ -14,9 +14,7 @@ router = APIRouter(prefix="/api", tags=["charges"])
 def _audit_actor(request: Request | None) -> AuditEventActor:
     if request is None:
         return AuditEventActor(actor_type="system", username="system")
-    username = request.headers.get("X-User-Name") or request.headers.get(
-        "X-User"
-    )
+    username = request.headers.get("X-User-Name") or request.headers.get("X-User")
     role = request.headers.get("X-User-Role")
     user_id = request.headers.get("X-User-Id")
     if not username:
@@ -179,9 +177,7 @@ def delete_charge(charge_id: int, request: Request) -> dict[str, Any]:
         if not before_snapshot:
             raise HTTPException(status_code=404, detail="not_found")
 
-        cur.execute(
-            "DELETE FROM charter_charges WHERE charge_id = %s", (charge_id,)
-        )
+        cur.execute("DELETE FROM charter_charges WHERE charge_id = %s", (charge_id,))
         deleted = cur.rowcount
         if not deleted:
             raise HTTPException(status_code=404, detail="not_found")
@@ -213,9 +209,7 @@ def delete_charge(charge_id: int, request: Request) -> dict[str, Any]:
 
 @router.get("/charges/catalog")
 def get_charge_catalog(
-    active_only: bool = Query(
-        True, description="Filter to active charges only"
-    ),
+    active_only: bool = Query(True, description="Filter to active charges only"),
     charge_type: str | None = Query(
         None,
         description="Filter by type: base_rate, airport_fee, additional, gst",
@@ -267,9 +261,7 @@ def get_charge_catalog(
 
         return {"results": results, "count": len(results)}
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to load charge catalog: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to load charge catalog: {e}")
     finally:
         cur.close()
         conn.close()
@@ -317,9 +309,7 @@ def get_charges_by_reserve(reserve_number: str):
 
         return {"results": results, "count": len(results)}
     except Exception as e:
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to load charges: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to load charges: {e}")
     finally:
         cur.close()
         conn.close()

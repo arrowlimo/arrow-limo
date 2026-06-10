@@ -109,9 +109,7 @@ class PayrollEntry(BaseModel):
 
 
 @router.get("/t4/{employee_id}/{tax_year}", response_model=T4EntryResponse)
-async def get_t4_entry(
-    employee_id: int, tax_year: int, conn=Depends(get_connection)
-):
+async def get_t4_entry(employee_id: int, tax_year: int, conn=Depends(get_connection)):
     """Retrieve T4 entry with auto-calculated values"""
     try:
         validate_tax_year(tax_year)
@@ -236,13 +234,11 @@ async def get_t4_entry(
         raise
     except Exception as e:
         logger.error(f"Error retrieving T4: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/t4", response_model=StatusMessageResponse)
-async def save_t4_entry(
-    entry: T4Entry, request: Request, conn=Depends(get_connection)
-):
+async def save_t4_entry(entry: T4Entry, request: Request, conn=Depends(get_connection)):
     """Save or update T4 entry"""
     try:
         validate_tax_year(entry.tax_year)
@@ -254,8 +250,7 @@ async def save_t4_entry(
         if _using_legacy_t4_entries(conn):
             # Check if exists
             cur.execute(
-                "SELECT correction_id FROM t4_entries WHERE employee_id = %s"
-                "AND tax_year = %s",
+                "SELECT correction_id FROM t4_entries WHERE employee_id = %s" "AND tax_year = %s",
                 (entry.employee_id, entry.tax_year),
             )
 
@@ -435,13 +430,11 @@ async def save_t4_entry(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error saving T4: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/t4/{employee_id}/{tax_year}/pdf")
-async def generate_t4_pdf(
-    employee_id: int, tax_year: int, conn=Depends(get_connection)
-):
+async def generate_t4_pdf(employee_id: int, tax_year: int, conn=Depends(get_connection)):
     """Generate T4 PDF"""
     try:
         validate_tax_year(tax_year)
@@ -543,7 +536,7 @@ async def generate_t4_pdf(
 
     except Exception as e:
         logger.error(f"Error generating T4 PDF: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/t4/{tax_year}/xml")
@@ -581,15 +574,11 @@ async def export_t4_xml(tax_year: int, conn=Depends(get_connection)):
         )
         rows = cur.fetchall()
         if not rows:
-            raise HTTPException(
-                status_code=404, detail=f"No T4 records found for {tax_year}"
-            )
+            raise HTTPException(status_code=404, detail=f"No T4 records found for {tax_year}")
 
         root = ET.Element("Submission")
         t619 = ET.SubElement(root, "T619")
-        ET.SubElement(t619, "sbmt_ref_id").text = datetime.now().strftime(
-            "%Y%m%d"
-        )
+        ET.SubElement(t619, "sbmt_ref_id").text = datetime.now().strftime("%Y%m%d")
         ET.SubElement(t619, "lang_cd").text = "E"
 
         t4_block = ET.SubElement(ET.SubElement(root, "Return"), "T4")
@@ -624,29 +613,19 @@ async def export_t4_xml(tax_year: int, conn=Depends(get_connection)):
             if not first_name and not last_name and full_name:
                 parts = full_name.split()
                 first_name = parts[0] if parts else ""
-                last_name = (
-                    " ".join(parts[1:]) if len(parts) > 1 else full_name
-                )
+                last_name = " ".join(parts[1:]) if len(parts) > 1 else full_name
 
             slip = ET.SubElement(t4_block, "T4Slip")
             nm = ET.SubElement(slip, "EMPE_NM")
             ET.SubElement(nm, "snm").text = (last_name or "").strip()[:20]
             ET.SubElement(nm, "gvn_nm").text = (first_name or "").strip()[:25]
             addr = ET.SubElement(slip, "EMPE_ADDR")
-            ET.SubElement(addr, "addr_l1_txt").text = (street or "").strip()[
-                :30
-            ]
+            ET.SubElement(addr, "addr_l1_txt").text = (street or "").strip()[:30]
             ET.SubElement(addr, "cty_nm").text = (city or "").strip()[:28]
-            ET.SubElement(addr, "prov_cd").text = (province or "AB").strip()[
-                :2
-            ]
+            ET.SubElement(addr, "prov_cd").text = (province or "AB").strip()[:2]
             ET.SubElement(addr, "cntry_cd").text = "CAN"
-            ET.SubElement(addr, "pstl_cd").text = (postal or "").replace(
-                " ", ""
-            )[:6]
-            ET.SubElement(slip, "sin").text = "".join(
-                ch for ch in (sin or "") if ch.isdigit()
-            )[:9]
+            ET.SubElement(addr, "pstl_cd").text = (postal or "").replace(" ", "")[:6]
+            ET.SubElement(slip, "sin").text = "".join(ch for ch in (sin or "") if ch.isdigit())[:9]
 
             amts = ET.SubElement(slip, "T4_AMT")
             ET.SubElement(amts, "empt_incamt").text = f"{float(box14 or 0):.2f}"
@@ -672,10 +651,7 @@ async def export_t4_xml(tax_year: int, conn=Depends(get_connection)):
         return Response(
             content=xml_payload,
             media_type="application/xml",
-            headers={
-                "Content-Disposition": "attachment;"
-                "filename=t4_{tax_year}_submission.xml"
-            },
+            headers={"Content-Disposition": "attachment;" "filename=t4_{tax_year}_submission.xml"},
         )
     finally:
         cur.close()
@@ -687,9 +663,7 @@ async def export_t4_xml(tax_year: int, conn=Depends(get_connection)):
 
 
 @router.get("/payroll/{employee_id}/{year}/{period}")
-async def get_payroll_entry(
-    employee_id: int, year: int, period: str, conn=Depends(get_connection)
-):
+async def get_payroll_entry(employee_id: int, year: int, period: str, conn=Depends(get_connection)):
     """Retrieve payroll entry"""
     try:
         cur = conn.cursor()
@@ -708,9 +682,7 @@ async def get_payroll_entry(
 
         result = cur.fetchone()
         if not result:
-            raise HTTPException(
-                status_code=404, detail="Payroll entry not found"
-            )
+            raise HTTPException(status_code=404, detail="Payroll entry not found")
 
         return {
             "regularHours": float(result[0] or 0),
@@ -729,13 +701,11 @@ async def get_payroll_entry(
 
     except Exception as e:
         logger.error(f"Error retrieving payroll: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/payroll")
-async def save_payroll_entry(
-    entry: PayrollEntry, request: Request, conn=Depends(get_connection)
-):
+async def save_payroll_entry(entry: PayrollEntry, request: Request, conn=Depends(get_connection)):
     """Save or update payroll entry"""
     try:
         cur = conn.cursor()
@@ -860,7 +830,7 @@ async def save_payroll_entry(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error saving payroll: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================================
@@ -869,9 +839,7 @@ async def save_payroll_entry(
 
 
 @router.get("/employee-work-history/{employee_id}/{year}")
-async def get_employee_work_history(
-    employee_id: int, year: int, conn=Depends(get_connection)
-):
+async def get_employee_work_history(employee_id: int, year: int, conn=Depends(get_connection)):
     """Get all work history (charters) for an employee in a year"""
     try:
         cur = conn.cursor()
@@ -918,13 +886,11 @@ async def get_employee_work_history(
 
     except Exception as e:
         logger.error(f"Error getting work history: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/employee-monthly-summary/{employee_id}/{year}")
-async def get_employee_monthly_summary(
-    employee_id: int, year: int, conn=Depends(get_connection)
-):
+async def get_employee_monthly_summary(employee_id: int, year: int, conn=Depends(get_connection)):
     """Get monthly payroll summary for employee"""
     try:
         cur = conn.cursor()
@@ -990,13 +956,11 @@ async def get_employee_monthly_summary(
 
     except Exception as e:
         logger.error(f"Error getting monthly summary: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/available-periods/{employee_id}/{year}")
-async def get_available_periods(
-    employee_id: int, year: int, conn=Depends(get_connection)
-):
+async def get_available_periods(employee_id: int, year: int, conn=Depends(get_connection)):
     """Get list of available pay periods"""
     try:
         cur = conn.cursor()
@@ -1015,13 +979,11 @@ async def get_available_periods(
 
     except Exception as e:
         logger.error(f"Error getting periods: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/auto-match-charters")
-async def auto_match_charters(
-    payload: dict, request: Request, conn=Depends(get_connection)
-):
+async def auto_match_charters(payload: dict, request: Request, conn=Depends(get_connection)):
     """Auto-match all unmatched charters for the employee in a period"""
     try:
         cur = conn.cursor()
@@ -1029,9 +991,7 @@ async def auto_match_charters(
         period = payload.get("period")
 
         if not employee_id or not period:
-            raise HTTPException(
-                status_code=400, detail="Missing employee_id or period"
-            )
+            raise HTTPException(status_code=400, detail="Missing employee_id or period")
 
         ensure_audit_storage(conn)
 
@@ -1094,7 +1054,7 @@ async def auto_match_charters(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error autom matching charters: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/match-charter/{charter_id}/{employee_id}")
@@ -1150,7 +1110,7 @@ async def match_single_charter(
     except Exception as e:
         conn.rollback()
         logger.error(f"Error matching charter: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/month-end-balance")
@@ -1162,9 +1122,7 @@ async def month_end_balance(payload: dict, conn=Depends(get_connection)):
         period = payload.get("period")  # format: "2026-01"
 
         if not employee_id or not period:
-            raise HTTPException(
-                status_code=400, detail="Missing employee_id or period"
-            )
+            raise HTTPException(status_code=400, detail="Missing employee_id or period")
 
         year, month = period.split("-")
 
@@ -1229,13 +1187,11 @@ async def month_end_balance(payload: dict, conn=Depends(get_connection)):
 
     except Exception as e:
         logger.error(f"Error generating month-end balance: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/generate-paystub/{employee_id}/{period}")
-async def generate_paystub(
-    employee_id: int, period: str, conn=Depends(get_connection)
-):
+async def generate_paystub(employee_id: int, period: str, conn=Depends(get_connection)):
     """Generate a pay stub for an employee for a period"""
     try:
         cur = conn.cursor()
@@ -1254,9 +1210,7 @@ async def generate_paystub(
             raise HTTPException(status_code=404, detail="Employee not found")
 
         # Get payroll data for period
-        year, month = (
-            period.split("-") if "-" in period else (period[:4], period[4:6])
-        )
+        year, month = period.split("-") if "-" in period else (period[:4], period[4:6])
 
         cur.execute(
             """
@@ -1274,9 +1228,7 @@ async def generate_paystub(
         payroll = cur.fetchone()
 
         if not payroll:
-            raise HTTPException(
-                status_code=404, detail="Payroll entry not found"
-            )
+            raise HTTPException(status_code=404, detail="Payroll entry not found")
 
         hours = float(payroll[0] or 0)
         hourly_rate = float(payroll[1] or 0)
@@ -1315,4 +1267,4 @@ async def generate_paystub(
 
     except Exception as e:
         logger.error(f"Error generating pay stub: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  # noqa: B904
+        raise HTTPException(status_code=500, detail=str(e))

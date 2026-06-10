@@ -115,20 +115,14 @@ def determine_receipt_type(desc: str, trans_type: str) -> tuple[str, str]:
 
     if trans_type == "CREDIT":
         # Money coming IN - categorize reversals/refunds
-        if (
-            "NSF RETURN" in desc_upper
-            or "NSF CHECK" in desc_upper
-            or "RETURNED ITEM" in desc_upper
-        ):
+        if "NSF RETURN" in desc_upper or "NSF CHECK" in desc_upper or "RETURNED ITEM" in desc_upper:
             return (
                 "NSF_REVERSAL",
                 "NSF reversal - payment bounced and returned",
             )
         elif "CORRECT" in desc_upper:
             return ("CORRECTION", "Bank correction - transaction reversed")
-        elif any(
-            kw in desc_upper for kw in ["REFUND", "REVERSAL", "STOP", "CANCEL"]
-        ):
+        elif any(kw in desc_upper for kw in ["REFUND", "REVERSAL", "STOP", "CANCEL"]):
             return ("REFUND", "Refund or reversal")
         else:
             return ("REFUND", "Credit transaction - reducing expenses")
@@ -167,9 +161,7 @@ class SimpleReceiptCreate(BaseModel):
     gl_account_code: str | None = None
     is_personal: bool = False
     is_driver_personal: bool = False
-    is_paper_verified: bool | None = (
-        None  # Track if physical paper receipt exists
-    )
+    is_paper_verified: bool | None = None  # Track if physical paper receipt exists
     # Link to banking transaction for audit trail
     banking_transaction_id: int | None = None
 
@@ -217,9 +209,7 @@ def get_vendors():
 
     vendors = []
     for row in cur.fetchall():
-        vendors.append(
-            {"name": row[0], "canonical": row[1] if row[1] else row[0]}
-        )
+        vendors.append({"name": row[0], "canonical": row[1] if row[1] else row[0]})
 
     cur.close()
     conn.close()
@@ -284,9 +274,7 @@ def get_vendor_profile(vendor: str):
 
 
 @router.get("/check-duplicates")
-def check_duplicate_receipts(
-    vendor: str, amount: float, date: date, days_window: int = 7
-):
+def check_duplicate_receipts(vendor: str, amount: float, date: date, days_window: int = 7):
     """Check for existing receipts matching vendor, amount, and date range.
 
     Split siblings are included even when they are not linked by
@@ -389,9 +377,7 @@ def check_duplicate_receipts(
                 "group_total_gross": 0.0,
                 "group_count": 0,
             }
-        grouped_totals[group_key]["group_total_gross"] += float(
-            item["gross_amount"] or 0
-        )
+        grouped_totals[group_key]["group_total_gross"] += float(item["gross_amount"] or 0)
         grouped_totals[group_key]["group_count"] += 1
 
     for item in duplicates:
@@ -500,9 +486,7 @@ def match_to_banking(
 
 
 @router.post("/{receipt_id}/link-banking/{transaction_id}")
-def link_receipt_to_banking(
-    receipt_id: int, transaction_id: int, request: Request
-):
+def link_receipt_to_banking(receipt_id: int, transaction_id: int, request: Request):
     """Link a receipt to a banking transaction and populate audit fields"""
     conn = get_connection()
     cur = conn.cursor()
@@ -520,21 +504,15 @@ def link_receipt_to_banking(
         )
         bank_row = cur.fetchone()
         if not bank_row:
-            raise HTTPException(
-                status_code=404, detail="Banking transaction not found"
-            )
+            raise HTTPException(status_code=404, detail="Banking transaction not found")
 
         debit_amt, _credit_amt, description = bank_row
 
         # Determine transaction type
-        banking_trans_type = (
-            "DEBIT" if debit_amt and debit_amt > 0 else "CREDIT"
-        )
+        banking_trans_type = "DEBIT" if debit_amt and debit_amt > 0 else "CREDIT"
 
         # Determine receipt_type and notes
-        receipt_type, notes = determine_receipt_type(
-            description, banking_trans_type
-        )
+        receipt_type, notes = determine_receipt_type(description, banking_trans_type)
 
         # Update receipt with banking link and audit fields
         cur.execute(
@@ -611,7 +589,7 @@ def link_receipt_to_banking(
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(status_code=500, detail=f"Failed to link: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Failed to link: {e!s}")
 
 
 @router.post("/", status_code=201)
@@ -631,16 +609,12 @@ def create_receipt(receipt: SimpleReceiptCreate, request: Request):
             gl_account_code = receipt.gl_account_code.strip()
             if gl_account_code:
                 cur.execute(
-                    "SELECT account_name FROM chart_of_accounts WHERE"
-                    "account_code = %s",
-
+                    "SELECT account_name FROM chart_of_accounts WHERE" "account_code = %s",
                     (gl_account_code,),
                 )
                 row = cur.fetchone()
                 if not row:
-                    raise HTTPException(
-                        status_code=400, detail="GL account code not found"
-                    )
+                    raise HTTPException(status_code=400, detail="GL account code not found")
                 gl_account_name = row[0]
                 # Check if this GL account is GST-exempt (loans, bank charges,
                 # etc.)
@@ -657,9 +631,7 @@ def create_receipt(receipt: SimpleReceiptCreate, request: Request):
                 gst = round(float(receipt.gross_amount) * 0.05 / 1.05, 2)
 
         canonical_vendor = receipt.vendor_name.strip().upper()
-        personal_amount = (
-            receipt.gross_amount if receipt.is_personal else Decimal("0")
-        )
+        personal_amount = receipt.gross_amount if receipt.is_personal else Decimal("0")
 
         # Determine GST code based on conditions
         effective_gst_code = receipt.gst_code
@@ -793,9 +765,7 @@ def create_receipt(receipt: SimpleReceiptCreate, request: Request):
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to create receipt: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to create receipt: {e!s}")
 
 
 @router.get("/")
@@ -918,9 +888,7 @@ def get_receipt(receipt_id: int):
 
 
 @router.put("/{receipt_id}")
-def update_receipt(
-    receipt_id: int, receipt: SimpleReceiptCreate, request: Request
-):
+def update_receipt(receipt_id: int, receipt: SimpleReceiptCreate, request: Request):
     """Update an existing receipt"""
     conn = get_connection()
     cur = conn.cursor()
@@ -944,16 +912,12 @@ def update_receipt(
             gl_account_code = receipt.gl_account_code.strip()
             if gl_account_code:
                 cur.execute(
-                    "SELECT account_name FROM chart_of_accounts WHERE"
-                    "account_code = %s",
-
+                    "SELECT account_name FROM chart_of_accounts WHERE" "account_code = %s",
                     (gl_account_code,),
                 )
                 row = cur.fetchone()
                 if not row:
-                    raise HTTPException(
-                        status_code=400, detail="GL account code not found"
-                    )
+                    raise HTTPException(status_code=400, detail="GL account code not found")
                 gl_account_name = row[0]
                 # Check if this GL account is GST-exempt
                 is_gst_exempt_account = gl_account_code in GST_EXEMPT_GL_CODES
@@ -969,9 +933,7 @@ def update_receipt(
                 gst = round(float(receipt.gross_amount) * 0.05 / 1.05, 2)
 
         canonical_vendor = receipt.vendor_name.strip().upper()
-        personal_amount = (
-            receipt.gross_amount if receipt.is_personal else Decimal("0")
-        )
+        personal_amount = receipt.gross_amount if receipt.is_personal else Decimal("0")
 
         # Driver personal expenses handling
         effective_gst_code = receipt.gst_code
@@ -1112,9 +1074,7 @@ def update_receipt(
             "is_driver_personal": bool(row[7] == "DRIVER_PERSONAL"),
             "gl_account_code": row[16],
             "gl_account_name": row[17],
-            "is_paper_verified": (
-                bool(row[18]) if row[18] is not None else False
-            ),
+            "is_paper_verified": (bool(row[18]) if row[18] is not None else False),
             "paper_verification_date": row[19],
         }
 
@@ -1124,6 +1084,4 @@ def update_receipt(
         conn.rollback()
         cur.close()
         conn.close()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to update receipt: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to update receipt: {e!s}")

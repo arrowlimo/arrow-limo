@@ -14,9 +14,7 @@ from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
 
-router = APIRouter(
-    prefix="/api/continuous-employment", tags=["continuous-employment"]
-)
+router = APIRouter(prefix="/api/continuous-employment", tags=["continuous-employment"])
 
 
 class ROECreateRequest(BaseModel):
@@ -102,12 +100,8 @@ def _row_to_payload(row) -> dict:
         "roe_number": roe_number,
         "employee_id": employee_id,
         "employee_name": employee_name,
-        "termination_date": (
-            termination_date.isoformat() if termination_date else None
-        ),
-        "last_day_paid": (
-            last_day_worked.isoformat() if last_day_worked else None
-        ),
+        "termination_date": (termination_date.isoformat() if termination_date else None),
+        "last_day_paid": (last_day_worked.isoformat() if last_day_worked else None),
         "reason_code": (reason_code or "").strip().upper(),
         "reason_description": (reason_description or "").strip(),
         "total_insurable_earnings": float(insurable_earnings or 0),
@@ -137,12 +131,8 @@ def _validate_dates(payload: dict) -> list[str]:
     today = date.today()
     termination_raw = payload.get("termination_date")
     last_day_raw = payload.get("last_day_paid")
-    termination_date = (
-        date.fromisoformat(termination_raw) if termination_raw else None
-    )
-    last_day_worked = (
-        date.fromisoformat(last_day_raw) if last_day_raw else None
-    )
+    termination_date = date.fromisoformat(termination_raw) if termination_raw else None
+    last_day_worked = date.fromisoformat(last_day_raw) if last_day_raw else None
 
     if termination_date is None:
         errors.append("Missing termination date.")
@@ -165,9 +155,7 @@ def _validate_reason(payload: dict) -> list[str]:
         errors.append(f"Invalid reason code '{reason_code}'.")
 
     if reason_code in {"E", "K", "M"} and len(reason_description) < 5:
-        errors.append(
-            f"Reason description is required for code {reason_code}."
-        )
+        errors.append(f"Reason description is required for code {reason_code}.")
     return errors
 
 
@@ -192,16 +180,13 @@ def _build_submission_warnings(payload: dict) -> list[str]:
         age_days = (date.today() - created_at.date()).days
         if age_days > 5:
             warnings.append(
-                "ROE draft is older than 5 days; verify submission timeline"
-                "compliance."
+                "ROE draft is older than 5 days; verify submission timeline" "compliance."
             )
 
     if roe_status == "submitted" and not submitted_at:
         warnings.append("ROE status is submitted but submitted_at is missing.")
     if roe_status == "submitted" and not (submission_reference or "").strip():
-        warnings.append(
-            "ROE status is submitted but submission reference is missing."
-        )
+        warnings.append("ROE status is submitted but submission reference is missing.")
     return warnings
 
 
@@ -220,24 +205,18 @@ def _ensure_roe_columns(conn):
     cur = conn.cursor()
     try:
         cur.execute(
-            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS"
-            "reason_description TEXT"
+            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS" "reason_description TEXT"
         )
         cur.execute(
             "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS"
             "roe_status TEXT DEFAULT 'draft'"
         )
         cur.execute(
-            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS"
-            "submitted_at TIMESTAMP"
+            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS" "submitted_at TIMESTAMP"
         )
+        cur.execute("ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS" "submitted_by TEXT")
         cur.execute(
-            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS"
-            "submitted_by TEXT"
-        )
-        cur.execute(
-            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS"
-            "submission_reference TEXT"
+            "ALTER TABLE employee_roe_records ADD COLUMN IF NOT EXISTS" "submission_reference TEXT"
         )
         conn.commit()
     finally:
@@ -303,12 +282,8 @@ async def list_roe_records(conn: Annotated[object, Depends(get_connection)]):
         cur.close()
 
 
-@router.get(
-    "/roe/{roe_id}", responses={404: {"description": "ROE record not found"}}
-)
-async def get_roe_record(
-    roe_id: int, conn: Annotated[object, Depends(get_connection)]
-):
+@router.get("/roe/{roe_id}", responses={404: {"description": "ROE record not found"}})
+async def get_roe_record(roe_id: int, conn: Annotated[object, Depends(get_connection)]):
     _ensure_roe_columns(conn)
     cur = conn.cursor()
     try:
@@ -365,9 +340,7 @@ async def get_roe_record(
     "/roe/{roe_id}/readiness",
     responses={404: {"description": "ROE record not found"}},
 )
-async def get_roe_readiness(
-    roe_id: int, conn: Annotated[object, Depends(get_connection)]
-):
+async def get_roe_readiness(roe_id: int, conn: Annotated[object, Depends(get_connection)]):
     """Return strict ROE readiness status and actionable validation"
     "messages."""
 
@@ -422,9 +395,7 @@ async def export_roe_submission_package(
         return Response(
             content=json.dumps(package, indent=2),
             media_type="application/json",
-            headers={
-                "Content-Disposition": f"attachment; filename={filename}"
-            },
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
     finally:
         cur.close()
@@ -544,9 +515,7 @@ async def create_roe_record(
         raise
     except Exception as exc:
         conn.rollback()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to create ROE: {exc}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to create ROE: {exc}")
     finally:
         cur.close()
 
@@ -654,8 +623,6 @@ async def submit_roe_record(
         raise
     except Exception as exc:
         conn.rollback()
-        raise HTTPException(  # noqa: B904
-            status_code=500, detail=f"Failed to submit ROE: {exc}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to submit ROE: {exc}")
     finally:
         cur.close()

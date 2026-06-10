@@ -107,17 +107,9 @@
         <label>Vehicle Type Requested</label>
         <select v-model="form.vehicle_type_requested" class="input-field">
           <option value="">-- Select Vehicle Type --</option>
-          <option value="Sedan">Sedan</option>
-          <option value="Luxury Sedan">Luxury Sedan</option>
-          <option value="6 Pax Executive SUV">6 Pax Executive SUV</option>
-          <option value="6 Pax Stretch Limo">6 Pax Stretch Limo</option>
-          <option value="13 Pax Stretch SUV">13 Pax Stretch SUV</option>
-          <option value="14 Pax Charter bus">14 Pax Charter bus</option>
-          <option value="18 Pax Charter bus">18 Pax Charter bus</option>
-          <option value="20 Pax Party Bus">20 Pax Party Bus</option>
-          <option value="20 Pax Party Bus / Lavatory">20 Pax Party Bus / Lavatory</option>
-          <option value="27 Pax Charter bus">27 Pax Charter bus</option>
-          <option value="27 Pax Extreme Party bus">27 Pax Extreme Party bus</option>
+          <option v-for="vt in vehicleTypes" :key="vt.vehicle_type" :value="vt.vehicle_type">
+            {{ vt.vehicle_type }}
+          </option>
         </select>
       </div>
 
@@ -311,6 +303,8 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+
+const vehicleTypes = ref([])
 
 // Form state
 const form = ref({
@@ -591,6 +585,12 @@ function resetForm() {
 // Load data on mount
 onMounted(() => {
   loadVehiclesAndDrivers()
+  fetch('/api/lookup/vehicle-types', {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+  })
+    .then(r => r.ok ? r.json() : [])
+    .then(data => { vehicleTypes.value = data })
+    .catch(e => console.warn('Could not load vehicle types:', e))
 })
 
 // Lifecycle

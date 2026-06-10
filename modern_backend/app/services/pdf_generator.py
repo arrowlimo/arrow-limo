@@ -11,7 +11,7 @@ from typing import Any
 
 from pypdf import PdfReader, PdfWriter
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import LETTER
+from reportlab.lib.pagesizes import LEGAL, LETTER
 from reportlab.lib.units import inch
 from reportlab.lib.utils import simpleSplit
 from reportlab.pdfbase import pdfmetrics
@@ -39,7 +39,7 @@ class CharterPDFForm:
         """
         self.data = charter_data
         self.buffer = BytesIO()
-        self.width, self.height = LETTER
+        self.width, self.height = LEGAL
         self.left_margin = 0.5 * inch
         self.right_margin = 0.5 * inch
         self.top_margin = 0.5 * inch
@@ -48,10 +48,8 @@ class CharterPDFForm:
 
     def generate(self):
         """Generate the reservation run sheet and return bytes."""
-        pdf = canvas.Canvas(self.buffer, pagesize=LETTER)
-        pdf.setTitle(
-            "Charter Sheet - {}".format(self.data.get("reserve_number", "TBD"))
-        )
+        pdf = canvas.Canvas(self.buffer, pagesize=LEGAL)
+        pdf.setTitle("Charter Sheet - {}".format(self.data.get("reserve_number", "TBD")))
 
         page_left = 0.35 * inch
         page_right = self.width - 0.35 * inch
@@ -61,17 +59,18 @@ class CharterPDFForm:
         y = self._draw_header(pdf, page_left, page_right, y)
         y = self._draw_summary_and_client(pdf, page_left, content_width, y)
         y = self._draw_routing_and_totals(pdf, page_left, content_width, y)
+        y = self._draw_notes_and_beverages(pdf, page_left, content_width, y)
         y = self._draw_beverages_and_notes(pdf, page_left, content_width, y)
         y = self._draw_driver_and_vehicle(pdf, page_left, content_width, y)
 
-        # Run sheet should end with signature only (no policies block).
-        pdf.setFont("Helvetica", 8)
-        signature_y = 0.45 * inch
+        # CLIENT SIGNATURE — outside the CDDL box (required contract signature
+        # per Red Deer bylaw: client must sign for all Red Deer runs).
+        pdf.setFont("Helvetica-Bold", 9)
         pdf.drawString(
-            page_left + 5,
-            signature_y,
-            "CLIENT SIGNATURE: _______________________________________________   "
-            "DATE: ______________",
+            page_left,
+            y - 18,
+            "CLIENT SIGNATURE: _______________________________________________"
+            "   DATE: ______________",
         )
 
         pdf.showPage()
@@ -82,9 +81,7 @@ class CharterPDFForm:
     def _draw_header(self, pdf, x_left, x_right, y_top):
         center_x = (x_left + x_right) / 2
         pdf.setFont("Helvetica-Bold", 11)
-        pdf.drawCentredString(
-            center_x, y_top, "ARROW LIMOUSINE & SEDAN SERVICES LTD."
-        )
+        pdf.drawCentredString(center_x, y_top, "ARROW LIMOUSINE & SEDAN SERVICES LTD.")
         pdf.setFont("Helvetica", 7.5)
         pdf.drawCentredString(
             center_x,
@@ -110,35 +107,27 @@ class CharterPDFForm:
             self.data.get("pickup_time") or self.data.get("actual_pickup_time")
         )
         dropoff_time = self._format_time(
-            self.data.get("dropoff_time")
-            or self.data.get("actual_dropoff_time")
+            self.data.get("dropoff_time") or self.data.get("actual_dropoff_time")
         )
-        self._safe(
-            self.data.get("status") or self.data.get("reconciliation_status")
-        )
+        self._safe(self.data.get("status") or self.data.get("reconciliation_status"))
         vehicle_type_text = self._safe(
             self.data.get("vehicle_type_requested")
             or self.data.get("vehicle_description")
             or self.data.get("vehicle")
         )
         vehicle_id_text = self._safe(
-            self.data.get("vehicle_number")
-            or self.data.get("vehicle_booked_id")
+            self.data.get("vehicle_number") or self.data.get("vehicle_booked_id")
         )
-        driver_text = self._safe(
-            self.data.get("driver_name") or self.data.get("driver")
-        )
+        driver_text = self._safe(self.data.get("driver_name") or self.data.get("driver"))
 
         summary_lines = [
             [
-                f"Run Type:"
-                f"{self._friendly_run_type(self.data.get('charter_type'))}",
+                f"Run Type:" f"{self._friendly_run_type(self.data.get('charter_type'))}",
                 f"Pickup: {pickup_time}",
                 f"DO Time: {dropoff_time}",
             ],
             [
-                f"Est Hours:"
-                f"{self._format_decimal(self.data.get('quoted_hours'))}",
+                f"Est Hours:" f"{self._format_decimal(self.data.get('quoted_hours'))}",
                 f"Pax: {self._safe(self.data.get('passenger_load'))}",
                 "",
             ],
@@ -165,16 +154,12 @@ class CharterPDFForm:
         ]
 
         summary_font_size = float(summary_cfg.get("summary_font_size", 7.8))
-        summary_height = self._estimate_box_height(
-            summary_lines, summary_font_size
-        )
+        summary_height = self._estimate_box_height(summary_lines, summary_font_size)
         # client: bold name (13pt) + 5 detail lines at 10.4pt + 23pt header =
         # ~92pt
         client_height = 23 + 13 + len(client_detail_lines) * 10.4 + 4
         box_height = max(summary_height, client_height)
-        box_height = max(
-            box_height, float(summary_cfg.get("client_min_height", 90))
-        )
+        box_height = max(box_height, float(summary_cfg.get("client_min_height", 90)))
 
         # Shared top frame: one outer box with a single divider, no separate Client label.
         box_y = y_top - box_height
@@ -219,15 +204,15 @@ class CharterPDFForm:
 
     def _draw_routing_and_totals(self, pdf, x_left, width, y_top):
         routing_cfg = self.layout.get("routing", {})
+
         route_rows = [["Event Type", "Details", "", "Time", "Notes"]]
         routes = self.data.get("routes") or []
         if routes:
             for route in routes:
                 route_rows.append(
                     [
-                        self._friendly_route_label(
-                            route.get("event_type_code")
-                        ),
+                        route.get("event_type_label")
+                        or self._friendly_route_label(route.get("event_type_code")),
                         self._safe(route.get("address")),
                         route.get("at_by") or "at",
                         self._format_time(route.get("stop_time")),
@@ -257,7 +242,7 @@ class CharterPDFForm:
         # Calculate height for routing area.
         route_row_height = float(routing_cfg.get("row_height", 15))
         route_height = len(route_rows) * route_row_height
-        min_top_rows = int(routing_cfg.get("min_rows", 9))
+        min_top_rows = int(routing_cfg.get("min_rows", 8))
         content_height = max(route_height, min_top_rows * route_row_height)
 
         # Expand routing display rows to fill available height with clean blanks.
@@ -296,27 +281,95 @@ class CharterPDFForm:
 
         return y_top - content_height
 
+    def _draw_notes_and_beverages(self, pdf, x_left, width, y_top):
+        """Full-width band: Notes on top (auto-expand), Beverages below in 3 columns (auto-expand)."""
+        notes_text = " ".join(
+            part
+            for part in [
+                self._safe(self.data.get("notes")),
+                self._safe(self.data.get("booking_notes")),
+                self._safe(self.data.get("special_requirements")),
+            ]
+            if part and part != "-"
+        )
+        beverages = self.data.get("beverages") or []
+
+        LBL_H = 9  # label row height (pt below section top)
+        LINE_H = 8  # per-line height
+        PAD = 4  # bottom padding inside each sub-section
+        BEV_COLS = 3
+
+        # ── Notes (full width, auto-height) ──────────────────────────────
+        note_lines = simpleSplit(notes_text, "Helvetica", 6.5, width - 12) if notes_text else []
+        notes_height = LBL_H + max(1, len(note_lines)) * LINE_H + PAD
+
+        pdf.setFont("Helvetica-Bold", 6.8)
+        pdf.drawString(x_left + 4, y_top - 9, "Notes:")
+        pdf.setFont("Helvetica", 6.5)
+        ny = y_top - 9 - LINE_H
+        if note_lines:
+            for line in note_lines:
+                pdf.drawString(x_left + 4, ny, line)
+                ny -= LINE_H
+        else:
+            pdf.drawString(x_left + 4, ny, "— none —")
+
+        # Divider between notes and beverages
+        bev_y_top = y_top - notes_height
+        pdf.setLineWidth(0.4)
+        pdf.line(x_left, bev_y_top, x_left + width, bev_y_top)
+
+        # ── Beverages (full width, 3 columns, auto-height) ────────────────
+        bev_col_w = (width - 8) / BEV_COLS
+        bev_rows = (len(beverages) + BEV_COLS - 1) // BEV_COLS if beverages else 1
+        bev_height = LBL_H + bev_rows * LINE_H + PAD
+
+        pdf.setFont("Helvetica-Bold", 6.8)
+        pdf.drawString(x_left + 4, bev_y_top - 9, "Beverages Ordered:")
+        pdf.setFont("Helvetica", 6.2)
+        if beverages:
+            for i, bev in enumerate(beverages):
+                qty = self._safe(bev.get("quantity"))
+                name = self._safe(bev.get("item_name"))
+                col = i % BEV_COLS
+                row = i // BEV_COLS
+                bx = x_left + 4 + col * bev_col_w
+                by = bev_y_top - 9 - LINE_H - row * LINE_H
+                qty_label = f"{qty}x  "
+                pdf.setFont("Helvetica-Bold", 6.2)
+                pdf.drawString(bx, by, qty_label)
+                qty_w = pdfmetrics.stringWidth(qty_label, "Helvetica-Bold", 6.2)
+                pdf.setFont("Helvetica", 6.2)
+                pdf.drawString(bx + qty_w, by, name)
+        else:
+            pdf.drawString(x_left + 4, bev_y_top - 9 - LINE_H, "None ordered")
+
+        # Bottom border
+        total_height = notes_height + bev_height
+        pdf.setLineWidth(0.4)
+        pdf.line(x_left, y_top - total_height, x_left + width, y_top - total_height)
+
+        return y_top - total_height
+
     def _draw_driver_and_vehicle(self, pdf, x_left, width, y_top):
         driver_vehicle_cfg = self.layout.get("driver_vehicle", {})
-        table_row_height = float(driver_vehicle_cfg.get("line_height", 26.0))
-        detail_line_step = 18
+        table_row_height = float(driver_vehicle_cfg.get("line_height", 18.0))
+        detail_line_step = 14
 
         # ── Raw data ────────────────────────────────────────────────────────
-        driver_name = self._safe(
-            self.data.get("driver_name") or self.data.get("driver")
-        )
+        driver_name = self._safe(self.data.get("driver_name") or self.data.get("driver"))
         driver_license = self._safe(
             self.data.get("employee_number")
             or self.data.get("driver_license_number")
             or self.data.get("license_number")
         )
-        
+
         # Full date format
         raw_charter_date = self.data.get("charter_date")
         if raw_charter_date:
             try:
                 if isinstance(raw_charter_date, str):
-                    dt = datetime.fromisoformat(raw_charter_date.split('T')[0])
+                    dt = datetime.fromisoformat(raw_charter_date.split("T")[0])
                 else:
                     dt = raw_charter_date
                 charter_date_full = dt.strftime("%B %d, %Y")
@@ -368,8 +421,9 @@ class CharterPDFForm:
             ],
         ]
 
-        # Add 8 blank rows for manual entry
-        for _ in range(8):
+        # Keep manual duty rows compact so the CDDL section does not dominate the page.
+        blank_duty_rows = 4
+        for _ in range(blank_duty_rows):
             table_rows.append(["", "", "", ""])
 
         # Define column widths (expand comments to use available width).
@@ -383,22 +437,24 @@ class CharterPDFForm:
         )
         col_widths = [
             location_col_width,  # Location / Event
-            duty_col_width,      # Duty Status
-            time_col_width,      # Time
+            duty_col_width,  # Duty Status
+            time_col_width,  # Time
             comments_col_width,  # Comments
         ]
 
-        route_table = Table(table_rows, colWidths=col_widths)
+        # Row heights: header=14, START WORKSHIFT from config, compact blank rows.
+        _blank_row_h = 13.0
+        route_row_heights = [14.0, table_row_height] + [_blank_row_h] * blank_duty_rows
+        route_table = Table(table_rows, colWidths=col_widths, rowHeights=route_row_heights)
         route_table.setStyle(
             TableStyle(
                 [
                     ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
                     ("LINEBELOW", (0, 0), (-1, 0), 0, colors.white),  # remove header underline
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 6.6),
-                    ("LEADING", (0, 0), (-1, -1), 7.8),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+                    ("LEADING", (0, 0), (-1, -1), 10.0),
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                    ("ROWHEIGHTS", (0, 0), (-1, -1), table_row_height),
                     ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E0E0E0")),
                     ("LEFTPADDING", (0, 0), (-1, -1), 2),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 2),
@@ -414,10 +470,12 @@ class CharterPDFForm:
         day_headers, _ = self._build_hos_day_headers(include_today=False)
         hos_records = self.data.get("hos_records") or []
         off_vals = ["-"] * 14
+        driving_vals = ["-"] * 14
         on_vals = ["-"] * 14
         total_vals = ["-"] * 14
         for idx, rec in enumerate(hos_records[:14]):
             off_vals[idx] = str(rec.get("off_duty") or "-")
+            driving_vals[idx] = str(rec.get("driving") or "-")
             on_vals[idx] = str(rec.get("on_duty") or "-")
             total_vals[idx] = str(rec.get("total_24h") or "-")
 
@@ -425,6 +483,7 @@ class CharterPDFForm:
             ["Status", *day_headers],
             ["Off-Duty", *off_vals],
             ["On-Duty", *on_vals],
+            ["Driving Bus", *driving_vals],
             ["24h", *total_vals],
         ]
         status_col_width = 0.58 * inch
@@ -445,33 +504,23 @@ class CharterPDFForm:
             ("TOPPADDING", (0, 0), (-1, -1), 0),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
         ]
-        hos_table = Table(hos_rows, colWidths=hos_col_widths, rowHeights=[13.0] * 4)
+        # Header row is taller to accommodate 2-line month+day labels
+        hos_table = Table(
+            hos_rows, colWidths=hos_col_widths, rowHeights=[19.0, 13.0, 13.0, 13.0, 13.0]
+        )
         hos_table.setStyle(TableStyle(hos_styles))
         _, hos_table_height = hos_table.wrapOn(pdf, 0, 0)
-
-        exemption_lines = [
-            "I operate within 160 km of my home terminal and returned to the home terminal by end of work shift for a minimum of 8 consecutive hours off-duty.",
-            "I did not exceed the 13-hour driving limit for a vehicle carrying more than 10 passengers, and I was released from work within 15 hours of shift start with at least 1 hour off-duty. All duty-status changes for this shift or previous shift are documented on this record. I am employed by a motor carrier that maintains a Record of Duty Status for each driver. This is a copy of last 14 days log.",
-        ]
-        wrapped_exemption_lines = []
-        for line in exemption_lines:
-            wrapped_exemption_lines.extend(
-                simpleSplit(line, "Helvetica", 6.8, width - 10)
-            )
 
         route_table_top_y = y_top - 46
         route_table_bottom_y = route_table_top_y - route_table_height
         totals_y = route_table_bottom_y - 10
         vehicle_row_1_y = totals_y - detail_line_step
         vehicle_row_2_y = vehicle_row_1_y - detail_line_step
-        grid_top_y = vehicle_row_2_y - 10
+        vehicle_row_3_y = vehicle_row_2_y - detail_line_step
+        grid_top_y = vehicle_row_3_y - 8
         grid_bottom_y = grid_top_y - hos_table_height
-        exemption_y = grid_bottom_y - 14
-        exemption_text_y = exemption_y - 8
-        exemption_bottom_y = exemption_text_y - (
-            max(len(wrapped_exemption_lines) - 1, 0) * 8.0
-        )
-        box_height = y_top - (exemption_bottom_y - 12)
+        # CDDL box closes 8pt below the HOS grid.
+        box_height = y_top - (grid_bottom_y - 8)
 
         # ─── Draw box sized to content ──────────────────────────────────────
         self._draw_box(
@@ -499,27 +548,53 @@ class CharterPDFForm:
         pdf.line(x_left + inset, hos_separator_y, x_left + width - inset, hos_separator_y)
 
         # ─── Draw header section at top ──────────────────────────────────────
-        pdf.setFont("Helvetica-Bold", 7.5)
-        pdf.drawString(
-            x_left + 5,
-            y_top - 29,
-            (
-                f"Date: {charter_date_full} | Driver Name: "
-                f"{driver_name} | Employee #: {driver_license} | Vehicle ID: {vehicle_id}"
-            ),
+        # Left portion: date / driver info
+        info_max_w = width * 0.58
+        pdf.setFont("Helvetica-Bold", 8.5)
+        info_str = (
+            f"Date: {charter_date_full} | Driver: "
+            f"{driver_name} | Emp #: {driver_license} | Veh: {vehicle_id}"
         )
-        pdf.setFont("Helvetica", 7.0)
+        info_lines = simpleSplit(info_str, "Helvetica-Bold", 8.5, info_max_w)
+        pdf.drawString(x_left + 5, y_top - 27, info_lines[0] if info_lines else info_str)
+        pdf.setFont("Helvetica", 8.0)
         pdf.drawString(
             x_left + 5,
-            y_top - 39,
+            y_top - 38,
             "Home Terminal: 38014 C and E Trail, Red Deer County, AB T4E 1R9",
         )
+
+        # Right portion: Cycle 1 / Cycle 2 radio buttons + Deferral checkbox
+        radio_x = x_left + width * 0.60
+        r_cy_1 = y_top - 24  # vertical centre of cycle row
+        r_cy_2 = y_top - 38  # vertical centre of deferral row
+        r = 4.0  # radio circle radius
+
+        pdf.setFont("Helvetica-Bold", 8.0)
+        pdf.drawString(radio_x, y_top - 27, "Cycle:")
+        pdf.setLineWidth(0.7)
+        # Circle for Cycle 1
+        c1_x = radio_x + 40
+        pdf.circle(c1_x, r_cy_1, r, stroke=1, fill=0)
+        pdf.setFont("Helvetica", 8.5)
+        pdf.drawString(c1_x + r + 2, y_top - 27, "1")
+        # Circle for Cycle 2
+        c2_x = c1_x + 24
+        pdf.circle(c2_x, r_cy_1, r, stroke=1, fill=0)
+        pdf.drawString(c2_x + r + 2, y_top - 27, "2")
+
+        # Deferral checkbox
+        cb_size = 8
+        pdf.setLineWidth(0.7)
+        pdf.rect(radio_x, r_cy_2 - cb_size / 2, cb_size, cb_size, stroke=1, fill=0)
+        pdf.setFont("Helvetica-Bold", 8.0)
+        pdf.drawString(radio_x + cb_size + 3, y_top - 38, "Deferral Used")
 
         # Draw table
         route_table.drawOn(pdf, x_left + 4, route_table_bottom_y)
 
         # Totals line below grid (hours:minutes)
-        pdf.setFont("Helvetica-Bold", 6.9)
+        pdf.setFont("Helvetica-Bold", 8.0)
         pdf.drawString(
             x_left + 5,
             totals_y,
@@ -531,55 +606,43 @@ class CharterPDFForm:
 
         # ─── Vehicle & Fuel Section — 2 columns ────────────────────────────
         half = width / 2 - 8
-        pdf.setFont("Helvetica", 6.8)
+        pdf.setFont("Helvetica", 8.0)
         # Row 1 left: odometers
         pdf.drawString(
             x_left + 5,
             vehicle_row_1_y,
             (
-                f"Out Odo: {odo_start or '_______'}   "
-                f"In Odo: {odo_end or '_______'}"
+                f"Out Odo: {odo_start or '__________________'}   "
+                f"In Odo: {odo_end or '_________________'}"
             ),
         )
-        # Row 1 right: fuel / float
+        # Row 1 right: distance / fuel
         pdf.drawString(
             x_left + half + 10,
             vehicle_row_1_y,
-            f"Distance: {total_odo!s} km   Fuel: ______ L   Float: $______",
+            f"Distance: {total_odo or '___________'} km/m   Fuel: __________ L",
         )
-        # Row 2 left: driver signature
+        # Row 2 left: float / cash returned
         pdf.drawString(
             x_left + 5,
             vehicle_row_2_y,
-            "Driver Signature: _________________________________   Date: __________",
+            "Float: $________________   Cash returned: ________________",
         )
-        # Row 2 right: missing info notes
+        # Row 2 right: driver signature / date
         pdf.drawString(
             x_left + half + 10,
             vehicle_row_2_y,
-            "Missing info notes: _________________________________",
+            "Driver Signature: _______________________________   Date: _____________________",
+        )
+        # Row 3 full-width: notes
+        pdf.drawString(
+            x_left + 5,
+            vehicle_row_3_y,
+            "Notes: ______________________________________________________________________",
         )
 
         # ─── HOS 14-Day Grid (inline, no box) ───────────────────────────────
         hos_table.drawOn(pdf, x_left + 4, grid_bottom_y)
-
-        # 160-KM Exemption statement — plain text below grid (tight spacing)
-        pdf.setFont("Helvetica-Bold", 7.5)
-        pdf.drawString(
-            x_left + 5,
-            exemption_y,
-            "160-KM EXEMPTION — Statement to officer: I confirm all of the following apply to this shift:",
-        )
-        pdf.setFont("Helvetica", 6.8)
-        self._draw_wrapped_lines(
-            pdf,
-            x_left + 5,
-            exemption_text_y,
-            width - 10,
-            wrapped_exemption_lines,
-            6.8,
-            line_height=8.0,
-        )
 
         return y_top - box_height - 4
 
@@ -609,9 +672,7 @@ class CharterPDFForm:
         banner_height = 0.72 * inch
         pdf.setLineWidth(0.6)
         pdf.setFillColor(colors.HexColor("#F0F4F8"))
-        pdf.rect(
-            x_left, y_top - banner_height, width, banner_height, fill=1, stroke=1
-        )
+        pdf.rect(x_left, y_top - banner_height, width, banner_height, fill=1, stroke=1)
         pdf.setFillColor(colors.black)
         self._draw_wrapped_lines(
             pdf,
@@ -642,10 +703,7 @@ class CharterPDFForm:
         today_off = "-"
         today_on = "-"
         if is_second_trip:
-            raw_hrs = (
-                self.data.get("prior_trip_actual_hours")
-                or self.data.get("actual_hours")
-            )
+            raw_hrs = self.data.get("prior_trip_actual_hours") or self.data.get("actual_hours")
             try:
                 hrs = round(float(raw_hrs or 0), 1)
                 if hrs > 0:
@@ -703,9 +761,7 @@ class CharterPDFForm:
                     colors.HexColor("#D4EDDA"),
                 )
             )
-            styles.append(
-                ("FONTNAME", (today_col, 0), (today_col, 0), "Helvetica-Bold")
-            )
+            styles.append(("FONTNAME", (today_col, 0), (today_col, 0), "Helvetica-Bold"))
 
         table = Table(rows, colWidths=col_widths, rowHeights=[10, 10, 10, 10])
         table.setStyle(TableStyle(styles))
@@ -728,9 +784,7 @@ class CharterPDFForm:
         charter_date = self.data.get("charter_date")
         try:
             if isinstance(charter_date, str):
-                base = datetime.fromisoformat(
-                    charter_date.replace("Z", UTC_OFFSET_SUFFIX)
-                ).date()
+                base = datetime.fromisoformat(charter_date.replace("Z", UTC_OFFSET_SUFFIX)).date()
             elif hasattr(charter_date, "date"):
                 base = charter_date.date()
             elif isinstance(charter_date, _date):
@@ -742,26 +796,36 @@ class CharterPDFForm:
 
         yesterday = base - _td(days=1)
         # Cols 1-14: days [yesterday-13 .. yesterday-1], col 14: yesterday (14 days total)
-        headers = [
-            str((yesterday - _td(days=i)).day) for i in range(13, 0, -1)
-        ]
-        headers.append(str(yesterday.day))  # col 14 = yesterday
+        # Prefix the day number with a 3-letter month abbreviation whenever the month
+        # changes within the 14-day window (incl. the very first column so the month
+        # is always visible at the start of the record).
+        headers = []
+        prev_month = None
+        for i in range(13, -1, -1):
+            d = yesterday - _td(days=i)
+            if d.month != prev_month:
+                label = d.strftime("%b") + "\n" + str(d.day)
+                prev_month = d.month
+            else:
+                label = str(d.day)
+            headers.append(label)
 
         today_col = None
         if include_today:
-            headers.append(str(base.day) + "*")  # col 15 = today
+            d = base
+            today_label = str(d.day) + "*"
+            if d.month != prev_month:
+                today_label = d.strftime("%b") + "\n" + today_label
+            headers.append(today_label)
             today_col = 14  # table col index (col 0 = status label)
 
         return headers, today_col
 
     def _draw_beverages_and_notes(self, pdf, x_left, width, y_top):
         invoicing_cfg = self.layout.get("invoicing", {})
-        left_width = width * 0.38
-        gap = 0.12 * inch
-        right_width = width - left_width - gap
         charge_row_height = float(invoicing_cfg.get("row_height", 10.5))
 
-        # Invoicing now sits under routing (left side).
+        # ── Charges table — full page width ────────────────────────────────
         charges = self._normalize_charges()
         charge_rows = [["CHARGES", "RATE", "UNIT", "AMOUNT"]]
         for charge in charges:
@@ -782,8 +846,7 @@ class CharterPDFForm:
         deposit = float(self.data.get("nrr_amount") or 0)
         balance = total_due - total_paid
         chauffeur_cash_collected = self._safe(
-            self.data.get("chauffeur_cash_collected")
-            or self.data.get("driver_cash_collected")
+            self.data.get("chauffeur_cash_collected") or self.data.get("driver_cash_collected")
         )
         summary_rows = [
             ["Total Charges:", "", "", f"${total_due:.2f}"],
@@ -793,13 +856,13 @@ class CharterPDFForm:
             ["Chauffeur Cash Collected:", "", "", chauffeur_cash_collected],
         ]
 
-        charge_table_rows = max(
-            len(charge_rows), int(invoicing_cfg.get("min_charge_rows", 4))
+        charge_table_rows = max(len(charge_rows), int(invoicing_cfg.get("min_charge_rows", 4)))
+        charge_rows_display = charge_rows + [["", "", "", ""]] * max(
+            0, charge_table_rows - len(charge_rows)
         )
-        charge_rows_display = charge_rows + [["", "", "", ""]] * max(0, charge_table_rows - len(charge_rows))
         charge_rows_display += [["", "", "", ""], *summary_rows]
 
-        table_total_width = left_width
+        table_total_width = width
         invoice_font_size = float(invoicing_cfg.get("font_size", 7))
         sample_currency = str(invoicing_cfg.get("currency_width_sample", "$0000.00"))
         numeric_padding = float(invoicing_cfg.get("numeric_padding", 8))
@@ -825,10 +888,7 @@ class CharterPDFForm:
                 longest_label_width,
                 pdfmetrics.stringWidth(label, font_name, invoice_font_size),
             )
-        target_first_col = longest_label_width + float(
-            invoicing_cfg.get("label_padding", 10)
-        )
-        # Fixed narrow UNIT column
+        target_first_col = longest_label_width + float(invoicing_cfg.get("label_padding", 10))
         type_col_width = 0.38 * inch
         remaining_width = table_total_width - target_first_col - type_col_width
         if remaining_width >= (2 * preferred_numeric_col):
@@ -842,25 +902,27 @@ class CharterPDFForm:
             amount_col_width = min_numeric_col
         first_col_width = table_total_width - type_col_width - rate_col_width - amount_col_width
 
-        # Row indices for styling:
-        # row 0 = header, rows 1..charge_table_rows = charge lines,
-        # charge_table_rows+1 = blank separator, charge_table_rows+2..+6 = summary rows
         sep_row = charge_table_rows + 1
         summary_start_row = sep_row + 1
         amount_due_row = charge_table_rows + 5
         invoicing_extra_styles = [
-            # Header alignment matches the column contents.
             ("ALIGN", (0, 0), (0, 0), "RIGHT"),
             ("ALIGN", (1, 0), (1, 0), "RIGHT"),
             ("ALIGN", (2, 0), (2, 0), "CENTER"),
             ("ALIGN", (3, 0), (3, 0), "RIGHT"),
-            # Subtle alternating fill on charge rows for readability
-            ("ROWBACKGROUNDS", (0, 1), (-1, charge_table_rows), [colors.white, colors.HexColor("#fafafa")]),
-            # Thick line above the summary block
+            (
+                "ROWBACKGROUNDS",
+                (0, 1),
+                (-1, charge_table_rows),
+                [colors.white, colors.HexColor("#fafafa")],
+            ),
             ("LINEABOVE", (0, summary_start_row), (-1, summary_start_row), 0.8, colors.black),
-            # Light tint across the whole summary block
-            ("BACKGROUND", (0, summary_start_row), (-1, summary_start_row + 4), colors.HexColor("#f7f7f7")),
-            # Summary section becomes a 2-column block: label spans first 3 cols
+            (
+                "BACKGROUND",
+                (0, summary_start_row),
+                (-1, summary_start_row + 4),
+                colors.HexColor("#f7f7f7"),
+            ),
             ("SPAN", (0, summary_start_row), (2, summary_start_row)),
             ("SPAN", (0, summary_start_row + 1), (2, summary_start_row + 1)),
             ("SPAN", (0, summary_start_row + 2), (2, summary_start_row + 2)),
@@ -868,12 +930,9 @@ class CharterPDFForm:
             ("SPAN", (0, summary_start_row + 4), (2, summary_start_row + 4)),
             ("ALIGN", (0, summary_start_row), (2, summary_start_row + 4), "RIGHT"),
             ("ALIGN", (3, summary_start_row), (3, summary_start_row + 4), "RIGHT"),
-            # Light lines between each summary row
             ("LINEBELOW", (0, summary_start_row), (-1, -2), 0.3, colors.HexColor("#cccccc")),
-            # Bold + slightly larger font for Amount Due row
             ("FONTNAME", (0, amount_due_row), (-1, amount_due_row), "Helvetica-Bold"),
             ("FONTSIZE", (0, amount_due_row), (-1, amount_due_row), invoice_font_size + 0.5),
-            # Light shading on Amount Due row
             ("BACKGROUND", (0, amount_due_row), (-1, amount_due_row), colors.HexColor("#f0f0f0")),
         ]
 
@@ -886,93 +945,75 @@ class CharterPDFForm:
             row_height=charge_row_height,
             font_size=invoice_font_size,
             show_inner_grid=False,
-            col_alignments=[
-                "RIGHT",
-                "RIGHT",
-                "CENTER",
-                "RIGHT",
-            ],
+            col_alignments=["RIGHT", "RIGHT", "CENTER", "RIGHT"],
             col_font_sizes=[None, None, None, None],
             col_bold=[False, False, False, False],
             center_header=False,
             extra_styles=invoicing_extra_styles,
         )
 
-        # Right of invoicing: client notes + single beverage strip row.
-        notes_text = " ".join(
-            part
-            for part in [
-                self._safe(self.data.get("notes")),
-                self._safe(self.data.get("booking_notes")),
-                self._safe(self.data.get("special_requirements")),
-            ]
-            if part and part != "-"
+        charge_section_height = len(charge_rows_display) * charge_row_height
+        receipts_top = y_top - charge_section_height - 6  # 6pt gap
+
+        # ── Driver Receipts — full width, below charges ─────────────────────
+        REC_TITLE_H = 11
+        REC_REF_H = 9
+        REC_GAP = 4
+        REC_HDR_H = 11
+        REC_ROW_H = 14
+        NUM_REC_ROWS = 5
+
+        date_w = 0.58 * inch
+        amount_w = 0.65 * inch
+        gl_w = 0.55 * inch
+        vendor_w = 1.2 * inch
+        detail_w = max(width - date_w - vendor_w - amount_w - gl_w - 8, 0.6 * inch)
+        rec_rows = [["Date", "Vendor", "Details", "Amount", "GL#"]] + [
+            ["", "", "", "", ""] for _ in range(NUM_REC_ROWS)
+        ]
+        rec_tbl = Table(
+            rec_rows,
+            colWidths=[date_w, vendor_w, detail_w, amount_w, gl_w],
+            rowHeights=[REC_HDR_H] + [REC_ROW_H] * NUM_REC_ROWS,
         )
-        right_x = x_left + left_width + gap + 3
-        right_content_w = right_width - 6
-
-        # Pre-measure notes wrapping so we can size the section correctly
-        notes_font_size = 6.6
-        notes_lh = 9
-        all_notes_sublines = []
-        if notes_text:
-            for raw in [notes_text]:
-                all_notes_sublines.extend(
-                    simpleSplit(str(raw), "Helvetica", notes_font_size, right_content_w)
-                )
-        max_notes_display = 9
-        notes_display = all_notes_sublines[:max_notes_display]
-
-        bev_lh = 7.0
-        bev_rows = 5  # 3 cols x 5 = 15 slots for 14 items
-        bev_block_h = 14 + bev_rows * bev_lh  # label + 5 rows
-
-        notes_block_h = 12 + 9 * notes_lh  # "Notes:" label + fixed 9 rows
-        right_col_h = notes_block_h + bev_block_h + 6
-
-        charge_height = len(charge_rows_display) * charge_row_height
-        row_height = max(charge_height, right_col_h)
-
-        # Draw notes
-        pdf.setFont("Helvetica-Bold", notes_font_size)
-        pdf.drawString(right_x, y_top - 10, "Notes:")
-        pdf.setFont("Helvetica", notes_font_size)
-        note_y = y_top - 20
-        for subline in notes_display:
-            pdf.drawString(right_x, note_y, subline)
-            note_y -= notes_lh
-
-        # Beverage strip: 2-column list after notes
-        beverages = self.data.get("beverages") or []
-        bev_lines = []
-        for bev in beverages[:15]:
-            bev_lines.append(
-                f"{self._safe(bev.get('quantity'))} {self._safe(bev.get('item_name'))}"
+        rec_tbl.setStyle(
+            TableStyle(
+                [
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 6.5),
+                    ("LEADING", (0, 0), (-1, -1), 8.0),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E0E0E0")),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 3),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+                    ("TOPPADDING", (0, 0), (-1, -1), 1),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+                ]
             )
-        while len(bev_lines) < 15:
-            bev_lines.append("")
+        )
+        _, rec_tbl_h = rec_tbl.wrapOn(pdf, 0, 0)
 
-        pdf.setFont("Helvetica-Bold", 6.6)
-        bev_label_y = y_top - 20 - 9 * notes_lh - 4  # fixed position after 9-line notes block
-        pdf.drawString(right_x, bev_label_y, "Beverages:")
-        bev_y = bev_label_y - 13
-        bev_col_w = right_content_w / 3
+        pdf.setFont("Helvetica-Bold", 7.5)
+        pdf.drawString(x_left, receipts_top - REC_TITLE_H + 2, "DRIVER RECEIPTS / EXPENSES")
         pdf.setFont("Helvetica", 6.0)
-        for i, line in enumerate(bev_lines[:15]):
-            col = i // 5
-            row = i % 5
-            tx = right_x + col * bev_col_w
-            ty = bev_y - row * bev_lh
-            pdf.drawString(tx, ty, str(line) if str(line).strip() else "________________")
+        pdf.drawString(
+            x_left,
+            receipts_top - REC_TITLE_H - REC_REF_H + 4,
+            "attach originals  |  GL: 5110 Fuel  5116 Amenities  5315 Bev  5320 Meals",
+        )
+        rec_tbl.drawOn(pdf, x_left, receipts_top - REC_TITLE_H - REC_REF_H - REC_GAP - rec_tbl_h)
 
-        return y_top - row_height
+        rec_section_h = REC_TITLE_H + REC_REF_H + REC_GAP + rec_tbl_h
+        return y_top - charge_section_height - 6 - rec_section_h
 
     def _draw_policies_terms(self, pdf, x_left, width, y_top):
-        font_size = 7.0
-        line_height = 8.4
         inner_pad = 6
         header_gap = 6
         footer_gap = 4
+        font_size = 7.0
+        line_height = font_size + 3
 
         policy_paragraphs = [
             "By placing a reservation and securing it with a nonrefundable retainer you acknowledge and expressly agree to the following policies, terms and conditions and further expressly authorize Arrow Limousine to charge your credit card in full or part amounts relating to your reservation including but not limited to charging your credit card in full for the reservation should you be considered a no-show.",
@@ -1032,33 +1073,24 @@ class CharterPDFForm:
         pdf.drawString(
             x_left + 8,
             signature_y,
-            (
-                "CLIENT SIGNATURE: "
-                "_______________________________________________"
-            ),
+            ("CLIENT SIGNATURE: " "_______________________________________________"),
         )
-        pdf.drawString(
-            x_left + width - 170, signature_y, "DATE: __________________"
-        )
+        pdf.drawString(x_left + width - 170, signature_y, "DATE: __________________")
 
-    def _draw_box(
-        self, pdf, x, y, width, height, title, right_header_text=None
-    ):
+    def _draw_box(self, pdf, x, y, width, height, title, right_header_text=None):
         pdf.setLineWidth(0.8)
         separator_y = y + height - 17
         # Content area borders (below separator): left, bottom, right
-        pdf.line(x, y, x, separator_y)                     # left (content only)
-        pdf.line(x, y, x + width, y)                       # bottom
-        pdf.line(x + width, y, x + width, separator_y)     # right (content only)
+        pdf.line(x, y, x, separator_y)  # left (content only)
+        pdf.line(x, y, x + width, y)  # bottom
+        pdf.line(x + width, y, x + width, separator_y)  # right (content only)
         # Title — no top/left/right, just the separator line underneath
         if title:
             pdf.setFont("Helvetica-Bold", 11)
             pdf.drawCentredString(x + (width / 2), y + height - 11, title)
             if right_header_text:
                 pdf.setFont("Helvetica", 7.2)
-                pdf.drawRightString(
-                    x + width - 4, y + height - 11, right_header_text
-                )
+                pdf.drawRightString(x + width - 4, y + height - 11, right_header_text)
             pdf.line(x, separator_y, x + width, separator_y)
 
     def _draw_text_grid(self, pdf, x, y_top, width, rows, font_size):
@@ -1067,17 +1099,13 @@ class CharterPDFForm:
             if not row:
                 continue
             if len(row) == 1:
-                self._draw_wrapped_lines(
-                    pdf, x, current_y, width, row, font_size
-                )
+                self._draw_wrapped_lines(pdf, x, current_y, width, row, font_size)
                 current_y -= 14
                 continue
             if len(row) == 3:
                 column_gap = 8
                 column_width = (width - 2 * column_gap) / 3
-                self._draw_wrapped_lines(
-                    pdf, x, current_y, column_width, [row[0]], font_size
-                )
+                self._draw_wrapped_lines(pdf, x, current_y, column_width, [row[0]], font_size)
                 self._draw_wrapped_lines(
                     pdf,
                     x + column_width + column_gap,
@@ -1098,9 +1126,7 @@ class CharterPDFForm:
                 continue
             column_gap = 10
             column_width = (width - column_gap) / 2
-            self._draw_wrapped_lines(
-                pdf, x, current_y, column_width, [row[0]], font_size
-            )
+            self._draw_wrapped_lines(pdf, x, current_y, column_width, [row[0]], font_size)
             self._draw_wrapped_lines(
                 pdf,
                 x + column_width + column_gap,
@@ -1111,9 +1137,7 @@ class CharterPDFForm:
             )
             current_y -= 15
 
-    def _draw_wrapped_lines(
-        self, pdf, x, y_top, width, lines, font_size, line_height=None
-    ):
+    def _draw_wrapped_lines(self, pdf, x, y_top, width, lines, font_size, line_height=None):
         pdf.setFont("Helvetica", font_size)
         current_y = y_top
         effective_line_height = line_height or (font_size + 3)
@@ -1140,9 +1164,7 @@ class CharterPDFForm:
         center_header=False,
         extra_styles=None,
     ):
-        table = Table(
-            rows, colWidths=col_widths, rowHeights=[row_height] * len(rows)
-        )
+        table = Table(rows, colWidths=col_widths, rowHeights=[row_height] * len(rows))
         style = [
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
@@ -1170,9 +1192,7 @@ class CharterPDFForm:
         if col_font_sizes:
             for col_idx, size in enumerate(col_font_sizes):
                 if size:
-                    style.append(
-                        ("FONTSIZE", (col_idx, 1), (col_idx, -1), size)
-                    )
+                    style.append(("FONTSIZE", (col_idx, 1), (col_idx, -1), size))
 
         # Apply per-column bold if specified
         if col_bold:
@@ -1217,9 +1237,7 @@ class CharterPDFForm:
             return ""
         try:
             if isinstance(value, str):
-                dt = datetime.fromisoformat(
-                    value.replace("Z", UTC_OFFSET_SUFFIX)
-                )
+                dt = datetime.fromisoformat(value.replace("Z", UTC_OFFSET_SUFFIX))
             else:
                 dt = value
             month_map = {
@@ -1251,27 +1269,29 @@ class CharterPDFForm:
             "airport_fee": "Airport Fee",
             "additional": "Additional",
         }
+        bev_total = 0.0
         for charge in self.data.get("charges") or []:
+            ctype = charge.get("charge_type") or ""
+            # Individual beverage items are consolidated into one summary line.
+            if ctype == "beverage":
+                bev_total += float(charge.get("amount") or 0)
+                continue
+            label = charge.get("description") or label_map.get(ctype) or "Charge"
+            # Strip internal calc metadata tags (e.g. "[calc:Flat:600.0]") from display labels.
             label = (
-                charge.get("description")
-                or label_map.get(charge.get("charge_type"))
-                or "Charge"
+                re.sub(r"\s*\[calc:[^\]]+\]", "", label).strip() or label_map.get(ctype) or "Charge"
             )
-            normalized.append(
-                {"label": label, "amount": charge.get("amount") or 0}
-            )
+            normalized.append({"label": label, "amount": charge.get("amount") or 0})
+        if bev_total:
+            normalized.append({"label": "Beverages", "amount": bev_total})
         if not normalized:
             total_due = float(self.data.get("total_amount_due") or 0)
-            normalized.append(
-                {"label": SERVICE_FEE_LABEL, "amount": total_due}
-            )
+            normalized.append({"label": SERVICE_FEE_LABEL, "amount": total_due})
         return normalized
 
     def _format_datetime_line(self):
         charter_date = self.data.get("charter_date")
-        pickup_time = self.data.get("pickup_time") or self.data.get(
-            "actual_pickup_time"
-        )
+        pickup_time = self.data.get("pickup_time") or self.data.get("actual_pickup_time")
         date_part = self._format_date(charter_date)
         time_part = self._format_time(pickup_time)
         if date_part == "Not specified":
@@ -1283,9 +1303,7 @@ class CharterPDFForm:
             return ""
         try:
             if isinstance(value, str):
-                value = datetime.fromisoformat(
-                    value.replace("Z", UTC_OFFSET_SUFFIX)
-                )
+                value = datetime.fromisoformat(value.replace("Z", UTC_OFFSET_SUFFIX))
             return value.strftime("%m/%d")
         except Exception:
             return str(value)[:5]
@@ -1314,7 +1332,7 @@ class CharterPDFForm:
         if value in (None, ""):
             return ""
         try:
-            numeric_value = int(round(float(value)))
+            numeric_value = round(float(value))
             if numeric_value < 0:
                 return ""
             return str(numeric_value)[:7]
@@ -1336,13 +1354,7 @@ class CharterPDFForm:
             "exchange_of_services": "Exchange",
         }
         raw = str(value or "").strip()
-        key = (
-            raw
-            .strip()
-            .lower()
-            .replace("-", "_")
-            .replace(" ", "_")
-        )
+        key = raw.strip().lower().replace("-", "_").replace(" ", "_")
         mapped = mapping.get(key)
         if mapped:
             return mapped
@@ -1352,15 +1364,9 @@ class CharterPDFForm:
         if not parts:
             return self._safe(value)
 
-        cleaned_parts = [
-            re.sub(r"\s+rate$", "", p, flags=re.IGNORECASE).strip()
-            for p in parts
-        ]
+        cleaned_parts = [re.sub(r"\s+rate$", "", p, flags=re.IGNORECASE).strip() for p in parts]
 
-        if (
-            len(cleaned_parts) >= 2
-            and cleaned_parts[0].lower() == cleaned_parts[1].lower()
-        ):
+        if len(cleaned_parts) >= 2 and cleaned_parts[0].lower() == cleaned_parts[1].lower():
             return cleaned_parts[0]
 
         return " - ".join(cleaned_parts)
@@ -1388,9 +1394,7 @@ class CharterPDFForm:
             return "Not specified"
         try:
             if isinstance(date_str, str):
-                date_obj = datetime.fromisoformat(
-                    date_str.replace("Z", UTC_OFFSET_SUFFIX)
-                )
+                date_obj = datetime.fromisoformat(date_str.replace("Z", UTC_OFFSET_SUFFIX))
             else:
                 date_obj = date_str
             return date_obj.strftime("%m/%d/%Y %A")
@@ -1437,9 +1441,7 @@ class T4PDFForm:
 
         # T4 Header
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(
-            0.5 * inch, height - 0.5 * inch, "Statement of Remuneration Paid"
-        )
+        c.drawString(0.5 * inch, height - 0.5 * inch, "Statement of Remuneration Paid")
         c.drawString(0.5 * inch, height - 0.75 * inch, f"T4 - {self.tax_year}")
 
         # Employer information
@@ -1448,9 +1450,7 @@ class T4PDFForm:
 
         c.setFont("Helvetica", 10)
         y_pos = height - 1.5 * inch
-        c.drawString(
-            0.75 * inch, y_pos, "Arrow Limousine & Sedan Services LTD"
-        )
+        c.drawString(0.75 * inch, y_pos, "Arrow Limousine & Sedan Services LTD")
         y_pos -= 0.2 * inch
         c.drawString(0.75 * inch, y_pos, "Business Number: [BN from CRA]")
         y_pos -= 0.2 * inch
@@ -1606,9 +1606,7 @@ class T4PDFForm:
 
         # CRA copy marker
         c.setFont("Helvetica-Bold", 10)
-        c.drawRightString(
-            width - 0.5 * inch, height - 0.5 * inch, "EMPLOYEE COPY"
-        )
+        c.drawRightString(width - 0.5 * inch, height - 0.5 * inch, "EMPLOYEE COPY")
 
         c.save()
         self.buffer.seek(0)
@@ -1715,7 +1713,9 @@ class ConfirmationLetterPDF:
     COMPANY_ADDR = "38014 C&E Trl, Red Deer County, AB, T4E 1R9"
     COMPANY_PHONE = "403-346-0034  |  403-346-4444"
     COMPANY_WEB = "www.arrowlimo.ca"
-    COMPANY_TAGLINE = "Serving the Ground Transportation Industry since 1989  \u2022  Member of the NLA"
+    COMPANY_TAGLINE = (
+        "Serving the Ground Transportation Industry since 1989  \u2022  Member of the NLA"
+    )
     GST_NUMBER = "G.S.T.#: 861 556 827"
 
     POLICY_INTRO = (
@@ -1841,10 +1841,10 @@ class ConfirmationLetterPDF:
         self.d = charter_data
         self.buffer = BytesIO()
         self.width, self.height = LETTER
-        self.lm = 0.5 * inch   # left margin
-        self.rm = 0.5 * inch   # right margin
+        self.lm = 0.5 * inch  # left margin
+        self.rm = 0.5 * inch  # right margin
         self.tm = 0.45 * inch  # top margin
-        self.bm = 0.5 * inch   # bottom margin (above footer)
+        self.bm = 0.5 * inch  # bottom margin (above footer)
         self.cw = self.width - self.lm - self.rm  # content width
 
     # ── helpers ──────────────────────────────────────────────────────────────
@@ -1899,15 +1899,18 @@ class ConfirmationLetterPDF:
     def _register_fonts():
         """Register Arial from Windows fonts if not already done."""
         import os
+
         if "Arial" in pdfmetrics.getRegisteredFontNames():
             return
         font_dir = r"C:\Windows\Fonts"
         try:
             from reportlab.pdfbase.ttfonts import TTFont
+
             pdfmetrics.registerFont(TTFont("Arial", os.path.join(font_dir, "arial.ttf")))
             pdfmetrics.registerFont(TTFont("Arial-Bold", os.path.join(font_dir, "arialbd.ttf")))
             pdfmetrics.registerFont(TTFont("Arial-Italic", os.path.join(font_dir, "ariali.ttf")))
             from reportlab.pdfbase.pdfmetrics import registerFontFamily
+
             registerFontFamily("Arial", normal="Arial", bold="Arial-Bold", italic="Arial-Italic")
         except Exception:
             pass  # Fall back to Helvetica silently
@@ -1958,11 +1961,7 @@ class ConfirmationLetterPDF:
         """Minimal page number, lower-right, 1/4 inch from bottom."""
         pdf.setFont(self._f(), 7)
         pdf.setFillColorRGB(0.55, 0.55, 0.55)
-        pdf.drawRightString(
-            self.width - self.rm,
-            0.25 * inch,
-            str(page_num)
-        )
+        pdf.drawRightString(self.width - self.rm, 0.25 * inch, str(page_num))
         pdf.setFillColorRGB(0, 0, 0)
 
     def _draw_clause(self, pdf, x, pg, w, num, text, size=8.5, lh=10.0):
@@ -1970,6 +1969,7 @@ class ConfirmationLetterPDF:
         pg = {'y': float, 'page_num': int}  — mutated in place.
         """
         import re
+
         bold_f = self._f(bold=True)
         reg_f = self._f()
         bottom = self.bm + lh  # one line of breathing room above bottom margin
@@ -1980,13 +1980,13 @@ class ConfirmationLetterPDF:
 
         def _emit(draw_fn):
             """draw_fn(y) draws one line at y. Page-break BEFORE drawing."""
-            if pg['y'] < bottom:
-                self._draw_footer(pdf, pg['page_num'])
+            if pg["y"] < bottom:
+                self._draw_footer(pdf, pg["page_num"])
                 pdf.showPage()
-                pg['page_num'] += 1
-                pg['y'] = self.height - self.tm
-            draw_fn(pg['y'])
-            pg['y'] -= lh
+                pg["page_num"] += 1
+                pg["y"] = self.height - self.tm
+            draw_fn(pg["y"])
+            pg["y"] -= lh
 
         paragraphs = [p for p in str(text).split("\n")]
         title = paragraphs[0].strip() if paragraphs else ""
@@ -1999,11 +1999,13 @@ class ConfirmationLetterPDF:
             _line = line
             _first = first
             _num = num
+
             def _draw_title(y, ln=_line, f=_first, n=_num):
                 pdf.setFont(bold_f, size)
                 if f:
                     pdf.drawString(x, y, f"{n}.")
                 pdf.drawString(tx, y, ln)
+
             _emit(_draw_title)
             first = False
 
@@ -2013,7 +2015,7 @@ class ConfirmationLetterPDF:
             s = p.strip()
             if not s:
                 continue
-            if re.match(r'^[a-z]\.\s+\S', s):
+            if re.match(r"^[a-z]\.\s+\S", s):
                 segments.append(("sub", s))
             elif s.startswith("\u2022"):
                 segments.append(("bullet", s))
@@ -2034,11 +2036,13 @@ class ConfirmationLetterPDF:
                     _li = li
                     _sl = sub_letter
                     _sw = sub_w
+
                     def _draw_sub(y, ln=_line, li=_li, sl=_sl, sw=_sw):
                         pdf.setFont(bold_f, size)
                         if li == 0:
                             pdf.drawString(tx, y, sl)
                         pdf.drawString(tx + sw, y, ln)
+
                     _emit(_draw_sub)
                 si += 1
 
@@ -2050,7 +2054,7 @@ class ConfirmationLetterPDF:
                     j += 1
 
                 # Small gap before bullet section
-                pg['y'] -= 3
+                pg["y"] -= 3
 
                 if len(run) >= 4:
                     col_gap = 8
@@ -2060,8 +2064,12 @@ class ConfirmationLetterPDF:
                     def _bullet_lines(b, cw, bullet_indent=bi):
                         """Split bullet with hanging indent: first line full cw, rest cw-bi."""
                         first = simpleSplit(b, reg_f, size, cw)[:1]
-                        rest_text = b[len(first[0]):].strip() if first else ""
-                        rest_lines = simpleSplit(rest_text, reg_f, size, cw - bullet_indent) if rest_text else []
+                        rest_text = b[len(first[0]) :].strip() if first else ""
+                        rest_lines = (
+                            simpleSplit(rest_text, reg_f, size, cw - bullet_indent)
+                            if rest_text
+                            else []
+                        )
                         return [(ln, False) for ln in first] + [(ln, True) for ln in rest_lines]
 
                     mid = (len(run) + 1) // 2
@@ -2078,39 +2086,47 @@ class ConfirmationLetterPDF:
                         _rl = rl
                         _lc = l_cont
                         _rc = r_cont
+
                         def _draw_cols(y, ll=_ll, rl=_rl, lc=_lc, rc=_rc, cg=_cg, cw=_cw, bi=_bi):
                             pdf.setFont(reg_f, size)
                             if ll:
                                 pdf.drawString(tx + (bi if lc else 0), y, ll)
                             if rl:
                                 pdf.drawString(tx + cw + cg + (bi if rc else 0), y, rl)
+
                         _emit(_draw_cols)
                 else:
                     bi = pdfmetrics.stringWidth("\u2022 ", reg_f, size)
                     for b in run:
                         first_lines = simpleSplit(b, reg_f, size, bw)[:1]
-                        rest_text = b[len(first_lines[0]):].strip() if first_lines else ""
-                        rest_lines = simpleSplit(rest_text, reg_f, size, bw - bi) if rest_text else []
+                        rest_text = b[len(first_lines[0]) :].strip() if first_lines else ""
+                        rest_lines = (
+                            simpleSplit(rest_text, reg_f, size, bw - bi) if rest_text else []
+                        )
                         for li, line in enumerate(first_lines + rest_lines):
                             _line = line
                             _indent = 0 if li == 0 else bi
+
                             def _draw_b(y, ln=_line, ind=_indent):
                                 pdf.setFont(reg_f, size)
                                 pdf.drawString(tx + ind, y, ln)
+
                             _emit(_draw_b)
                 si = j
                 # Small gap after bullet section before resuming body text
-                pg['y'] -= 3
+                pg["y"] -= 3
 
             else:  # body
-                sub_body = (si > 0 and segments[si - 1][0] == "sub")
+                sub_body = si > 0 and segments[si - 1][0] == "sub"
                 sub_w = pdfmetrics.stringWidth("a. ", bold_f, size) if sub_body else 0
                 for line in simpleSplit(para, reg_f, size, bw - sub_w):
                     _line = line
                     _sw = sub_w
+
                     def _draw_body(y, ln=_line, sw=_sw):
                         pdf.setFont(reg_f, size)
                         pdf.drawString(tx + sw, y, ln)
+
                     _emit(_draw_body)
                 si += 1
 
@@ -2128,9 +2144,7 @@ class ConfirmationLetterPDF:
         y -= 8
 
         # Dear
-        client = self._s(
-            d.get("client_display_name") or d.get("client_name"), ""
-        )
+        client = self._s(d.get("client_display_name") or d.get("client_name"), "")
         pdf.setFont(self._f(), 9.5)
         pdf.drawString(lm, y, f"Dear {client}:")
         y -= 14
@@ -2162,10 +2176,9 @@ class ConfirmationLetterPDF:
         res_time = self._fmt_time(d.get("pickup_time") or d.get("actual_pickup_time"))
         do_time = self._fmt_time(d.get("dropoff_time") or d.get("actual_dropoff_time"))
         vehicle = self._s(
-            d.get("vehicle_description")
-            or d.get("vehicle")
-            or d.get("vehicle_type"), ""
+            d.get("vehicle_description") or d.get("vehicle") or d.get("vehicle_type"), ""
         )
+
         # Date line — labels normal, values bold
         def _inline(label, value, x_start):
             """Draw label+value, return x after value."""
@@ -2200,7 +2213,10 @@ class ConfirmationLetterPDF:
             charter_pickup = self._fmt_time(d.get("pickup_time"))
             charter_dropoff = self._fmt_time(d.get("dropoff_time"))
             for idx, route in enumerate(routes):
-                etype = self._s(route.get("event_type_code"), "").replace("_", " ").title()
+                etype = (
+                    self._s(route.get("event_type_label"), "")
+                    or self._s(route.get("event_type_code"), "").replace("_", " ").title()
+                )
                 raw_addr = (
                     route.get("address")
                     or route.get("pickup_location")
@@ -2232,12 +2248,14 @@ class ConfirmationLetterPDF:
             pu = self._s(d.get("pickup_address"), "")
             do = self._s(d.get("dropoff_address"), "")
             if pu:
-                pdf.drawString(lm + 12, y,
-                               f"Pick up, {self._fmt_time(d.get('pickup_time'))}, Leave For {pu}")
+                pdf.drawString(
+                    lm + 12, y, f"Pick up, {self._fmt_time(d.get('pickup_time'))}, Leave For {pu}"
+                )
                 y -= 12
             if do:
-                pdf.drawString(lm + 12, y,
-                               f"Drop off, {self._fmt_time(d.get('dropoff_time'))}, {do}")
+                pdf.drawString(
+                    lm + 12, y, f"Drop off, {self._fmt_time(d.get('dropoff_time'))}, {do}"
+                )
                 y -= 12
         y -= 8
 
@@ -2250,9 +2268,17 @@ class ConfirmationLetterPDF:
         col_widths = [3.9 * inch, 0.85 * inch, 0.9 * inch, 0.85 * inch]
 
         _unit_map = {
-            "service": "Flat", "flat": "Flat", "hourly": "Hourly", "hour": "Hourly",
-            "fuel_surcharge": "Hour", "fuel": "Flat", "gratuity": "Flat",
-            "tax": "%", "gst": "%", "hst": "%", "misc": "Flat",
+            "service": "Flat",
+            "flat": "Flat",
+            "hourly": "Hourly",
+            "hour": "Hourly",
+            "fuel_surcharge": "Hour",
+            "fuel": "Flat",
+            "gratuity": "Flat",
+            "tax": "%",
+            "gst": "%",
+            "hst": "%",
+            "misc": "Flat",
         }
         table_data = [["Description", "Unit", "Rate", "Amount"]]
         for ch in charges:
@@ -2262,7 +2288,7 @@ class ConfirmationLetterPDF:
                 desc,
                 re.IGNORECASE,
             )
-            calc_type = (meta_match.group(1).lower() if meta_match else "")
+            calc_type = meta_match.group(1).lower() if meta_match else ""
             if meta_match:
                 desc = re.sub(
                     r"\s\[calc:(Fixed|Percent|Hourly):([0-9.]+)\]$",
@@ -2299,18 +2325,22 @@ class ConfirmationLetterPDF:
                 table_data.append(["Service Fee", "", "", self._fmt_currency(total_due)])
 
         charges_table = Table(table_data, colWidths=col_widths)
-        charges_table.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, 0), self._f(bold=True)),
-            ("FONTNAME", (0, 1), (-1, -1), self._f()),
-            ("FONTSIZE", (0, 0), (-1, -1), 9),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-            ("ALIGN", (1, 0), (-1, -1), "CENTER"),
-            ("ALIGN", (3, 0), (3, -1), "RIGHT"),
-            ("TOPPADDING", (0, 0), (-1, -1), 2),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-            ("LEFTPADDING", (0, 0), (0, -1), 4),
-            ("RIGHTPADDING", (3, 0), (3, -1), 4),
-        ]))
+        charges_table.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (-1, 0), self._f(bold=True)),
+                    ("FONTNAME", (0, 1), (-1, -1), self._f()),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+                    ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+                    ("ALIGN", (3, 0), (3, -1), "RIGHT"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 2),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                    ("LEFTPADDING", (0, 0), (0, -1), 4),
+                    ("RIGHTPADDING", (3, 0), (3, -1), 4),
+                ]
+            )
+        )
         tbl_w = sum(col_widths)
         tbl_h = charges_table.wrap(tbl_w, self.height)[1]
         charges_table.drawOn(pdf, lm, y - tbl_h)
@@ -2331,18 +2361,22 @@ class ConfirmationLetterPDF:
         val_col_w = 1.3 * inch
         label_col_w = tbl_w - val_col_w
         totals_table = Table(totals_data, colWidths=[label_col_w, val_col_w])
-        totals_table.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, -1), self._f()),
-            ("FONTNAME", (0, 3), (-1, 3), self._f(bold=True)),
-            ("FONTSIZE", (0, 0), (-1, -1), 9.5),
-            ("ALIGN", (0, 0), (0, -1), "RIGHT"),
-            ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-            ("TOPPADDING", (0, 0), (-1, -1), 2),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-            ("RIGHTPADDING", (1, 0), (1, -1), 4),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.black),
-            ("LINEBELOW", (0, 2), (-1, 2), 0.5, colors.black),
-        ]))
+        totals_table.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (-1, -1), self._f()),
+                    ("FONTNAME", (0, 3), (-1, 3), self._f(bold=True)),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9.5),
+                    ("ALIGN", (0, 0), (0, -1), "RIGHT"),
+                    ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 2),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                    ("RIGHTPADDING", (1, 0), (1, -1), 4),
+                    ("BOX", (0, 0), (-1, -1), 0.5, colors.black),
+                    ("LINEBELOW", (0, 2), (-1, 2), 0.5, colors.black),
+                ]
+            )
+        )
         tot_h = totals_table.wrap(tbl_w, self.height)[1]
         totals_table.drawOn(pdf, lm, y - tot_h)
         y -= tot_h + 10
@@ -2377,20 +2411,20 @@ class ConfirmationLetterPDF:
         # Flow ALL clauses — line-by-line page breaking via shared state
         inter_clause_gap = 5
         min_start = self.bm + 44  # need at least 4 lines before starting a new clause
-        pg = {'y': y, 'page_num': 1}
+        pg = {"y": y, "page_num": 1}
 
         for i, clause in enumerate(self.CLAUSES, start=1):
             # Orphan prevention: if less than 2 lines of room, start on new page
-            if pg['y'] < min_start:
-                self._draw_footer(pdf, pg['page_num'])
+            if pg["y"] < min_start:
+                self._draw_footer(pdf, pg["page_num"])
                 pdf.showPage()
-                pg['page_num'] += 1
-                pg['y'] = self.height - self.tm
+                pg["page_num"] += 1
+                pg["y"] = self.height - self.tm
             self._draw_clause(pdf, lm, pg, cw, i, clause)
-            pg['y'] -= inter_clause_gap
+            pg["y"] -= inter_clause_gap
 
-        y = pg['y']
-        page_num = pg['page_num']
+        y = pg["y"]
+        page_num = pg["page_num"]
 
         # Closing block: ~120pt needed
         closing_height = 120
@@ -2564,7 +2598,9 @@ class QuoteLetterPDF(ConfirmationLetterPDF):
             total_line = self._s(opt.get("total_line"), "")
             if total_line:
                 pdf.setFont(self._f(bold=True), 9)
-                y = self._draw_wrapped(pdf, lm + 12, y, cw - 12, total_line, font=self._f(bold=True), size=9, lh=11)
+                y = self._draw_wrapped(
+                    pdf, lm + 12, y, cw - 12, total_line, font=self._f(bold=True), size=9, lh=11
+                )
 
             y -= 8
 
@@ -2581,7 +2617,15 @@ class QuoteLetterPDF(ConfirmationLetterPDF):
         )
         y = self._draw_wrapped(pdf, lm, y, cw, closing, size=9, lh=11)
         y -= 6
-        y = self._draw_wrapped(pdf, lm, y, cw, "Thank you for considering Arrow Limousine & Sedan Services Ltd.", size=9.5, lh=12)
+        y = self._draw_wrapped(
+            pdf,
+            lm,
+            y,
+            cw,
+            "Thank you for considering Arrow Limousine & Sedan Services Ltd.",
+            size=9.5,
+            lh=12,
+        )
 
         self._draw_footer(pdf, 1)
         pdf.save()
@@ -2649,10 +2693,7 @@ def _build_confirmation_template_values(charter_data: dict[str, Any]) -> dict[st
     company_name = _safe_text(d.get("company_name"))
     full_name = _safe_text((f"{first_name} {last_name}").strip())
     client_name = _safe_text(
-        company_name
-        or full_name
-        or d.get("client_display_name")
-        or d.get("client_name")
+        company_name or full_name or d.get("client_display_name") or d.get("client_name")
     )
     reserve_number = _safe_text(d.get("reserve_number") or d.get("charter_id"))
     charter_date = _fmt_date_mmddyyyy(d.get("charter_date"))
@@ -2672,9 +2713,20 @@ def _build_confirmation_template_values(charter_data: dict[str, Any]) -> dict[st
         if not dropoff_address:
             dropoff_address = _safe_text(routes[-1].get("address"))
         for route in routes:
-            event = _safe_text(route.get("event_type_code") or route.get("event_type"), "Stop")
-            t = _fmt_time_12h(route.get("stop_time") or route.get("pickup_time") or route.get("dropoff_time"))
-            addr = _safe_text(route.get("address") or route.get("pickup_location") or route.get("dropoff_location"))
+            event = _safe_text(
+                route.get("event_type_label")
+                or route.get("event_type_code")
+                or route.get("event_type"),
+                "Stop",
+            )
+            t = _fmt_time_12h(
+                route.get("stop_time") or route.get("pickup_time") or route.get("dropoff_time")
+            )
+            addr = _safe_text(
+                route.get("address")
+                or route.get("pickup_location")
+                or route.get("dropoff_location")
+            )
             at_by = _safe_text(route.get("at_by"), "at").lower() or "at"
             notes = _safe_text(route.get("route_notes"))
             parts = [event]
@@ -2749,9 +2801,7 @@ def _generate_confirmation_from_template(
     d = charter_data or {}
     routes = _sorted_routes_for_itinerary(d.get("routes") or [])
     route_times = [
-        _fmt_time_12h(
-            r.get("stop_time") or r.get("pickup_time") or r.get("dropoff_time")
-        )
+        _fmt_time_12h(r.get("stop_time") or r.get("pickup_time") or r.get("dropoff_time"))
         for r in routes
     ]
     route_times = [t for t in route_times if t]
@@ -2764,12 +2814,16 @@ def _generate_confirmation_from_template(
 
     route_lines = []
     for r in routes:
-        event = _safe_text(r.get("event_type_code") or r.get("event_type"), "Stop")
+        event = _safe_text(
+            r.get("event_type_label") or r.get("event_type_code") or r.get("event_type"), "Stop"
+        )
         stop_time = _fmt_time_12h(
             r.get("stop_time") or r.get("pickup_time") or r.get("dropoff_time")
         )
         at_by = _safe_text(r.get("at_by"), "at").lower() or "at"
-        address = _safe_text(r.get("address") or r.get("pickup_location") or r.get("dropoff_location"))
+        address = _safe_text(
+            r.get("address") or r.get("pickup_location") or r.get("dropoff_location")
+        )
         notes = _safe_text(r.get("route_notes"))
         parts = [event]
         if address:
@@ -2886,7 +2940,7 @@ def _generate_confirmation_from_template(
                 line_y = y
                 for line in lines[:8]:
                     c.drawString(x, line_y, line)
-                    line_y -= (size + 2)
+                    line_y -= size + 2
 
         c.save()
         overlay_buf.seek(0)

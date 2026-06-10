@@ -1,0 +1,634 @@
+        table_name        |            column_name             |          data_type          |                        column_default                        | is_nullable 
+--------------------------+------------------------------------+-----------------------------+--------------------------------------------------------------+-------------
+ charge_catalog           | catalog_id                         | integer                     | nextval('charge_catalog_catalog_id_seq'::regclass)           | NO
+ charge_catalog           | charge_code                        | character varying           |                                                              | NO
+ charge_catalog           | charge_name                        | character varying           |                                                              | NO
+ charge_catalog           | charge_type                        | character varying           |                                                              | NO
+ charge_catalog           | default_amount                     | numeric                     | 0.00                                                         | YES
+ charge_catalog           | is_taxable                         | boolean                     | true                                                         | YES
+ charge_catalog           | is_active                          | boolean                     | true                                                         | YES
+ charge_catalog           | display_order                      | integer                     | 0                                                            | YES
+ charge_catalog           | created_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ charge_catalog           | updated_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ charge_catalog           | calculation_type                   | character varying           | 'fixed'::character varying                                   | YES
+ charge_catalog           | percentage_rate                    | numeric                     | 0.00                                                         | YES
+ charges                  | charge_id                          | integer                     | nextval('charges_charge_id_seq'::regclass)                   | NO
+ charges                  | reserve_number                     | character varying           |                                                              | NO
+ charges                  | charge_type                        | character varying           |                                                              | NO
+ charges                  | amount                             | numeric                     |                                                              | NO
+ charges                  | description                        | character varying           |                                                              | YES
+ charges                  | created_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ charges                  | updated_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ charter_charge_defaults  | id                                 | integer                     | nextval('charter_charge_defaults_id_seq'::regclass)          | NO
+ charter_charge_defaults  | charge_name                        | text                        |                                                              | NO
+ charter_charge_defaults  | type_label                         | text                        |                                                              | YES
+ charter_charge_defaults  | default_amount                     | numeric                     | 0                                                            | YES
+ charter_charge_defaults  | is_taxable                         | boolean                     | true                                                         | YES
+ charter_charge_defaults  | is_active                          | boolean                     | true                                                         | YES
+ charter_charge_defaults  | display_order                      | integer                     | 0                                                            | YES
+ charter_charge_defaults  | created_at                         | timestamp without time zone | now()                                                        | YES
+ charter_charge_defaults  | updated_at                         | timestamp without time zone | now()                                                        | YES
+ charter_charges          | charge_id                          | integer                     | nextval('charter_charges_charge_id_seq'::regclass)           | NO
+ charter_charges          | account_number                     | character varying           |                                                              | YES
+ charter_charges          | reserve_number                     | character varying           |                                                              | YES
+ charter_charges          | charter_id                         | integer                     |                                                              | YES
+ charter_charges          | amount                             | numeric                     |                                                              | YES
+ charter_charges          | rate                               | numeric                     |                                                              | YES
+ charter_charges          | description                        | text                        |                                                              | YES
+ charter_charges          | sequence                           | integer                     |                                                              | YES
+ charter_charges          | closed                             | boolean                     | false                                                        | YES
+ charter_charges          | frozen                             | boolean                     | false                                                        | YES
+ charter_charges          | tag                                | character varying           |                                                              | YES
+ charter_charges          | note                               | text                        |                                                              | YES
+ charter_charges          | last_updated                       | timestamp without time zone |                                                              | YES
+ charter_charges          | last_updated_by                    | character varying           |                                                              | YES
+ charter_charges          | created_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ charter_charges          | charge_type                        | character varying           | 'other'::character varying                                   | NO
+ charter_charges          | category                           | character varying           | 'unspecified'::character varying                             | YES
+ charter_charges          | gratuity_type                      | character varying           |                                                              | YES
+ charter_charges          | gst_amount                         | numeric                     |                                                              | YES
+ charter_charges          | tax_rate                           | numeric                     |                                                              | YES
+ charter_run_types        | run_type_id                        | integer                     | nextval('charter_run_types_run_type_id_seq'::regclass)       | NO
+ charter_run_types        | run_type_name                      | character varying           |                                                              | NO
+ charter_run_types        | display_order                      | integer                     | 100                                                          | YES
+ charter_run_types        | is_active                          | boolean                     | true                                                         | YES
+ charter_run_types        | created_at                         | timestamp without time zone | now()                                                        | YES
+ charter_run_types        | updated_at                         | timestamp without time zone | now()                                                        | YES
+ charter_run_types        | description                        | text                        |                                                              | YES
+ charter_run_types        | id                                 | integer                     |                                                              | YES
+ charter_types            | charter_type_id                    | integer                     | nextval('charter_types_charter_type_id_seq'::regclass)       | NO
+ charter_types            | type_code                          | character varying           |                                                              | NO
+ charter_types            | type_name                          | character varying           |                                                              | NO
+ charter_types            | description                        | text                        |                                                              | YES
+ charter_types            | requires_hours                     | boolean                     | true                                                         | YES
+ charter_types            | is_active                          | boolean                     | true                                                         | YES
+ charter_types            | display_order                      | integer                     | 0                                                            | YES
+ charters                 | charter_id                         | integer                     | nextval('charters_charter_id_seq'::regclass)                 | NO
+ charters                 | reserve_number                     | character varying           |                                                              | NO
+ charters                 | client_id                          | integer                     |                                                              | YES
+ charters                 | charter_date                       | date                        |                                                              | YES
+ charters                 | pickup_time                        | time without time zone      |                                                              | YES
+ charters                 | pickup_address                     | text                        |                                                              | YES
+ charters                 | dropoff_address                    | text                        |                                                              | YES
+ charters                 | passenger_count                    | integer                     |                                                              | YES
+ charters                 | rate                               | numeric                     |                                                              | YES
+ charters                 | balance                            | numeric                     |                                                              | YES
+ charters                 | payment_totals                     | numeric                     |                                                              | YES
+ charters                 | status                             | character varying           |                                                              | YES
+ charters                 | created_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ charters                 | updated_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ charters                 | driver_notes                       | text                        |                                                              | YES
+ charters                 | client_notes                       | text                        |                                                              | YES
+ charters                 | booking_notes                      | text                        |                                                              | YES
+ charters                 | total_amount_due                   | numeric                     |                                                              | YES
+ charters                 | dispatcher_approved                | boolean                     | false                                                        | YES
+ charters                 | driver_base_pay                    | numeric                     |                                                              | YES
+ charters                 | driver_gratuity                    | numeric                     | 0.00                                                         | YES
+ charters                 | driver_total_expense               | numeric                     |                                                              | YES
+ charters                 | expense_calculated_at              | timestamp without time zone |                                                              | YES
+ charters                 | odometer_start                     | numeric                     |                                                              | YES
+ charters                 | odometer_end                       | numeric                     |                                                              | YES
+ charters                 | total_kms                          | numeric                     |                                                              | YES
+ charters                 | vehicle_notes                      | text                        |                                                              | YES
+ charters                 | is_placeholder                     | boolean                     | false                                                        | NO
+ charters                 | default_hourly_price               | numeric                     |                                                              | YES
+ charters                 | package_rate                       | numeric                     |                                                              | YES
+ charters                 | extra_time_rate                    | numeric                     |                                                              | YES
+ charters                 | daily_rate                         | numeric                     |                                                              | YES
+ charters                 | airport_pickup_price               | numeric                     |                                                              | YES
+ charters                 | employee_id                        | integer                     |                                                              | YES
+ charters                 | vehicle_id                         | integer                     |                                                              | YES
+ charters                 | client_display_name                | text                        |                                                              | YES
+ charters                 | nrd_received                       | boolean                     | false                                                        | YES
+ charters                 | nrd_amount                         | numeric                     |                                                              | YES
+ charters                 | nrd_method                         | character varying           |                                                              | YES
+ charters                 | is_out_of_town                     | boolean                     | false                                                        | YES
+ charters                 | float_received                     | numeric                     |                                                              | YES
+ charters                 | float_reimbursement_needed         | numeric                     |                                                              | YES
+ charters                 | calendar_color                     | character varying           |                                                              | YES
+ charters                 | separate_customer_printout         | boolean                     | false                                                        | YES
+ charters                 | charter_type                       | character varying           | 'hourly'::character varying                                  | YES
+ charters                 | quoted_hours                       | numeric                     | 0.00                                                         | YES
+ charters                 | standby_rate                       | numeric                     | 25.00                                                        | YES
+ charters                 | calendar_sync_status               | character varying           |                                                              | YES
+ charters                 | outlook_entry_id                   | character varying           |                                                              | YES
+ charters                 | calendar_notes                     | text                        |                                                              | YES
+ charters                 | record_type                        | USER-DEFINED                |                                                              | YES
+ charters                 | version                            | integer                     |                                                              | YES
+ charters                 | do_time                            | time without time zone      |                                                              | YES
+ charters                 | locked                             | boolean                     | false                                                        | NO
+ charters                 | account_number                     | character varying           |                                                              | YES
+ charters                 | accounting_entry_id                | bigint                      |                                                              | YES
+ charters                 | actual_hours                       | numeric                     |                                                              | YES
+ charters                 | approved_at                        | timestamp without time zone |                                                              | YES
+ charters                 | arrived_at_event_at                | timestamp with time zone    |                                                              | YES
+ charters                 | assigned_driver_id                 | integer                     |                                                              | YES
+ charters                 | banking_transaction_id             | bigint                      |                                                              | YES
+ charters                 | beverage_service_required          | boolean                     | false                                                        | YES
+ charters                 | calculated_hours                   | numeric                     |                                                              | YES
+ charters                 | cancelled                          | boolean                     | false                                                        | YES
+ charters                 | completion_timestamp               | timestamp with time zone    |                                                              | YES
+ charters                 | driver                             | character varying           |                                                              | YES
+ charters                 | driver_hourly_rate                 | numeric                     | 15.00                                                        | YES
+ charters                 | driver_hours_worked                | numeric                     |                                                              | YES
+ charters                 | driver_paid                        | boolean                     | false                                                        | YES
+ charters                 | duty_log                           | jsonb                       |                                                              | YES
+ charters                 | en_route_to_event_at               | timestamp with time zone    |                                                              | YES
+ charters                 | fuel_added                         | numeric                     |                                                              | YES
+ charters                 | fuel_added_liters                  | numeric                     |                                                              | YES
+ charters                 | income_ledger_id                   | bigint                      |                                                              | YES
+ charters                 | notes                              | text                        |                                                              | YES
+ charters                 | nrd_received_at                    | timestamp with time zone    |                                                              | YES
+ charters                 | nrr_amount                         | numeric                     |                                                              | YES
+ charters                 | nrr_received                       | boolean                     | false                                                        | YES
+ charters                 | off_duty_at                        | timestamp with time zone    |                                                              | YES
+ charters                 | on_duty_started_at                 | timestamp with time zone    |                                                              | YES
+ charters                 | on_location_at                     | timestamp with time zone    |                                                              | YES
+ charters                 | paid_amount                        | numeric                     | 0.00                                                         | YES
+ charters                 | passengers_loaded_at               | timestamp with time zone    |                                                              | YES
+ charters                 | payment_id                         | bigint                      |                                                              | YES
+ charters                 | payment_status                     | character varying           | 'Pending'::character varying                                 | YES
+ charters                 | receipt_id                         | bigint                      |                                                              | YES
+ charters                 | red_deer_bylaw_exempt              | boolean                     | false                                                        | YES
+ charters                 | reservation_time                   | timestamp without time zone |                                                              | YES
+ charters                 | return_journey_started_at          | timestamp with time zone    |                                                              | YES
+ charters                 | split_run_after_hours              | numeric                     | 0.00                                                         | YES
+ charters                 | split_run_before_hours             | numeric                     | 0.00                                                         | YES
+ charters                 | vehicle                            | character varying           |                                                              | YES
+ charters                 | workshift_end                      | timestamp without time zone |                                                              | YES
+ charters                 | workshift_start                    | timestamp without time zone |                                                              | YES
+ charters                 | routing_type                       | character varying           | 'regular'::character varying                                 | YES
+ charters                 | split_run_enabled                  | boolean                     | false                                                        | YES
+ charters                 | split_time_before                  | numeric                     | 0.00                                                         | YES
+ charters                 | split_time_after                   | numeric                     | 0.00                                                         | YES
+ charters                 | split_run_start_time               | numeric                     | 0.00                                                         | YES
+ charters                 | split_run_time                     | numeric                     | 0.00                                                         | YES
+ charters                 | split_run_pickup_time              | time without time zone      |                                                              | YES
+ charters                 | wait_time_rate                     | numeric                     |                                                              | YES
+ charters                 | cart_order_list                    | text                        |                                                              | YES
+ charters                 | fuel_gst                           | numeric                     |                                                              | YES
+ charters                 | fuel_litres                        | numeric                     |                                                              | YES
+ charters                 | fuel_price                         | numeric                     |                                                              | YES
+ charters                 | extra_gratuity                     | numeric                     | 0                                                            | YES
+ charters                 | gst_permit_number                  | character varying           |                                                              | YES
+ charters                 | hourly_rate                        | numeric                     |                                                              | YES
+ charters                 | beverage_total                     | numeric                     | 0                                                            | YES
+ charters                 | custom_charges                     | jsonb                       |                                                              | YES
+ charters                 | gst_amount                         | numeric                     | 0                                                            | YES
+ charters                 | grand_total                        | numeric                     | 0                                                            | YES
+ charters                 | dropoff_time                       | time without time zone      |                                                              | YES
+ charters                 | gratuity_percent                   | numeric                     | 18                                                           | YES
+ charters                 | gst_exempt                         | boolean                     | false                                                        | YES
+ charters                 | airport_location                   | character varying           |                                                              | YES
+ charters                 | charter_fee_type                   | character varying           | 'hourly'::character varying                                  | YES
+ charters                 | subtotal                           | numeric                     | 0                                                            | YES
+ charters                 | amount_paid                        | numeric                     | 0                                                            | YES
+ charters                 | balance_owing                      | numeric                     | 0                                                            | YES
+ charters                 | approved_hours                     | numeric                     |                                                              | YES
+ charters                 | approved_gratuity                  | numeric                     |                                                              | YES
+ charters                 | beverages_separate                 | boolean                     | false                                                        | NO
+ charters                 | beverages_purchased                | boolean                     | false                                                        | NO
+ charters                 | beverage_purchase_notes            | text                        |                                                              | YES
+ charters                 | charter_fee_amount                 | numeric                     |                                                              | YES
+ charters                 | gratuity_amount                    | numeric                     |                                                              | YES
+ clients                  | client_id                          | integer                     | nextval('clients_client_id_seq'::regclass)                   | NO
+ clients                  | account_number                     | character varying           |                                                              | NO
+ clients                  | company_name                       | character varying           |                                                              | YES
+ clients                  | primary_phone                      | character varying           |                                                              | YES
+ clients                  | email                              | character varying           |                                                              | YES
+ clients                  | address_line1                      | character varying           |                                                              | YES
+ clients                  | city                               | character varying           |                                                              | YES
+ clients                  | state                              | character varying           |                                                              | YES
+ clients                  | zip_code                           | character varying           |                                                              | YES
+ clients                  | balance                            | numeric                     | 0                                                            | YES
+ clients                  | credit_limit                       | numeric                     | 0                                                            | YES
+ clients                  | discount_percentage                | numeric                     | 0                                                            | YES
+ clients                  | discount_flat                      | numeric                     | 0                                                            | YES
+ clients                  | gratuity_percentage                | numeric                     | 18.00                                                        | YES
+ clients                  | interest_rate                      | numeric                     | 0                                                            | YES
+ clients                  | grace_days                         | integer                     | 0                                                            | YES
+ clients                  | is_inactive                        | boolean                     | false                                                        | YES
+ clients                  | status                             | character varying           | 'active'::character varying                                  | YES
+ clients                  | created_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ clients                  | updated_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ clients                  | billing_no                         | character varying           |                                                              | YES
+ clients                  | is_gst_exempt                      | boolean                     | false                                                        | YES
+ clients                  | exemption_certificate_number       | character varying           |                                                              | YES
+ clients                  | exemption_certificate_expiry       | date                        |                                                              | YES
+ clients                  | exemption_type                     | character varying           |                                                              | YES
+ clients                  | exemption_notes                    | text                        |                                                              | YES
+ clients                  | bad_debt_status                    | character varying           | 'current'::character varying                                 | YES
+ clients                  | collection_attempts_count          | integer                     | 0                                                            | YES
+ clients                  | last_collection_date               | date                        |                                                              | YES
+ clients                  | first_overdue_date                 | date                        |                                                              | YES
+ clients                  | writeoff_date                      | date                        |                                                              | YES
+ clients                  | writeoff_amount                    | numeric                     | 0.00                                                         | YES
+ clients                  | bankruptcy_status                  | character varying           | 'none'::character varying                                    | YES
+ clients                  | collection_notes                   | text                        |                                                              | YES
+ clients                  | bad_debt_reason                    | character varying           | NULL::character varying                                      | YES
+ clients                  | recovery_probability               | character varying           | 'high'::character varying                                    | YES
+ clients                  | fraud_case_id                      | integer                     |                                                              | YES
+ clients                  | client_name                        | text                        |                                                              | YES
+ clients                  | lms_customer_number                | text                        |                                                              | YES
+ clients                  | qb_customer_id                     | character varying           |                                                              | YES
+ clients                  | qb_customer_type                   | character varying           |                                                              | YES
+ clients                  | payment_terms                      | character varying           | 'Net 30'::character varying                                  | YES
+ clients                  | tax_code                           | character varying           |                                                              | YES
+ clients                  | billing_rate_level                 | character varying           |                                                              | YES
+ clients                  | sales_tax_code                     | character varying           |                                                              | YES
+ clients                  | province                           | character varying           |                                                              | YES
+ clients                  | country                            | character varying           | 'Canada'::character varying                                  | YES
+ clients                  | warning_flag                       | boolean                     | false                                                        | YES
+ clients                  | billing_address                    | character varying           | ''::character varying                                        | YES
+ clients                  | contact_info                       | character varying           | ''::character varying                                        | YES
+ clients                  | notes                              | text                        | ''::text                                                     | YES
+ clients                  | name                               | character varying           |                                                              | YES
+ clients                  | phone                              | character varying           |                                                              | YES
+ clients                  | address                            | text                        |                                                              | YES
+ clients                  | first_name                         | character varying           |                                                              | YES
+ clients                  | last_name                          | character varying           |                                                              | YES
+ clients                  | cell_phone                         | character varying           |                                                              | YES
+ clients                  | home_phone                         | character varying           |                                                              | YES
+ clients                  | work_phone                         | character varying           |                                                              | YES
+ clients                  | fax_phone                          | character varying           |                                                              | YES
+ clients                  | full_name_search                   | text                        |                                                              | YES
+ clients                  | corporate_parent_id                | integer                     | 0                                                            | YES
+ clients                  | corporate_role                     | character varying           |                                                              | YES
+ clients                  | gst_exempt                         | boolean                     | false                                                        | YES
+ clients                  | account_type                       | character varying           | 'individual'::character varying                              | YES
+ clients                  | is_company                         | boolean                     |                                                              | YES
+ clients                  | is_taxable                         | boolean                     | true                                                         | YES
+ clients                  | parent_client_id                   | integer                     |                                                              | YES
+ clients                  | is_active                          | boolean                     | true                                                         | YES
+ clients                  | contract_charter_reserve           | character varying           |                                                              | YES
+ drivers                  | driver_id                          | integer                     | nextval('drivers_driver_id_seq'::regclass)                   | NO
+ drivers                  | employee_id                        | integer                     |                                                              | YES
+ drivers                  | first_name                         | character varying           |                                                              | YES
+ drivers                  | last_name                          | character varying           |                                                              | YES
+ drivers                  | phone                              | character varying           |                                                              | YES
+ drivers                  | email                              | character varying           |                                                              | YES
+ drivers                  | license_number                     | character varying           |                                                              | YES
+ drivers                  | license_expiry                     | date                        |                                                              | YES
+ drivers                  | hire_date                          | date                        |                                                              | YES
+ drivers                  | termination_date                   | date                        |                                                              | YES
+ drivers                  | status                             | character varying           | 'active'::character varying                                  | YES
+ drivers                  | is_active                          | boolean                     | true                                                         | YES
+ drivers                  | notes                              | text                        |                                                              | YES
+ drivers                  | created_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ drivers                  | updated_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ employees                | employee_id                        | integer                     | nextval('employees_employee_id_seq'::regclass)               | NO
+ employees                | employee_number                    | character varying           |                                                              | NO
+ employees                | full_name                          | character varying           |                                                              | NO
+ employees                | last_name                          | character varying           |                                                              | YES
+ employees                | first_name                         | character varying           |                                                              | YES
+ employees                | phone                              | character varying           |                                                              | YES
+ employees                | cell_phone                         | character varying           |                                                              | YES
+ employees                | employee_category                  | character varying           | 'driver'::character varying                                  | YES
+ employees                | position                           | character varying           | 'chauffeur'::character varying                               | YES
+ employees                | is_chauffeur                       | boolean                     | true                                                         | YES
+ employees                | salary                             | numeric                     | 0                                                            | YES
+ employees                | tax_exemptions                     | integer                     | 0                                                            | YES
+ employees                | deduction_per_voucher              | numeric                     | 0                                                            | YES
+ employees                | deduction_radio_dues               | numeric                     | 0                                                            | YES
+ employees                | deduction_misc_fees                | numeric                     | 0                                                            | YES
+ employees                | status                             | character varying           | 'active'::character varying                                  | YES
+ employees                | created_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ employees                | updated_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ employees                | hire_date                          | date                        |                                                              | YES
+ employees                | emergency_contact_name             | character varying           |                                                              | YES
+ employees                | emergency_contact_phone            | character varying           |                                                              | YES
+ employees                | employment_status                  | character varying           | 'active'::character varying                                  | YES
+ employees                | compliance_status                  | character varying           | 'unknown'::character varying                                 | YES
+ employees                | total_trips                        | integer                     | 0                                                            | YES
+ employees                | total_hours                        | numeric                     | 0.00                                                         | YES
+ employees                | total_revenue                      | numeric                     | 0.00                                                         | YES
+ employees                | profile_updated                    | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ employees                | hourly_rate                        | numeric                     | 15.00                                                        | YES
+ employees                | rate_effective_date                | date                        | CURRENT_DATE                                                 | YES
+ employees                | quickbooks_id                      | character varying           |                                                              | YES
+ employees                | name                               | character varying           |                                                              | YES
+ employees                | email                              | character varying           |                                                              | YES
+ employees                | quickbooks_source                  | character varying           |                                                              | YES
+ employees                | t4_sin                             | character varying           |                                                              | YES
+ employees                | legacy_name                        | character varying           |                                                              | YES
+ employees                | legacy_employee                    | boolean                     | false                                                        | YES
+ employees                | street_address                     | character varying           |                                                              | YES
+ employees                | city                               | character varying           |                                                              | YES
+ employees                | province                           | character varying           | 'AB'::character varying                                      | YES
+ employees                | postal_code                        | character varying           |                                                              | YES
+ employees                | country                            | character varying           | 'Canada'::character varying                                  | YES
+ employees                | driver_license_number              | character varying           |                                                              | YES
+ employees                | driver_license_expiry              | date                        |                                                              | YES
+ employees                | chauffeur_permit_number            | character varying           |                                                              | YES
+ employees                | chauffeur_permit_expiry            | date                        |                                                              | YES
+ employees                | salary_deferred                    | numeric                     | 0.00                                                         | YES
+ employees                | hourly_pay_rate                    | numeric                     |                                                              | YES
+ employees                | gratuity_eligible                  | boolean                     | true                                                         | YES
+ employees                | gratuity_percentage                | integer                     | 100                                                          | YES
+ employees                | red_deer_compliant                 | boolean                     | false                                                        | YES
+ employees                | red_deer_required                  | boolean                     | true                                                         | YES
+ employees                | license_class                      | character varying           |                                                              | YES
+ employees                | medical_fitness_expiry             | date                        |                                                              | YES
+ employees                | vulnerable_sector_check_date       | date                        |                                                              | YES
+ employees                | drivers_abstract_date              | date                        |                                                              | YES
+ employees                | proserve_number                    | character varying           |                                                              | YES
+ employees                | proserve_expiry                    | date                        |                                                              | YES
+ employees                | bylaw_permit_renewal_fee           | numeric                     | 0.00                                                         | YES
+ employees                | driver_license_class               | character varying           |                                                              | YES
+ employees                | driver_license_restrictions        | text                        |                                                              | YES
+ employees                | qualification_1_date               | date                        |                                                              | YES
+ employees                | qualification_2_date               | date                        |                                                              | YES
+ employees                | qualification_3_date               | date                        |                                                              | YES
+ employees                | qualification_4_date               | date                        |                                                              | YES
+ employees                | qualification_5_date               | date                        |                                                              | YES
+ employees                | department                         | character varying           |                                                              | YES
+ employees                | driver_code                        | character varying           |                                                              | YES
+ employees                | version                            | integer                     | 1                                                            | YES
+ invoice_line_items       | line_item_id                       | integer                     | nextval('invoice_line_items_line_item_id_seq'::regclass)     | NO
+ invoice_line_items       | invoice_id                         | integer                     |                                                              | NO
+ invoice_line_items       | reserve_number                     | character varying           |                                                              | YES
+ invoice_line_items       | line_type                          | character varying           |                                                              | YES
+ invoice_line_items       | description                        | character varying           |                                                              | YES
+ invoice_line_items       | quantity                           | numeric                     |                                                              | YES
+ invoice_line_items       | unit_price                         | numeric                     |                                                              | YES
+ invoice_line_items       | line_total                         | numeric                     |                                                              | YES
+ invoice_line_items       | taxable                            | boolean                     | true                                                         | YES
+ invoice_line_items       | gst_amount                         | numeric                     |                                                              | YES
+ invoice_line_items       | display_order                      | integer                     |                                                              | YES
+ invoice_line_items       | notes                              | text                        |                                                              | YES
+ invoice_line_items       | account_code                       | character varying           |                                                              | YES
+ invoice_line_items       | account_name                       | character varying           |                                                              | YES
+ invoice_line_items       | amount                             | numeric                     |                                                              | YES
+ invoice_line_items       | created_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ invoice_line_items       | discount_amount                    | numeric                     |                                                              | YES
+ invoice_line_items       | discount_percent                   | numeric                     |                                                              | YES
+ invoice_line_items       | driver_id                          | integer                     |                                                              | YES
+ invoice_line_items       | id                                 | integer                     |                                                              | YES
+ invoice_line_items       | income_account                     | character varying           |                                                              | YES
+ invoice_line_items       | is_taxable                         | boolean                     | true                                                         | YES
+ invoice_line_items       | item_name                          | character varying           |                                                              | YES
+ invoice_line_items       | item_type                          | character varying           |                                                              | YES
+ invoice_line_items       | line_number                        | integer                     |                                                              | YES
+ invoice_line_items       | qb_class                           | character varying           |                                                              | YES
+ invoice_line_items       | qb_item_id                         | character varying           |                                                              | YES
+ invoice_line_items       | rate                               | numeric                     |                                                              | YES
+ invoice_line_items       | service_type                       | character varying           |                                                              | YES
+ invoice_line_items       | tax_amount                         | numeric                     |                                                              | YES
+ invoice_line_items       | tax_code                           | character varying           |                                                              | YES
+ invoice_line_items       | vehicle_id                         | integer                     |                                                              | YES
+ invoices                 | invoice_id                         | integer                     | nextval('invoices_invoice_id_seq'::regclass)                 | NO
+ invoices                 | reserve_number                     | character varying           |                                                              | NO
+ invoices                 | invoice_number                     | character varying           |                                                              | YES
+ invoices                 | invoice_date                       | date                        |                                                              | YES
+ invoices                 | due_date                           | date                        |                                                              | YES
+ invoices                 | subtotal_taxable                   | numeric                     |                                                              | YES
+ invoices                 | gst_amount                         | numeric                     |                                                              | YES
+ invoices                 | subtotal_non_taxable               | numeric                     |                                                              | YES
+ invoices                 | invoice_total                      | numeric                     |                                                              | YES
+ invoices                 | total_payments                     | numeric                     |                                                              | YES
+ invoices                 | balance_due                        | numeric                     |                                                              | YES
+ invoices                 | paid                               | boolean                     | false                                                        | YES
+ invoices                 | invoice_status                     | character varying           |                                                              | YES
+ invoices                 | manager_approved                   | boolean                     | false                                                        | YES
+ invoices                 | manager_approved_by                | character varying           |                                                              | YES
+ invoices                 | manager_approved_at                | timestamp with time zone    |                                                              | YES
+ invoices                 | sent_at                            | timestamp with time zone    |                                                              | YES
+ invoices                 | sent_method                        | character varying           |                                                              | YES
+ invoices                 | sent_by                            | character varying           |                                                              | YES
+ invoices                 | finalized_at                       | timestamp with time zone    |                                                              | YES
+ invoices                 | finalized_by                       | character varying           |                                                              | YES
+ invoices                 | created_at                         | timestamp with time zone    | now()                                                        | YES
+ invoices                 | created_by                         | character varying           |                                                              | YES
+ invoices                 | notes                              | text                        |                                                              | YES
+ payments                 | payment_id                         | integer                     | nextval('payments_payment_id_seq'::regclass)                 | NO
+ payments                 | account_number                     | character varying           |                                                              | YES
+ payments                 | reserve_number                     | character varying           |                                                              | YES
+ payments                 | amount                             | numeric                     |                                                              | YES
+ payments                 | payment_key                        | character varying           |                                                              | YES
+ payments                 | last_updated                       | timestamp without time zone |                                                              | YES
+ payments                 | created_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ payments                 | payment_method                     | character varying           |                                                              | YES
+ payments                 | payment_date                       | date                        |                                                              | YES
+ payments                 | status                             | character varying           | 'pending'::character varying                                 | YES
+ payments                 | notes                              | text                        |                                                              | YES
+ payments                 | payment_code_4char                 | character varying           |                                                              | YES
+ payments                 | updated_at                         | timestamp without time zone |                                                              | YES
+ payments                 | reference_number                   | character varying           |                                                              | YES
+ payments                 | is_deposited                       | boolean                     | false                                                        | YES
+ payments                 | payment_label                      | character varying           |                                                              | YES
+ payments                 | verified                           | boolean                     | false                                                        | YES
+ payments                 | verified_date                      | timestamp without time zone |                                                              | YES
+ payments                 | verified_by                        | character varying           |                                                              | YES
+ payments                 | square_fee_gl_code                 | character varying           |                                                              | YES
+ payments                 | square_fee_gl_description          | text                        |                                                              | YES
+ payments                 | accounting_entry_id                | bigint                      |                                                              | YES
+ payments                 | adjustment_type                    | character varying           |                                                              | YES
+ payments                 | applied_to_invoice                 | integer                     |                                                              | YES
+ payments                 | authorization_code                 | character varying           |                                                              | YES
+ payments                 | banking_receipt_matching_ledger_id | bigint                      |                                                              | YES
+ payments                 | banking_transaction_id             | integer                     |                                                              | YES
+ payments                 | charter_id                         | integer                     |                                                              | YES
+ payments                 | check_number                       | character varying           |                                                              | YES
+ payments                 | client_id                          | integer                     |                                                              | YES
+ payments                 | credit_card_expiry                 | character varying           |                                                              | YES
+ payments                 | credit_card_last4                  | character varying           |                                                              | YES
+ payments                 | deposit_to_account                 | character varying           |                                                              | YES
+ payments                 | income_ledger_id                   | bigint                      |                                                              | YES
+ payments                 | last_updated_by                    | character varying           |                                                              | YES
+ payments                 | payment_account                    | character varying           |                                                              | YES
+ payments                 | payment_amount                     | numeric                     |                                                              | YES
+ payments                 | qb_payment_type                    | character varying           |                                                              | YES
+ payments                 | qb_trans_num                       | character varying           |                                                              | YES
+ payments                 | receipt_id                         | bigint                      |                                                              | YES
+ payments                 | related_payment_id                 | integer                     |                                                              | YES
+ payments                 | square_card_brand                  | text                        |                                                              | YES
+ payments                 | square_customer_email              | text                        |                                                              | YES
+ payments                 | square_customer_name               | text                        |                                                              | YES
+ payments                 | square_gross_sales                 | numeric                     |                                                              | YES
+ payments                 | square_last4                       | text                        |                                                              | YES
+ payments                 | square_net_sales                   | numeric                     |                                                              | YES
+ payments                 | square_notes                       | text                        |                                                              | YES
+ payments                 | square_payment_id                  | text                        |                                                              | YES
+ payments                 | square_status                      | text                        |                                                              | YES
+ payments                 | square_tip                         | numeric                     |                                                              | YES
+ payments                 | square_transaction_id              | text                        |                                                              | YES
+ payments                 | version                            | integer                     | 1                                                            | YES
+ quotations               | quote_id                           | integer                     | nextval('quotations_quote_id_seq'::regclass)                 | NO
+ quotations               | charter_id                         | integer                     |                                                              | YES
+ quotations               | reserve_number                     | character varying           |                                                              | YES
+ quotations               | client_id                          | integer                     |                                                              | YES
+ quotations               | quote_date                         | date                        |                                                              | NO
+ quotations               | pickup_location                    | character varying           |                                                              | YES
+ quotations               | dropoff_location                   | character varying           |                                                              | YES
+ quotations               | pax_count                          | integer                     |                                                              | YES
+ quotations               | hourly_hours                       | numeric                     |                                                              | YES
+ quotations               | hourly_rate                        | numeric                     |                                                              | YES
+ quotations               | hourly_total                       | numeric                     |                                                              | YES
+ quotations               | package_description                | character varying           |                                                              | YES
+ quotations               | package_price                      | numeric                     |                                                              | YES
+ quotations               | split_run_json                     | text                        |                                                              | YES
+ quotations               | split_run_total                    | numeric                     |                                                              | YES
+ quotations               | gst_rate                           | numeric                     | 0.05                                                         | YES
+ quotations               | gratuity_rate                      | numeric                     | 0.18                                                         | YES
+ quotations               | extra_charges_json                 | text                        |                                                              | YES
+ quotations               | selected_option                    | character varying           |                                                              | YES
+ quotations               | total_quote                        | numeric                     |                                                              | YES
+ quotations               | status                             | character varying           | 'pending'::character varying                                 | YES
+ quotations               | sent_to_client                     | boolean                     | false                                                        | YES
+ quotations               | sent_date                          | timestamp without time zone |                                                              | YES
+ quotations               | created_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ quotations               | updated_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ run_type_default_charges | run_type_id                        | integer                     |                                                              | NO
+ run_type_default_charges | charge_description                 | character varying           |                                                              | NO
+ run_type_default_charges | charge_type                        | character varying           |                                                              | YES
+ run_type_default_charges | amount                             | numeric                     |                                                              | YES
+ run_type_default_charges | calc_type                          | character varying           |                                                              | YES
+ run_type_default_charges | value                              | numeric                     |                                                              | YES
+ run_type_default_charges | is_taxable                         | boolean                     | true                                                         | YES
+ run_type_default_charges | sequence                           | integer                     | 0                                                            | YES
+ run_type_default_charges | created_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ run_type_default_charges | updated_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ run_type_default_charges | formula                            | character varying           |                                                              | YES
+ run_type_default_charges | id                                 | integer                     |                                                              | YES
+ system_config            | config_id                          | integer                     | nextval('system_config_config_id_seq'::regclass)             | NO
+ system_config            | config_category                    | character varying           |                                                              | NO
+ system_config            | config_key                         | character varying           |                                                              | NO
+ system_config            | config_value                       | text                        |                                                              | YES
+ system_config            | data_type                          | character varying           | 'string'::character varying                                  | YES
+ system_config            | description                        | text                        |                                                              | YES
+ system_config            | is_encrypted                       | boolean                     | false                                                        | YES
+ system_config            | is_user_configurable               | boolean                     | true                                                         | YES
+ system_config            | default_value                      | text                        |                                                              | YES
+ system_config            | validation_rules                   | text                        |                                                              | YES
+ system_config            | last_modified                      | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ system_config            | modified_by                        | character varying           |                                                              | YES
+ users                    | user_id                            | integer                     | nextval('users_user_id_seq'::regclass)                       | NO
+ users                    | username                           | character varying           |                                                              | NO
+ users                    | email                              | character varying           |                                                              | NO
+ users                    | password_hash                      | character varying           |                                                              | NO
+ users                    | role                               | character varying           | 'user'::character varying                                    | YES
+ users                    | status                             | character varying           | 'active'::character varying                                  | YES
+ users                    | permissions                        | jsonb                       | '[]'::jsonb                                                  | YES
+ users                    | last_login                         | timestamp without time zone |                                                              | YES
+ users                    | last_activity                      | timestamp without time zone |                                                              | YES
+ users                    | last_ip                            | inet                        |                                                              | YES
+ users                    | failed_login_attempts              | integer                     | 0                                                            | YES
+ users                    | locked_until                       | timestamp without time zone |                                                              | YES
+ users                    | created_at                         | timestamp without time zone | now()                                                        | YES
+ users                    | updated_at                         | timestamp without time zone | now()                                                        | YES
+ users                    | mfa_enabled                        | boolean                     | false                                                        | YES
+ users                    | mfa_secret                         | character varying           |                                                              | YES
+ users                    | session_version                    | integer                     | 1                                                            | YES
+ vehicle_capacity_tiers   | tier_id                            | integer                     | nextval('vehicle_capacity_tiers_tier_id_seq'::regclass)      | NO
+ vehicle_capacity_tiers   | tier_name                          | character varying           |                                                              | NO
+ vehicle_capacity_tiers   | min_capacity                       | integer                     |                                                              | YES
+ vehicle_capacity_tiers   | max_capacity                       | integer                     |                                                              | YES
+ vehicle_capacity_tiers   | tier_group                         | integer                     |                                                              | YES
+ vehicle_capacity_tiers   | display_order                      | integer                     |                                                              | YES
+ vehicle_pricing_defaults | pricing_id                         | integer                     | nextval('vehicle_pricing_defaults_pricing_id_seq'::regclass) | NO
+ vehicle_pricing_defaults | vehicle_type                       | character varying           |                                                              | NO
+ vehicle_pricing_defaults | charter_type_code                  | character varying           |                                                              | NO
+ vehicle_pricing_defaults | hourly_rate                        | numeric                     | 0.00                                                         | YES
+ vehicle_pricing_defaults | package_rate                       | numeric                     | 0.00                                                         | YES
+ vehicle_pricing_defaults | package_hours                      | numeric                     | 0.00                                                         | YES
+ vehicle_pricing_defaults | minimum_hours                      | numeric                     | 0.00                                                         | YES
+ vehicle_pricing_defaults | extra_time_rate                    | numeric                     | 0.00                                                         | YES
+ vehicle_pricing_defaults | standby_rate                       | numeric                     | 25.00                                                        | YES
+ vehicle_pricing_defaults | split_run_before_hours             | numeric                     | 1.5                                                          | YES
+ vehicle_pricing_defaults | split_run_after_hours              | numeric                     | 1.5                                                          | YES
+ vehicle_pricing_defaults | is_active                          | boolean                     | true                                                         | YES
+ vehicle_pricing_defaults | updated_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ vehicle_pricing_defaults | airport_pickup_calgary             | numeric                     |                                                              | YES
+ vehicle_pricing_defaults | airport_pickup_edmonton            | numeric                     |                                                              | YES
+ vehicle_pricing_defaults | created_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ vehicle_pricing_defaults | daily_rate                         | numeric                     |                                                              | YES
+ vehicle_pricing_defaults | fee_1                              | numeric                     |                                                              | YES
+ vehicle_pricing_defaults | fee_2                              | numeric                     |                                                              | YES
+ vehicle_pricing_defaults | fee_3                              | numeric                     |                                                              | YES
+ vehicle_pricing_defaults | hourly_package                     | numeric                     |                                                              | YES
+ vehicle_pricing_defaults | nrr                                | numeric                     |                                                              | YES
+ vehicle_pricing_defaults | vehicle_type_display_order         | integer                     |                                                              | YES
+ vehicles                 | vehicle_id                         | integer                     | nextval('vehicles_vehicle_id_seq'::regclass)                 | NO
+ vehicles                 | vehicle_number                     | character varying           |                                                              | YES
+ vehicles                 | make                               | character varying           |                                                              | YES
+ vehicles                 | model                              | character varying           |                                                              | YES
+ vehicles                 | year                               | integer                     |                                                              | YES
+ vehicles                 | license_plate                      | character varying           |                                                              | YES
+ vehicles                 | passenger_capacity                 | integer                     |                                                              | YES
+ vehicles                 | updated_at                         | timestamp without time zone | CURRENT_TIMESTAMP                                            | YES
+ vehicles                 | operational_status                 | character varying           | 'active'::character varying                                  | YES
+ vehicles                 | last_service_date                  | date                        |                                                              | YES
+ vehicles                 | next_service_due                   | date                        |                                                              | YES
+ vehicles                 | vin_number                         | character varying           |                                                              | YES
+ vehicles                 | description                        | text                        |                                                              | YES
+ vehicles                 | ext_color                          | character varying           |                                                              | YES
+ vehicles                 | int_color                          | character varying           |                                                              | YES
+ vehicles                 | length                             | numeric                     |                                                              | YES
+ vehicles                 | width                              | numeric                     |                                                              | YES
+ vehicles                 | height                             | numeric                     |                                                              | YES
+ vehicles                 | odometer                           | integer                     |                                                              | YES
+ vehicles                 | odometer_type                      | character varying           | 'mi'::character varying                                      | NO
+ vehicles                 | engine_oil_type                    | character varying           |                                                              | YES
+ vehicles                 | fuel_filter_number                 | character varying           |                                                              | YES
+ vehicles                 | fuel_type                          | character varying           |                                                              | YES
+ vehicles                 | transmission_fluid_type            | character varying           |                                                              | YES
+ vehicles                 | transmission_fluid_quantity        | character varying           |                                                              | YES
+ vehicles                 | fuel_filter_interval_km            | integer                     | 60000                                                        | YES
+ vehicles                 | transmission_service_interval_km   | integer                     | 80000                                                        | YES
+ vehicles                 | curb_weight                        | integer                     |                                                              | YES
+ vehicles                 | gross_vehicle_weight               | integer                     |                                                              | YES
+ vehicles                 | fuel_efficiency_data               | jsonb                       | '{}'::jsonb                                                  | YES
+ vehicles                 | oil_quantity                       | character varying           |                                                              | YES
+ vehicles                 | oil_filter_number                  | character varying           |                                                              | YES
+ vehicles                 | coolant_type                       | character varying           |                                                              | YES
+ vehicles                 | coolant_quantity                   | character varying           |                                                              | YES
+ vehicles                 | belt_size                          | character varying           |                                                              | YES
+ vehicles                 | tire_size                          | character varying           |                                                              | YES
+ vehicles                 | tire_pressure                      | character varying           |                                                              | YES
+ vehicles                 | brake_fluid_type                   | character varying           |                                                              | YES
+ vehicles                 | power_steering_fluid_type          | character varying           |                                                              | YES
+ vehicles                 | oil_change_interval_km             | integer                     | 8000                                                         | YES
+ vehicles                 | oil_change_interval_months         | integer                     | 6                                                            | YES
+ vehicles                 | air_filter_interval_km             | integer                     | 30000                                                        | YES
+ vehicles                 | coolant_change_interval_km         | integer                     | 150000                                                       | YES
+ vehicles                 | brake_fluid_change_interval_months | integer                     | 24                                                           | YES
+ vehicles                 | air_filter_part_number             | character varying           |                                                              | YES
+ vehicles                 | cabin_filter_part_number           | character varying           |                                                              | YES
+ vehicles                 | serpentine_belt_part_number        | character varying           |                                                              | YES
+ vehicles                 | return_to_service_date             | date                        |                                                              | YES
+ vehicles                 | maintenance_schedule               | jsonb                       | '{}'::jsonb                                                  | YES
+ vehicles                 | service_history                    | jsonb                       | '[]'::jsonb                                                  | YES
+ vehicles                 | parts_replacement_history          | jsonb                       | '[]'::jsonb                                                  | YES
+ vehicles                 | vehicle_type                       | character varying           |                                                              | YES
+ vehicles                 | vehicle_category                   | character varying           |                                                              | YES
+ vehicles                 | vehicle_class                      | character varying           |                                                              | YES
+ vehicles                 | commission_date                    | date                        | CURRENT_DATE                                                 | YES
+ vehicles                 | decommission_date                  | date                        |                                                              | YES
+ vehicles                 | cvip_expiry_date                   | date                        |                                                              | YES
+ vehicles                 | cvip_inspection_number             | character varying           |                                                              | YES
+ vehicles                 | last_cvip_date                     | date                        |                                                              | YES
+ vehicles                 | next_cvip_due                      | date                        |                                                              | YES
+ vehicles                 | cvip_compliance_status             | character varying           |                                                              | YES
+ vehicles                 | purchase_date                      | date                        |                                                              | YES
+ vehicles                 | purchase_price                     | numeric                     |                                                              | YES
+ vehicles                 | purchase_vendor                    | character varying           |                                                              | YES
+ vehicles                 | finance_partner                    | character varying           |                                                              | YES
+ vehicles                 | financing_amount                   | numeric                     |                                                              | YES
+ vehicles                 | monthly_payment                    | numeric                     |                                                              | YES
+ vehicles                 | sale_date                          | date                        |                                                              | YES
+ vehicles                 | sale_price                         | numeric                     |                                                              | YES
+ vehicles                 | writeoff_date                      | date                        |                                                              | YES
+ vehicles                 | writeoff_reason                    | character varying           |                                                              | YES
+ vehicles                 | repossession_date                  | date                        |                                                              | YES
+ vehicles                 | lifecycle_status                   | character varying           |                                                              | YES
+ vehicles                 | maintenance_start_date             | date                        |                                                              | YES
+ vehicles                 | maintenance_end_date               | date                        |                                                              | YES
+ vehicles                 | is_in_maintenance                  | boolean                     | false                                                        | YES
+ vehicles                 | red_deer_compliant                 | boolean                     | false                                                        | YES
+ vehicles                 | requires_class_2                   | boolean                     | false                                                        | YES
+ vehicles                 | version                            | integer                     | 1                                                            | YES
+ vehicles                 | status                             | character varying           | 'active'::character varying                                  | YES
+ vehicles                 | is_active                          | boolean                     | true                                                         | YES
+ vehicles                 | notes                              | text                        |                                                              | YES
+(630 rows)
+

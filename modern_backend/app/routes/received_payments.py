@@ -23,32 +23,20 @@ router = APIRouter(prefix="/api/received-payments", tags=["Received Payments"])
 class ReceivedPaymentCreate(BaseModel):
     amount: float = Field(..., gt=0, description="Payment amount")
     payment_date: date = Field(..., description="Date payment received")
-    payment_method: str = Field(
-        ..., description="cheque, cash, e-transfer, credit_card, debit"
-    )
-    payer_name: str = Field(
-        ..., description="Who paid (customer/company name)"
-    )
+    payment_method: str = Field(..., description="cheque, cash, e-transfer, credit_card, debit")
+    payer_name: str = Field(..., description="Who paid (customer/company name)")
 
     # Cheque-specific fields
-    cheque_number: str | None = Field(
-        None, description="Cheque number if payment_method=cheque"
-    )
+    cheque_number: str | None = Field(None, description="Cheque number if payment_method=cheque")
     bank_name: str | None = Field(None, description="Bank name on cheque")
 
     # Optional allocation
-    charter_id: int | None = Field(
-        None, description="Link to specific charter/booking"
-    )
-    reserve_number: str | None = Field(
-        None, description="Reserve number if linking to charter"
-    )
+    charter_id: int | None = Field(None, description="Link to specific charter/booking")
+    reserve_number: str | None = Field(None, description="Reserve number if linking to charter")
 
     # Additional details
     notes: str | None = Field(None, description="Additional notes")
-    deposit_type: str | None = Field(
-        "payment", description="payment, deposit, partial_payment"
-    )
+    deposit_type: str | None = Field("payment", description="payment, deposit, partial_payment")
 
 
 class ReceivedPaymentUpdate(BaseModel):
@@ -152,10 +140,7 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
 
         # If it's a cheque, also record in banking_transactions for
         # reconciliation
-        if (
-            payment.payment_method.lower() == "cheque"
-            and payment.cheque_number
-        ):
+        if payment.payment_method.lower() == "cheque" and payment.cheque_number:
             cur.execute(
                 """
                 INSERT INTO banking_transactions (
@@ -201,7 +186,7 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -316,9 +301,7 @@ async def search_received_payments(
                     customer_name=row["customer_name"],
                     charter_date=row["charter_date"],
                     charter_amount=(
-                        float(row["charter_amount"])
-                        if row["charter_amount"]
-                        else None
+                        float(row["charter_amount"]) if row["charter_amount"] else None
                     ),
                 )
             )
@@ -326,7 +309,7 @@ async def search_received_payments(
         return payments
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -339,9 +322,7 @@ async def get_unallocated_payments():
 
 
 @router.put("/{payment_id}", response_model=dict)
-async def update_received_payment(
-    payment_id: int, update: ReceivedPaymentUpdate
-):
+async def update_received_payment(payment_id: int, update: ReceivedPaymentUpdate):
     """Update a received payment"""
     conn = get_connection()
     cur = conn.cursor()
@@ -393,9 +374,7 @@ async def update_received_payment(
         result = cur.fetchone()
 
         if not result:
-            raise HTTPException(
-                status_code=404, detail=f"Payment {payment_id} not found"
-            )
+            raise HTTPException(status_code=404, detail=f"Payment {payment_id} not found")
 
         conn.commit()
 
@@ -412,7 +391,7 @@ async def update_received_payment(
         raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()
@@ -437,9 +416,7 @@ async def delete_received_payment(payment_id: int):
         result = cur.fetchone()
 
         if not result:
-            raise HTTPException(
-                status_code=404, detail=f"Payment {payment_id} not found"
-            )
+            raise HTTPException(status_code=404, detail=f"Payment {payment_id} not found")
 
         conn.commit()
 
@@ -451,7 +428,7 @@ async def delete_received_payment(payment_id: int):
 
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")  # noqa: B904
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
     finally:
         cur.close()
         conn.close()

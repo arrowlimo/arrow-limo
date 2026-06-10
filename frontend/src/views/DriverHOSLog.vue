@@ -79,16 +79,19 @@
 
 <script setup>
 // Set this to true for admin users only
-const isAdmin = true
+const role = (localStorage.getItem('user_role') || 'user').toLowerCase()
+const isAdmin = role === 'admin' || role === 'super_user' || role === 'superuser' || role === 'manager'
 import { ref, onMounted } from 'vue'
+import { authFetch } from '@/utils/authFetch'
 const hosLog = ref([])
 const loading = ref(true)
 
 onMounted(async () => {
   try {
-  const res = await fetch('/api/driver_hos_log?days=14')
+  const res = await authFetch('/api/chauffeur/me/hos?days=14')
     if (res.ok) {
-      hosLog.value = await res.json()
+      const payload = await res.json()
+      hosLog.value = Array.isArray(payload.items) ? payload.items : []
     } else {
       hosLog.value = []
     }

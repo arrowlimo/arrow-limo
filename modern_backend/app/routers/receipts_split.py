@@ -86,9 +86,7 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest, request: Request):
         if base is None:
             import re
 
-            nums = re.findall(
-                r"([0-9]+\.[0-9]{2})", (row["description"] or "").lower()
-            )
+            nums = re.findall(r"([0-9]+\.[0-9]{2})", (row["description"] or "").lower())
             if nums:
                 # pick the largest number assumption for base
                 try:
@@ -148,8 +146,7 @@ def auto_split_receipt(receipt_id: int, req: SplitRequest, request: Request):
         # Update parent amount column to base AND mark as split
         # (parent_receipt_id points to itself)
         cur.execute(
-            f"UPDATE receipts SET {amt_col}=%s, parent_receipt_id=%s WHERE"
-            f"receipt_id=%s",
+            f"UPDATE receipts SET {amt_col}=%s, parent_receipt_id=%s WHERE" f"receipt_id=%s",
             (base, receipt_id, receipt_id),
         )
 

@@ -9,9 +9,7 @@ import psycopg2
 from fastapi import APIRouter, HTTPException, Query
 from psycopg2.extras import RealDictCursor
 
-router = APIRouter(
-    prefix="/api/receipts/verification", tags=["receipt_verification"]
-)
+router = APIRouter(prefix="/api/receipts/verification", tags=["receipt_verification"])
 
 
 def get_db_connection():
@@ -51,9 +49,7 @@ async def get_verification_summary():
             "total_receipts": result["total_receipts"],
             "verified_count": result["physically_verified_count"],
             "unverified_count": result["unverified_count"],
-            "verification_percentage": float(
-                result["verification_percentage"] or 0
-            ),
+            "verification_percentage": float(result["verification_percentage"] or 0),
         }
     finally:
         cur.close()
@@ -68,7 +64,8 @@ async def get_verification_by_year(limit: int = Query(200, ge=1, le=5000)):
 
     try:
         # Use materialized view for better performance
-        cur.execute("""
+        cur.execute(
+            """
                         SELECT
                             year,
                             total_receipts,
@@ -78,7 +75,9 @@ async def get_verification_by_year(limit: int = Query(200, ge=1, le=5000)):
                         FROM mv_receipt_verification_by_year
                         ORDER BY year
                         LIMIT %s;
-                """, (limit,))
+                """,
+            (limit,),
+        )
         return [dict(row) for row in cur.fetchall()]
     finally:
         cur.close()
@@ -86,9 +85,7 @@ async def get_verification_by_year(limit: int = Query(200, ge=1, le=5000)):
 
 
 @router.get("/unverified")
-async def get_unverified_receipts(
-    year: int = Query(None), limit: int = Query(100, le=1000)
-):
+async def get_unverified_receipts(year: int = Query(None), limit: int = Query(100, le=1000)):
     """Get unverified receipts."""
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -106,7 +103,8 @@ async def get_unverified_receipts(
 
         params.append(limit)
 
-        cur.execute("""
+        cur.execute(
+            """
             SELECT
               r.receipt_id,
               r.receipt_date,
@@ -123,7 +121,9 @@ async def get_unverified_receipts(
                         WHERE {where_clause}
             ORDER BY r.receipt_date DESC
                         LIMIT %s;
-                """.format(where_clause=" AND ".join(where_clauses)), tuple(params))
+                """.format(where_clause=" AND ".join(where_clauses)),
+            tuple(params),
+        )
         return [dict(row) for row in cur.fetchall()]
     finally:
         cur.close()
@@ -131,9 +131,7 @@ async def get_unverified_receipts(
 
 
 @router.post("/verify/{receipt_id}")
-async def mark_receipt_verified(
-    receipt_id: int, verified_by: str = Query(default="system")
-):
+async def mark_receipt_verified(receipt_id: int, verified_by: str = Query(default="system")):
     """Mark a receipt as physically verified."""
     conn = get_db_connection()
     cur = conn.cursor()
@@ -201,9 +199,7 @@ async def mark_receipt_unverified(receipt_id: int):
 
 
 @router.get("/verified")
-async def get_verified_receipts(
-    year: int = Query(None), limit: int = Query(100, le=1000)
-):
+async def get_verified_receipts(year: int = Query(None), limit: int = Query(100, le=1000)):
     """Get verified receipts (matched to banking)."""
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -217,7 +213,8 @@ async def get_verified_receipts(
 
         params.append(limit)
 
-        cur.execute("""
+        cur.execute(
+            """
             SELECT
               r.receipt_id,
               r.receipt_date,
@@ -233,7 +230,9 @@ async def get_verified_receipts(
             WHERE {where_clause}
             ORDER BY r.receipt_date DESC
             LIMIT %s;
-        """.format(where_clause=" AND ".join(where_clauses)), tuple(params))
+        """.format(where_clause=" AND ".join(where_clauses)),
+            tuple(params),
+        )
         return [dict(row) for row in cur.fetchall()]
     finally:
         cur.close()

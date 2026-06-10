@@ -8,21 +8,13 @@ from pydantic import BaseModel, Field
 class CharterRouteBase(BaseModel):
     """Base model for charter route."""
 
-    route_sequence: int = Field(
-        ..., ge=1, description="Route order (1, 2, 3, ...)"
-    )
+    route_sequence: int = Field(..., ge=1, description="Route order (1, 2, 3, ...)")
     event_type_code: str | None = Field(
         None, description="Event type: pickup, dropoff, leave_red_deer, etc."
     )
-    address: str | None = Field(
-        None, description="Unified address for any event type"
-    )
-    stop_time: time | None = Field(
-        None, description="Time of this routing event"
-    )
-    reserve_number: str | None = Field(
-        None, description="Business key linking to charter"
-    )
+    address: str | None = Field(None, description="Unified address for any event type")
+    stop_time: time | None = Field(None, description="Time of this routing event")
+    reserve_number: str | None = Field(None, description="Business key linking to charter")
     estimated_duration_minutes: int | None = Field(None, ge=0)
     actual_duration_minutes: int | None = Field(None, ge=0)
     estimated_distance_km: float | None = Field(None, ge=0)
@@ -55,9 +47,7 @@ class CharterRouteUpdate(BaseModel):
     actual_distance_km: float | None = Field(None, ge=0)
     route_price: float | None = Field(None, ge=0)
     route_notes: str | None = None
-    route_status: str | None = Field(
-        None, pattern="^(pending|in_progress|completed|cancelled)$"
-    )
+    route_status: str | None = Field(None, pattern="^(pending|in_progress|completed|cancelled)$")
 
 
 class CharterRoute(CharterRouteBase):
