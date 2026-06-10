@@ -309,6 +309,19 @@ class EmployeeManagementWidget(QWidget):
         panel.setLayout(layout)
         return panel
 
+    def _pair(self, form, label1, widget1, label2, widget2) -> None:
+        """Place two short fields on a single row to use horizontal space."""
+        row = QHBoxLayout()
+        row.addWidget(QLabel(label1))
+        widget1.setMaximumWidth(150)
+        row.addWidget(widget1)
+        row.addSpacing(20)
+        row.addWidget(QLabel(label2))
+        widget2.setMaximumWidth(150)
+        row.addWidget(widget2)
+        row.addStretch()
+        form.addRow(row)
+
     def _create_basic_info_tab(self) -> object:
         """Create basic employee information form"""
         widget = QWidget()
@@ -348,17 +361,21 @@ class EmployeeManagementWidget(QWidget):
         self.notes_input = QTextEdit()
         self.notes_input.setMaximumHeight(100)
 
-        form.addRow("Employee ID:", self.employee_id_display)
-        form.addRow("Employee #:", self.employee_number_input)
+        self._pair(form, "Employee ID:", self.employee_id_display,
+                   "Employee #:", self.employee_number_input)
         form.addRow("Full Name:", self.name_input)
-        form.addRow("Position:", self.position_input)
-        form.addRow("Department:", self.department_input)
-        form.addRow("Phone:", self.phone_input)
-        form.addRow("Email:", self.email_input)
-        form.addRow("Hire Date:", self.hire_date_input)
-        form.addRow("Status:", self.status_input)
-        form.addRow("", self.is_driver_checkbox)
-        form.addRow("", self.is_dispatcher_checkbox)
+        self._pair(form, "Position:", self.position_input,
+                   "Department:", self.department_input)
+        self._pair(form, "Phone:", self.phone_input,
+                   "Email:", self.email_input)
+        self._pair(form, "Hire Date:", self.hire_date_input,
+                   "Status:", self.status_input)
+        checks = QHBoxLayout()
+        checks.addWidget(self.is_driver_checkbox)
+        checks.addSpacing(20)
+        checks.addWidget(self.is_dispatcher_checkbox)
+        checks.addStretch()
+        form.addRow("", checks)
         form.addRow("Notes:", self.notes_input)
 
         widget.setLayout(form)
@@ -420,12 +437,12 @@ class EmployeeManagementWidget(QWidget):
         self.overtime_rate_input.setPrefix("$")
         self.overtime_rate_input.setValue(30.00)
 
-        form.addRow("Classification Type:", self.class_type_input)
-        form.addRow("Pay Structure:", self.pay_structure_input)
-        form.addRow("Hourly Rate:", self.hourly_rate_input)
-        form.addRow("Wage Rate 2:", self.hourly_rate_2_input)
-        form.addRow("Monthly Salary:", self.monthly_salary_input)
-        form.addRow("Salary Deferred:", self.salary_deferred_input)
+        self._pair(form, "Classification Type:", self.class_type_input,
+                   "Pay Structure:", self.pay_structure_input)
+        self._pair(form, "Hourly Rate:", self.hourly_rate_input,
+                   "Wage Rate 2:", self.hourly_rate_2_input)
+        self._pair(form, "Monthly Salary:", self.monthly_salary_input,
+                   "Salary Deferred:", self.salary_deferred_input)
         form.addRow("Overtime Rate:", self.overtime_rate_input)
 
         # --- Extra Tax Withholding (employee-requested, applied every period) ---
@@ -454,8 +471,6 @@ class EmployeeManagementWidget(QWidget):
             "Annual extra tax the employee wants withheld (TD1 Line 2).\n"
             "Divided by number of pay periods and added to each period's tax."
         )
-        form.addRow("Extra Annual ($):", self.extra_tax_annual_input)
-
         self.extra_tax_pct_input = SelectAllSpinBox()
         self.extra_tax_pct_input.setRange(0, 50.00)
         self.extra_tax_pct_input.setSuffix(" %")
@@ -463,7 +478,8 @@ class EmployeeManagementWidget(QWidget):
         self.extra_tax_pct_input.setToolTip(
             "Extra percentage of gross to withhold as tax each period."
         )
-        form.addRow("Extra Rate (%):", self.extra_tax_pct_input)
+        self._pair(form, "Extra Annual ($):", self.extra_tax_annual_input,
+                   "Extra Rate (%):", self.extra_tax_pct_input)
 
         def _toggle_extra_tax_fields(idx):
             is_pct = self.extra_tax_type_input.itemData(idx) == "%"
