@@ -5,6 +5,9 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -14,7 +17,7 @@ jobs:
       postgres:
         image: postgres:12
         env:
-          POSTGRES_PASSWORD: ***REDACTED***
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: almsdata_test
         options: >-
           --health-cmd pg_isready
@@ -39,7 +42,7 @@ jobs:
     
     - name: Set up test database
       env:
-        PGPASSWORD: ***REDACTED***
+        PGPASSWORD: postgres
       run: |
         psql -h localhost -U postgres -d almsdata_test -f schema.sql
     
@@ -48,7 +51,7 @@ jobs:
         DB_HOST: localhost
         DB_NAME: almsdata_test
         DB_USER: postgres
-        DB_PASSWORD: ***REDACTED***
+        DB_PASSWORD: postgres
       run: |
         pytest tests/ --cov=desktop_app --cov=scripts --cov-report=xml
     
@@ -59,3 +62,37 @@ jobs:
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
+
+  deep_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install deep scan tooling
+      run: |
+        python -m pip install --upgrade pip
+        pip install ruff mypy bandit pip-audit radon vulture
+
+    - name: Ruff
+      run: ruff check modern_backend
+
+    - name: MyPy
+      run: mypy modern_backend/app
+
+    - name: Bandit
+      run: bandit -r modern_backend/app -ll
+
+    - name: Pip Audit
+      run: pip-audit
+
+    - name: Radon Complexity
+      run: radon cc modern_backend/app/routers -s -n C
+
+    - name: Vulture Dead Code
+      run: vulture modern_backend/app --min-confidence 80
