@@ -1062,7 +1062,7 @@ class VendorInvoiceManager(QWidget):
 
     def _create_invoice_list(self) -> QGroupBox:
         """Invoice list for selected vendor with inline editing"""
-        group = QGroupBox("📋 All Invoices for Vendor")
+        group = QGroupBox("📋 Invoices")
         group.setStyleSheet(
             "QGroupBox { font-weight: bold; font-size: 12px; } "
             "QGroupBox::title { left: 6px; padding: 0 2px; }"

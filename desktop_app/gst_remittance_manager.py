@@ -40,11 +40,12 @@ class GSTRemittanceDialog(QDialog):
 
     saved = pyqtSignal()
 
-    def __init__(self, parent=None, tax_year=None, gst_period_month=None, payment_data=None):
+    def __init__(self, parent=None, tax_year=None, gst_period_month=None, payment_data=None, db=None):
         super().__init__(parent)
         self.tax_year = tax_year or datetime.now().year
         self.gst_period_month = gst_period_month or datetime.now().month
         self.payment_data = payment_data or {}
+        self.db = db
         self.init_ui()
 
     def init_ui(self):
@@ -149,8 +150,7 @@ class GSTRemittanceDialog(QDialog):
                 "notes": self.notes_input.toPlainText() or None,
             }
 
-            with DatabaseContext() as db:
-                cur = db.cursor()
+            with DatabaseContext(self.db) as cur:
                 retained_until = date(self.tax_year, 12, 31)
                 # Add 6 years for CRA record retention (Income Tax Act Section 230)
                 from datetime import timedelta
@@ -216,7 +216,6 @@ class GSTRemittanceDialog(QDialog):
                         ),
                     )
 
-                db.commit()
                 self.saved.emit()
                 self.accept()
 
@@ -232,8 +231,9 @@ class GSTRemittanceDialog(QDialog):
 class GSTRemittanceManager(QWidget):
     """Main widget for managing GST remittance payments"""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, db=None):
         super().__init__(parent)
+        self.db = db
         self.init_ui()
         self.load_payments()
 
@@ -279,8 +279,10 @@ class GSTRemittanceManager(QWidget):
     def load_payments(self):
         """Load GST remittance payments from database"""
         try:
-            with DatabaseContext() as db:
-                cur = db.cursor()
+            if not self.db:
+                logger.warning("No database connection available")
+                return
+            with DatabaseContext(self.db) as cur:
                 cur.execute(
                     """
                     SELECT gst_payment_id, tax_year, gst_period_month, 
@@ -322,7 +324,7 @@ class GSTRemittanceManager(QWidget):
 
     def add_payment(self):
         """Add new GST remittance payment"""
-        dialog = GSTRemittanceDialog(self)
+        dialog = GSTRemittanceDialog(self, db=self.db)
         dialog.saved.connect(self.load_payments)
         dialog.exec()
 
@@ -336,8 +338,7 @@ class GSTRemittanceManager(QWidget):
             tax_year = int(tax_year_text)
             gst_period_month = int(period_text)
 
-            with DatabaseContext() as db:
-                cur = db.cursor()
+            with DatabaseContext(self.db) as cur:
                 cur.execute(
                     """
                     SELECT tax_year, gst_period_month, gst_amount_collected,
@@ -366,6 +367,7 @@ class GSTRemittanceManager(QWidget):
                         tax_year=tax_year,
                         gst_period_month=gst_period_month,
                         payment_data=payment_data,
+                        db=self.db,
                     )
                     dialog.saved.connect(self.load_payments)
                     dialog.exec()

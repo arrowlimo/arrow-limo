@@ -33,7 +33,15 @@ import logging
 try:
     from app_logger import install_excepthook, setup_logging
 except ModuleNotFoundError:
-    from app_logger import install_excepthook, setup_logging
+    # Fallback: try relative import for frozen app
+    try:
+        from .app_logger import install_excepthook, setup_logging
+    except (ImportError, SystemError):
+        # If all else fails, define dummy functions
+        def install_excepthook(logger):
+            pass
+        def setup_logging():
+            return logging.getLogger()
 
 _root_logger = setup_logging()
 install_excepthook(_root_logger)
