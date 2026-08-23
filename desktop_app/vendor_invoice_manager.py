@@ -1420,8 +1420,12 @@ class VendorInvoiceManager(QWidget):
         add_btn = QPushButton("✅ Add Invoice")
         add_btn.setStyleSheet(
             "background-color: #28a745; color: white; "
-            "font-weight: bold; padding: 10px;"
+            "font-weight: bold; padding: 4px 8px; font-size: 11px;"
         )
+        add_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        add_btn.setFixedHeight(24)
         add_btn.clicked.connect(self._add_invoice)
         layout.addWidget(add_btn)
 
@@ -1509,13 +1513,18 @@ class VendorInvoiceManager(QWidget):
 
         # Button row
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(5)
 
         # Save button
         save_btn = QPushButton("💾 Save Changes")
         save_btn.setStyleSheet(
             "background-color: #28a745; color: white; "
-            "font-weight: bold; padding: 10px;"
+            "font-weight: bold; padding: 4px 8px; font-size: 11px;"
         )
+        save_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        save_btn.setFixedHeight(24)
         save_btn.clicked.connect(self._save_invoice_changes)
         btn_layout.addWidget(save_btn)
 
@@ -1523,13 +1532,24 @@ class VendorInvoiceManager(QWidget):
         delete_btn = QPushButton("🗑️ Delete Invoice")
         delete_btn.setStyleSheet(
             "background-color: #dc3545; color: white; "
-            "font-weight: bold; padding: 10px;"
+            "font-weight: bold; padding: 4px 8px; font-size: 11px;"
         )
+        delete_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        delete_btn.setFixedHeight(24)
         delete_btn.clicked.connect(self._delete_invoice)
         btn_layout.addWidget(delete_btn)
 
         # Clear button
         clear_btn = QPushButton("Clear")
+        clear_btn.setStyleSheet(
+            "padding: 4px 8px; font-size: 11px;"
+        )
+        clear_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        clear_btn.setFixedHeight(24)
         clear_btn.clicked.connect(self._clear_edit_fields)
         btn_layout.addWidget(clear_btn)
 
