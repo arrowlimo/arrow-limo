@@ -869,24 +869,7 @@ class VendorInvoiceManager(QWidget):
     def init_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
-
-        # Header with instructions
-        header = QLabel("📋 Vendor Invoice & Payment Manager")
-        header_font = QFont()
-        header_font.setPointSize(14)
-        header_font.setBold(True)
-        header.setFont(header_font)
-        layout.addWidget(header)
-
-        instructions = QLabel(
-            "💡 Search for vendor → View all invoices → Add missing invoices "
-            "→ Apply payments"
-        )
-        instructions.setStyleSheet(
-            "color: #666; font-size: 11px; padding: 5px; "
-            "background-color: #f8f9fa; border-left: 3px solid #007bff;"
-        )
-        layout.addWidget(instructions)
+        layout.setContentsMargins(10, 10, 10, 10)
 
         # TOP ROW: Vendor search (left) + Invoice list with actions (right)
         top_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -966,15 +949,15 @@ class VendorInvoiceManager(QWidget):
             "QGroupBox { font-weight: bold; font-size: 11px; } "
             "QGroupBox::title { left: 6px; padding: 0 2px; }"
         )
-        layout = QVBoxLayout(group)
+        layout = QHBoxLayout(group)
         layout.setContentsMargins(6, 8, 6, 6)
         layout.setSpacing(3)
 
         # Add invoice button
-        add_invoice_btn = QPushButton("➕ Add Invoice")
+        add_invoice_btn = QPushButton("➕ Add")
         add_invoice_btn.setStyleSheet(
             "background-color: #28a745; color: white; padding: 4px 8px; "
-            "font-weight: bold; font-size: 11px;"
+            "font-weight: bold; font-size: 10px;"
         )
         add_invoice_btn.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -985,10 +968,10 @@ class VendorInvoiceManager(QWidget):
         layout.addWidget(add_invoice_btn)
 
         # Edit selected invoice button
-        edit_invoice_btn = QPushButton("✏️ Edit Invoice")
+        edit_invoice_btn = QPushButton("✏️ Edit")
         edit_invoice_btn.setStyleSheet(
             "background-color: #fd7e14; color: white; padding: 4px 8px; "
-            "font-weight: bold; font-size: 11px;"
+            "font-weight: bold; font-size: 10px;"
         )
         edit_invoice_btn.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -999,10 +982,10 @@ class VendorInvoiceManager(QWidget):
         layout.addWidget(edit_invoice_btn)
 
         # Pay single button
-        pay_single_btn = QPushButton("💵 Pay One")
+        pay_single_btn = QPushButton("💵 Pay")
         pay_single_btn.setStyleSheet(
             "background-color: #17a2b8; color: white; padding: 4px 8px; "
-            "font-weight: bold; font-size: 11px;"
+            "font-weight: bold; font-size: 10px;"
         )
         pay_single_btn.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -1016,10 +999,10 @@ class VendorInvoiceManager(QWidget):
         layout.addWidget(pay_single_btn)
 
         # Pay multiple button
-        pay_multi_btn = QPushButton("💰 Pay Multiple")
+        pay_multi_btn = QPushButton("💰 Multi")
         pay_multi_btn.setStyleSheet(
             "background-color: #6f42c1; color: white; padding: 4px 8px; "
-            "font-weight: bold; font-size: 11px;"
+            "font-weight: bold; font-size: 10px;"
         )
         pay_multi_btn.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -1036,7 +1019,7 @@ class VendorInvoiceManager(QWidget):
         ledger_btn = QPushButton("📒 Ledger")
         ledger_btn.setStyleSheet(
             "background-color: #ffc107; color: black; padding: 4px 8px; "
-            "font-weight: bold; font-size: 11px;"
+            "font-weight: bold; font-size: 10px;"
         )
         ledger_btn.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -1080,21 +1063,27 @@ class VendorInvoiceManager(QWidget):
     def _create_invoice_list(self) -> QGroupBox:
         """Invoice list for selected vendor with inline editing"""
         group = QGroupBox("📋 All Invoices for Vendor")
-        group.setStyleSheet("QGroupBox { font-weight: bold; font-size: 12px;}")
+        group.setStyleSheet(
+            "QGroupBox { font-weight: bold; font-size: 12px; } "
+            "QGroupBox::title { left: 6px; padding: 0 2px; }"
+        )
         layout = QVBoxLayout(group)
+        layout.setContentsMargins(6, 8, 6, 6)
+        layout.setSpacing(5)
 
         # Vendor info and balance with Save button
         info_layout = QHBoxLayout()
+        info_layout.setSpacing(8)
 
         self.vendor_header = QLabel("No vendor selected")
         self.vendor_header.setStyleSheet(
-            "font-size: 13px; font-weight: bold; padding: 5px;"
+            "font-size: 11px; font-weight: bold; padding: 0px;"
         )
         info_layout.addWidget(self.vendor_header, stretch=1)
 
         self.balance_label = QLabel("")
         self.balance_label.setStyleSheet(
-            "font-size: 12px; padding: 5px; font-weight: bold;"
+            "font-size: 11px; padding: 0px; font-weight: bold;"
         )
         info_layout.addWidget(self.balance_label)
 
@@ -1102,8 +1091,12 @@ class VendorInvoiceManager(QWidget):
         self.save_changes_btn = QPushButton("💾 Save Changes")
         self.save_changes_btn.setStyleSheet(
             "background-color: #28a745; color: white; "
-            "font-weight: bold; padding: 8px;"
+            "font-weight: bold; padding: 4px 8px; font-size: 10px;"
         )
+        self.save_changes_btn.setSizePolicy(
+            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
+        )
+        self.save_changes_btn.setFixedSize(100, 24)
         self.save_changes_btn.clicked.connect(self._save_direct_edits)
         self.save_changes_btn.setEnabled(False)
         info_layout.addWidget(self.save_changes_btn)
