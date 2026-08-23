@@ -1,0 +1,31 @@
+2012 YEAR-END LEDGER PACKAGE
+============================
+
+Source of truth:
+- Revenue: income_ledger (charter_payments)
+- Expenses: receipts
+- General ledger: synthetic balanced journal for package export
+
+Totals:
+- Revenue rows: 1962
+- Gross revenue: $656,279.41
+- GST collected: $31,250.85
+- Expense rows: 3273
+- Expense total: $1,004,900.36
+- GST on expenses: $20,638.07
+- Net income: $-348,620.95
+
+Trial balance check:
+- Total debits: $1,312,558.82
+- Total credits: $1,312,558.82
+- Difference: $0.00
+
+Balance snapshot:
+- Cash: $-4,125.24
+- Accounts receivable: $0.11
+- Accounts payable: $42,005.34
+- Retained earnings plug: $-348,620.95
+
+Notes:
+- The live `general_ledger` table is empty, so this package is built from canonical source tables.
+- The package is balanced and preserves the charter revenue / receipts split verified in Neon.

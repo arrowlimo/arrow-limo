@@ -1,0 +1,99 @@
+2026-07-03 17:00:59 | INFO | root | Logging initialized
+2026-07-03 17:01:00 | INFO | rag_engine | ChromaDB not available - vector search disabled
+2026-07-03 17:01:01 | INFO | desktop_app.main |   2. Basic init OK
+2026-07-03 17:01:01 | INFO | desktop_app.main |   4.5. Initializing error logger...
+2026-07-03 17:01:01 | INFO | desktop_app.main |   [OK] Error logging system initialized
+2026-07-03 17:01:01 | INFO | desktop_app.main |   5. Creating central widget...
+QFontDatabase: Cannot find font directory C:/Users/info/AppData/Local/Programs/Python/Python311/Lib/site-packages/PyQt6/Qt6/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+2026-07-03 17:01:01 | INFO | desktop_app.main |   6. Search bar OK
+2026-07-03 17:01:01 | INFO | desktop_app.main |   7. Creating main QTabWidget...
+2026-07-03 17:01:01 | INFO | db_connection_monitor | Starting database connection monitoring (interval:15000ms)
+2026-07-03 17:01:01 | INFO | desktop_app.main |   Γ£ô Management menu created
+2026-07-03 17:01:01 | INFO | desktop_app.main |   Γ£ô Receipts Manager action added
+2026-07-03 17:01:01 | INFO | desktop_app.main |   Γ£ô Banking Manager action added
+2026-07-03 17:01:01 | INFO | desktop_app.main |   8. Main tab widget created
+[INFO] Running sandbox navigation timing on 44 paths
+2026-07-03 17:01:04 | INFO | charter_form_widget | Γ£à Loaded 20 drivers
+[OK]  2219 ms | operations -> ≡ƒôí Dispatch -> ≡ƒôï Dispatch Board
+2026-07-03 17:01:06 | INFO | charter_form_widget | Γ£à Loaded 20 drivers
+[OK]  2140 ms | operations -> ≡ƒôí Dispatch -> ≡ƒô¥ Run Charter
+2026-07-03 17:01:08 | INFO | charter_form_widget | Γ£à Loaded 20 drivers
+[OK]  2541 ms | operations -> ≡ƒôí Dispatch -> ≡ƒæ╖ Staff Work Schedule
+2026-07-03 17:01:11 | INFO | charter_form_widget | Γ£à Loaded 20 drivers
+[OK]  2218 ms | operations -> ≡ƒôí Dispatch -> ≡ƒôà Calendar (Outlook Style)
+2026-07-03 17:01:13 | INFO | charter_form_widget | Γ£à Loaded 20 drivers
+[OK]  4118 ms | operations -> ≡ƒôí Dispatch -> ≡ƒùô∩╕Å Calendar (Table View)
+2026-07-03 17:01:17 | INFO | charter_form_widget | Γ£à Loaded 20 drivers
+[OK]  2249 ms | operations -> ≡ƒôí Dispatch -> ≡ƒæñ Driver Calendar
+2026-07-03 17:01:21 | INFO | charter_form_widget | Γ£à Loaded 20 drivers
+QTableView::setSpan: single cell span won't be added
+QTableView::setSpan: single cell span won't be added
+[OK]  3582 ms | operations -> ≡ƒôí Dispatch -> ≡ƒÜÉ Vehicle Booked Out
+2026-07-03 17:01:23 | INFO | charter_form_widget | Γ£à Loaded 20 drivers
+[OK]  3195 ms | operations -> ≡ƒôí Dispatch -> ≡ƒ¢Æ Beverage Orders
+[DB] Connection was closed, reconnecting...
+[DB] Reconnection successful
+2026-07-03 17:01:30 | INFO | charter_form_widget | Γ£à Loaded 20 drivers
+[OK]  7632 ms | operations -> ≡ƒôí Dispatch -> ≡ƒôà Unbooked Events
+[OK]   242 ms | operations -> ≡ƒì╖ Beverage Management
+[OK]   463 ms | operations -> ≡ƒæÑ Customers
+[OK]   425 ms | operations -> ≡ƒÆ│ Client Payment Management
+[OK]    63 ms | operations -> ≡ƒôä Documents
+[OK]   754 ms | operations -> Γ£à Close Control Center
+2026-07-03 17:01:34 | INFO | report_management_widget | Quote template found: L:\Confirmation\quote letter.pdf
+[OK]    22 ms | operations -> ≡ƒôè Reports & PDFs
+[OK]  2630 ms | fleet -> ≡ƒÜÉ Vehicles
+[OK]    59 ms | fleet -> ≡ƒÜù Fleet List
+[OK]   310 ms | fleet -> ≡ƒæö Employees
+[OK]   980 ms | accounting -> ≡ƒÄ» Accounting Hub
+[OK]   559 ms | accounting -> ≡ƒº¬ Audit Management
+[OK]   475 ms | accounting -> ≡ƒÅª Staff Loan Account
+2026-07-03 17:01:39 | WARNING | accounting_receipts_widget |     >> [init_ui] ReceiptSearchMatchWidget created, setting parent_tab_widget...
+2026-07-03 17:01:39 | WARNING | accounting_receipts_widget |     >> [init_ui] Adding to tabs...
+2026-07-03 17:01:39 | WARNING | accounting_receipts_widget |     >> [init_ui] ReceiptSearchMatchWidget tab added OK
+[OK]  1138 ms | accounting -> ≡ƒÆ░ Receipts & Invoices
+[OK]   942 ms | accounting -> ≡ƒô¥ Accountant Notes
+[OK]   287 ms | accounting -> ≡ƒôÆ Check Book Management
+[OK]   716 ms | accounting -> ≡ƒÅª Enhanced Banking Manager
+[OK]   119 ms | accounting -> ≡ƒº⌐ NSF Pair Manager
+[OK]   607 ms | accounting -> ≡ƒÆ│ Payment Linker
+[OK]   206 ms | accounting -> ≡ƒº╛ Enhanced Receipts Manager
+[OK]  2160 ms | accounting -> ≡ƒôï Vendor Invoice Manager
+2026-07-03 17:01:46 | INFO | payroll_entry_widget | No pay periods in DB for 2027, generatingmonthly periods
+[OK]   707 ms | accounting -> ≡ƒÆ╡ Payroll Entry
+[OK]  1058 ms | accounting -> ≡ƒº« Payroll Remittances
+[OK]  2771 ms | accounting -> ≡ƒÅ¢∩╕Å Tax Management
+[OK]   117 ms | accounting -> ≡ƒôï T2 Corporate Tax
+[OK]    59 ms | accounting -> ≡ƒ¢í∩╕Å WCB Rates
+[OK]    14 ms | accounting -> ≡ƒÅó Business Entity
+[OK]   374 ms | accounting -> ≡ƒôª Asset Inventory
+[OK]    20 ms | accounting -> ≡ƒôè Financial Reports
+[OK]    97 ms | accounting -> ≡ƒì╖ Beverage Revenue
+[DB] Connection was closed, reconnecting...
+[DB] Reconnection successful
+[OK]   819 ms | accounting -> ≡ƒì╖ Beverage Management
+[OK]   159 ms | year_end -> ≡ƒº¡ Year-End Guided Wizard
+[OK]   194 ms | year_end -> ≡ƒöÄ Audit Checks (Advanced)
+[OK]   248 ms | admin -> ΓÜÖ∩╕Å Admin Controls
+[OK]    17 ms | admin -> ≡ƒöº Settings
+[OK]    19 ms | admin -> ≡ƒùä∩╕Å Table Browser
+[CLIENT_PAYMENT_NAV] status=OK elapsed_ms=495
+[CLIENT_PAYMENT_REFRESH] elapsed_ms=325
+
+=== SUMMARY ===
+Total paths: 44
+OK: 44
+Timeouts: 0
+Top 10 slowest paths:
+ -  7632 ms | OK      | operations -> ≡ƒôí Dispatch -> ≡ƒôà Unbooked Events
+ -  4118 ms | OK      | operations -> ≡ƒôí Dispatch -> ≡ƒùô∩╕Å Calendar (Table View)
+ -  3582 ms | OK      | operations -> ≡ƒôí Dispatch -> ≡ƒÜÉ Vehicle Booked Out
+ -  3195 ms | OK      | operations -> ≡ƒôí Dispatch -> ≡ƒ¢Æ Beverage Orders
+ -  2771 ms | OK      | accounting -> ≡ƒÅ¢∩╕Å Tax Management
+ -  2630 ms | OK      | fleet -> ≡ƒÜÉ Vehicles
+ -  2541 ms | OK      | operations -> ≡ƒôí Dispatch -> ≡ƒæ╖ Staff Work Schedule
+ -  2249 ms | OK      | operations -> ≡ƒôí Dispatch -> ≡ƒæñ Driver Calendar
+ -  2219 ms | OK      | operations -> ≡ƒôí Dispatch -> ≡ƒôï Dispatch Board
+ -  2218 ms | OK      | operations -> ≡ƒôí Dispatch -> ≡ƒôà Calendar (Outlook Style)
+2026-07-03 17:01:53 | WARNING | desktop_app.main | Application shutdown complete

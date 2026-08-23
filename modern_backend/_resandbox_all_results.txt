@@ -1,0 +1,59 @@
+[DB TARGET] target=neon host=ep-curly-dream-afnuyxfx-pooler.c-2.us-west-2.aws.neon.tech db=neondb user=neondb_owner sslmode=require
+PASS [PAY/CRA/GST] GET /api/accounting/gst/summary?period=current -> 200
+PASS [PAY/CRA/GST] GET /api/lookup/gst-rate?province=AB -> 200
+PASS [PAY/CRA/GST] GET /api/payroll-compliance/pd7a -> 200
+PASS [PAY/CRA/GST] GET /api/payroll-compliance/pd7a/2026/report.csv -> 200
+PASS [PAY/CRA/GST] GET /api/payroll/entries -> 200
+PASS [PAY/CRA/GST] GET /api/payroll/entries?year=2026 -> 200
+PASS [PAY/CRA/GST] GET /api/t4/1/2026 -> 404
+PASS [PAY/CRA/GST] GET /api/t4/1/2026/pdf -> 200
+PASS [PAY/CRA/GST] GET /api/t4/2026/xml -> 422
+PASS [PAY/CRA/GST] GET /api/payroll/1/2026/01 -> 404
+PASS [PAY/CRA/GST] GET /api/employee-work-history/1/2026 -> 200
+PASS [PAY/CRA/GST] GET /api/employee-monthly-summary/1/2026 -> 200
+PASS [PAY/CRA/GST] GET /api/available-periods/1/2026 -> 200
+PASS [DRIVER/HOS/DOCS] GET /api/employees -> 200
+PASS [DRIVER/HOS/DOCS] GET /api/employees/drivers -> 200
+PASS [DRIVER/HOS/DOCS] GET /api/employees/1 -> 200
+PASS [DRIVER/HOS/DOCS] GET /api/files/list/employees/1/qualifications -> 200
+PASS [DRIVER/HOS/DOCS] GET /api/files/list/employees/1/licenses -> 200
+PASS [DRIVER/HOS/DOCS] GET /api/files/list/employees/1/documents -> 200
+PASS [DRIVER/HOS/DOCS] GET /api/inspection-forms/pre-trip-blank -> 200
+PASS [DRIVER/HOS/DOCS] GET /api/chauffeur/me/profile -> 404
+PASS [DRIVER/HOS/DOCS] GET /api/chauffeur/me/trips?days=14 -> 200
+PASS [DRIVER/HOS/DOCS] GET /api/chauffeur/me/calendar?days=30 -> 200
+PASS [DRIVER/HOS/DOCS] GET /api/chauffeur/me/hos?days=14 -> 200
+PASS [DRIVER/HOS/DOCS] GET /api/chauffeur/me/paystub/2026-01 -> 404
+PASS [DRIVER/HOS/DOCS] GET /api/chauffeur/me/pay-summary?year=2026 -> 200
+PASS [DRIVER/HOS/DOCS] POST /api/inspection-forms/signed-url/019883 -> 200
+PASS [OPS/FLEET/REVENUE] GET /auth/validate -> 200
+Dashboard metrics error: missing FROM-clause entry for table "c"
+LINE 1: SELECT COUNT(*) FROM charters WHERE COALESCE(c.locked, FALSE...
+                                                     ^
+
+PASS [OPS/FLEET/REVENUE] GET /api/dashboard -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/bookings?limit=25 -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/bookings/search?q=019&limit=10 -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/bookings/18859 -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/charters?limit=25 -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/charters/search?q=019&limit=10 -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/vehicles -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/employees/drivers -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/employees/1 -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/accounting/stats -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/accounting/reports/cash-flow -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/accounting/reports/profit-loss -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/invoices?limit=25 -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/received-payments/search?limit=25 -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/received-payments/unallocated -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/charters/18859/payments -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/charters/by-reserve/019883 -> 200
+PASS [OPS/FLEET/REVENUE] GET /api/charges/019883 -> 200
+
+=== CATEGORY SUMMARY ===
+DRIVER/HOS/DOCS: 14/14 pass
+OPS/FLEET/REVENUE: 19/19 pass
+PAY/CRA/GST: 13/13 pass
+
+=== TOTAL SUMMARY ===
+GRAND TOTAL: 46/46 pass (failures=0)

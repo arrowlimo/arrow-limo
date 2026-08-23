@@ -1,0 +1,239 @@
+
+    def __init__(self, document):
+    def highlightBlock(self, text):
+def _attach_spellcheck(text_edit):
+    def __init__(
+    def init_ui(self):
+    def _handle_print_action_menu(self, index):
+    def _install_enter_tab_filters(self):
+    def _mark_invoice_sent_today(self):
+    def _extract_internal_delivery_markers(notes_text: str):
+    def _apply_internal_delivery_markers(self, notes_text: str):
+    def _load_delivery_markers_into_ui(self, notes_text: str):
+    def eventFilter(self, obj, event):
+    def create_itinerary_section(self) -> QGroupBox:
+    def toggle_routing_edit_mode(self):
+    def set_routing_edit_mode(self, enabled: bool):
+    def _open_routing_charges_dialog(self):
+    def _init_parent_routing(self):
+    def _set_route_at_by_widget(self, row_idx: int, value: str = "at"):
+    def _set_route_time_widget(self, row_idx: int, value: QTime):
+    def _sync_routing_from_pickup_dropoff_times(self, *_):
+    def _on_route_time_changed_reverse_sync(self):
+    def move_route_line_up(self):
+    def move_route_line_down(self):
+    def create_charter_details_section(
+    def _update_rate_type_fields(self, rate_type_text: str = None):
+    def _update_run_type_details(self, run_type_name: str):
+    def _search_flight_times(self):
+    def search_outlook_emails(self):
+    def _search_outlook_for_emails(self, email_address):
+    def _search_outlook_direct(self, email_address):
+    def _copy_emails_to_dispatch_notes(
+    def toggle_lock(self):
+    def cancel_charter(self):
+    def close_charter_form(self):
+    def show_link_charter_dialog(self):
+        def toggle_sections():
+    def _create_linked_charter_copy(self):
+    def _link_to_existing_charter(self, reserve_number: str):
+    def create_dispatch_section(self) -> QGroupBox:
+    def handle_out_of_town_routing(self, checked: bool):
+    def add_default_routing_events(self):
+    def create_charges_section(self) -> QGroupBox:
+    def create_notes_section(self) -> QGroupBox:
+    def _init_default_charges(self):
+    def add_charge_dialog(self):
+            def on_description_changed(text):
+            def add_charge():
+    def delete_selected_charge(self):
+    def open_charge_defaults_dialog(self):
+    def _add_default_charge_row(self, table: QTableWidget):
+    def _delete_default_charge_row(self, table: QTableWidget):
+    def _save_charge_defaults(self, defaults_table, dialog):
+    def create_driver_vehicle_ops_tab(self) -> QWidget:
+    def load_vehicles(self):
+    def _update_vehicle_type_display(self):
+    def _update_driver_name_display(self):
+    def _calculate_charter_duration(self):
+    def _auto_populate_pricing_from_vehicle_type(self, vehicle_type: str):
+    def _on_requested_vehicle_type_changed(self):
+    def _on_run_type_changed(self):
+    def _remove_run_type_auto_charges(self):
+    def _on_gratuity_checkbox_toggled(self, checked: bool):
+    def _on_nrr_received(self, amount: float):
+    def _on_cc_checkbox_changed(self, state):
+    def _on_gratuity_percent_changed(self, value: float):
+    def load_drivers(self):
+    def load_hos_data(self, employee_id=None):
+    def update_hos_from_charter(
+    def update_hos_totals(self):
+    def _validate_hos_compliance(self):
+    def _maybe_prompt_violation(self, violations, on, off, daily_on_limit):
+    def _apply_break_to_day(self, day_index, break_hours):
+    def _update_driver_info_name(self):
+    def _upload_inspection_form(self):
+    def _view_inspection_form(self):
+    def _generate_inspection_pdf(self):
+            minor_def = self.inspection_minor_defects.isChecked() if hasattr(
+            major_def = self.inspection_major_defects.isChecked() if hasattr(
+            def cb(flag):
+    def _apply_manual_times(self):
+            def parse_hhmm(txt):
+    def _add_receipt_entry(self):
+    def _delete_receipt_row(self, row):
+    def _update_float_totals(self):
+    def load_charter_types(self):
+    def load_run_types(self):
+    def open_run_type_editor(self):
+            def add_row():
+            def delete_row():
+            def save_rows():
+    def _build_hos_log_html(self):
+        def row_html(label, row_idx):
+    def _export_hos_log_pdf(self):
+    def _email_hos_pdf(self):
+    def _text_hos_pdf(self):
+    def _send_email_with_attachment(
+    def _print_monthly_hos_form(self):
+    def _print_daily_inspection_form(self):
+    def _get_selected_driver_name(self) -> str:
+    def _get_driver_code_for_inspection(self) -> str:
+    def _get_inspection_date_parts_from_charter(self):
+    def _get_shift_start_time_for_inspection(self) -> str:
+    def _normalize_hhmm(time_text: str) -> str:
+    def _get_vehicle_id_for_inspection(self) -> str:
+    def _normalize_vehicle_number(value: str) -> str:
+    def _open_file_default(self, path, print_mode=False):
+    def _mark_inspection_completed_online(self):
+    def load_vehicle_types_requested(self):
+    def load_route_event_types(self):
+    def add_route_line(self, insert_at_row: int = -1):
+    def delete_route_line(self, row: int):
+    def delete_selected_route_line(self):
+    def move_route_up(self):
+    def move_route_down(self):
+    def _swap_route_rows(self, row1: int, row2: int):
+    def _renumber_route_stops(self):
+    def calculate_route_billing(self):
+    def _update_invoice_charges(
+    def add_charge_line(
+    def _compute_line_total(self, calc_type: str, value: float) -> float:
+    def _get_charter_charge_base(self) -> float:
+    def _parse_description_metadata(self, description: str):
+    def _format_description_with_metadata(
+    def recalculate_totals(self):
+    def get_beverage_total(self) -> float:
+    def add_beverage_item(self):
+    def delete_selected_beverage(self):
+    def recalculate_beverage_totals(self):
+    def toggle_payment_edit(self):
+    def add_payment_row(self):
+    def delete_selected_payment(self):
+    def _on_payments_table_item_changed(self, item):
+    def _sum_nrr_payments_from_table(self) -> float:
+    def _sync_nrr_received_from_payments_table(self):
+    def _sync_charter_payments_from_table(
+    def on_separate_beverage_toggled(self, state):
+    def search_customer(self, text: str):
+    def on_form_changed(self):
+    def on_customer_saved(self, client_id: int):
+    def _compose_legacy_notes(
+    def _save_notes_columns(
+    def _on_notes_text_changed(self):
+    def _clear_notes_save_status(self):
+    def _auto_save_notes(self):
+    def save_charter(self):
+    def _on_charter_status_changed(self, new_status: str):
+    def _open_driver_entry_form(self):
+    def _gl_code_escrow_nrr_as_payment(
+    def _fetch_reserve_number(self, charter_id: int) -> Optional[str]:
+    def _prompt_calendar_event(
+    def sync_charter_to_calendar(self):
+    def _create_outlook_event(
+    def load_charter_by_id(self, charter_id: int):
+    def load_charter_by_reserve(self, reserve_number: str):
+    def _handle_lookup_print_run_sheet(self, reserve_number: str):
+    def prefill_from_dispatch_row(self, booking_row):
+    def load_charter(self, charter_id: int):
+    def load_client(self, client_id: int):
+    def _compose_nrr_moved_forward_note(self, escrow_info: dict) -> str:
+    def check_and_offer_escrow_nrr(self, client_id: int, client_name: str):
+    def apply_escrow_nrr(
+    def new_charter(self):
+    def _build_liability_terms_block(self, heading: str) -> str:
+    def print_confirmation(self):
+    def _gather_confirmation_pdf_data(self):
+        def _display_name(first_name, last_name, company_name, fallback_name):
+    def print_confirmation_pdf(self):
+    def _load_pricing_defaults(self, vehicle_type: str) -> Dict[str, float]:
+    def _prompt_quote_options(self) -> Optional[Dict[str, object]]:
+        def update_state():
+    def print_quote(self):
+            def _cell_text(row_idx: int, col_idx: int) -> str:
+    def generate_airport_sign(self):
+    def print_invoice(self):
+    def print_single_invoice(self):
+    def open_beverage_lookup(self):
+    def update_beverage_in_invoice(self, totals):
+    def save_beverages_to_charter(self, totals):
+    def create_child_beverage_invoice(self):
+    def save_child_invoice(
+    def print_client_beverage_list(self):
+    def print_driver_manifest(self):
+    def _normalize_beverage_cart_items(self):
+    def _build_client_beverage_print_text(self) -> str:
+    def _build_no_beverage_print_text(
+    def generate_client_beverage_html(self) -> str:
+    def generate_driver_manifest_html(self) -> str:
+    def print_beverage_dispatch_order(self):
+    def print_beverage_guest_invoice(self):
+    def print_beverage_driver_sheet(self):
+    def show_print_dialog(self, title, text):
+    def copy_to_clipboard(self, text):
+    def print_text(self, title, text):
+    def export_dialog_to_pdf(self, title, text):
+    def _fetch_invoice_packet(self, charter_id):
+    def _draw_invoice_overlay(self, c, invoice_packet, width, height):
+    def _draw_grouped_invoice_overlay(self, c, invoice_packet, width, height):
+    def _draw_multi_client_grouped_boxes(self, c, packets, width, height):
+        def _fmt_money(amount):
+        def _fmt_date(value):
+        def _payment_lines(items, max_lines=6):
+        def _draw_page_header(continued=False):
+    def export_modern_invoices_pdf(
+    def export_multi_charter_consolidated_invoice(
+    def _resolve_pdf_output_path(self, output_path: str) -> str:
+    def email_current_invoice(self):
+    def _create_invoice_pdf_for_email(self, charter_ids):
+    def _open_email_draft_with_attachment(self, to_email, subject, body, attachment_path):
+    def _set_invoice_sent_for_charters(self, charter_ids, sent_date=None):
+    def _email_invoice_pack(self, charter_ids, mark_sent=False):
+    def open_multi_invoice_selection_dialog(self):
+            def selected_ids():
+            def do_select_all(state):
+            def do_print():
+            def do_save():
+            def do_save_consolidated():
+            def do_email():
+            def do_mark_sent():
+    def export_dialog_to_csv(self, title, text):
+    def export_dialog_to_word(self, title, text):
+    def save_charter_routes(self, cur):
+    def save_charter_charges(self, cur):
+    def load_charter_routes(self, charter_id: int, cur):
+            def _extract_at_by_marker(note_text):
+                def _to_qtime(t, fallback: QTime):
+                def _set_parent_row_legacy(row_idx, address, stop_time, notes):
+            def _to_qtime(t, fallback: QTime):
+            def _set_parent_row(row_idx, address, stop_time, notes, at_by="at"):
+    def _recalculate_driver_pay(self):
+    def _load_driver_pay(self, charter_data: dict):
+    def _load_charter_payments(self, reserve_number: str):
+    def load_charter_charges(self, charter_id: int, cur):
+    def load_charter_beverages(self, charter_id: int, cur):
+    def _gather_run_sheet_data(self):
+    def _open_pdf_bytes(self, pdf_bytes, filename="run_sheet.pdf"):
+    def print_run_sheet(self):
+    def print_blank_run_sheet(self):
+

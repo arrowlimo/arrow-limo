@@ -1,0 +1,6 @@
+{
+  "general_ledger": "L:\\limo\\session_output_2012_ledger\\general_ledger_2012.csv",
+  "trial_balance": "L:\\limo\\session_output_2012_ledger\\trial_balance_2012.csv",
+  "profit_and_loss": "L:\\limo\\session_output_2012_ledger\\profit_and_loss_2012.csv",
+  "year_end_summary": "L:\\limo\\session_output_2012_ledger\\year_end_summary_2012.txt"
+}

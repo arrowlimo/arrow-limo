@@ -1,0 +1,229 @@
+# STRICT WEB APP ONLY - Ignore everything not required for web deployment
+# Ignore environment secrets
+.env
+.env.*
+passwords.txt
+.env.backup
+*.secret
+!*.example
+
+# PostgreSQL setup scripts with hardcoded passwords (SECURITY RISK - LOCAL ONLY)
+setup_alms_user.py
+setup_alms_user.sql
+ALMS_USER_SETUP.md
+
+# Desktop application (not needed for web)
+desktop_app/
+
+# Data processing scripts (not needed for web)
+scripts/
+
+# Development tools and temporary files (not needed for web)
+dev-tools/
+
+# Reports and analysis (not needed for web)
+reports/
+
+# Test files (not needed for web)
+tests/
+
+# Project documentation - ALL LOCAL, NOT PUSHED
+project-docs/
+
+# Legacy documentation (not needed for web deployment)
+docs/
+*.md
+!README.md
+!SECURITY_INCIDENT.md
+!project-docs/**/*.md
+
+# Config files (local only)
+config/
+
+# Data files (not needed for web)
+data/
+data dump/
+staging/
+backups/
+
+# Generated T4 output artifacts with employee/test data
+T4_2012_Forms/T4_2025_*.pdf
+T4_2012_Forms/*_EMPLOYEE*.pdf
+
+# PII/Payroll/Tax artifacts (never track)
+T4_2012_Forms/
+T4_2012_*.pdf
+PayStatement_*.pdf
+driver_pay_detailed_2012/
+driver_pay_exports_2012/
+tax_forms/
+tmp/T4_*.pdf
+database_backups/
+Copy of General_ledger.csv
+Copy of General_ledger2.csv
+paul/
+proll/
+tmp/*t4*payroll*.py
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Accidental literal environment-variable folder from mis-expanded copy commands
+%USERPROFILE%/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Database backups (exclude all dumps and SQL backups)
+*.dump
+*.dump.bak
+almsdata_backup_*.sql
+almsdata_backup_*.sql.bak
+almsdata_AFTER_*.dump
+
+# Node.js / Frontend
+node_modules/
+frontend/dist/
+frontend/node_modules/
+npm-debug.log
+yarn-error.log
+
+# Project-specific temporary/generated files
+reports/*.csv
+reports/*.json
+reports/*.txt
+reports/*.md
+data/*.csv
+data/*.json
+temp/
+scripts/tmp_*.py
+SESSION_LOG_*.md
+SESSION_CONTEXT_URGENT.md
+~$*.txt
+~$*.md
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Build scripts (keep local only)
+build_desktop_app.spec
+build_exe.bat
+build_exe.ps1
+check_build_status.ps1
+BUILD_DEPLOYMENT.md
+DEPLOYMENT_QUICK_START.md
+DISPATCHER_SETUP.md
+
+# Test files with credentials (keep local only)
+check_matt_password.py
+check_users_table.py
+passwords.txt
+render_health_check.py
+pre_render_deployment_check.py
+RENDER_DEPLOYMENT_READY.md
+RENDER_DEPLOYMENT_GUIDE.md
+render.yaml
+
+# Logs
+*.log
+*.jsonl
+error_log.jsonl
+logs/
+
+# Temporary test/check files
+check_*.py
+tmp_*.py
+test_*.py
+verify_*.py
+analyze_*.py
+reset_*.py
+update_*.py
+list_*.py
+match_*.py
+mark_*.py
+identify_*.py
+investigate_*.py
+generate_*.py
+get_*.py
+print_*.py
+remove_*.py
+report_*.py
+show_*.py
+apply_*.py
+
+# Migration and output directories
+migration_output/
+output.txt
+output/
+
+# Archives
+*.zip
+*.tar.gz
+
+# Large data directories (DO NOT COMMIT - 12GB+)
+qb_storage/
+quickbooks/
+vehicle_documents/
+insurance/
+exports/
+network_share_deployment/
+bfg/
+gsc_opportunity_analysis/
+PAYMENT-CHARTER-MATCHING/
+move/
+
+# SECURITY RISK: Customer payment data with PII
+PAYMENT-CHARTER-MATCHING/
+**/matching-report-*.json
+audit_reports/
+manual_review/
+banking_data/
+
+# QuickBooks files
+*.qbw
+*.QBW
+*.QBM
+*.qbm
+*.qbb
+*.QBB
+*.iif
+*.IIF
+
+# Large Excel/PDF files
+*.xlsx
+*.xlsm
+quickbooks/*.pdf
+
+# Executable installers
+*.exe
+
+# Large local files - never commit
+archive_old_scripts/old_database_files/*.sql
+database_backups/**/*.sql
+database_backups/**/*.json
+db/*.mdb
+database/*.mdb
+
+db_check.py
