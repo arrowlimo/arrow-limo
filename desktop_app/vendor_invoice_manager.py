@@ -34,6 +34,7 @@ from PyQt6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
@@ -961,16 +962,24 @@ class VendorInvoiceManager(QWidget):
     def _create_quick_actions(self) -> QGroupBox:
         """Quick action buttons for common tasks"""
         group = QGroupBox("⚡ Quick Actions")
-        group.setStyleSheet("QGroupBox { font-weight: bold; font-size: 11px;}")
+        group.setStyleSheet(
+            "QGroupBox { font-weight: bold; font-size: 11px; } "
+            "QGroupBox::title { left: 6px; padding: 0 2px; }"
+        )
         layout = QVBoxLayout(group)
-        layout.setSpacing(5)
+        layout.setContentsMargins(6, 8, 6, 6)
+        layout.setSpacing(3)
 
         # Add invoice button
         add_invoice_btn = QPushButton("➕ Add Invoice")
         add_invoice_btn.setStyleSheet(
-            "background-color: #28a745; color: white; padding: 8px; "
+            "background-color: #28a745; color: white; padding: 4px 8px; "
             "font-weight: bold; font-size: 11px;"
         )
+        add_invoice_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        add_invoice_btn.setFixedHeight(24)
         add_invoice_btn.setToolTip("Add a new invoice for the selected vendor")
         add_invoice_btn.clicked.connect(self._add_invoice)
         layout.addWidget(add_invoice_btn)
@@ -978,9 +987,13 @@ class VendorInvoiceManager(QWidget):
         # Edit selected invoice button
         edit_invoice_btn = QPushButton("✏️ Edit Invoice")
         edit_invoice_btn.setStyleSheet(
-            "background-color: #fd7e14; color: white; padding: 8px; "
+            "background-color: #fd7e14; color: white; padding: 4px 8px; "
             "font-weight: bold; font-size: 11px;"
         )
+        edit_invoice_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        edit_invoice_btn.setFixedHeight(24)
         edit_invoice_btn.setToolTip("Select one invoice and edit its details")
         edit_invoice_btn.clicked.connect(self._edit_selected_invoice)
         layout.addWidget(edit_invoice_btn)
@@ -988,9 +1001,13 @@ class VendorInvoiceManager(QWidget):
         # Pay single button
         pay_single_btn = QPushButton("💵 Pay One")
         pay_single_btn.setStyleSheet(
-            "background-color: #17a2b8; color: white; padding: 8px; "
+            "background-color: #17a2b8; color: white; padding: 4px 8px; "
             "font-weight: bold; font-size: 11px;"
         )
+        pay_single_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        pay_single_btn.setFixedHeight(24)
         pay_single_btn.setToolTip(
             "Select one invoice from table, fill payment details in "
             "'Apply Payment' tab, then click here"
@@ -1001,9 +1018,13 @@ class VendorInvoiceManager(QWidget):
         # Pay multiple button
         pay_multi_btn = QPushButton("💰 Pay Multiple")
         pay_multi_btn.setStyleSheet(
-            "background-color: #6f42c1; color: white; padding: 8px; "
+            "background-color: #6f42c1; color: white; padding: 4px 8px; "
             "font-weight: bold; font-size: 11px;"
         )
+        pay_multi_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        pay_multi_btn.setFixedHeight(24)
         pay_multi_btn.setToolTip(
             "Select multiple invoices (Ctrl+Click), fill payment in "
             "'Apply Payment' tab, then click here"
@@ -1014,9 +1035,13 @@ class VendorInvoiceManager(QWidget):
         # View ledger button
         ledger_btn = QPushButton("📒 Ledger")
         ledger_btn.setStyleSheet(
-            "background-color: #ffc107; color: black; padding: 8px; "
+            "background-color: #ffc107; color: black; padding: 4px 8px; "
             "font-weight: bold; font-size: 11px;"
         )
+        ledger_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        ledger_btn.setFixedHeight(24)
         ledger_btn.setToolTip("Show chronological invoice/payment ledger")
         ledger_btn.clicked.connect(self._show_summary_tab)
         layout.addWidget(ledger_btn)
@@ -1026,9 +1051,13 @@ class VendorInvoiceManager(QWidget):
     def _create_vendor_search(self) -> QGroupBox:
         """Vendor search and selection using verified vendor master list"""
         group = QGroupBox("🔍 Select Vendor")
-        group.setStyleSheet("QGroupBox { font-weight: bold; font-size: 12px;}")
+        group.setStyleSheet(
+            "QGroupBox { font-weight: bold; font-size: 12px; } "
+            "QGroupBox::title { left: 6px; padding: 0 2px; }"
+        )
         layout = QVBoxLayout(group)
-        layout.setSpacing(5)
+        layout.setContentsMargins(6, 8, 6, 6)
+        layout.setSpacing(3)
 
         # Verified vendor lookup with fuzzy search and add-new support
         self.vendor_lookup = VendorLookupWidget(self.conn, self)
@@ -1036,7 +1065,13 @@ class VendorInvoiceManager(QWidget):
         layout.addWidget(self.vendor_lookup)
 
         refresh_btn = QPushButton("🔄 Refresh Invoices")
-        refresh_btn.setStyleSheet("padding: 8px; font-weight: bold;")
+        refresh_btn.setStyleSheet(
+            "padding: 4px 8px; font-weight: bold; font-size: 11px;"
+        )
+        refresh_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        refresh_btn.setFixedHeight(24)
         refresh_btn.clicked.connect(self._refresh_current_vendor)
         layout.addWidget(refresh_btn)
 
