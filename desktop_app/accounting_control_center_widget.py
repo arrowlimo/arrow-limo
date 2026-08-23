@@ -377,10 +377,9 @@ class AccountingControlCenterWidget(QWidget):
         self.panel_tabs.addTab(
             self._create_payroll_panel(), "Payroll Close"
         )
-        # GST Remittance tab - disabled temporarily pending UI refinement
-        # self.panel_tabs.addTab(
-        #     self._create_gst_panel(), "GST Remittance"
-        # )
+        self.panel_tabs.addTab(
+            self._create_gst_panel(), "GST Remittance"
+        )
 
         self.sequence_group = QGroupBox("Fix Sequence Tracker")
         sequence_layout = QVBoxLayout(self.sequence_group)
