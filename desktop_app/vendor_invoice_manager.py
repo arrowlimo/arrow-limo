@@ -876,7 +876,7 @@ class VendorInvoiceManager(QWidget):
 
         # Left: Vendor search and quick actions
         vendor_panel = QWidget()
-        vendor_panel.setMaximumWidth(350)  # Prevent excessive width
+        vendor_panel.setMinimumWidth(500)  # Ensure enough width for horizontal buttons
         vendor_layout = QVBoxLayout(vendor_panel)
         vendor_layout.setContentsMargins(0, 0, 0, 0)
         vendor_layout.setSpacing(5)
