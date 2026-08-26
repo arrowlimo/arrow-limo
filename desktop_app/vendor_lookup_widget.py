@@ -6,7 +6,7 @@ import logging
 from difflib import SequenceMatcher
 
 import psycopg2
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import QSignalBlocker, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -73,6 +73,7 @@ class VendorLookupWidget(QWidget):
         self.conn = conn
         self.vendors = []  # List of (vendor_id, vendor_name, category)
         self.current_vendor_id = None  # Track current vendor ID for GL lookups
+        self._committed_vendor_name = ""
 
         # Debounce timer — wait 500 ms after last keystroke before filtering,
         # so the popup doesn't steal focus while the user is still typing.
@@ -109,7 +110,10 @@ class VendorLookupWidget(QWidget):
 
         # Enable fuzzy search on text change
         self.vendor_combo.lineEdit().textEdited.connect(self._on_text_changed)
-        self.vendor_combo.currentTextChanged.connect(self._on_vendor_selected)
+        self.vendor_combo.activated.connect(self._on_vendor_activated)
+        self.vendor_combo.lineEdit().editingFinished.connect(
+            self._commit_typed_vendor
+        )
 
         # Add vendor button
         self.add_vendor_btn = QPushButton("+ Add")
@@ -141,21 +145,28 @@ class VendorLookupWidget(QWidget):
 
             # Populate combo box
             current_text = self.vendor_combo.currentText()
-            self.vendor_combo.clear()
+            blocker = QSignalBlocker(self.vendor_combo)
+            try:
+                self.vendor_combo.clear()
 
-            for vendor_id, vendor_name, category in self.vendors:
-                display_text = vendor_name
-                if category:
-                    display_text = f"{vendor_name} ({category})"
-                self.vendor_combo.addItem(display_text, vendor_id)
+                for vendor_id, vendor_name, category in self.vendors:
+                    display_text = vendor_name
+                    if category:
+                        display_text = f"{vendor_name} ({category})"
+                    self.vendor_combo.addItem(display_text, vendor_id)
 
-            # Restore selection if possible
-            if current_text:
-                index = self.vendor_combo.findText(
-                    current_text, Qt.MatchFlag.MatchContains
-                )
-                if index >= 0:
-                    self.vendor_combo.setCurrentIndex(index)
+                # Restore selection if possible
+                if current_text:
+                    index = self.vendor_combo.findText(
+                        current_text, Qt.MatchFlag.MatchContains
+                    )
+                    if index >= 0:
+                        self.vendor_combo.setCurrentIndex(index)
+                    else:
+                        self.vendor_combo.setCurrentIndex(-1)
+                        self.vendor_combo.setEditText(current_text)
+            finally:
+                del blocker
 
         except Exception as e:
             try:
@@ -211,18 +222,22 @@ class VendorLookupWidget(QWidget):
         # Update combo box with top matches
         if matches:
             current_text = self.vendor_combo.currentText()
-            self.vendor_combo.clear()
+            blocker = QSignalBlocker(self.vendor_combo)
+            try:
+                self.vendor_combo.clear()
 
-            for score, vendor_id, vendor_name, category in matches[
-                :50
-            ]:  # Top 50 matches
-                display_text = vendor_name
-                if category:
-                    display_text = f"{vendor_name} ({category})"
-                self.vendor_combo.addItem(display_text, vendor_id)
+                for _score, vendor_id, vendor_name, category in matches[
+                    :50
+                ]:  # Top 50 matches
+                    display_text = vendor_name
+                    if category:
+                        display_text = f"{vendor_name} ({category})"
+                    self.vendor_combo.addItem(display_text, vendor_id)
 
-            # Set the text back (triggers dropdown)
-            self.vendor_combo.lineEdit().setText(current_text)
+                self.vendor_combo.setCurrentIndex(-1)
+                self.vendor_combo.setEditText(current_text)
+            finally:
+                del blocker
             self.vendor_combo.showPopup()
 
     def _get_vendor_gl_codes(self, vendor_id: int) -> object:
@@ -259,13 +274,47 @@ class VendorLookupWidget(QWidget):
                 logger.debug('Suppressed: %s', _e)
             return []
 
-    def _on_vendor_selected(self, text: str) -> None:
-        """Handle vendor selection."""
+    def _on_vendor_activated(self, index: int) -> None:
+        """Commit a vendor chosen from the dropdown."""
+        if index < 0:
+            return
+
+        self._commit_vendor(
+            self.vendor_combo.itemText(index),
+            self.vendor_combo.itemData(index),
+        )
+
+    def _commit_typed_vendor(self) -> None:
+        """Commit typed text only when it exactly matches a known vendor."""
+        typed_name = self.get_vendor()
+        if not typed_name:
+            return
+
+        for index in range(self.vendor_combo.count()):
+            item_text = self.vendor_combo.itemText(index)
+            item_vendor = (
+                item_text.split(" (")[0] if " (" in item_text else item_text
+            )
+            if item_vendor.casefold() == typed_name.casefold():
+                self.vendor_combo.setCurrentIndex(index)
+                self._commit_vendor(
+                    item_text, self.vendor_combo.itemData(index)
+                )
+                return
+
+    def _commit_vendor(self, text: str, vendor_id) -> None:
+        """Emit a vendor change once after an explicit, valid selection."""
         # Extract vendor name (remove category part)
         vendor_name = text.split(" (")[0] if " (" in text else text
 
-        # Get vendor ID from current selection
-        vendor_id = self.vendor_combo.currentData()
+        if (
+            vendor_name == self._committed_vendor_name
+            and vendor_id == self.current_vendor_id
+        ):
+            return
+
+        self._search_timer.stop()
+        self._committed_vendor_name = vendor_name
         self.current_vendor_id = vendor_id
 
         # Emit vendor changed signal
@@ -369,9 +418,12 @@ class VendorLookupWidget(QWidget):
             )
             if item_vendor.upper() == vendor_name.upper():
                 self.vendor_combo.setCurrentIndex(i)
+                self._commit_vendor(item_text, self.vendor_combo.itemData(i))
                 return
 
         # No match found, set the text directly
+        self.current_vendor_id = None
+        self._committed_vendor_name = ""
         self.vendor_combo.setCurrentText(vendor_name)
 
     def clear(self) -> None:
@@ -379,6 +431,8 @@ class VendorLookupWidget(QWidget):
         self.vendor_combo.hidePopup()
         self.vendor_combo.setCurrentIndex(-1)
         self.vendor_combo.clearEditText()
+        self.current_vendor_id = None
+        self._committed_vendor_name = ""
         self._load_vendors()  # Restore full vendor list after filtering
 
     def get_gl_codes(self) -> object:
