@@ -2152,6 +2152,7 @@ class VendorInvoiceManager(QWidget):
                     JOIN vendor_invoices vi
                         ON vi.vendor_invoice_id = vip.receipt_id
                     WHERE vi.vendor_name = %s
+                      AND ABS(COALESCE(vip.payment_amount, 0)) >= 0.005
                       AND (
                           %s = false
                           OR COALESCE(vi.invoice_number, '')
@@ -2890,6 +2891,7 @@ class VendorInvoiceManager(QWidget):
                         JOIN vendor_invoices vi
                             ON vi.vendor_invoice_id = vip.receipt_id
                         WHERE vi.vendor_name = %s
+                          AND ABS(COALESCE(vip.payment_amount, 0)) >= 0.005
                           AND (
                               %s = false
                               OR COALESCE(
@@ -3465,6 +3467,7 @@ class VendorInvoiceManager(QWidget):
                     JOIN vendor_invoices vi
                         ON vi.vendor_invoice_id = vip.receipt_id
                     WHERE vi.vendor_name = %s
+                      AND ABS(COALESCE(vip.payment_amount, 0)) >= 0.005
                 """
                 params = [self.current_vendor]
 
