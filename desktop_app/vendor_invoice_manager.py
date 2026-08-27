@@ -2004,7 +2004,9 @@ class VendorInvoiceManager(QWidget):
 
         info = QLabel(
             "Invoices increase the running balance; payments reduce it. "
-            "Select a row, correct its values below, then save."
+            "Select a row, edit the fields in the Selected Row section below, "
+            "then click Save Corrected Row. A payment's Invoice # may be "
+            "changed to move it to another invoice for this vendor."
         )
         info.setWordWrap(True)
         info.setStyleSheet(
@@ -2580,7 +2582,7 @@ class VendorInvoiceManager(QWidget):
         self.ledger_editor_invoice_number.setText(
             metadata["invoice_number"]
         )
-        self.ledger_editor_invoice_number.setReadOnly(not is_invoice)
+        self.ledger_editor_invoice_number.setReadOnly(False)
         editor_amount = (
             abs(metadata["amount"])
             if metadata["row_type"] == "PAYMENT"
@@ -2694,6 +2696,40 @@ class VendorInvoiceManager(QWidget):
                         ),
                     )
                 else:
+                    target_invoice_number = (
+                        self.ledger_editor_invoice_number.text().strip()
+                    )
+                    if not target_invoice_number:
+                        raise ValueError(
+                            "Invoice # is required for a payment record."
+                        )
+
+                    cur.execute(
+                        """
+                        SELECT vendor_invoice_id
+                        FROM vendor_invoices
+                        WHERE vendor_name = %s
+                          AND LOWER(TRIM(COALESCE(invoice_number, '')))
+                              = LOWER(TRIM(%s))
+                        ORDER BY vendor_invoice_id
+                        FOR UPDATE
+                        """,
+                        (self.current_vendor, target_invoice_number),
+                    )
+                    matching_invoices = cur.fetchall()
+                    if not matching_invoices:
+                        raise ValueError(
+                            f"Invoice {target_invoice_number} was not found "
+                            f"for {self.current_vendor}."
+                        )
+                    if len(matching_invoices) > 1:
+                        raise ValueError(
+                            f"Invoice number {target_invoice_number} is not "
+                            "unique for this vendor. Correct the duplicate "
+                            "invoice numbers before moving this payment."
+                        )
+                    target_invoice_id = int(matching_invoices[0][0])
+
                     cur.execute(
                         """
                         SELECT
@@ -2732,7 +2768,8 @@ class VendorInvoiceManager(QWidget):
                     cur.execute(
                         """
                         UPDATE vendor_invoice_payments vip
-                        SET payment_date = %s,
+                        SET receipt_id = %s,
+                            payment_date = %s,
                             payment_amount = %s,
                             payment_method = %s,
                             reference = %s,
@@ -2747,6 +2784,7 @@ class VendorInvoiceManager(QWidget):
                         RETURNING vip.payment_id
                         """,
                         (
+                            target_invoice_id,
                             self.ledger_editor_date.date().toPyDate(),
                             amount,
                             self.ledger_editor_method.currentText(),
