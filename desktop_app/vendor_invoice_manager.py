@@ -36,7 +36,6 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSizePolicy,
-    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -844,31 +843,24 @@ class VendorInvoiceManager(QWidget):
         layout.setSpacing(10)
         layout.setContentsMargins(10, 10, 10, 10)
 
-        # TOP ROW: Vendor search (left) + Invoice list with actions (right)
-        top_splitter = QSplitter(Qt.Orientation.Horizontal)
+        # Keep vendor selection and common actions in one compact top row.
+        top_controls = QWidget()
+        top_controls_layout = QHBoxLayout(top_controls)
+        top_controls_layout.setContentsMargins(0, 0, 0, 0)
+        top_controls_layout.setSpacing(6)
 
-        # Left: Vendor search and quick actions
-        vendor_panel = QWidget()
-        vendor_panel.setMaximumWidth(350)  # Prevent excessive width
-        vendor_layout = QVBoxLayout(vendor_panel)
-        vendor_layout.setContentsMargins(0, 0, 0, 0)
-        vendor_layout.setSpacing(5)
-        vendor_group = self._create_vendor_search()
-        vendor_layout.addWidget(vendor_group)
+        vendor_controls = self._create_vendor_search()
+        vendor_controls.setMinimumWidth(390)
+        top_controls_layout.addWidget(vendor_controls, stretch=2)
+
         quick_actions = self._create_quick_actions()
-        vendor_layout.addWidget(quick_actions)
-        # No stretch - compact layout
+        top_controls_layout.addWidget(quick_actions, stretch=3)
+        top_controls_layout.addStretch(1)
+        layout.addWidget(top_controls)
 
-        # Right: Invoice list
+        # The invoice list uses the full width below the compact controls.
         invoice_panel = self._create_invoice_list()
-
-        top_splitter.addWidget(vendor_panel)
-        top_splitter.addWidget(invoice_panel)
-        top_splitter.setStretchFactor(0, 0)  # Vendor panel fixed
-        # Invoice list takes remaining space
-        top_splitter.setStretchFactor(1, 1)
-
-        layout.addWidget(top_splitter, stretch=4)
+        layout.addWidget(invoice_panel, stretch=4)
 
         # 3. Expandable details section
         self.details_tabs = QTabWidget()
@@ -915,15 +907,11 @@ class VendorInvoiceManager(QWidget):
             if vendor_name:
                 self._on_vendor_selected(vendor_name)
 
-    def _create_quick_actions(self) -> QGroupBox:
+    def _create_quick_actions(self) -> QWidget:
         """Quick action buttons for common tasks"""
-        group = QGroupBox("⚡ Quick Actions")
-        group.setStyleSheet(
-            "QGroupBox { font-weight: bold; font-size: 11px; } "
-            "QGroupBox::title { left: 6px; padding: 0 2px; }"
-        )
-        layout = QHBoxLayout(group)
-        layout.setContentsMargins(6, 8, 6, 6)
+        controls = QWidget()
+        layout = QHBoxLayout(controls)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(3)
 
         # Add invoice button
@@ -1004,17 +992,13 @@ class VendorInvoiceManager(QWidget):
         ledger_btn.clicked.connect(self._open_ledger_editor)
         layout.addWidget(ledger_btn)
 
-        return group
+        return controls
 
-    def _create_vendor_search(self) -> QGroupBox:
+    def _create_vendor_search(self) -> QWidget:
         """Vendor search and selection using verified vendor master list"""
-        group = QGroupBox("🔍 Select Vendor")
-        group.setStyleSheet(
-            "QGroupBox { font-weight: bold; font-size: 12px; } "
-            "QGroupBox::title { left: 6px; padding: 0 2px; }"
-        )
-        layout = QVBoxLayout(group)
-        layout.setContentsMargins(6, 8, 6, 6)
+        controls = QWidget()
+        layout = QHBoxLayout(controls)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(3)
 
         # Verified vendor lookup with fuzzy search and add-new support
@@ -1033,11 +1017,11 @@ class VendorInvoiceManager(QWidget):
         refresh_btn.clicked.connect(self._refresh_current_vendor)
         layout.addWidget(refresh_btn)
 
-        return group
+        return controls
 
     def _create_invoice_list(self) -> QGroupBox:
         """Invoice list for selected vendor with inline editing"""
-        group = QGroupBox("📋 All Invoices for Vendor")
+        group = QGroupBox()
         group.setStyleSheet(
             "QGroupBox { font-weight: bold; font-size: 12px; } "
             "QGroupBox::title { left: 6px; padding: 0 2px; }"
@@ -1610,10 +1594,10 @@ class VendorInvoiceManager(QWidget):
         banking_layout.addStretch()
         layout.addLayout(banking_layout)
 
-        # Hint - payment buttons are in Quick Actions on left
+        # Hint - payment buttons are in Quick Actions at the top
         hint = QLabel(
             "💡 Enter payment details above, then use the Quick Action "
-            "buttons on the LEFT:\n"
+            "buttons at the TOP:\n"
             "   • Pay One - Select 1 invoice, click 'Pay One' button\n"
             "   • Pay Multiple - Select multiple invoices (Ctrl+Click), "
             "click 'Pay Multiple' button"
