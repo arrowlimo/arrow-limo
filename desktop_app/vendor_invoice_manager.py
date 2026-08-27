@@ -2004,9 +2004,10 @@ class VendorInvoiceManager(QWidget):
 
         info = QLabel(
             "Invoices increase the running balance; payments reduce it. "
-            "Select a row, edit the fields in the Selected Row section below, "
-            "then click Save Corrected Row. A payment's Invoice # may be "
-            "changed to move it to another invoice for this vendor."
+            "Document # is the invoice number on invoice rows and the payment "
+            "number/reference on payment rows. Applied To Invoice identifies "
+            "the invoice receiving a payment. Select a row, edit the fields "
+            "below, then click Save Corrected Row."
         )
         info.setWordWrap(True)
         info.setStyleSheet(
@@ -2018,13 +2019,14 @@ class VendorInvoiceManager(QWidget):
         layout.addWidget(self.ledger_editor_summary)
 
         self.ledger_editor_table = QTableWidget()
-        self.ledger_editor_table.setColumnCount(9)
+        self.ledger_editor_table.setColumnCount(10)
         self.ledger_editor_table.setHorizontalHeaderLabels(
             [
                 "Date",
                 "Type",
-                "Invoice #",
-                "Details / Reference",
+                "Document #",
+                "Applied To Invoice",
+                "Details",
                 "Charge",
                 "Payment",
                 "Running Balance",
@@ -2062,8 +2064,10 @@ class VendorInvoiceManager(QWidget):
         editor_layout.addRow("Date:", self.ledger_editor_date)
 
         self.ledger_editor_invoice_number = QLineEdit()
+        self.ledger_editor_invoice_number_label = QLabel("Invoice #:")
         editor_layout.addRow(
-            "Invoice #:", self.ledger_editor_invoice_number
+            self.ledger_editor_invoice_number_label,
+            self.ledger_editor_invoice_number,
         )
 
         self.ledger_editor_amount = CurrencyInput()
@@ -2085,7 +2089,9 @@ class VendorInvoiceManager(QWidget):
         editor_layout.addRow("Payment method:", self.ledger_editor_method)
 
         self.ledger_editor_reference = QLineEdit()
-        editor_layout.addRow("Reference:", self.ledger_editor_reference)
+        editor_layout.addRow(
+            "Payment # / reference:", self.ledger_editor_reference
+        )
 
         self.ledger_editor_notes = QTextEdit()
         self.ledger_editor_notes.setMaximumHeight(80)
@@ -2484,6 +2490,8 @@ class VendorInvoiceManager(QWidget):
                     total_charges += display_amount
                     running_balance += display_amount
                     detail_text = details
+                    document_number = invoice_number
+                    applied_to_invoice = ""
                 else:
                     charge = 0.0
                     payment = display_amount
@@ -2491,9 +2499,11 @@ class VendorInvoiceManager(QWidget):
                     running_balance -= display_amount
                     detail_text = " | ".join(
                         value
-                        for value in (payment_method, reference, details)
+                        for value in (payment_method, details)
                         if value
                     )
+                    document_number = reference
+                    applied_to_invoice = invoice_number
 
                 values = [
                     (
@@ -2502,7 +2512,8 @@ class VendorInvoiceManager(QWidget):
                         else str(row_date or "")
                     ),
                     row_type,
-                    str(invoice_number),
+                    str(document_number),
+                    str(applied_to_invoice),
                     detail_text,
                     f"${charge:,.2f}" if charge else "",
                     f"${payment:,.2f}" if payment else "",
@@ -2525,7 +2536,7 @@ class VendorInvoiceManager(QWidget):
 
                 for column, value in enumerate(values):
                     item = QTableWidgetItem(value)
-                    if column in (4, 5, 6):
+                    if column in (5, 6, 7):
                         item.setTextAlignment(
                             Qt.AlignmentFlag.AlignRight
                             | Qt.AlignmentFlag.AlignVCenter
@@ -2579,6 +2590,9 @@ class VendorInvoiceManager(QWidget):
             )
 
         is_invoice = metadata["row_type"] == "INVOICE"
+        self.ledger_editor_invoice_number_label.setText(
+            "Invoice #:" if is_invoice else "Applied to invoice #:"
+        )
         self.ledger_editor_invoice_number.setText(
             metadata["invoice_number"]
         )
