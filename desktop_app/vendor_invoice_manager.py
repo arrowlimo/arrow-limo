@@ -2095,6 +2095,14 @@ class VendorInvoiceManager(QWidget):
         refresh_btn.clicked.connect(self._refresh_ledger_editor)
         button_row.addWidget(refresh_btn)
 
+        add_invoice_btn = QPushButton("Add Invoice")
+        add_invoice_btn.clicked.connect(self._add_ledger_editor_invoice)
+        button_row.addWidget(add_invoice_btn)
+
+        add_payment_btn = QPushButton("Add Payment")
+        add_payment_btn.clicked.connect(self._add_ledger_editor_payment)
+        button_row.addWidget(add_payment_btn)
+
         save_btn = QPushButton("Save Corrected Row")
         save_btn.setStyleSheet(
             "background-color: #28a745; color: white; "
@@ -2102,6 +2110,14 @@ class VendorInvoiceManager(QWidget):
         )
         save_btn.clicked.connect(self._save_ledger_editor_row)
         button_row.addWidget(save_btn)
+
+        delete_btn = QPushButton("Delete Selected")
+        delete_btn.setStyleSheet(
+            "background-color: #dc3545; color: white; "
+            "font-weight: bold; padding: 7px;"
+        )
+        delete_btn.clicked.connect(self._delete_ledger_editor_row)
+        button_row.addWidget(delete_btn)
         button_row.addStretch()
 
         close_btn = QPushButton("Close")
@@ -2111,6 +2127,252 @@ class VendorInvoiceManager(QWidget):
 
         self._refresh_ledger_editor()
         dialog.exec()
+
+    def _selected_ledger_editor_metadata(self) -> dict | None:
+        """Return metadata for the selected editable ledger row."""
+        row = self.ledger_editor_table.currentRow()
+        if row < 0:
+            return None
+
+        item = self.ledger_editor_table.item(row, 0)
+        if item is None:
+            return None
+        return item.data(Qt.ItemDataRole.UserRole)
+
+    def _refresh_after_ledger_change(self) -> None:
+        """Refresh every surface affected by a ledger correction."""
+        self._refresh_ledger_editor()
+        self._load_vendor_invoices()
+        self._refresh_vendor_ledger()
+        self._refresh_payment_history()
+        self._refresh_account_summary()
+
+    def _add_ledger_editor_invoice(self) -> None:
+        """Create an invoice using the values in the ledger editor."""
+        invoice_number = self.ledger_editor_invoice_number.text().strip()
+        amount = Decimal(str(self.ledger_editor_amount.get_value()))
+        notes = self.ledger_editor_notes.toPlainText().strip()
+
+        confirm = QMessageBox.question(
+            self,
+            "Confirm New Invoice",
+            f"Add invoice {invoice_number or '(no number)'} for "
+            f"${amount:,.2f} to {self.current_vendor}?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            with DatabaseContext(self.conn, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO vendor_invoices
+                        (vendor_name, invoice_number, invoice_date,
+                         invoice_amount, notes)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING vendor_invoice_id
+                    """,
+                    (
+                        self.current_vendor,
+                        invoice_number or None,
+                        self.ledger_editor_date.date().toPyDate(),
+                        amount,
+                        notes or None,
+                    ),
+                )
+                invoice_id = cur.fetchone()[0]
+
+            self._refresh_after_ledger_change()
+            QMessageBox.information(
+                self,
+                "Invoice Added",
+                f"Invoice record {invoice_id} was added.",
+            )
+        except Exception as e:
+            logger.error("Failed to add invoice from ledger editor: %s", e)
+            QMessageBox.critical(
+                self, "Add Error", f"Unable to add the invoice:\n\n{e}"
+            )
+
+    def _add_ledger_editor_payment(self) -> None:
+        """Create a payment for the invoice linked to the selected row."""
+        metadata = self._selected_ledger_editor_metadata()
+        if not metadata:
+            QMessageBox.warning(
+                self,
+                "No Invoice Selection",
+                "Select an invoice or one of its payment rows first.",
+            )
+            return
+
+        invoice_id = metadata["invoice_id"]
+        amount = Decimal(str(self.ledger_editor_amount.get_value()))
+        if amount <= 0:
+            QMessageBox.warning(
+                self, "Invalid Amount", "Payment must be greater than $0.00."
+            )
+            return
+
+        reference = self.ledger_editor_reference.text().strip()
+        confirm = QMessageBox.question(
+            self,
+            "Confirm New Payment",
+            f"Add a ${amount:,.2f} payment to invoice "
+            f"{metadata['invoice_number'] or invoice_id}?\n\n"
+            f"Reference: {reference or '(none)'}",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            with DatabaseContext(self.conn, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    SELECT vendor_invoice_id
+                    FROM vendor_invoices
+                    WHERE vendor_invoice_id = %s
+                      AND vendor_name = %s
+                    FOR UPDATE
+                    """,
+                    (invoice_id, self.current_vendor),
+                )
+                if cur.fetchone() is None:
+                    raise ValueError(
+                        "The selected invoice no longer exists for this vendor."
+                    )
+
+                cur.execute(
+                    """
+                    INSERT INTO vendor_invoice_payments
+                        (receipt_id, payment_date, payment_amount,
+                         payment_method, reference, notes)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    RETURNING payment_id
+                    """,
+                    (
+                        invoice_id,
+                        self.ledger_editor_date.date().toPyDate(),
+                        amount,
+                        self.ledger_editor_method.currentText(),
+                        reference or None,
+                        self.ledger_editor_notes.toPlainText().strip() or None,
+                    ),
+                )
+                payment_id = cur.fetchone()[0]
+
+            self._refresh_after_ledger_change()
+            QMessageBox.information(
+                self,
+                "Payment Added",
+                f"Payment record {payment_id} was added.",
+            )
+        except Exception as e:
+            logger.error("Failed to add payment from ledger editor: %s", e)
+            QMessageBox.critical(
+                self, "Add Error", f"Unable to add the payment:\n\n{e}"
+            )
+
+    def _delete_ledger_editor_row(self) -> None:
+        """Delete the selected ledger row after dependency checks."""
+        metadata = self._selected_ledger_editor_metadata()
+        if not metadata:
+            QMessageBox.warning(
+                self, "No Selection", "Select a ledger row to delete."
+            )
+            return
+
+        row_type = metadata["row_type"]
+        record_id = metadata["record_id"]
+        confirm = QMessageBox.question(
+            self,
+            "Confirm Delete",
+            f"Permanently delete {row_type.lower()} record {record_id}?\n\n"
+            "This cannot be undone and will recalculate all subsequent "
+            "running balances.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            with DatabaseContext(self.conn, auto_commit=True) as cur:
+                if row_type == "PAYMENT":
+                    cur.execute(
+                        """
+                        DELETE FROM vendor_invoice_payments vip
+                        WHERE vip.payment_id = %s
+                          AND EXISTS (
+                              SELECT 1
+                              FROM vendor_invoices vi
+                              WHERE vi.vendor_invoice_id = vip.receipt_id
+                                AND vi.vendor_name = %s
+                          )
+                        RETURNING vip.payment_id
+                        """,
+                        (record_id, self.current_vendor),
+                    )
+                else:
+                    cur.execute(
+                        """
+                        SELECT
+                            (SELECT COUNT(*)
+                             FROM vendor_invoice_payments
+                             WHERE receipt_id = vi.vendor_invoice_id),
+                            (SELECT COUNT(*)
+                             FROM receipts
+                             WHERE vendor_invoice_id = vi.vendor_invoice_id)
+                        FROM vendor_invoices vi
+                        WHERE vi.vendor_invoice_id = %s
+                          AND vi.vendor_name = %s
+                        FOR UPDATE
+                        """,
+                        (record_id, self.current_vendor),
+                    )
+                    dependency_counts = cur.fetchone()
+                    if dependency_counts is None:
+                        raise ValueError(
+                            f"Invoice record {record_id} was not found."
+                        )
+                    payment_count, receipt_count = dependency_counts
+                    if payment_count or receipt_count:
+                        raise ValueError(
+                            "This invoice cannot be deleted while it has "
+                            f"{payment_count} payment(s) or "
+                            f"{receipt_count} linked receipt(s). Delete or "
+                            "unlink those records first."
+                        )
+
+                    cur.execute(
+                        """
+                        DELETE FROM vendor_invoices
+                        WHERE vendor_invoice_id = %s
+                          AND vendor_name = %s
+                        RETURNING vendor_invoice_id
+                        """,
+                        (record_id, self.current_vendor),
+                    )
+
+                if cur.fetchone() is None:
+                    raise ValueError(
+                        f"{row_type.title()} record {record_id} was not found."
+                    )
+
+            self._refresh_after_ledger_change()
+            QMessageBox.information(
+                self,
+                "Ledger Row Deleted",
+                f"{row_type.title()} record {record_id} was deleted.",
+            )
+        except Exception as e:
+            logger.error("Failed to delete ledger row: %s", e)
+            QMessageBox.critical(
+                self, "Delete Error", f"Unable to delete the row:\n\n{e}"
+            )
 
     def _fetch_editable_ledger_rows(self) -> list[tuple]:
         """Return invoice and payment rows in deterministic ledger order."""
