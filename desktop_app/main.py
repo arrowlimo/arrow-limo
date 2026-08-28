@@ -303,8 +303,15 @@ class MainWindow(QMainWindow):
                 self._on_db_connection_restored
             )
             self.db_monitor.status_changed.connect(self._on_db_status_changed)
-            self.db_monitor.start_monitoring()
-            logger.debug("  [OK] Database connection monitoring started")
+            periodic_db_checks = (
+                os.getenv("DB_TARGET", "neon").lower().strip() == "local"
+            )
+            self.db_monitor.start_monitoring(periodic=periodic_db_checks)
+            logger.debug(
+                "  [OK] Database connection monitoring initialized "
+                "(periodic=%s)",
+                periodic_db_checks,
+            )
         except Exception as e:
             logger.warning("Could not start connection monitoring: %s", e)
             # Non-fatal - app can continue without monitoring
@@ -764,7 +771,16 @@ class MainWindow(QMainWindow):
         "form inputs."""
 
         if event.type() in self._activity_event_types:
+            idle_seconds = (
+                datetime.now() - self._last_activity
+            ).total_seconds()
             self._mark_activity()
+            if (
+                idle_seconds >= 300
+                and hasattr(self, "db_monitor")
+                and not self.db_monitor.timer.isActive()
+            ):
+                self.db_monitor.check_connection()
 
         # Block scroll wheel from accidentally changing spinboxes / combos
         # while the user scrolls the page.  Only allow wheel changes once
