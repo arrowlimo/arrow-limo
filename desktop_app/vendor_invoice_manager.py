@@ -35,7 +35,9 @@ from PyQt6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
+    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -858,13 +860,19 @@ class VendorInvoiceManager(QWidget):
         top_controls_layout.addStretch(1)
         layout.addWidget(top_controls)
 
-        # The invoice list uses the full width below the compact controls.
-        invoice_panel = self._create_invoice_list()
-        layout.addWidget(invoice_panel, stretch=4)
+        # Keep the invoice list and detail workspace independently resizable.
+        content_splitter = QSplitter(Qt.Orientation.Vertical)
+        content_splitter.setChildrenCollapsible(False)
 
-        # 3. Expandable details section
+        invoice_panel = self._create_invoice_list()
+        content_splitter.addWidget(invoice_panel)
+
+        # Preserve enough height for roughly eight compact lines of detail.
         self.details_tabs = QTabWidget()
-        self.details_tabs.setMaximumHeight(280)
+        self.details_tabs.setMinimumHeight(260)
+        self.details_tabs.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         self.details_tabs.setStyleSheet(
             "QTabWidget::pane { border: 1px solid #ccc; } "
             "QTabBar::tab { padding: 8px 16px; font-size: 11px; "
@@ -888,7 +896,11 @@ class VendorInvoiceManager(QWidget):
             self._create_account_summary_tab(), "📊 Summary"
         )
 
-        layout.addWidget(self.details_tabs, stretch=1)
+        content_splitter.addWidget(self.details_tabs)
+        content_splitter.setStretchFactor(0, 1)
+        content_splitter.setStretchFactor(1, 1)
+        content_splitter.setSizes([300, 300])
+        layout.addWidget(content_splitter, stretch=1)
 
         # Trigger initial invoice load for vendor shown in combo at startup.
         QTimer.singleShot(0, self._load_initial_vendor)
@@ -1147,7 +1159,21 @@ class VendorInvoiceManager(QWidget):
 
         filter_layout.addStretch()
 
-        layout.addWidget(filter_frame)
+        filter_scroll = QScrollArea()
+        filter_scroll.setWidget(filter_frame)
+        filter_scroll.setWidgetResizable(True)
+        filter_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        filter_scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        filter_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        filter_scroll.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        filter_scroll.setFixedHeight(filter_frame.sizeHint().height() + 2)
+        layout.addWidget(filter_scroll)
 
         # Invoice table - now includes running balance and is editable
         self.invoice_table = QTableWidget()
@@ -1204,6 +1230,12 @@ class VendorInvoiceManager(QWidget):
         )
         self.invoice_table.setAlternatingRowColors(True)
         self.invoice_table.setStyleSheet("QTableWidget { font-size: 11px;}")
+        self.invoice_table.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        self.invoice_table.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
         self.invoice_table.setContextMenuPolicy(
             Qt.ContextMenuPolicy.CustomContextMenu
         )
@@ -1221,17 +1253,6 @@ class VendorInvoiceManager(QWidget):
         # Keep invoice list in FIFO date order (oldest to newest).
         self.invoice_table.setSortingEnabled(False)
         layout.addWidget(self.invoice_table)
-
-        hint = QLabel(
-            "💡 Double-click Invoice # or Date to edit • Use Find for invoice "
-            "lookup • Payments may be split across multiple invoices • Grid "
-            "ordered oldest to newest"
-        )
-        hint.setStyleSheet(
-            "font-size: 11px; color: #666; font-style: italic; padding: 5px; "
-            "background-color: #f8f9fa;"
-        )
-        layout.addWidget(hint)
 
         return group
 
@@ -1288,10 +1309,7 @@ class VendorInvoiceManager(QWidget):
         layout.addLayout(form)
 
         # Split fees section (for vendors like WCB with overdue fees)
-        split_group = QGroupBox(
-            "💳 Split Fees (Optional - for WCB overdue fees, "
-            "CRA adjustments, etc.)"
-        )
+        split_group = QGroupBox("💳 Split Fees (Optional)")
         split_group.setStyleSheet(
             "QGroupBox { font-weight: bold; font-size: 10px;} "
             "QGroupBox::title { subcontrol-origin: margin; left: 10px;}"
@@ -1352,16 +1370,6 @@ class VendorInvoiceManager(QWidget):
         )
         split_details_layout.addRow("Fee Type:", self.new_invoice_fee_type)
 
-        # Info note
-        fee_note = QLabel(
-            "ℹ️ Overdue fees and penalties are tracked separately for CRA "
-            "reporting (not counted as income)"
-        )
-        fee_note.setStyleSheet(
-            "font-size: 9px; color: #0066cc; font-style: italic;"
-        )
-        split_details_layout.addRow("", fee_note)
-
         self.split_details.setVisible(False)
         split_layout.addWidget(self.split_details)
 
@@ -1398,19 +1406,10 @@ class VendorInvoiceManager(QWidget):
             "background-color: #d4edda; border-radius: 5px;"
         )
 
-        tip_label = QLabel(
-            "💡 TIP: Edit Invoice # and Date directly in table! "
-            "Double-click, then Save."
-        )
-        tip_label.setStyleSheet(
-            "font-size: 11px; color: #155724; font-weight: bold;"
-        )
-        info_layout.addWidget(tip_label)
-
         self.edit_status_label = QLabel(
-            "No invoice loaded. Select an invoice and click "
-            "'Edit Selected Invoice' button."
+            "No invoice selected."
         )
+        self.edit_status_label.setWordWrap(True)
         self.edit_status_label.setStyleSheet(
             "font-size: 11px; color: #004085; font-weight: bold; "
             "margin-top: 5px;"
@@ -1517,10 +1516,15 @@ class VendorInvoiceManager(QWidget):
     def _create_payment_tab(self) -> QWidget:
         """Tab for adding payments to invoices - compact layout"""
         widget = QWidget()
-        layout = QVBoxLayout(widget)
+        layout = QHBoxLayout(widget)
         layout.setSpacing(8)
 
-        # Top section - payment details in 2 columns
+        payment_panel = QWidget()
+        payment_layout = QVBoxLayout(payment_panel)
+        payment_layout.setContentsMargins(0, 0, 0, 0)
+        payment_layout.setSpacing(6)
+
+        # Payment details use two columns within the left pane.
         top_widget = QWidget()
         top_layout = QHBoxLayout(top_widget)
         top_layout.setContentsMargins(0, 0, 0, 0)
@@ -1582,7 +1586,7 @@ class VendorInvoiceManager(QWidget):
 
         top_layout.addLayout(right_form, stretch=1)
 
-        layout.addWidget(top_widget)
+        payment_layout.addWidget(top_widget)
 
         # Optional banking ID
         banking_layout = QHBoxLayout()
@@ -1592,48 +1596,39 @@ class VendorInvoiceManager(QWidget):
         self.payment_banking_id.setMaximumWidth(150)
         banking_layout.addWidget(self.payment_banking_id)
         banking_layout.addStretch()
-        layout.addLayout(banking_layout)
-
-        # Hint - payment buttons are in Quick Actions at the top
-        hint = QLabel(
-            "💡 Enter payment details above, then use the Quick Action "
-            "buttons at the TOP:\n"
-            "   • Pay One - Select 1 invoice, click 'Pay One' button\n"
-            "   • Pay Multiple - Select multiple invoices (Ctrl+Click), "
-            "click 'Pay Multiple' button"
-        )
-        hint.setStyleSheet(
-            "font-size: 11px; color: #0066cc; font-weight: bold; "
-            "padding: 10px; background-color: #e7f3ff; "
-            "border-left: 3px solid #0066cc;"
-        )
-        hint.setWordWrap(True)
-        layout.addWidget(hint)
+        payment_layout.addLayout(banking_layout)
 
         self.auto_create_cash_receipt_chk = QCheckBox(
-            "Auto-create receipt for cash when no match found"
+            "Auto-create cash receipt"
         )
         self.auto_create_cash_receipt_chk.setChecked(True)
         self.auto_create_cash_receipt_chk.setToolTip(
             "If enabled, cash payments with no matching receipt will "
             "create and link a receipt automatically."
         )
-        layout.addWidget(self.auto_create_cash_receipt_chk)
+        payment_layout.addWidget(self.auto_create_cash_receipt_chk)
+        payment_layout.addStretch()
+        layout.addWidget(payment_panel, stretch=2)
 
+        history_panel = QWidget()
+        history_layout = QVBoxLayout(history_panel)
+        history_layout.setContentsMargins(0, 0, 0, 0)
+        history_layout.setSpacing(4)
         history_row = QHBoxLayout()
         history_refresh_btn = QPushButton("🔄 Refresh Payment History")
         history_refresh_btn.clicked.connect(self._refresh_payment_history)
         history_row.addWidget(history_refresh_btn)
         history_row.addStretch()
-        layout.addLayout(history_row)
+        history_layout.addLayout(history_row)
 
         self.payment_history_label = QLabel(
-            "Entered payment rows for this vendor (manual + banking linked)."
+            "No payment rows loaded."
         )
+        self.payment_history_label.setWordWrap(True)
         self.payment_history_label.setStyleSheet(
             "font-size: 11px; color: #444; padding: 4px;"
         )
-        layout.addWidget(self.payment_history_label)
+        history_layout.addWidget(self.payment_history_label)
 
         self.payment_history_table = QTableWidget()
         self.payment_history_table.setColumnCount(9)
@@ -1657,16 +1652,20 @@ class VendorInvoiceManager(QWidget):
             QTableWidget.SelectionMode.SingleSelection
         )
         self.payment_history_table.setAlternatingRowColors(True)
-        self.payment_history_table.setMinimumHeight(140)
         self.payment_history_table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.ResizeToContents
         )
         self.payment_history_table.horizontalHeader().setStretchLastSection(
-            True
+            False
         )
-        layout.addWidget(self.payment_history_table)
-
-        layout.addStretch()
+        self.payment_history_table.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOn
+        )
+        self.payment_history_table.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        history_layout.addWidget(self.payment_history_table, stretch=1)
+        layout.addWidget(history_panel, stretch=3)
 
         return widget
 
@@ -1675,17 +1674,6 @@ class VendorInvoiceManager(QWidget):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setSpacing(8)
-
-        info = QLabel(
-            "🧾 Receipts are expense/ITC evidence only. Linking a receipt "
-            "does not reduce A/P unless a payment is entered."
-        )
-        info.setStyleSheet(
-            "padding: 8px; background-color: #fff4ce; "
-            "font-size: 11px; font-weight: bold;"
-        )
-        info.setWordWrap(True)
-        layout.addWidget(info)
 
         controls = QHBoxLayout()
 
@@ -1754,18 +1742,17 @@ class VendorInvoiceManager(QWidget):
         """Tab for linking banking transactions"""
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        layout.setSpacing(8)
+        layout.setSpacing(6)
 
-        info = QLabel("🏦 Search banking transactions and link to invoices")
-        info.setStyleSheet(
-            "padding: 8px; background-color: #e3f2fd; "
-            "font-size: 11px; font-weight: bold;"
-        )
-        layout.addWidget(info)
+        body_layout = QHBoxLayout()
+        controls_panel = QWidget()
+        controls_layout = QVBoxLayout(controls_panel)
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(6)
 
         # Banking search - compact 2 column layout
         search_widget = QWidget()
-        search_layout = QHBoxLayout(search_widget)
+        search_layout = QVBoxLayout(search_widget)
         search_layout.setContentsMargins(0, 0, 0, 0)
 
         left_form = QFormLayout()
@@ -1811,7 +1798,7 @@ class VendorInvoiceManager(QWidget):
         search_layout.addLayout(right_form)
         search_layout.addStretch()
 
-        layout.addWidget(search_widget)
+        controls_layout.addWidget(search_widget)
 
         # Search button
         search_btn = QPushButton("🔍 Search Banking Transactions")
@@ -1820,7 +1807,9 @@ class VendorInvoiceManager(QWidget):
             "font-weight: bold;"
         )
         search_btn.clicked.connect(self._search_banking)
-        layout.addWidget(search_btn)
+        controls_layout.addWidget(search_btn)
+        controls_layout.addStretch()
+        body_layout.addWidget(controls_panel, stretch=2)
 
         # Results table
         self.banking_table = QTableWidget()
@@ -1831,16 +1820,18 @@ class VendorInvoiceManager(QWidget):
         self.banking_table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.ResizeToContents
         )
+        self.banking_table.horizontalHeader().setStretchLastSection(False)
+        self.banking_table.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOn
+        )
+        self.banking_table.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
         self.banking_table.itemDoubleClicked.connect(
             self._link_banking_to_invoice
         )
-        layout.addWidget(self.banking_table)
-
-        hint = QLabel(
-            "💡 Double-click a transaction to link it to selected invoice(s)"
-        )
-        hint.setStyleSheet("font-size: 11px; color: #666; padding: 5px;")
-        layout.addWidget(hint)
+        body_layout.addWidget(self.banking_table, stretch=3)
+        layout.addLayout(body_layout, stretch=1)
 
         return widget
 
@@ -1850,19 +1841,9 @@ class VendorInvoiceManager(QWidget):
         layout = QVBoxLayout(widget)
         layout.setSpacing(8)
 
-        info = QLabel(
-            "📒 Ledger view: invoice rows add to balance, payment rows "
-            "reduce balance. Receipts remain separate evidence."
-        )
-        info.setStyleSheet(
-            "padding: 8px; background-color: #e8f4fd; "
-            "font-size: 11px; font-weight: bold;"
-        )
-        info.setWordWrap(True)
-        layout.addWidget(info)
-
         header_row = QHBoxLayout()
         self.ledger_label = QLabel("Select a vendor to load the ledger.")
+        self.ledger_label.setWordWrap(True)
         self.ledger_label.setStyleSheet(
             "font-size: 11px; color: #444; padding: 4px;"
         )
@@ -1948,18 +1929,8 @@ class VendorInvoiceManager(QWidget):
             QHeaderView.ResizeMode.ResizeToContents
         )
         self.ledger_table.horizontalHeader().setStretchLastSection(True)
-        layout.addWidget(self.ledger_table)
-
-        hint = QLabel(
-            "💡 Double-click a ledger row to jump to that invoice in the "
-            "main invoice table."
-        )
-        hint.setStyleSheet("font-size: 11px; color: #666; padding: 4px;")
-        layout.addWidget(hint)
-
         self.ledger_details_text = QTextEdit()
         self.ledger_details_text.setReadOnly(True)
-        self.ledger_details_text.setMaximumHeight(130)
         self.ledger_details_text.setStyleSheet(
             "font-family: 'Courier New'; font-size: 11px; "
             "background-color: #fafafa;"
@@ -1967,7 +1938,15 @@ class VendorInvoiceManager(QWidget):
         self.ledger_details_text.setPlainText(
             "Select a ledger row to view details."
         )
-        layout.addWidget(self.ledger_details_text)
+
+        ledger_body = QSplitter(Qt.Orientation.Horizontal)
+        ledger_body.setChildrenCollapsible(False)
+        ledger_body.addWidget(self.ledger_table)
+        ledger_body.addWidget(self.ledger_details_text)
+        ledger_body.setStretchFactor(0, 3)
+        ledger_body.setStretchFactor(1, 2)
+        ledger_body.setSizes([750, 500])
+        layout.addWidget(ledger_body, stretch=1)
 
         return widget
 
@@ -1985,19 +1964,6 @@ class VendorInvoiceManager(QWidget):
         )
         dialog.resize(1180, 720)
         layout = QVBoxLayout(dialog)
-
-        info = QLabel(
-            "Invoices increase the running balance; payments reduce it. "
-            "Document # is the invoice number on invoice rows and the payment "
-            "number/reference on payment rows. Applied To Invoice identifies "
-            "the invoice receiving a payment. Select a row, edit the fields "
-            "below, then click Save Corrected Row."
-        )
-        info.setWordWrap(True)
-        info.setStyleSheet(
-            "padding: 8px; background-color: #e8f4fd; font-weight: bold;"
-        )
-        layout.addWidget(info)
 
         self.ledger_editor_summary = QLabel()
         layout.addWidget(self.ledger_editor_summary)
