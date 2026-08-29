@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: arrow-limousine-api
+    name: arrow-limo
     runtime: python
     pythonVersion: 3.11
 
@@ -55,7 +55,7 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: TRUSTED_HOSTS
-        value: arrow-limousine-api.onrender.com
+        value: arrow-limo.onrender.com
       - key: SENTRY_DSN
         sync: false
       - key: SENTRY_TRACES_SAMPLE_RATE
