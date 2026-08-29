@@ -16,6 +16,7 @@ AUTH_EXEMPT_PREFIXES = (
     "/auth",
     "/api/inspection-forms",
 )
+SUPPORT_SESSION_ROLE = "driver_support"
 
 ROLE_MODULES = {
     "admin": {"*"},
@@ -91,12 +92,14 @@ def resolve_authenticated_user(request: Request) -> dict | None:
         return None
 
     return {
-        "user_id": session["employee_id"],
+        "user_id": session.get("auth_user_id") or session["employee_id"],
         "employee_id": session["employee_id"],
         "username": session.get("username") or session["name"],
         "name": session["name"],
         "role": _normalize_role(session.get("role", "user")),
         "permissions": session.get("permissions", {}),
+        "impersonator_user_id": session.get("impersonator_user_id"),
+        "impersonator_username": session.get("impersonator_username"),
     }
 
 

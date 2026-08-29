@@ -2,8 +2,9 @@
   <header class="navbar">
     <div class="logo">Arrow Limousine</div>
     <nav>
-      <router-link to="/" class="nav-link">My Driver Portal</router-link>
-      <router-link to="/driver-hos">My HOS Log</router-link>
+      <router-link v-if="!isSupportAccount" to="/" class="nav-link">My Driver Portal</router-link>
+      <router-link v-if="!isSupportAccount" to="/driver-hos">My HOS Log</router-link>
+      <router-link v-if="isSupportAccount" to="/support" class="nav-link">Admin Driver Access</router-link>
 
       <div class="user-section">
         <label for="theme-selector" class="theme-label">Theme</label>
@@ -11,7 +12,11 @@
           <option value="light">Light</option>
           <option value="dark">Dark</option>
         </select>
+        <span v-if="isImpersonating" class="support-view">Admin support view</span>
         <span class="username">{{ currentUser }}</span>
+        <button v-if="isImpersonating" class="switch-btn" @click="switchDriver">
+          Switch Driver Account
+        </button>
         <button @click="handleLogout" class="logout-btn">Logout</button>
       </div>
     </nav>
@@ -20,13 +25,24 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 const selectedTheme = ref(localStorage.getItem('theme') || 'light')
+const userRecord = computed(() => {
+  const storedUser = route.fullPath ? localStorage.getItem('user') : null
+  try {
+    return JSON.parse(storedUser || '{}')
+  } catch {
+    return {}
+  }
+})
+const isSupportAccount = computed(() => userRecord.value.role === 'driver_support')
+const isImpersonating = computed(() => Boolean(userRecord.value.impersonated_by))
 
 const currentUser = computed(() => {
-  const user = localStorage.getItem('user')
+  const user = route.fullPath ? localStorage.getItem('user') : null
   if (user) {
     try {
       return JSON.parse(user).username || 'User'
@@ -36,6 +52,10 @@ const currentUser = computed(() => {
   }
   return 'User'
 })
+
+async function switchDriver() {
+  await handleLogout()
+}
 
 function changeTheme() {
   localStorage.setItem('theme', selectedTheme.value)
@@ -130,6 +150,14 @@ nav a.router-link-active {
   font-weight: 500;
   font-size: 0.9rem;
 }
+.support-view {
+  background: #fef3c7;
+  color: #78350f;
+  padding: .35rem .55rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: .85rem;
+}
 
 .logout-btn {
   background: var(--navbar-btn-bg, rgba(255, 255, 255, 0.2));
@@ -140,6 +168,15 @@ nav a.router-link-active {
   cursor: pointer;
   font-weight: 500;
   transition: all 0.2s;
+}
+.switch-btn {
+  background: #fbbf24;
+  border: 1px solid #f59e0b;
+  color: #422006;
+  padding: .5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
 }
 
 .logout-btn:hover {

@@ -4,7 +4,7 @@ from fastapi import Request
 
 from ...audit.engine import ensure_audit_storage, record_audit_event
 from ...audit.schemas import AuditEvent, AuditEventActor
-from ...db import get_connection
+from ...db import get_connection, return_connection
 
 
 def record_auth_event(
@@ -52,4 +52,4 @@ def record_auth_event(
         pass
     finally:
         if conn is not None:
-            conn.close()
+            return_connection(conn)

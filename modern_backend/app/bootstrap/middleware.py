@@ -9,7 +9,13 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from ..auth import is_auth_exempt_path, is_protected_path, resolve_authenticated_user
+from ..auth import (
+    SUPPORT_SESSION_ROLE,
+    is_auth_exempt_path,
+    is_protected_path,
+    resolve_authenticated_user,
+)
+from ..services.auth.audit import record_auth_event
 
 
 def _get_rate_limit_key(request: Request) -> str:
@@ -143,9 +149,31 @@ def _register_authentication_middleware(app: FastAPI) -> None:
                 status_code=401,
                 content={"detail": "Authentication required"},
             )
+        if user.get("role") == SUPPORT_SESSION_ROLE:
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Driver support session cannot access this resource"},
+            )
 
         request.state.current_user = user
-        return await call_next(request)
+        response = await call_next(request)
+        if (
+            user.get("impersonator_user_id")
+            and request.method in {"POST", "PUT", "PATCH", "DELETE"}
+            and response.status_code < 400
+        ):
+            record_auth_event(
+                action=f"support_impersonated_{request.method.lower()}",
+                username=user.get("impersonator_username"),
+                user_id=user["impersonator_user_id"],
+                role="admin",
+                request=request,
+                note=(
+                    f"{request.method} {path} while supporting "
+                    f"employee_id={user.get('employee_id')}"
+                ),
+            )
+        return response
 
 
 def _register_unhandled_exception_handler(

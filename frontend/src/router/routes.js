@@ -1,6 +1,7 @@
 import Login from '../views/Login.vue'
 const Drivers = () => import('../views/Drivers.vue')
 const DriverHOSLog = () => import('../views/DriverHOSLog.vue')
+const Support = () => import('../views/Support.vue')
 
 export const routes = [
   {
@@ -8,6 +9,12 @@ export const routes = [
     name: 'Login',
     component: Login,
     meta: { requiresAuth: false }
+  },
+  {
+    path: '/support',
+    name: 'DriverSupport',
+    component: Support,
+    meta: { requiresAuth: true, modules: ['support_impersonation'] }
   },
   {
     path: '/',
