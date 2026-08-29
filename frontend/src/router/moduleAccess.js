@@ -7,12 +7,6 @@ const normalizeRole = (role) => {
 }
 
 const roleModules = {
-  admin: ['*'],
-  super_user: ['*'],
-  manager: ['*'],
-  dispatch: ['dispatch'],
-  dispatcher: ['dispatch'],
-  accountant: ['accounting'],
   driver: ['chauffeur_self_service'],
   operator: ['chauffeur_self_service']
 }
@@ -58,13 +52,7 @@ export const hasRequiredModuleAccess = (requiredModules, role, permissions) => {
 export const getRoleHome = (role) => {
   const normalizedRole = normalizeRole(role)
   if (normalizedRole === 'driver' || normalizedRole === 'operator') {
-    return '/drivers'
+    return '/'
   }
-  if (normalizedRole === 'dispatch' || normalizedRole === 'dispatcher') {
-    return '/dispatch'
-  }
-  if (normalizedRole === 'accountant') {
-    return '/accounting'
-  }
-  return '/'
+  return '/login'
 }

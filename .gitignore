@@ -13,7 +13,8 @@ setup_alms_user.sql
 ALMS_USER_SETUP.md
 
 # Desktop application (not needed for web)
-desktop_app/
+desktop_app/*
+!desktop_app/period_close_management_widget.py
 
 # Data processing scripts (not needed for web)
 scripts/
@@ -145,9 +146,12 @@ render.yaml
 
 # Logs
 *.log
+*.log.*
 *.jsonl
 error_log.jsonl
 logs/
+ROBO_LOG*
+desktop_app_errors.txt
 
 # Temporary test/check files
 check_*.py
@@ -167,6 +171,7 @@ get_*.py
 print_*.py
 remove_*.py
 report_*.py
+!modern_backend/app/routers/report_helpers.py
 show_*.py
 apply_*.py
 
@@ -176,6 +181,7 @@ output.txt
 output/
 
 # Archives
+archive/
 *.zip
 *.tar.gz
 
@@ -215,6 +221,24 @@ quickbooks/*.pdf
 
 # Executable installers
 *.exe
+
+# Local desktop deployment payloads (web deploy does not use these)
+install/
+
+# Generated documents and local accounting exports
+invoices/
+INVOICE_PREVIEW.*
+RUNSHEET_PREVIEW.*
+Charter_Quote_*
+session_output*/
+file_manifest.sha256
+forms/cra/alberta_zero_income/
+
+# Private keys and certificates
+*.pem
+*.key
+*.pfx
+*.p12
 
 # Large local files - never commit
 archive_old_scripts/old_database_files/*.sql

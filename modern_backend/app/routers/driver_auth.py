@@ -5,6 +5,7 @@ Serves login page and handles login for all user types
 Last updated: 2026-02-07 - Added auto-login support for local development
 """
 
+import logging
 import os
 from typing import Annotated
 
@@ -23,10 +24,44 @@ from ..services.auth.session_store import (
     parse_bearer_token,
     revoke_session,
 )
+from ..settings import get_settings
 
 router = APIRouter(prefix="/auth", tags=["user_auth"])
 LOGIN_PATH = "/login"
 INVALID_CREDENTIALS = "Invalid credentials"
+logger = logging.getLogger("modern_backend.auth")
+DRIVER_ROLES = {"driver", "operator"}
+
+
+def _require_driver_account(user: dict) -> dict:
+    if str(user.get("role") or "").strip().lower() not in DRIVER_ROLES:
+        raise HTTPException(status_code=403, detail="Driver portal access only")
+    return user
+
+
+def _auto_login_allowed(request: Request) -> bool:
+    settings = get_settings()
+    legacy_auto_login = os.getenv("AUTO_LOGIN", "false").strip().lower() in {
+        "true",
+        "1",
+        "yes",
+    }
+    if legacy_auto_login and not settings.enable_auto_login:
+        logger.warning(
+            "AUTO_LOGIN is deprecated and ignored; set ALMS_ENABLE_AUTO_LOGIN=1 for local dev"
+        )
+
+    if not settings.enable_auto_login:
+        return False
+
+    if settings.environment.strip().lower() not in {"development", "dev", "local"}:
+        return False
+
+    client_host = (request.client.host if request.client else "") or ""
+    normalized = client_host.strip().lower()
+    if normalized.startswith("127."):
+        return True
+    return normalized in {"127.0.0.1", "::1", "localhost", "0.0.0.0", "testclient"}
 
 
 class LoginRequest(BaseModel):
@@ -44,38 +79,10 @@ async def login_page(request: Request):
 
 
 @router.get("/auto-login-check")
-async def auto_login_check():
-    """Check if auto-login is enabled for local development"""
-    auto_login = os.getenv("AUTO_LOGIN", "false").lower() in (
-        "true",
-        "1",
-        "yes",
-    )
-
-    if auto_login:
-        # Create auto-login session
-        auto_login_user = os.getenv("AUTO_LOGIN_USER", "admin")
-        token = create_session(
-            employee_id=0,
-            employee_name=auto_login_user,
-            role="admin",
-            permissions={},
-            username=auto_login_user,
-        )
-
-        return JSONResponse(
-            {
-                "auto_login": True,
-                "token": token,
-                "user": {
-                    "username": auto_login_user,
-                    "role": "admin",
-                    "employee_id": 0,
-                    "permissions": {},
-                },
-            }
-        )
-
+async def auto_login_check(request: Request):
+    """Never bypass credentials in the driver-only web portal."""
+    if _auto_login_allowed(request):
+        logger.warning("Blocked auto-login for the driver-only portal")
     return JSONResponse({"auto_login": False})
 
 
@@ -98,6 +105,7 @@ async def login_submit(
             note=INVALID_CREDENTIALS,
         )
         raise HTTPException(status_code=401, detail=INVALID_CREDENTIALS)
+    _require_driver_account(user)
     session_token = create_session(
         user["employee_id"],
         user["name"],
@@ -127,10 +135,10 @@ async def login_submit(
 @router.post("/login", responses={401: {"description": "Invalid credentials"}})
 async def login_json(login_request: LoginRequest, request: Request):
     """Handle JSON login (for Vue frontend)"""
-    print(f"[LOGIN] Attempting login for username: {login_request.username}")
+    logger.info("Login attempt via JSON endpoint")
     user = verify_user_credentials(login_request.username, login_request.password)
     if not user:
-        print(f"[LOGIN] Failed - invalid credentials for {login_request.username}")
+        logger.warning("Login failed via JSON endpoint")
         record_auth_event(
             action="login_failed",
             username=login_request.username,
@@ -140,8 +148,9 @@ async def login_json(login_request: LoginRequest, request: Request):
             note=INVALID_CREDENTIALS,
         )
         raise HTTPException(status_code=401, detail=INVALID_CREDENTIALS)
+    _require_driver_account(user)
 
-    print(f"[LOGIN] Success - authenticated {login_request.username} as {user.get('role')}")
+    logger.info("Login succeeded via JSON endpoint")
     # Create session token
     session_token = create_session(
         user["employee_id"],
@@ -182,6 +191,7 @@ async def validate_token(request: Request):
     session = get_session(token) if token else None
     if not session:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+    _require_driver_account(session)
 
     return {
         "authenticated": True,

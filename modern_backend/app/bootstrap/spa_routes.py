@@ -44,22 +44,6 @@ def get_frontend_file_path(request_path: str) -> str | None:
 
 
 def register_spa_routes(app: FastAPI) -> None:
-    @app.get("/beverage-order/print")
-    async def spa_beverage_order_print():
-        """Serve SPA index for beverage print deep links opened in a new tab."""
-        index_path = get_frontend_index_path()
-        if index_path:
-            return FileResponse(index_path)
-        return JSONResponse(status_code=404, content=NOT_FOUND_DETAIL)
-
-    @app.get("/charter/confirmation/print")
-    async def spa_charter_confirmation_print():
-        """Serve SPA index for charter confirmation print deep links."""
-        index_path = get_frontend_index_path()
-        if index_path:
-            return FileResponse(index_path)
-        return JSONResponse(status_code=404, content=NOT_FOUND_DETAIL)
-
     @app.get("/")
     async def spa_root():
         index_path = get_frontend_index_path()

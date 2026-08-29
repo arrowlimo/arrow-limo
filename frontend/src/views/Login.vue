@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-card">
       <h1>Arrow Limousine</h1>
-      <h2>Management System</h2>
+      <h2>Driver Portal</h2>
       
       <form @submit.prevent="handleLogin">
         <div class="form-group">
@@ -76,14 +76,16 @@ export default {
         
         const data = await response.json()
         
-        // Store JWT token and user data
-        localStorage.setItem('auth_token', data.access_token)
         const user = data.user || {}
+        if (!['driver', 'operator'].includes((user.role || '').toLowerCase())) {
+          throw new Error('This portal is available to drivers only')
+        }
+
+        localStorage.setItem('auth_token', data.access_token)
         localStorage.setItem('user', JSON.stringify(user))
         localStorage.setItem('user_role', user.role || 'user')
         localStorage.setItem('user_permissions', JSON.stringify(user.permissions || {}))
-        
-        // Redirect to main page
+
         this.$router.push('/')
       } catch (err) {
         this.error = err.message

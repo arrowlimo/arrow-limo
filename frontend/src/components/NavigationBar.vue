@@ -2,27 +2,8 @@
   <header class="navbar">
     <div class="logo">Arrow Limousine</div>
     <nav>
-      <router-link to="/" class="nav-link">Main</router-link>
-
-      <router-link v-if="canAccess('drivers')" to="/drivers">My Schedule</router-link>
-      <router-link v-if="canAccess('driver-hos')" to="/driver-hos">HOS Log</router-link>
-
-      <router-link v-if="canAccess('dispatch')" to="/dispatch">Dispatch</router-link>
-      <router-link v-if="canAccess('charter')" to="/charter">Charter</router-link>
-      <router-link v-if="canAccess('vehicles')" to="/vehicles">Vehicles</router-link>
-      <router-link v-if="canAccess('employees')" to="/employees">Employees</router-link>
-      <router-link v-if="canAccess('customers')" to="/customers">Customers</router-link>
-      <router-link v-if="canAccess('accounting')" to="/accounting">Accounting</router-link>
-      <router-link v-if="canAccess('payroll')" to="/payroll">Payroll</router-link>
-      <router-link v-if="canAccess('tax-management')" to="/tax-management">Tax</router-link>
-      <router-link v-if="canAccess('payroll-compliance')" to="/payroll-compliance">Compliance</router-link>
-      <router-link v-if="canAccess('audit-center')" to="/audit-center">Audit Center</router-link>
-      <router-link v-if="canAccess('cash-box')" to="/cash-box">Cash Box</router-link>
-      <router-link v-if="canAccess('year-end-close')" to="/year-end-close">Year-End</router-link>
-      <router-link v-if="canAccess('beverage-reconciliation')" to="/beverage-reconciliation">Beverage</router-link>
-      <router-link v-if="canAccess('reports')" to="/reports">Reports</router-link>
-      <router-link v-if="canAccess('documents')" to="/documents">Documents</router-link>
-      <router-link v-if="canAccess('admin')" to="/admin">Admin</router-link>
+      <router-link to="/" class="nav-link">My Driver Portal</router-link>
+      <router-link to="/driver-hos">My HOS Log</router-link>
 
       <div class="user-section">
         <label for="theme-selector" class="theme-label">Theme</label>
@@ -42,16 +23,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const normalizeRole = (role) => {
-  const aliases = {
-    superuser: 'super_user'
-  }
-  const lowered = (role || 'user').toLowerCase()
-  return aliases[lowered] || lowered
-}
-
-const userRole = ref(normalizeRole(localStorage.getItem('user_role') || 'user'))
-const permissions = ref(JSON.parse(localStorage.getItem('user_permissions') || '{}'))
 const selectedTheme = ref(localStorage.getItem('theme') || 'light')
 
 const currentUser = computed(() => {
@@ -74,30 +45,6 @@ function changeTheme() {
 onMounted(() => {
   document.documentElement.setAttribute('data-theme', selectedTheme.value)
 })
-
-function canAccess(section) {
-  if (userRole.value === 'driver' || userRole.value === 'operator') {
-    return ['drivers', 'driver-hos'].includes(section)
-  }
-
-  if (userRole.value === 'dispatch' || userRole.value === 'dispatcher') {
-    return ['dispatch', 'charter', 'vehicles', 'customers'].includes(section)
-  }
-
-  if (userRole.value === 'admin' || userRole.value === 'super_user') {
-    return true
-  }
-
-  if (userRole.value === 'accountant') {
-    return ['charter', 'accounting', 'payroll', 'tax-management', 'payroll-compliance', 'audit-center', 'cash-box', 'year-end-close', 'beverage-reconciliation', 'reports', 'customers', 'documents'].includes(section)
-  }
-
-  if (permissions.value[section]) {
-    return true
-  }
-
-  return false
-}
 
 async function handleLogout() {
   try {

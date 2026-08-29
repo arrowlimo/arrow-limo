@@ -1,112 +1,414 @@
 <template>
-  <div class="drivers-container">
-    <h1>My Chauffeur Dashboard</h1>
-    <div v-if="loading">Loading...</div>
-    <div v-else>
-      <div v-for="driver in drivers" :key="driver.employee_id" class="driver-card">
-        <h3>{{ driver.name || driver.full_name || driver.employee_name }}</h3>
-        <p>Email: {{ driver.email }}</p>
-        <p>Phone: {{ driver.phone }}</p>
-        <p>Role: {{ driver.employee_type || driver.status || driver.employment_status }}</p>
+  <div class="driver-portal">
+    <header class="portal-header">
+      <div>
+        <h1>My Driver Portal</h1>
+        <p v-if="profile">{{ profile.name }} · {{ profile.phone || profile.email }}</p>
       </div>
+      <button class="secondary" @click="loadPortal">Refresh</button>
+    </header>
 
-      <div class="calendar-card">
-        <h2>Upcoming Trips (30 Days)</h2>
-        <div v-if="calendarItems.length === 0" class="empty-state">No upcoming trips found.</div>
-        <table v-else class="calendar-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Reserve</th>
-              <th>Pickup</th>
-              <th>Dropoff</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="trip in calendarItems" :key="trip.charter_id">
-              <td>{{ trip.date }} {{ trip.pickup_time || '' }}</td>
-              <td>{{ trip.reserve_number || trip.charter_id }}</td>
-              <td>{{ trip.pickup_address }}</td>
-              <td>{{ trip.dropoff_address }}</td>
-              <td>{{ trip.status }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <div v-if="error" class="message error">{{ error }}</div>
+    <div v-if="notice" class="message success">{{ notice }}</div>
+    <div v-if="loading" class="loading">Loading your driver information...</div>
+
+    <template v-else>
+      <nav class="tabs" aria-label="Driver portal sections">
+        <button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id">
+          {{ tab.label }}
+        </button>
+      </nav>
+
+      <section v-if="activeTab === 'runs'" class="panel">
+        <h2>My Runs · Today through {{ calendarEnd }}</h2>
+        <div v-if="calendarItems.length === 0" class="empty-state">No assigned runs in the next month.</div>
+        <div v-else class="card-grid">
+          <article v-for="trip in calendarItems" :key="trip.charter_id" class="trip-card">
+            <div class="trip-heading">
+              <strong>{{ formatDate(trip.date) }} · {{ formatTime(trip.pickup_time) }}</strong>
+              <span class="status">{{ trip.status || 'Scheduled' }}</span>
+            </div>
+            <div>Run {{ trip.reserve_number || trip.charter_id }}</div>
+            <div>{{ trip.pickup_address || 'Pickup not entered' }}</div>
+            <div>to {{ trip.dropoff_address || 'Dropoff not entered' }}</div>
+            <button @click="openTrip(trip.charter_id)">Open run</button>
+          </article>
+        </div>
+      </section>
+
+      <section v-if="activeTab === 'run'" class="panel">
+        <h2>Complete My Run Information</h2>
+        <div v-if="!selectedTrip" class="empty-state">Choose a run from My Runs.</div>
+        <form v-else class="form-grid" @submit.prevent="saveTrip">
+          <div class="readonly wide">
+            <strong>{{ selectedTrip.reserve_number }}</strong>
+            <span>{{ formatDate(selectedTrip.date) }} · {{ selectedTrip.pickup_address }} to {{ selectedTrip.dropoff_address }}</span>
+          </div>
+          <label>
+            Starting odometer
+            <input v-model.number="tripForm.odometer_start" type="number" min="0" step="0.1">
+          </label>
+          <label>
+            Ending odometer
+            <input v-model.number="tripForm.odometer_end" type="number" min="0" step="0.1">
+          </label>
+          <label>
+            Fuel added (litres)
+            <input v-model.number="tripForm.fuel_added_liters" type="number" min="0" step="0.01">
+          </label>
+          <label>
+            Actual hours
+            <input v-model.number="tripForm.actual_hours" type="number" min="0" max="24" step="0.25">
+          </label>
+          <label class="wide">
+            Driver notes
+            <textarea v-model="tripForm.driver_notes" rows="4"></textarea>
+          </label>
+          <label class="wide">
+            Vehicle notes
+            <textarea v-model="tripForm.vehicle_notes" rows="3"></textarea>
+          </label>
+          <label class="checkbox">
+            <input v-model="tripForm.mark_completed" type="checkbox" :disabled="selectedTrip.status === 'completed'">
+            {{ selectedTrip.status === 'completed' ? 'Run completed' : 'Mark run completed' }}
+          </label>
+          <div class="actions">
+            <button type="submit" :disabled="saving">{{ saving ? 'Saving...' : 'Save run' }}</button>
+          </div>
+        </form>
+      </section>
+
+      <section v-if="activeTab === 'receipts'" class="panel">
+        <h2>My Receipts</h2>
+        <form class="form-grid receipt-form" @submit.prevent="submitReceipt">
+          <label>
+            Date
+            <input v-model="receiptForm.receipt_date" type="date" required>
+          </label>
+          <label>
+            Vendor
+            <input v-model.trim="receiptForm.vendor_name" maxlength="255" required>
+          </label>
+          <label>
+            Amount
+            <input v-model.number="receiptForm.gross_amount" type="number" min="0.01" step="0.01" required>
+          </label>
+          <label>
+            Related run
+            <select v-model="receiptForm.charter_id">
+              <option :value="null">No specific run</option>
+              <option v-for="trip in calendarItems" :key="trip.charter_id" :value="trip.charter_id">
+                {{ trip.reserve_number }} · {{ formatDate(trip.date) }}
+              </option>
+            </select>
+          </label>
+          <label>
+            Category
+            <input v-model.trim="receiptForm.category" maxlength="100" placeholder="Fuel, parking, supplies">
+          </label>
+          <label class="checkbox">
+            <input v-model="receiptForm.paid_from_float" type="checkbox">
+            Paid from company float
+          </label>
+          <label class="wide">
+            Description
+            <textarea v-model="receiptForm.description" rows="2"></textarea>
+          </label>
+          <div class="actions">
+            <button type="submit" :disabled="saving">{{ saving ? 'Submitting...' : 'Add receipt' }}</button>
+          </div>
+        </form>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Vendor</th><th>Run</th><th>Source</th><th>Amount</th></tr></thead>
+            <tbody>
+              <tr v-for="receipt in receipts" :key="receipt.receipt_id">
+                <td>{{ formatDate(receipt.receipt_date) }}</td>
+                <td>{{ receipt.vendor_name }}</td>
+                <td>{{ receipt.reserve_number || '—' }}</td>
+                <td>{{ receipt.paid_from_float ? 'Company float' : 'Driver paid' }}</td>
+                <td>{{ money(receipt.gross_amount) }}</td>
+              </tr>
+              <tr v-if="receipts.length === 0"><td colspan="5">No receipts submitted.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section v-if="activeTab === 'float'" class="panel">
+        <h2>My Float</h2>
+        <div class="summary-grid">
+          <div><span>Issued</span><strong>{{ money(floatSummary.issued) }}</strong></div>
+          <div><span>Float receipts</span><strong>{{ money(floatSummary.receipts) }}</strong></div>
+          <div><span>Cash turned in</span><strong>{{ money(floatSummary.returned) }}</strong></div>
+          <div :class="{ settled: floatSummary.settled }"><span>Still held</span><strong>{{ money(floatSummary.remaining) }}</strong></div>
+          <div><span>Driver paid</span><strong>{{ money(floatSummary.driver_paid) }}</strong></div>
+        </div>
+        <p v-if="floatSummary.reimbursement_due > 0" class="message">
+          Receipts exceed issued float by {{ money(floatSummary.reimbursement_due) }}.
+        </p>
+        <form class="inline-form" @submit.prevent="submitFloatReturn">
+          <label>
+            Cash turned in
+            <input v-model.number="returnForm.amount" type="number" min="0.01" step="0.01" required>
+          </label>
+          <label>
+            Related run
+            <select v-model="returnForm.charter_id">
+              <option :value="null">No specific run</option>
+              <option v-for="trip in calendarItems" :key="trip.charter_id" :value="trip.charter_id">
+                {{ trip.reserve_number }}
+              </option>
+            </select>
+          </label>
+          <label>
+            Note
+            <input v-model.trim="returnForm.notes" maxlength="1000">
+          </label>
+          <button type="submit" :disabled="saving">Record turn-in</button>
+        </form>
+      </section>
+
+      <section v-if="activeTab === 'statements'" class="panel">
+        <div class="section-heading">
+          <h2>My Final Pay Statements</h2>
+          <label>
+            Year
+            <input v-model.number="statementYear" type="number" min="2000" max="2100" @change="loadStatements">
+          </label>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Issued</th><th>Statement</th><th>Regular hours</th><th>Overtime</th><th>Gross</th><th>Deductions</th><th>Net</th></tr></thead>
+            <tbody>
+              <tr v-for="statement in statements" :key="statement.statement_id">
+                <td>{{ formatDate(statement.issued_at) }}</td>
+                <td>{{ statement.pay_period }}</td>
+                <td>{{ statement.regular_hours }}</td>
+                <td>{{ statement.overtime_hours }}</td>
+                <td>{{ money(statement.gross_pay) }}</td>
+                <td>{{ money(statement.deductions) }}</td>
+                <td><strong>{{ money(statement.net_pay) }}</strong></td>
+              </tr>
+              <tr v-if="statements.length === 0"><td colspan="7">No final pay statements found for this year.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { authFetch } from '@/utils/authFetch'
 
-const drivers = ref([])
-const calendarItems = ref([])
+const tabs = [
+  { id: 'runs', label: 'My Runs' },
+  { id: 'run', label: 'Run Details' },
+  { id: 'receipts', label: 'Receipts' },
+  { id: 'float', label: 'Float' },
+  { id: 'statements', label: 'Pay Statements' }
+]
+const activeTab = ref('runs')
 const loading = ref(true)
+const saving = ref(false)
+const error = ref('')
+const notice = ref('')
+const profile = ref(null)
+const calendarItems = ref([])
+const calendarEnd = ref('')
+const selectedTrip = ref(null)
+const receipts = ref([])
+const statements = ref([])
+const statementYear = ref(new Date().getFullYear())
+const floatSummary = reactive({ issued: 0, receipts: 0, driver_paid: 0, returned: 0, remaining: 0, reimbursement_due: 0, settled: true })
+const tripForm = reactive({})
+const receiptForm = reactive({
+  receipt_date: new Date().toISOString().slice(0, 10),
+  vendor_name: '',
+  gross_amount: null,
+  category: '',
+  description: '',
+  charter_id: null,
+  paid_from_float: false
+})
+const returnForm = reactive({ amount: null, charter_id: null, notes: '' })
 
-onMounted(async () => {
+const requestJson = async (url, options) => {
+  const response = await authFetch(url, options)
+  if (!response) throw new Error('Your session has expired')
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(payload.detail || 'Request failed')
+  return payload
+}
+
+const loadPortal = async () => {
+  loading.value = true
+  error.value = ''
   try {
-    const [profileRes, calendarRes] = await Promise.all([
-      authFetch('/api/chauffeur/me/profile'),
-      authFetch('/api/chauffeur/me/calendar?days=30')
+    const [profileData, calendarData, receiptData, floatData, statementData] = await Promise.all([
+      requestJson('/api/chauffeur/me/profile'),
+      requestJson('/api/chauffeur/me/calendar?days=31'),
+      requestJson('/api/chauffeur/me/receipts'),
+      requestJson('/api/chauffeur/me/float'),
+      requestJson(`/api/chauffeur/me/pay-statements?year=${statementYear.value}`)
     ])
-
-    if (profileRes && profileRes.ok) {
-      const payload = await profileRes.json()
-      drivers.value = [payload]
-    } else {
-      console.error('Failed to fetch chauffeur profile')
-    }
-
-    if (calendarRes && calendarRes.ok) {
-      const calendarPayload = await calendarRes.json()
-      calendarItems.value = Array.isArray(calendarPayload.items) ? calendarPayload.items : []
-    } else {
-      console.error('Failed to fetch chauffeur calendar')
-    }
+    profile.value = profileData
+    calendarItems.value = calendarData.items || []
+    calendarEnd.value = formatDate(calendarData.end_date)
+    receipts.value = receiptData.items || []
+    Object.assign(floatSummary, floatData)
+    statements.value = statementData.items || []
   } catch (err) {
-    console.error('Error fetching drivers:', err)
+    error.value = err.message
   } finally {
     loading.value = false
   }
-})
+}
+
+const loadStatements = async () => {
+  try {
+    const data = await requestJson(`/api/chauffeur/me/pay-statements?year=${statementYear.value}`)
+    statements.value = data.items || []
+  } catch (err) {
+    error.value = err.message
+  }
+}
+
+const openTrip = async (charterId) => {
+  error.value = ''
+  try {
+    selectedTrip.value = await requestJson(`/api/chauffeur/me/trips/${charterId}`)
+    Object.assign(tripForm, {
+      driver_notes: selectedTrip.value.driver_notes,
+      vehicle_notes: selectedTrip.value.vehicle_notes,
+      odometer_start: selectedTrip.value.odometer_start,
+      odometer_end: selectedTrip.value.odometer_end,
+      fuel_added_liters: selectedTrip.value.fuel_added_liters,
+      actual_hours: selectedTrip.value.actual_hours,
+      mark_completed: selectedTrip.value.status === 'completed'
+    })
+    activeTab.value = 'run'
+  } catch (err) {
+    error.value = err.message
+  }
+}
+
+const saveTrip = async () => {
+  saving.value = true
+  error.value = ''
+  try {
+    const payload = { ...tripForm }
+    delete payload.mark_completed
+    if (tripForm.mark_completed && selectedTrip.value.status !== 'completed') {
+      payload.status = 'completed'
+    }
+    selectedTrip.value = await requestJson(`/api/chauffeur/me/trips/${selectedTrip.value.charter_id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload)
+    })
+    notice.value = 'Run information saved.'
+    await loadPortal()
+    activeTab.value = 'run'
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    saving.value = false
+  }
+}
+
+const submitReceipt = async () => {
+  saving.value = true
+  error.value = ''
+  try {
+    await requestJson('/api/chauffeur/me/receipts', {
+      method: 'POST',
+      body: JSON.stringify(receiptForm)
+    })
+    Object.assign(receiptForm, {
+      receipt_date: new Date().toISOString().slice(0, 10),
+      vendor_name: '',
+      gross_amount: null,
+      category: '',
+      description: '',
+      charter_id: null,
+      paid_from_float: false
+    })
+    notice.value = 'Receipt submitted.'
+    await loadPortal()
+    activeTab.value = 'receipts'
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    saving.value = false
+  }
+}
+
+const submitFloatReturn = async () => {
+  saving.value = true
+  error.value = ''
+  try {
+    await requestJson('/api/chauffeur/me/float/returns', {
+      method: 'POST',
+      body: JSON.stringify(returnForm)
+    })
+    Object.assign(returnForm, { amount: null, charter_id: null, notes: '' })
+    notice.value = 'Float turn-in recorded.'
+    await loadPortal()
+    activeTab.value = 'float'
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    saving.value = false
+  }
+}
+
+const money = value => new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(Number(value || 0))
+const formatDate = value => value ? new Date(`${String(value).slice(0, 10)}T12:00:00`).toLocaleDateString('en-CA') : '—'
+const formatTime = value => value ? String(value).slice(0, 5) : 'Time not set'
+
+onMounted(loadPortal)
 </script>
 
 <style scoped>
-.drivers-container {
-  padding: 2rem;
-}
-.driver-card {
-  border: 1px solid #1976d2;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  background: #f5f8ff;
-}
-
-.calendar-card {
-  margin-top: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 1rem;
-  background: #fff;
-}
-
-.calendar-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.calendar-table th,
-.calendar-table td {
-  border: 1px solid #ddd;
-  padding: 0.5rem;
-  text-align: left;
-}
-
-.empty-state {
-  color: #555;
+.driver-portal { max-width: 1200px; margin: 0 auto; }
+.portal-header, .section-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.portal-header h1, .section-heading h2 { margin-bottom: .25rem; }
+.portal-header p { margin: 0; color: #64748b; }
+.tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.25rem 0; }
+button { border: 0; border-radius: 6px; padding: .65rem 1rem; background: #2563eb; color: white; cursor: pointer; }
+button:disabled { opacity: .6; cursor: wait; }
+button.secondary, .tabs button { background: #e2e8f0; color: #1e293b; }
+.tabs button.active { background: #2563eb; color: white; }
+.panel { background: white; border: 1px solid #dbe3ee; border-radius: 10px; padding: 1.25rem; }
+.card-grid, .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; }
+.trip-card, .summary-grid > div { border: 1px solid #dbe3ee; border-radius: 8px; padding: 1rem; display: grid; gap: .6rem; }
+.trip-heading { display: flex; justify-content: space-between; gap: .75rem; }
+.status { background: #e0f2fe; border-radius: 99px; padding: .15rem .55rem; font-size: .8rem; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+label { display: grid; gap: .35rem; font-weight: 600; }
+input, select, textarea { box-sizing: border-box; width: 100%; padding: .65rem; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; }
+.wide, .actions { grid-column: 1 / -1; }
+.readonly { display: grid; gap: .25rem; padding: .75rem; background: #f8fafc; }
+.checkbox { display: flex; align-items: center; gap: .5rem; }
+.checkbox input { width: auto; }
+.receipt-form { margin-bottom: 1.5rem; }
+.inline-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; align-items: end; gap: 1rem; margin-top: 1.25rem; }
+.summary-grid span { color: #64748b; }
+.summary-grid strong { font-size: 1.5rem; }
+.summary-grid .settled { border-color: #16a34a; background: #f0fdf4; }
+.table-wrap { overflow-x: auto; margin-top: 1rem; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: .7rem; text-align: left; white-space: nowrap; }
+.message { padding: .75rem; margin: .75rem 0; border-radius: 6px; background: #eff6ff; }
+.message.error { background: #fef2f2; color: #991b1b; }
+.message.success { background: #f0fdf4; color: #166534; }
+.empty-state, .loading { padding: 2rem; text-align: center; color: #64748b; }
+@media (max-width: 720px) {
+  .form-grid, .inline-form { grid-template-columns: 1fr; }
+  .wide, .actions { grid-column: auto; }
+  .portal-header { align-items: flex-start; }
 }
 </style>
