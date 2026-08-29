@@ -19,9 +19,24 @@
         </button>
       </nav>
 
+      <section v-if="activeTab === 'personal'" class="panel">
+        <div class="section-heading">
+          <h2>My Personal Record</h2>
+          <button class="secondary print-button" @click="printReport">Print record</button>
+        </div>
+        <div v-if="profile" class="record-grid">
+          <div><span>Name</span><strong>{{ profile.name }}</strong></div>
+          <div><span>Email</span><strong>{{ profile.email || 'Not entered' }}</strong></div>
+          <div><span>Phone</span><strong>{{ profile.phone || 'Not entered' }}</strong></div>
+          <div><span>Employee type</span><strong>{{ profile.employee_type || 'Not entered' }}</strong></div>
+          <div><span>Hire date</span><strong>{{ formatDate(profile.hire_date) }}</strong></div>
+          <div><span>Status</span><strong>{{ profile.employment_status || 'Not entered' }}</strong></div>
+        </div>
+      </section>
+
       <section v-if="activeTab === 'runs'" class="panel">
-        <h2>My Runs · Today through {{ calendarEnd }}</h2>
-        <div v-if="calendarItems.length === 0" class="empty-state">No assigned runs in the next month.</div>
+        <h2>My Runs · {{ calendarStart }} forward</h2>
+        <div v-if="calendarItems.length === 0" class="empty-state">No assigned runs from the previous month forward.</div>
         <div v-else class="card-grid">
           <article v-for="trip in calendarItems" :key="trip.charter_id" class="trip-card">
             <div class="trip-heading">
@@ -33,6 +48,33 @@
             <div>to {{ trip.dropoff_address || 'Dropoff not entered' }}</div>
             <button @click="openTrip(trip.charter_id)">Open run</button>
           </article>
+        </div>
+        <button v-if="calendarHasMore" class="secondary load-more" :disabled="loadingMoreRuns" @click="loadMoreRuns">
+          {{ loadingMoreRuns ? 'Loading...' : 'Load more future runs' }}
+        </button>
+      </section>
+
+      <section v-if="activeTab === 'hos'" class="panel">
+        <div class="section-heading">
+          <h2>My HOS · Preceding 14 days</h2>
+          <button class="secondary print-button" @click="printReport">Print HOS</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Shift start</th><th>Shift end</th><th>On duty</th><th>Driving</th><th>Off duty</th><th>Breaks</th></tr></thead>
+            <tbody>
+              <tr v-for="entry in hosEntries" :key="entry.date">
+                <td>{{ formatDate(entry.date) }}</td>
+                <td>{{ formatTime(entry.workshift_start) }}</td>
+                <td>{{ formatTime(entry.workshift_end) }}</td>
+                <td>{{ recorded(entry.total_on_duty) }}</td>
+                <td>{{ recorded(entry.total_driving) }}</td>
+                <td>{{ recorded(entry.total_off_duty) }}</td>
+                <td>{{ recorded(entry.breaks) }}</td>
+              </tr>
+              <tr v-if="hosEntries.length === 0"><td colspan="7">No HOS records found in the preceding 14 days.</td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -175,7 +217,7 @@
 
       <section v-if="activeTab === 'statements'" class="panel">
         <div class="section-heading">
-          <h2>My Final Pay Statements</h2>
+          <h2>My Saved Monthly Pay Statements</h2>
           <div class="statement-actions">
             <label>
               Year
@@ -186,50 +228,93 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Issued</th><th>Statement</th><th>Regular hours</th><th>Overtime</th><th>Gross</th><th>Deductions</th><th>Net</th></tr></thead>
+            <thead><tr><th>Month</th><th>Pay date</th><th>Period</th><th>Total hours</th><th>Overtime</th><th>Gross</th><th>Deductions</th><th>Net</th></tr></thead>
             <tbody>
               <tr v-for="statement in statements" :key="statement.statement_id">
-                <td>{{ formatDate(statement.issued_at) }}</td>
-                <td>{{ statement.pay_period }}</td>
-                <td>{{ statement.regular_hours }}</td>
+                <td>{{ monthName(statement.month) }}</td>
+                <td>{{ formatDate(statement.pay_date) }}</td>
+                <td>{{ formatDate(statement.period_start) }} – {{ formatDate(statement.period_end) }}</td>
+                <td>{{ statement.total_hours }}</td>
                 <td>{{ statement.overtime_hours }}</td>
                 <td>{{ money(statement.gross_pay) }}</td>
                 <td>{{ money(statement.deductions) }}</td>
                 <td><strong>{{ money(statement.net_pay) }}</strong></td>
               </tr>
-              <tr v-if="statements.length === 0"><td colspan="7">No final pay statements found for this year.</td></tr>
+              <tr v-if="statements.length === 0"><td colspan="8">No saved monthly pay statements found for this year.</td></tr>
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section v-if="activeTab === 't4s'" class="panel">
+        <div class="section-heading">
+          <h2>My Saved T4 Records</h2>
+          <button class="secondary print-button" @click="printReport">Print T4 records</button>
+        </div>
+        <article v-for="year in employmentYears" :key="year" class="t4-record">
+          <h3>{{ year }} T4</h3>
+          <div v-if="t4ForYear(year)" class="record-grid">
+            <div><span>Box 14 · Employment income</span><strong>{{ money(t4ForYear(year).box_14) }}</strong></div>
+            <div><span>Box 16 · CPP contributions</span><strong>{{ money(t4ForYear(year).box_16) }}</strong></div>
+            <div><span>Box 18 · EI premiums</span><strong>{{ money(t4ForYear(year).box_18) }}</strong></div>
+            <div><span>Box 22 · Income tax</span><strong>{{ money(t4ForYear(year).box_22) }}</strong></div>
+            <div><span>Box 24 · EI insurable earnings</span><strong>{{ money(t4ForYear(year).box_24) }}</strong></div>
+            <div><span>Box 26 · CPP pensionable earnings</span><strong>{{ money(t4ForYear(year).box_26) }}</strong></div>
+            <div><span>Box 44 · Union dues</span><strong>{{ money(t4ForYear(year).box_44) }}</strong></div>
+            <div><span>Box 46 · Charitable donations</span><strong>{{ money(t4ForYear(year).box_46) }}</strong></div>
+            <div><span>Box 52 · Pension adjustment</span><strong>{{ money(t4ForYear(year).box_52) }}</strong></div>
+          </div>
+          <div v-else class="empty-state">No saved T4 record exists for this employment year.</div>
+        </article>
+        <div v-if="employmentYears.length === 0" class="empty-state">No employment-year history is available.</div>
       </section>
     </template>
   </div>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { authFetch } from '@/utils/authFetch'
 
 const tabs = [
+  { id: 'personal', label: 'Personal Record' },
   { id: 'runs', label: 'My Runs' },
   { id: 'run', label: 'Run Details' },
+  { id: 'hos', label: 'HOS' },
   { id: 'receipts', label: 'Receipts' },
   { id: 'float', label: 'Float' },
-  { id: 'statements', label: 'Pay Statements' }
+  { id: 'statements', label: 'Pay Statements' },
+  { id: 't4s', label: 'T4 Records' }
 ]
 const activeTab = ref('runs')
 const loading = ref(true)
+const loadingMoreRuns = ref(false)
 const saving = ref(false)
 const error = ref('')
 const notice = ref('')
 const profile = ref(null)
 const calendarItems = ref([])
-const calendarEnd = ref('')
+const calendarStart = ref('')
+const calendarHasMore = ref(false)
+const calendarNextOffset = ref(null)
+const hosEntries = ref([])
 const selectedTrip = ref(null)
 const receipts = ref([])
 const statements = ref([])
+const t4Records = ref([])
+const employmentYears = computed(() => {
+  const savedYears = t4Records.value.map(record => Number(record.tax_year)).filter(Boolean)
+  const hireYear = Number(String(profile.value?.hire_date || '').slice(0, 4))
+  if (!hireYear) return [...new Set(savedYears)].sort((a, b) => b - a)
+  const currentYear = new Date().getFullYear()
+  const employedYears = Array.from(
+    { length: Math.max(0, currentYear - hireYear + 1) },
+    (_, index) => currentYear - index
+  )
+  return [...new Set([...savedYears, ...employedYears])].sort((a, b) => b - a)
+})
 const statementYear = ref(new Date().getFullYear())
-const floatSummary = reactive({ issued: 0, receipts: 0, driver_paid: 0, returned: 0, remaining: 0, reimbursement_due: 0, settled: true })
+const floatSummary = reactive({ issued: null, receipts: null, driver_paid: null, returned: null, remaining: null, reimbursement_due: null, settled: null })
 const tripForm = reactive({})
 const receiptForm = reactive({
   receipt_date: new Date().toISOString().slice(0, 10),
@@ -254,23 +339,44 @@ const loadPortal = async () => {
   loading.value = true
   error.value = ''
   try {
-    const [profileData, calendarData, receiptData, floatData, statementData] = await Promise.all([
-      requestJson('/api/chauffeur/me/profile'),
-      requestJson('/api/chauffeur/me/calendar?days=31'),
+    profile.value = await requestJson('/api/chauffeur/me/profile')
+    const [calendarData, hosData, receiptData, floatData, statementData, t4Data] = await Promise.all([
+      requestJson('/api/chauffeur/me/calendar'),
+      requestJson('/api/chauffeur/me/hos'),
       requestJson('/api/chauffeur/me/receipts'),
       requestJson('/api/chauffeur/me/float'),
-      requestJson(`/api/chauffeur/me/pay-statements?year=${statementYear.value}`)
+      requestJson(`/api/chauffeur/me/pay-statements?year=${statementYear.value}`),
+      requestJson('/api/chauffeur/me/t4s')
     ])
-    profile.value = profileData
     calendarItems.value = calendarData.items || []
-    calendarEnd.value = formatDate(calendarData.end_date)
+    calendarStart.value = formatDate(calendarData.start_date)
+    calendarHasMore.value = Boolean(calendarData.has_more)
+    calendarNextOffset.value = calendarData.next_offset
+    hosEntries.value = hosData.items || []
     receipts.value = receiptData.items || []
     Object.assign(floatSummary, floatData)
     statements.value = statementData.items || []
+    t4Records.value = t4Data.items || []
   } catch (err) {
     error.value = err.message
   } finally {
     loading.value = false
+  }
+}
+
+const loadMoreRuns = async () => {
+  if (!calendarHasMore.value || calendarNextOffset.value === null) return
+  loadingMoreRuns.value = true
+  error.value = ''
+  try {
+    const data = await requestJson(`/api/chauffeur/me/calendar?offset=${calendarNextOffset.value}`)
+    calendarItems.value.push(...(data.items || []))
+    calendarHasMore.value = Boolean(data.has_more)
+    calendarNextOffset.value = data.next_offset
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    loadingMoreRuns.value = false
   }
 }
 
@@ -371,9 +477,14 @@ const submitFloatReturn = async () => {
   }
 }
 
-const money = value => new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(Number(value || 0))
+const money = value => value === null || value === undefined
+  ? 'Not recorded'
+  : new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(Number(value))
 const formatDate = value => value ? new Date(`${String(value).slice(0, 10)}T12:00:00`).toLocaleDateString('en-CA') : '—'
 const formatTime = value => value ? String(value).slice(0, 5) : 'Time not set'
+const recorded = value => value === null || value === undefined || value === '' ? 'Not recorded' : value
+const monthName = value => value ? new Intl.DateTimeFormat('en-CA', { month: 'long' }).format(new Date(2000, Number(value) - 1, 1)) : '—'
+const t4ForYear = year => t4Records.value.find(record => Number(record.tax_year) === Number(year))
 const printReport = () => window.print()
 
 onMounted(loadPortal)
@@ -390,7 +501,7 @@ button:disabled { opacity: .6; cursor: wait; }
 button.secondary, .tabs button { background: #e2e8f0; color: #1e293b; }
 .tabs button.active { background: #2563eb; color: white; }
 .panel { background: white; border: 1px solid #dbe3ee; border-radius: 10px; padding: 1.25rem; }
-.card-grid, .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; }
+.card-grid, .summary-grid, .record-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; }
 .trip-card, .summary-grid > div { border: 1px solid #dbe3ee; border-radius: 8px; padding: 1rem; display: grid; gap: .6rem; }
 .trip-heading { display: flex; justify-content: space-between; gap: .75rem; }
 .status { background: #e0f2fe; border-radius: 99px; padding: .15rem .55rem; font-size: .8rem; }
@@ -404,6 +515,10 @@ input, select, textarea { box-sizing: border-box; width: 100%; padding: .65rem; 
 .receipt-form { margin-bottom: 1.5rem; }
 .inline-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; align-items: end; gap: 1rem; margin-top: 1.25rem; }
 .summary-grid span { color: #64748b; }
+.record-grid > div { display: grid; gap: .25rem; border: 1px solid #dbe3ee; border-radius: 8px; padding: .85rem; }
+.record-grid span { color: #64748b; font-size: .85rem; }
+.t4-record { margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #dbe3ee; break-inside: avoid; }
+.load-more { margin-top: 1rem; }
 .summary-grid strong { font-size: 1.5rem; }
 .summary-grid .settled { border-color: #16a34a; background: #f0fdf4; }
 .table-wrap { overflow-x: auto; margin-top: 1rem; }

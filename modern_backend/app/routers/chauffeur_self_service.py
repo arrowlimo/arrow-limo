@@ -151,7 +151,9 @@ def get_my_profile(current_user: dict = Depends(get_current_user)):
                 last_name,
                 email,
                 phone,
-                employee_category
+                employee_category,
+                hire_date,
+                employment_status
             FROM employees
             WHERE employee_id = %s
             LIMIT 1
@@ -171,6 +173,8 @@ def get_my_profile(current_user: dict = Depends(get_current_user)):
             "email": row[3] or "",
             "phone": row[4] or "",
             "employee_type": row[5] or "",
+            "hire_date": row[6].isoformat() if row[6] else None,
+            "employment_status": row[7] or "",
         }
     finally:
         return_connection(conn)
@@ -237,15 +241,15 @@ def get_my_trips(
 
 @router.get("/me/calendar")
 def get_my_calendar(
-    days: int = Query(30, ge=1, le=120),
+    offset: int = Query(0, ge=0),
     current_user: dict = Depends(get_current_user),
 ):
     employee_id = _employee_id_from_user(current_user)
     conn = get_connection()
     try:
         cur = conn.cursor()
-        start_date = date.today()
-        end_date = start_date + timedelta(days=days)
+        current_month_start = date.today().replace(day=1)
+        start_date = (current_month_start - timedelta(days=1)).replace(day=1)
         cur.execute(
             """
             SELECT
@@ -260,14 +264,15 @@ def get_my_calendar(
             FROM charters
             WHERE (assigned_driver_id = %s OR employee_id = %s)
               AND charter_date >= %s
-              AND charter_date <= %s
             ORDER BY charter_date ASC, pickup_time ASC NULLS LAST
-            LIMIT 500
+            LIMIT 251 OFFSET %s
             """,
-            (employee_id, employee_id, start_date, end_date),
+            (employee_id, employee_id, start_date, offset),
         )
         rows = cur.fetchall()
         cur.close()
+        has_more = len(rows) > 250
+        rows = rows[:250]
 
         items = []
         for row in rows:
@@ -287,8 +292,9 @@ def get_my_calendar(
         return {
             "employee_id": employee_id,
             "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat(),
             "count": len(items),
+            "has_more": has_more,
+            "next_offset": offset + len(items) if has_more else None,
             "items": items,
         }
     finally:
@@ -615,76 +621,204 @@ def get_my_pay_statements(
             cur.execute(
                 """
                 SELECT
-                    id, year, pay_period, regular_hours, hourly_rate, ot_hours,
-                    ot_rate, base_salary, bonus, gratuity, other_benefits,
-                    cpp, ei, income_tax, notes, COALESCE(updated_at, created_at)
-                FROM payroll_entries
-                WHERE employee_id = %s AND year = %s
-                ORDER BY COALESCE(updated_at, created_at) DESC NULLS LAST, id DESC
+                    epm.employee_pay_id,
+                    pp.fiscal_year,
+                    EXTRACT(MONTH FROM pp.period_end_date)::integer,
+                    pp.period_start_date,
+                    pp.period_end_date,
+                    pp.pay_date,
+                    epm.total_hours_worked,
+                    epm.overtime_hours,
+                    epm.gross_pay,
+                    epm.total_deductions,
+                    epm.net_pay,
+                    epm.notes,
+                    COALESCE(epm.updated_at, epm.created_at)
+                FROM employee_pay_master epm
+                JOIN pay_periods pp ON pp.pay_period_id = epm.pay_period_id
+                WHERE epm.employee_id = %s AND pp.fiscal_year = %s
+                ORDER BY pp.period_number ASC, pp.period_start_date ASC
                 """,
                 (employee_id, year),
             )
             rows = cur.fetchall()
 
-        items = []
-        for row in rows:
-            gross = (
-                sum(Decimal(row[index] or 0) for index in (7, 8, 9, 10))
-                + Decimal(row[3] or 0) * Decimal(row[4] or 0)
-                + Decimal(row[5] or 0) * Decimal(row[6] or 0)
-            )
-            deductions = sum(Decimal(row[index] or 0) for index in (11, 12, 13))
-            items.append(
-                {
-                    "statement_id": row[0],
-                    "year": row[1],
-                    "pay_period": row[2],
-                    "regular_hours": float(row[3] or 0),
-                    "overtime_hours": float(row[5] or 0),
-                    "gross_pay": float(gross),
-                    "deductions": float(deductions),
-                    "net_pay": float(gross - deductions),
-                    "notes": row[14] or "",
-                    "issued_at": row[15].isoformat() if row[15] else None,
-                }
-            )
+        items = [
+            {
+                "statement_id": row[0],
+                "year": row[1],
+                "month": row[2],
+                "period_start": row[3].isoformat() if row[3] else None,
+                "period_end": row[4].isoformat() if row[4] else None,
+                "pay_date": row[5].isoformat() if row[5] else None,
+                "total_hours": float(row[6]) if row[6] is not None else None,
+                "overtime_hours": float(row[7]) if row[7] is not None else None,
+                "gross_pay": float(row[8]) if row[8] is not None else None,
+                "deductions": float(row[9]) if row[9] is not None else None,
+                "net_pay": float(row[10]) if row[10] is not None else None,
+                "notes": row[11] or "",
+                "saved_at": row[12].isoformat() if row[12] else None,
+            }
+            for row in rows
+        ]
         return {"year": year, "items": items}
+    finally:
+        return_connection(conn)
+
+
+@router.get("/me/t4s")
+def get_my_t4s(current_user: dict = Depends(get_current_user)):
+    employee_id = _employee_id_from_user(current_user)
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    to_regclass('public.employee_t4_records') IS NOT NULL,
+                    to_regclass('public.t4_entries') IS NOT NULL
+                """
+            )
+            current_exists, legacy_exists = cur.fetchone()
+            if not current_exists and not legacy_exists:
+                raise HTTPException(status_code=503, detail="Saved T4 records are unavailable")
+
+            rows_by_year = {}
+            if current_exists:
+                cur.execute(
+                    """
+                    SELECT
+                        tax_year,
+                        box_14_employment_income,
+                        box_16_cpp_contributions,
+                        box_18_ei_premiums,
+                        box_22_income_tax,
+                        box_24_ei_insurable_earnings,
+                        box_26_cpp_pensionable_earnings,
+                        box_44_union_dues,
+                        box_46_charitable_donations,
+                        box_52_pension_adjustment,
+                        notes
+                    FROM employee_t4_records
+                    WHERE employee_id = %s
+                    ORDER BY tax_year DESC
+                    """,
+                    (employee_id,),
+                )
+                rows_by_year.update({row[0]: row for row in cur.fetchall()})
+            if legacy_exists:
+                cur.execute(
+                    """
+                    SELECT
+                        tax_year,
+                        t4_box_14,
+                        t4_box_16,
+                        t4_box_18,
+                        t4_box_22,
+                        t4_box_24,
+                        t4_box_26,
+                        t4_box_44,
+                        t4_box_46,
+                        t4_box_52,
+                        notes
+                    FROM t4_entries
+                    WHERE employee_id = %s
+                    ORDER BY tax_year DESC
+                    """,
+                    (employee_id,),
+                )
+                for row in cur.fetchall():
+                    rows_by_year.setdefault(row[0], row)
+            rows = [rows_by_year[year] for year in sorted(rows_by_year, reverse=True)]
+
+        items = [
+            {
+                "tax_year": row[0],
+                "box_14": float(row[1]) if row[1] is not None else None,
+                "box_16": float(row[2]) if row[2] is not None else None,
+                "box_18": float(row[3]) if row[3] is not None else None,
+                "box_22": float(row[4]) if row[4] is not None else None,
+                "box_24": float(row[5]) if row[5] is not None else None,
+                "box_26": float(row[6]) if row[6] is not None else None,
+                "box_44": float(row[7]) if row[7] is not None else None,
+                "box_46": float(row[8]) if row[8] is not None else None,
+                "box_52": float(row[9]) if row[9] is not None else None,
+                "notes": row[10] or "",
+            }
+            for row in rows
+        ]
+        return {"items": items}
     finally:
         return_connection(conn)
 
 
 @router.get("/me/hos")
 def get_my_hos(
-    days: int = Query(14, ge=1, le=30),
     current_user: dict = Depends(get_current_user),
 ):
     employee_id = _employee_id_from_user(current_user)
     conn = get_connection()
     try:
-        start_date = date.today() - timedelta(days=days)
+        days = 14
+        start_date = date.today() - timedelta(days=days - 1)
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT
-                    log_date,
-                    workshift_start,
-                    workshift_end,
-                    total_on_duty,
-                    total_driving,
-                    total_off_duty,
-                    breaks,
-                    duty_log,
-                    COALESCE(deferral, false) AS deferral,
-                    COALESCE(deferral_hours, 0) AS deferral_hours,
-                    COALESCE(emergency, false) AS emergency,
-                    emergency_reason
-                FROM hos_log
-                WHERE employee_id = %s
-                  AND log_date >= %s
-                ORDER BY log_date DESC
-                """,
-                (employee_id, start_date),
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'hos_log'
+                """
             )
+            columns = {row[0] for row in cur.fetchall()}
+            if {"hos_date", "on_duty_hours", "off_duty_hours"} <= columns:
+                cur.execute(
+                    """
+                    SELECT
+                        hos_date,
+                        MIN(on_duty_start),
+                        MAX(off_duty_at),
+                        SUM(on_duty_hours),
+                        NULL::numeric,
+                        SUM(off_duty_hours),
+                        NULL::numeric,
+                        '[]'::jsonb,
+                        NULL::boolean,
+                        NULL::numeric,
+                        NULL::boolean,
+                        NULL::text
+                    FROM hos_log
+                    WHERE employee_id = %s
+                      AND hos_date >= %s
+                    GROUP BY hos_date
+                    ORDER BY hos_date DESC
+                    """,
+                    (employee_id, start_date),
+                )
+            elif {"log_date", "workshift_start", "workshift_end"} <= columns:
+                cur.execute(
+                    """
+                    SELECT
+                        log_date,
+                        workshift_start,
+                        workshift_end,
+                        total_on_duty,
+                        total_driving,
+                        total_off_duty,
+                        breaks,
+                        duty_log,
+                        deferral,
+                        deferral_hours,
+                        emergency,
+                        emergency_reason
+                    FROM hos_log
+                    WHERE employee_id = %s
+                      AND log_date >= %s
+                    ORDER BY log_date DESC
+                    """,
+                    (employee_id, start_date),
+                )
+            else:
+                raise HTTPException(status_code=503, detail="HOS records are unavailable")
             rows = cur.fetchall()
 
         entries = [
@@ -692,14 +826,14 @@ def get_my_hos(
                 "date": row[0].isoformat() if row[0] else None,
                 "workshift_start": str(row[1]) if row[1] is not None else None,
                 "workshift_end": str(row[2]) if row[2] is not None else None,
-                "total_on_duty": str(row[3] or "0:00"),
-                "total_driving": str(row[4] or "0:00"),
-                "total_off_duty": str(row[5] or "0:00"),
-                "breaks": str(row[6] or "0:00"),
+                "total_on_duty": str(row[3]) if row[3] is not None else "",
+                "total_driving": str(row[4]) if row[4] is not None else "",
+                "total_off_duty": str(row[5]) if row[5] is not None else "",
+                "breaks": str(row[6]) if row[6] is not None else "",
                 "duty_log": row[7] if isinstance(row[7], list) else [],
-                "deferral": bool(row[8]),
-                "deferral_hours": float(row[9] or 0),
-                "emergency": bool(row[10]),
+                "deferral": bool(row[8]) if row[8] is not None else None,
+                "deferral_hours": float(row[9]) if row[9] is not None else None,
+                "emergency": bool(row[10]) if row[10] is not None else None,
                 "emergency_reason": row[11] or "",
             }
             for row in rows

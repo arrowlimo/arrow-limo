@@ -103,7 +103,7 @@ def health():
     finally:
         if conn is not None:
             return_connection(conn)
-    return {"status": "ok"}
+    return {"status": "ok", "data_ready": True}
 
 
 @app.on_event("shutdown")
