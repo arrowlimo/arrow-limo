@@ -119,6 +119,51 @@ def provision_2026_chauffeur_accounts() -> int:
                 )
                 return 0
             password_hash = hash_password(initial_password)
+            eligible_employee_ids = [row[0] for row in chauffeurs]
+            synchronized = 0
+            if eligible_employee_ids:
+                cur.execute(
+                    """
+                    UPDATE users u
+                    SET password_hash = %s,
+                        failed_login_attempts = 0,
+                        locked_until = NULL,
+                        session_version = COALESCE(session_version, 1) + 1,
+                        updated_at = NOW()
+                    FROM driver_auth_state s
+                    JOIN driver_user_links l ON l.user_id = s.user_id
+                    WHERE u.user_id = s.user_id
+                      AND s.must_change_password = TRUE
+                      AND l.employee_id = ANY(%s)
+                      AND LOWER(COALESCE(u.role, '')) IN ('driver', 'operator')
+                    """,
+                    (password_hash, eligible_employee_ids),
+                )
+                synchronized = cur.rowcount
+                cur.execute(
+                    """
+                    DELETE FROM driver_auth_challenges c
+                    USING driver_auth_state s, driver_user_links l
+                    WHERE c.user_id = s.user_id
+                      AND l.user_id = s.user_id
+                      AND s.must_change_password = TRUE
+                      AND l.employee_id = ANY(%s)
+                    """,
+                    (eligible_employee_ids,),
+                )
+                cur.execute(
+                    """
+                    UPDATE web_sessions ws
+                    SET revoked_at = NOW()
+                    FROM driver_user_links l
+                    JOIN driver_auth_state s ON s.user_id = l.user_id
+                    WHERE ws.employee_id = l.employee_id
+                      AND s.must_change_password = TRUE
+                      AND l.employee_id = ANY(%s)
+                      AND ws.revoked_at IS NULL
+                    """,
+                    (eligible_employee_ids,),
+                )
             created = 0
 
             for employee_id, first_name, last_name, email in chauffeurs:
@@ -177,7 +222,11 @@ def provision_2026_chauffeur_accounts() -> int:
                 usernames.add(username)
                 linked_employee_ids.add(employee_id)
         conn.commit()
-        logger.info("Provisioned %s chauffeur account(s) for 2026 runs", created)
+        logger.info(
+            "Provisioned %s and synchronized %s pending chauffeur account(s)",
+            created,
+            synchronized,
+        )
         return created
     except Exception:
         conn.rollback()
