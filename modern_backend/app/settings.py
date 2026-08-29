@@ -25,7 +25,6 @@ class Settings(BaseSettings):
     ]
     log_requests: bool = True
     security_headers_enabled: bool = True
-    rate_limit_enabled: bool = True
     rate_limit_requests: int = 120
     auth_rate_limit_requests: int = 10
     rate_limit_window_seconds: int = 60

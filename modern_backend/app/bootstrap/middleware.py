@@ -78,7 +78,7 @@ def _register_rate_limit_middleware(app: FastAPI, settings: Any) -> None:
             "/auth/logout",
         }
         rate_limited_path = is_protected_path(request.url.path) or auth_rate_limited
-        if not settings.rate_limit_enabled or not rate_limited_path:
+        if not rate_limited_path:
             return await call_next(request)
 
         bucket_type = "auth" if auth_rate_limited else "api"

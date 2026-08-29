@@ -72,8 +72,6 @@ services:
         value: "true"
       - key: SECURITY_HEADERS_ENABLED
         value: "true"
-      - key: RATE_LIMIT_ENABLED
-        value: "true"
       - key: RATE_LIMIT_REQUESTS
         value: "120"
       - key: AUTH_RATE_LIMIT_REQUESTS
