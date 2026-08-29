@@ -22,7 +22,7 @@
               :disabled="loading"
             >
             <button class="password-toggle" type="button" :disabled="loading" @click="showPassword = !showPassword">
-              {{ showPassword ? 'Hide' : 'Show' }}
+              {{ showPassword ? 'Hide Password' : 'Show Password' }}
             </button>
           </div>
         </div>
@@ -210,8 +210,9 @@ h2 { margin: 0 0 1.5rem; color: #64748b; font-size: 1.1rem; font-weight: normal;
 label { display: block; margin-bottom: .35rem; color: #1e293b; font-weight: 600; }
 input { width: 100%; padding: .8rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem; box-sizing: border-box; }
 input:focus { outline: 2px solid #93c5fd; border-color: #2563eb; }
-.password-row { display: grid; grid-template-columns: 1fr auto; gap: .5rem; }
-.password-toggle { width: auto; background: #e2e8f0; color: #1e293b; }
+.password-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; }
+.password-row input { min-width: 0; }
+.password-toggle { width: auto; white-space: nowrap; background: #e2e8f0; color: #1e293b; }
 button { width: 100%; padding: .8rem; background: #2563eb; color: white; border: 0; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; }
 button:disabled { opacity: .6; cursor: wait; }
 .restart { margin-top: .75rem; background: transparent; color: #475569; }
