@@ -169,9 +169,9 @@ def _register_unhandled_exception_handler(
 
 def register_middlewares(app: FastAPI, settings: Any, logger: logging.Logger) -> None:
     """Register HTTP middleware and global exception handlers."""
-    _register_correlation_middleware(app)
-    _register_security_headers_middleware(app, settings)
-    _register_rate_limit_middleware(app, settings)
-    _register_request_logging_middleware(app, settings, logger)
     _register_authentication_middleware(app)
+    _register_request_logging_middleware(app, settings, logger)
+    _register_rate_limit_middleware(app, settings)
+    _register_security_headers_middleware(app, settings)
+    _register_correlation_middleware(app)
     _register_unhandled_exception_handler(app, settings, logger)
