@@ -1,3 +1,4 @@
+import ipaddress
 import logging
 import time
 import uuid
@@ -13,7 +14,28 @@ from ..auth import is_auth_exempt_path, is_protected_path, resolve_authenticated
 
 def _get_rate_limit_key(request: Request) -> str:
     client_host = request.client.host if request.client else "unknown"
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for and _is_trusted_proxy_peer(client_host):
+        forwarded_client = forwarded_for.rsplit(",", 1)[-1].strip()
+        try:
+            return str(ipaddress.ip_address(forwarded_client))
+        except ValueError:
+            pass
     return client_host
+
+
+def _is_trusted_proxy_peer(host: str) -> bool:
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    carrier_grade_nat = ipaddress.ip_network("100.64.0.0/10")
+    return (
+        address.is_private
+        or address.is_loopback
+        or address.is_link_local
+        or address in carrier_grade_nat
+    )
 
 
 def _register_correlation_middleware(app: FastAPI) -> None:
@@ -37,6 +59,9 @@ def _register_security_headers_middleware(app: FastAPI, settings: Any) -> None:
             response.headers.setdefault("X-Frame-Options", "DENY")
             response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
             response.headers.setdefault(
+                "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+            )
+            response.headers.setdefault(
                 "Permissions-Policy", "geolocation=(), microphone=(), camera=()"
             )
         return response
@@ -56,10 +81,14 @@ def _register_rate_limit_middleware(app: FastAPI, settings: Any) -> None:
         if not settings.rate_limit_enabled or not rate_limited_path:
             return await call_next(request)
 
-        key = _get_rate_limit_key(request)
+        bucket_type = "auth" if auth_rate_limited else "api"
+        key = f"{_get_rate_limit_key(request)}:{bucket_type}"
         now = time.monotonic()
         window = max(1, settings.rate_limit_window_seconds)
-        limit = max(1, settings.rate_limit_requests)
+        configured_limit = (
+            settings.auth_rate_limit_requests if auth_rate_limited else settings.rate_limit_requests
+        )
+        limit = max(1, configured_limit)
 
         with rate_limit_lock:
             bucket = rate_limit_buckets[key]

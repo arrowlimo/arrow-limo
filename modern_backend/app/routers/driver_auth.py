@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
@@ -311,12 +311,6 @@ async def validate_token(request: Request):
         "expires_at": session["expires_at"].isoformat(),
         "user": _user_response(session),
     }
-
-
-@router.get("/logout")
-async def logout(response: Response):
-    response.delete_cookie("session_token")
-    return RedirectResponse(url=LOGIN_PATH, status_code=302)
 
 
 @router.post("/logout")

@@ -76,6 +76,8 @@ services:
         value: "true"
       - key: RATE_LIMIT_REQUESTS
         value: "120"
+      - key: AUTH_RATE_LIMIT_REQUESTS
+        value: "10"
       - key: RATE_LIMIT_WINDOW_SECONDS
         value: "60"
 
