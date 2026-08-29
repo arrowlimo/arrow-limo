@@ -18,7 +18,6 @@ def _validate_production_database_config() -> None:
         return
 
     required = (
-        "ALMS_DEFAULT_DB_TARGET",
         "DB_HOST",
         "DB_NAME",
         "DB_USER",
@@ -27,14 +26,15 @@ def _validate_production_database_config() -> None:
     if any(not os.environ.get(key, "").strip() for key in required):
         raise DatabaseConfigurationError("Production database configuration is incomplete")
 
-    if os.environ["ALMS_DEFAULT_DB_TARGET"].strip().lower() != "neon":
+    target = os.environ.get("ALMS_DEFAULT_DB_TARGET", "").strip().lower()
+    if target and target != "neon":
         raise DatabaseConfigurationError("Production database target must be Neon")
 
     host = os.environ["DB_HOST"].strip().lower()
-    if host in {"localhost", "127.0.0.1", "::1"}:
-        raise DatabaseConfigurationError("Production database cannot use a local host")
+    if host != "neon.tech" and not host.endswith(".neon.tech"):
+        raise DatabaseConfigurationError("Production database host must be Neon")
 
-    sslmode = os.environ.get("DB_SSLMODE", "").strip().lower()
+    sslmode = os.environ.get("DB_SSLMODE", "require").strip().lower() or "require"
     if sslmode not in {"require", "verify-ca", "verify-full"}:
         raise DatabaseConfigurationError("Production database TLS is required")
 
@@ -44,9 +44,11 @@ def _get_pool():
     global _connection_pool
     if _connection_pool is None:
         _validate_production_database_config()
-        ssl_kwargs = {}
-        if os.environ.get("DB_SSLMODE"):
-            ssl_kwargs["sslmode"] = os.environ["DB_SSLMODE"]
+        is_production = os.environ.get("ENVIRONMENT", "production").strip().lower() == "production"
+        sslmode = os.environ.get("DB_SSLMODE", "").strip()
+        if is_production and not sslmode:
+            sslmode = "require"
+        ssl_kwargs = {"sslmode": sslmode} if sslmode else {}
         if os.environ.get("DB_CHANNEL_BINDING"):
             ssl_kwargs["channel_binding"] = os.environ["DB_CHANNEL_BINDING"]
         _connection_pool = pool.SimpleConnectionPool(
