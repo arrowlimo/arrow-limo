@@ -932,12 +932,16 @@ def get_my_hos(
             )
             columns = {row[0] for row in cur.fetchall()}
             if {"hos_date", "on_duty_hours", "off_duty_hours"} <= columns:
+                on_duty_start = (
+                    "MIN(on_duty_start)" if "on_duty_start" in columns else "NULL::timestamp"
+                )
+                off_duty_at = "MAX(off_duty_at)" if "off_duty_at" in columns else "NULL::timestamp"
                 cur.execute(
-                    """
+                    f"""
                     SELECT
                         hos_date,
-                        MIN(on_duty_start),
-                        MAX(off_duty_at),
+                        {on_duty_start},
+                        {off_duty_at},
                         SUM(on_duty_hours),
                         NULL::numeric,
                         SUM(off_duty_hours),
@@ -955,22 +959,33 @@ def get_my_hos(
                     """,
                     (employee_id, query_start),
                 )
-            elif {"log_date", "workshift_start", "workshift_end"} <= columns:
+            elif "log_date" in columns:
+                workshift_start = (
+                    "workshift_start" if "workshift_start" in columns else "NULL::timestamp"
+                )
+                workshift_end = "workshift_end" if "workshift_end" in columns else "NULL::timestamp"
+                optional_hos_columns = {
+                    "total_on_duty": "NULL::numeric",
+                    "total_driving": "NULL::numeric",
+                    "total_off_duty": "NULL::numeric",
+                    "breaks": "NULL::numeric",
+                    "duty_log": "'[]'::jsonb",
+                    "deferral": "NULL::boolean",
+                    "deferral_hours": "NULL::numeric",
+                    "emergency": "NULL::boolean",
+                    "emergency_reason": "NULL::text",
+                }
+                selected_hos_columns = [
+                    name if name in columns else fallback
+                    for name, fallback in optional_hos_columns.items()
+                ]
                 cur.execute(
-                    """
+                    f"""
                     SELECT
                         log_date,
-                        workshift_start,
-                        workshift_end,
-                        total_on_duty,
-                        total_driving,
-                        total_off_duty,
-                        breaks,
-                        duty_log,
-                        deferral,
-                        deferral_hours,
-                        emergency,
-                        emergency_reason
+                        {workshift_start},
+                        {workshift_end},
+                        {", ".join(selected_hos_columns)}
                     FROM hos_log
                     WHERE employee_id = %s
                       AND log_date >= %s
@@ -983,21 +998,61 @@ def get_my_hos(
             hos_rows = cur.fetchall()
             cur.execute(
                 """
+                SELECT table_name, column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name IN ('charters', 'vehicles')
+                """
+            )
+            table_columns: dict[str, set[str]] = {"charters": set(), "vehicles": set()}
+            for table_name, column_name in cur.fetchall():
+                table_columns[table_name].add(column_name)
+            charter_columns = table_columns["charters"]
+            vehicle_columns = table_columns["vehicles"]
+            charter_optional = {
+                "actual_hours": "NULL::numeric",
+                "workshift_start": "NULL::timestamp",
+                "workshift_end": "NULL::timestamp",
+                "passenger_count": "NULL::integer",
+                "is_out_of_town": "FALSE",
+            }
+            charter_select = {
+                name: f"c.{name}" if name in charter_columns else fallback
+                for name, fallback in charter_optional.items()
+            }
+            vehicle_number = (
+                "v.vehicle_number" if "vehicle_number" in vehicle_columns else "NULL::text"
+            )
+            if "vehicle_number" not in vehicle_columns and "vehicle" in charter_columns:
+                vehicle_number = "c.vehicle::text"
+            passenger_capacity = (
+                "v.passenger_capacity"
+                if "passenger_capacity" in vehicle_columns
+                else "NULL::integer"
+            )
+            vehicle_type = (
+                "COALESCE(v.vehicle_type, '')" if "vehicle_type" in vehicle_columns else "''::text"
+            )
+            not_cancelled = (
+                "AND COALESCE(c.cancelled, FALSE) = FALSE" if "cancelled" in charter_columns else ""
+            )
+            cur.execute(
+                f"""
                 SELECT
                     c.charter_id,
                     c.reserve_number,
                     c.charter_date,
                     c.pickup_time,
                     c.dropoff_time,
-                    c.actual_hours,
-                    c.workshift_start,
-                    c.workshift_end,
-                    c.passenger_count,
-                    COALESCE(c.is_out_of_town, FALSE),
+                    {charter_select["actual_hours"]},
+                    {charter_select["workshift_start"]},
+                    {charter_select["workshift_end"]},
+                    {charter_select["passenger_count"]},
+                    {charter_select["is_out_of_town"]},
                     c.status,
-                    v.vehicle_number,
-                    v.passenger_capacity,
-                    COALESCE(v.vehicle_type, ''),
+                    {vehicle_number},
+                    {passenger_capacity},
+                    {vehicle_type},
                     h.bus_driving_hours,
                     h.break_minutes
                 FROM charters c
@@ -1006,7 +1061,7 @@ def get_my_hos(
                   ON h.charter_id = c.charter_id AND h.employee_id = %s
                 WHERE (c.assigned_driver_id = %s OR c.employee_id = %s)
                   AND c.charter_date BETWEEN %s AND %s
-                  AND COALESCE(c.cancelled, FALSE) = FALSE
+                  {not_cancelled}
                   AND LOWER(COALESCE(c.status, '')) NOT LIKE 'cancel%'
                 ORDER BY c.charter_date ASC, c.pickup_time ASC NULLS LAST
                 """,
