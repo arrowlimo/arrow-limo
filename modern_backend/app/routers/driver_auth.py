@@ -16,16 +16,13 @@ from ..services.auth.credentials import (
     verify_user_credentials,
 )
 from ..services.auth.onboarding import (
-    create_mfa_challenge,
     create_onboarding_challenge,
     ensure_auth_tables,
-    get_linked_employee_phone,
     issue_phone_code,
     mark_phone_verified,
     mask_phone,
     require_challenge,
     require_enrollment_phone,
-    set_challenge_purpose,
     verify_phone_code,
 )
 from ..services.auth.session_store import (
@@ -36,7 +33,6 @@ from ..services.auth.session_store import (
     parse_bearer_token,
     revoke_session,
 )
-from ..settings import get_settings
 
 router = APIRouter(prefix="/auth", tags=["driver_auth"])
 LOGIN_PATH = "/login"
@@ -153,13 +149,6 @@ def _require_support_session(request: Request) -> dict:
     return session
 
 
-def _sms_mfa_ready() -> bool:
-    settings = get_settings()
-    return bool(
-        settings.twilio_account_sid and settings.twilio_auth_token and settings.twilio_from_number
-    )
-
-
 @router.get("/login")
 async def login_page():
     return RedirectResponse(url=LOGIN_PATH, status_code=302)
@@ -201,49 +190,21 @@ async def login_json(payload: LoginRequest, request: Request):
         return _authenticated_support_response(user)
     _require_driver_account(user)
 
-    if not _sms_mfa_ready():
-        raise HTTPException(
-            status_code=503,
-            detail="SMS verification is temporarily unavailable",
-        )
     if user["must_change_password"]:
-        challenge_token = create_onboarding_challenge(user["account_id"], purpose="activation")
-        phone = issue_phone_code(
-            challenge_token,
-            user["account_id"],
-            get_linked_employee_phone(user["account_id"]),
-            "activation",
-        )
         return {
-            "next_step": "verify_activation",
-            "challenge_token": challenge_token,
-            "masked_phone": mask_phone(phone),
+            "next_step": "change_password",
+            "challenge_token": create_onboarding_challenge(user["account_id"]),
             "user": _user_response(user),
         }
-    if not user["phone_verified"] or not user["mfa_phone"]:
-        return {
-            "next_step": "enroll_phone",
-            "challenge_token": create_onboarding_challenge(
-                user["account_id"], purpose="enroll_phone"
-            ),
-            "user": _user_response(user),
-        }
-
-    challenge_token, phone = create_mfa_challenge(user["account_id"], user["mfa_phone"])
     record_auth_event(
-        action="mfa_challenge_sent",
+        action="driver_login",
         username=user["username"],
         user_id=user["employee_id"],
         role=user["role"],
         request=request,
-        note="SMS verification required",
+        note="Driver portal session opened",
     )
-    return {
-        "next_step": "verify_mfa",
-        "challenge_token": challenge_token,
-        "masked_phone": mask_phone(phone),
-        "user": _user_response(user),
-    }
+    return _authenticated_response(user)
 
 
 @router.post("/change-password")
@@ -270,10 +231,7 @@ async def change_password(payload: PasswordChangeRequest, request: Request):
         request=request,
         note="Driver changed the pending first-login password",
     )
-    if refreshed_user["phone_verified"] and refreshed_user["mfa_phone"]:
-        return _authenticated_response(refreshed_user)
-    set_challenge_purpose(payload.challenge_token, user_id, "enroll_phone")
-    return {"next_step": "enroll_phone", "challenge_token": payload.challenge_token}
+    return _authenticated_response(refreshed_user)
 
 
 def _password_hash_for_user(user_id: int):

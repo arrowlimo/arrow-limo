@@ -33,6 +33,7 @@ def ensure_auth_tables(conn) -> None:
                 mfa_phone VARCHAR(20) NULL,
                 phone_verified_at TIMESTAMPTZ NULL,
                 password_changed_at TIMESTAMPTZ NULL,
+                bootstrap_password_randomized_at TIMESTAMPTZ NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             )
@@ -64,6 +65,12 @@ def ensure_auth_tables(conn) -> None:
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             )
             """
+            )
+            cur.execute(
+                """
+                ALTER TABLE driver_auth_state
+                ADD COLUMN IF NOT EXISTS bootstrap_password_randomized_at TIMESTAMPTZ NULL
+                """
             )
             cur.execute(
                 """

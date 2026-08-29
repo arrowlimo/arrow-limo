@@ -30,7 +30,7 @@
       </form>
 
       <form v-else-if="step === 'change_password'" @submit.prevent="changePassword">
-        <p class="instructions">Create your private password after confirming the security code sent to the mobile number in your employee file.</p>
+        <p class="instructions">Create your private password before opening the driver portal. The administrator will be notified when it changes.</p>
         <div class="form-group">
           <label for="new-password">New password</label>
           <input id="new-password" v-model="newPassword" type="password" minlength="12" required autocomplete="new-password" :disabled="loading">

@@ -1,10 +1,10 @@
 import json
 import logging
 import re
+import secrets
 import unicodedata
 
 from ...db import get_connection, return_connection
-from ...settings import get_settings
 from .credentials import hash_password
 from .onboarding import ensure_auth_tables
 
@@ -21,8 +21,6 @@ def _driver_username(first_name: str | None, last_name: str | None, employee_id:
 
 
 def provision_2026_chauffeur_accounts() -> int:
-    settings = get_settings()
-    initial_password = settings.driver_initial_password
     conn = get_connection()
     lock_acquired = False
     try:
@@ -106,40 +104,45 @@ def provision_2026_chauffeur_accounts() -> int:
                 if cur.rowcount:
                     legacy_driver_ids.add(employee_id)
             linked_employee_ids.update(legacy_driver_ids)
-            sms_ready = bool(
-                settings.twilio_account_sid
-                and settings.twilio_auth_token
-                and settings.twilio_from_number
-            )
-            if not initial_password or not sms_ready:
-                conn.commit()
-                logger.warning(
-                    "New driver account provisioning skipped: private password "
-                    "and SMS settings must be configured"
-                )
-                return 0
-            password_hash = hash_password(initial_password)
             eligible_employee_ids = [row[0] for row in chauffeurs]
-            synchronized = 0
+            secured = 0
             if eligible_employee_ids:
                 cur.execute(
                     """
-                    UPDATE users u
-                    SET password_hash = %s,
-                        failed_login_attempts = 0,
-                        locked_until = NULL,
-                        session_version = COALESCE(session_version, 1) + 1,
-                        updated_at = NOW()
-                    FROM driver_auth_state s
+                    SELECT u.user_id
+                    FROM users u
+                    JOIN driver_auth_state s ON s.user_id = u.user_id
                     JOIN driver_user_links l ON l.user_id = s.user_id
-                    WHERE u.user_id = s.user_id
-                      AND s.must_change_password = TRUE
+                    WHERE s.must_change_password = TRUE
+                      AND s.bootstrap_password_randomized_at IS NULL
                       AND l.employee_id = ANY(%s)
                       AND LOWER(COALESCE(u.role, '')) IN ('driver', 'operator')
                     """,
-                    (password_hash, eligible_employee_ids),
+                    (eligible_employee_ids,),
                 )
-                synchronized = cur.rowcount
+                for (user_id,) in cur.fetchall():
+                    cur.execute(
+                        """
+                        UPDATE users
+                        SET password_hash = %s,
+                            failed_login_attempts = 0,
+                            locked_until = NULL,
+                            session_version = COALESCE(session_version, 1) + 1,
+                            updated_at = NOW()
+                        WHERE user_id = %s
+                        """,
+                        (hash_password(secrets.token_urlsafe(32)), user_id),
+                    )
+                    cur.execute(
+                        """
+                        UPDATE driver_auth_state
+                        SET bootstrap_password_randomized_at = NOW(),
+                            updated_at = NOW()
+                        WHERE user_id = %s
+                        """,
+                        (user_id,),
+                    )
+                    secured += 1
                 cur.execute(
                     """
                     DELETE FROM driver_auth_challenges c
@@ -191,7 +194,7 @@ def provision_2026_chauffeur_accounts() -> int:
                     (
                         username,
                         email or f"{username}@driver.invalid",
-                        password_hash,
+                        hash_password(secrets.token_urlsafe(32)),
                         json.dumps({"modules": ["chauffeur_self_service"]}),
                     ),
                 )
@@ -212,8 +215,10 @@ def provision_2026_chauffeur_accounts() -> int:
                 )
                 cur.execute(
                     """
-                    INSERT INTO driver_auth_state (user_id, must_change_password)
-                    VALUES (%s, TRUE)
+                    INSERT INTO driver_auth_state (
+                        user_id, must_change_password, bootstrap_password_randomized_at
+                    )
+                    VALUES (%s, TRUE, NOW())
                     ON CONFLICT (user_id) DO NOTHING
                     """,
                     (user_id,),
@@ -223,9 +228,9 @@ def provision_2026_chauffeur_accounts() -> int:
                 linked_employee_ids.add(employee_id)
         conn.commit()
         logger.info(
-            "Provisioned %s and synchronized %s pending chauffeur account(s)",
+            "Provisioned %s and secured %s pending chauffeur account(s)",
             created,
-            synchronized,
+            secured,
         )
         return created
     except Exception:

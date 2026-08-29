@@ -30,7 +30,6 @@ class Settings(BaseSettings):
     rate_limit_window_seconds: int = 60
     max_login_attempts: int = 5
     login_lockout_minutes: int = 15
-    driver_initial_password: str | None = None
     twilio_account_sid: str | None = None
     twilio_auth_token: str | None = None
     twilio_from_number: str | None = None
