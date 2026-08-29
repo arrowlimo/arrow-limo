@@ -156,7 +156,12 @@ def _register_unhandled_exception_handler(
         rid = getattr(request.state, "request_id", None) or request.headers.get("X-Request-ID")
         if not rid:
             rid = uuid.uuid4().hex[:16]
-        logger.exception("unhandled_exception request_id=%s path=%s", rid, request.url.path)
+        logger.error(
+            "unhandled_exception request_id=%s path=%s error_type=%s",
+            rid,
+            request.url.path,
+            type(exc).__name__,
+        )
         return JSONResponse(
             status_code=500,
             content={

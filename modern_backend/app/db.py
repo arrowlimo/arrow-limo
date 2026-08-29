@@ -4,37 +4,51 @@ from contextlib import contextmanager, suppress
 
 import psycopg2
 from psycopg2 import pool
+from psycopg2.pool import PoolError
 
-_LOGGED_DB_TARGET = False
 _connection_pool = None
 
 
-def _log_db_target_once():
-    global _LOGGED_DB_TARGET
-    if _LOGGED_DB_TARGET:
+class DatabaseConfigurationError(RuntimeError):
+    pass
+
+
+def _validate_production_database_config() -> None:
+    if os.environ.get("ENVIRONMENT", "production").strip().lower() != "production":
         return
-    _LOGGED_DB_TARGET = True
-    target = os.environ.get("DB_TARGET", "neon")
-    host = os.environ.get("DB_HOST", "localhost")
-    name = os.environ.get("DB_NAME", "almsdata")
-    user = os.environ.get("DB_USER", "postgres")
-    sslmode = os.environ.get("DB_SSLMODE") or "none"
-    print(
-        f"[DB TARGET] target={target} host={host} db={name} user={user}" f"sslmode={sslmode}",
-        flush=True,
+
+    required = (
+        "ALMS_DEFAULT_DB_TARGET",
+        "DB_HOST",
+        "DB_NAME",
+        "DB_USER",
+        "DB_PASSWORD",
     )
+    if any(not os.environ.get(key, "").strip() for key in required):
+        raise DatabaseConfigurationError("Production database configuration is incomplete")
+
+    if os.environ["ALMS_DEFAULT_DB_TARGET"].strip().lower() != "neon":
+        raise DatabaseConfigurationError("Production database target must be Neon")
+
+    host = os.environ["DB_HOST"].strip().lower()
+    if host in {"localhost", "127.0.0.1", "::1"}:
+        raise DatabaseConfigurationError("Production database cannot use a local host")
+
+    sslmode = os.environ.get("DB_SSLMODE", "").strip().lower()
+    if sslmode not in {"require", "verify-ca", "verify-full"}:
+        raise DatabaseConfigurationError("Production database TLS is required")
 
 
 def _get_pool():
-    """Get or create the connection pool"""
+    """Get or create the connection pool."""
     global _connection_pool
     if _connection_pool is None:
-        _log_db_target_once()
-        _ssl_kwargs = {}
+        _validate_production_database_config()
+        ssl_kwargs = {}
         if os.environ.get("DB_SSLMODE"):
-            _ssl_kwargs["sslmode"] = os.environ["DB_SSLMODE"]
+            ssl_kwargs["sslmode"] = os.environ["DB_SSLMODE"]
         if os.environ.get("DB_CHANNEL_BINDING"):
-            _ssl_kwargs["channel_binding"] = os.environ["DB_CHANNEL_BINDING"]
+            ssl_kwargs["channel_binding"] = os.environ["DB_CHANNEL_BINDING"]
         _connection_pool = pool.SimpleConnectionPool(
             minconn=1,
             maxconn=20,
@@ -43,25 +57,20 @@ def _get_pool():
             database=os.environ.get("DB_NAME", "almsdata"),
             user=os.environ.get("DB_USER", "postgres"),
             password=os.environ.get("DB_PASSWORD", ""),
-            **_ssl_kwargs,
+            **ssl_kwargs,
         )
     return _connection_pool
 
 
 def get_connection():
-    """Get a connection from the pool with auto-reconnect on failure"""
-    _log_db_target_once()
+    """Get a live pooled connection, retrying stale connections."""
     max_retries = 3
+    last_error: psycopg2.Error | PoolError | None = None
 
     for attempt in range(max_retries):
         try:
             conn_pool = _get_pool()
             conn = conn_pool.getconn()
-
-            # Set search_path (Neon's pooler rejects it as a startup option,
-            # so it must be issued post-connect). Running it in autocommit also
-            # makes it double as a liveness probe in a single round-trip
-            # (down from the previous SELECT 1 + SET + COMMIT).
             try:
                 conn.autocommit = True
                 with conn.cursor() as cur:
@@ -69,52 +78,29 @@ def get_connection():
                 conn.autocommit = False
                 return conn
             except (psycopg2.OperationalError, psycopg2.InterfaceError):
-                # Connection is stale, return it and try again
                 conn_pool.putconn(conn, close=True)
                 if attempt < max_retries - 1:
                     continue
                 raise
+        except (psycopg2.Error, PoolError) as exc:
+            last_error = exc
+            if attempt < max_retries - 1:
+                continue
+            raise
 
-        except Exception as e:
-            if attempt == max_retries - 1:
-                # Last attempt failed, try direct connection
-                try:
-                    _ssl_kwargs2 = {}
-                    if os.environ.get("DB_SSLMODE"):
-                        _ssl_kwargs2["sslmode"] = os.environ["DB_SSLMODE"]
-                    if os.environ.get("DB_CHANNEL_BINDING"):
-                        _ssl_kwargs2["channel_binding"] = os.environ["DB_CHANNEL_BINDING"]
-                    conn = psycopg2.connect(
-                        host=os.environ.get("DB_HOST", "localhost"),
-                        port=int(os.environ.get("DB_PORT", "5432")),
-                        database=os.environ.get("DB_NAME", "almsdata"),
-                        user=os.environ.get("DB_USER", "postgres"),
-                        password=os.environ.get("DB_PASSWORD", ""),
-                        **_ssl_kwargs2,
-                    )
-                    conn.autocommit = True
-                    with conn.cursor() as cur:
-                        cur.execute("SET search_path TO public")
-                    conn.autocommit = False
-                    return conn
-                except Exception as err:
-                    raise e from err
-            continue
-
+    if last_error is not None:
+        raise last_error
     raise psycopg2.OperationalError("Failed to get database connection after retries")
 
 
 def return_connection(conn):
-    """Return a connection to the pool, rolled back so it's clean for reuse."""
-    # Clear any open/aborted transaction left by the caller so the next
-    # checkout of this pooled connection starts clean.
+    """Return a connection to the pool, rolled back for safe reuse."""
     with suppress(Exception):
         conn.rollback()
     try:
         conn_pool = _get_pool()
         conn_pool.putconn(conn)
     except Exception:
-        # If pool doesn't exist or connection can't be returned, just close it
         with suppress(Exception):
             conn.close()
 
@@ -138,7 +124,7 @@ def cursor() -> Iterator[psycopg2.extensions.cursor]:  # type: ignore[name-defin
 
 
 def close_all_connections():
-    """Close all connections in the pool (call on shutdown)"""
+    """Close all connections in the pool."""
     global _connection_pool
     if _connection_pool is not None:
         _connection_pool.closeall()

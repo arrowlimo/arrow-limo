@@ -628,12 +628,11 @@ def get_my_pay_statements(
 
         items = []
         for row in rows:
-            gross = sum(
-                Decimal(row[index] or 0)
-                for index in (7, 8, 9, 10)
-            ) + Decimal(row[3] or 0) * Decimal(row[4] or 0) + Decimal(
-                row[5] or 0
-            ) * Decimal(row[6] or 0)
+            gross = (
+                sum(Decimal(row[index] or 0) for index in (7, 8, 9, 10))
+                + Decimal(row[3] or 0) * Decimal(row[4] or 0)
+                + Decimal(row[5] or 0) * Decimal(row[6] or 0)
+            )
             deductions = sum(Decimal(row[index] or 0) for index in (11, 12, 13))
             items.append(
                 {
@@ -662,11 +661,8 @@ def get_my_hos(
     employee_id = _employee_id_from_user(current_user)
     conn = get_connection()
     try:
-        cur = conn.cursor()
         start_date = date.today() - timedelta(days=days)
-
-        # Prefer explicit hos_log records when present.
-        try:
+        with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT
@@ -690,85 +686,29 @@ def get_my_hos(
                 (employee_id, start_date),
             )
             rows = cur.fetchall()
-            if rows:
-                entries = []
-                for row in rows:
-                    entries.append(
-                        {
-                            "date": row[0].isoformat() if row[0] else None,
-                            "workshift_start": str(row[1]) if row[1] is not None else None,
-                            "workshift_end": str(row[2]) if row[2] is not None else None,
-                            "total_on_duty": str(row[3] or "0:00"),
-                            "total_driving": str(row[4] or "0:00"),
-                            "total_off_duty": str(row[5] or "0:00"),
-                            "breaks": str(row[6] or "0:00"),
-                            "duty_log": row[7] if isinstance(row[7], list) else [],
-                            "deferral": bool(row[8]),
-                            "deferral_hours": float(row[9] or 0),
-                            "emergency": bool(row[10]),
-                            "emergency_reason": row[11] or "",
-                        }
-                    )
-                cur.close()
-                return {
-                    "employee_id": employee_id,
-                    "days": days,
-                    "source": "hos_log",
-                    "items": entries,
-                }
-        except Exception:
-            conn.rollback()
 
-        # Fallback: derive a lightweight duty view from charters.
-        cur.execute(
-            """
-            SELECT
-                charter_date,
-                MIN(pickup_time),
-                MAX(dropoff_time),
-                COUNT(*)
-            FROM charters
-            WHERE (assigned_driver_id = %s OR employee_id = %s)
-              AND charter_date >= %s
-            GROUP BY charter_date
-            ORDER BY charter_date DESC
-            """,
-            (employee_id, employee_id, start_date),
-        )
-        rows = cur.fetchall()
-        cur.close()
-
-        entries = []
-        for row in rows:
-            trip_count = int(row[3] or 0)
-            entries.append(
-                {
-                    "date": row[0].isoformat() if row[0] else None,
-                    "workshift_start": str(row[1]) if row[1] is not None else None,
-                    "workshift_end": str(row[2]) if row[2] is not None else None,
-                    "total_on_duty": "",
-                    "total_driving": "",
-                    "total_off_duty": "",
-                    "breaks": "",
-                    "duty_log": [
-                        {
-                            "status": "Trips",
-                            "start": str(row[1]) if row[1] is not None else "",
-                            "end": str(row[2]) if row[2] is not None else "",
-                            "duration": f"{trip_count} trip(s)",
-                        }
-                    ],
-                    "deferral": False,
-                    "deferral_hours": 0,
-                    "emergency": False,
-                    "emergency_reason": "",
-                }
-            )
+        entries = [
+            {
+                "date": row[0].isoformat() if row[0] else None,
+                "workshift_start": str(row[1]) if row[1] is not None else None,
+                "workshift_end": str(row[2]) if row[2] is not None else None,
+                "total_on_duty": str(row[3] or "0:00"),
+                "total_driving": str(row[4] or "0:00"),
+                "total_off_duty": str(row[5] or "0:00"),
+                "breaks": str(row[6] or "0:00"),
+                "duty_log": row[7] if isinstance(row[7], list) else [],
+                "deferral": bool(row[8]),
+                "deferral_hours": float(row[9] or 0),
+                "emergency": bool(row[10]),
+                "emergency_reason": row[11] or "",
+            }
+            for row in rows
+        ]
 
         return {
             "employee_id": employee_id,
             "days": days,
-            "source": "charters_fallback",
+            "source": "hos_log",
             "items": entries,
         }
     finally:

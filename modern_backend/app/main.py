@@ -1,17 +1,24 @@
 import logging
 import os
 
+import psycopg2
 from dotenv import load_dotenv
 
 # Force rebuild: 2026-01-30 14:35:00 UTC - Login endpoint deployment
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from psycopg2.pool import PoolError
 
 from .bootstrap.middleware import register_middlewares
 from .bootstrap.router_registry import register_routers
 from .bootstrap.spa_routes import register_spa_routes
-from .db import close_all_connections
+from .db import (
+    DatabaseConfigurationError,
+    close_all_connections,
+    get_connection,
+    return_connection,
+)
 from .services.auth.provisioning import provision_2026_chauffeur_accounts
 from .settings import get_settings
 
@@ -81,9 +88,21 @@ app.add_middleware(
 
 
 @app.get("/health")
-async def health():
-    """Health check endpoint - verifies database connectivity"""
-    # DB ping is optional here; keep lightweight
+def health():
+    """Report ready only when the production database is reachable."""
+    conn = None
+    try:
+        conn = get_connection()
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+            if cur.fetchone() != (1,):
+                raise DatabaseConfigurationError("Database readiness query failed")
+    except (psycopg2.Error, PoolError, OSError, RuntimeError) as exc:
+        logger.error("Database readiness check failed: %s", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Database unavailable") from None
+    finally:
+        if conn is not None:
+            return_connection(conn)
     return {"status": "ok"}
 
 
@@ -98,8 +117,8 @@ async def provision_driver_accounts():
     """Create missing driver accounts after deployment configuration is loaded."""
     try:
         provision_2026_chauffeur_accounts()
-    except Exception:
-        logger.exception("Driver account provisioning failed")
+    except Exception as exc:
+        logger.error("Driver account provisioning failed: %s", type(exc).__name__)
 
 
 # Routers (MUST be included BEFORE mounting static files)
