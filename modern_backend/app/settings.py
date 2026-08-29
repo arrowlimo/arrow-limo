@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "Limo Backend (FastAPI)"
-    environment: str = "development"
+    environment: str = "production"
     log_level: str = "INFO"
     db_host: str = "localhost"
     db_port: int = 5432
@@ -17,7 +17,12 @@ class Settings(BaseSettings):
     sentry_dsn: str | None = None
     sentry_traces_sample_rate: float = 0.0
     cors_origins: list[str] = []
-    trusted_hosts: list[str] = ["*"]
+    trusted_hosts: list[str] = [
+        "arrow-limo.onrender.com",
+        "localhost",
+        "127.0.0.1",
+        "testserver",
+    ]
     log_requests: bool = True
     security_headers_enabled: bool = True
     rate_limit_enabled: bool = False

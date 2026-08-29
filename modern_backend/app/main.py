@@ -19,12 +19,11 @@ from .settings import get_settings
 load_dotenv()
 
 settings = get_settings()
-production = settings.environment.lower() == "production"
 app = FastAPI(
     title=settings.app_name,
-    docs_url=None if production else "/docs",
-    redoc_url=None if production else "/redoc",
-    openapi_url=None if production else "/openapi.json",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 logger = logging.getLogger("modern_backend")
 # Optional Sentry & OpenTelemetry (env-gated)
@@ -66,8 +65,10 @@ if OTEL_EXPORTER_OTLP_ENDPOINT:
 
 register_middlewares(app, settings, logger)
 
-if settings.trusted_hosts and settings.trusted_hosts != ["*"]:
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
+allowed_hosts = settings.trusted_hosts
+if not allowed_hosts or allowed_hosts == ["*"]:
+    allowed_hosts = ["arrow-limo.onrender.com", "localhost", "127.0.0.1", "testserver"]
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
 # CORS should be added last in the middleware chain.
 app.add_middleware(

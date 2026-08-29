@@ -128,14 +128,11 @@ def _register_unhandled_exception_handler(
         if not rid:
             rid = uuid.uuid4().hex[:16]
         logger.exception("unhandled_exception request_id=%s path=%s", rid, request.url.path)
-        message = (
-            str(exc) if settings.environment.lower() != "production" else "Internal server error"
-        )
         return JSONResponse(
             status_code=500,
             content={
                 "error": "internal_error",
-                "message": message,
+                "message": "Internal server error",
                 "request_id": rid,
             },
         )
