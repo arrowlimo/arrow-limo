@@ -662,6 +662,9 @@ class VendorInvoiceManager(QWidget):
         self.editing_receipt_id = None
         self.hide_auto_import_checkbox = None
         self._vendor_filter_cache = {}
+        self.ledger_editor_dialog = None
+        self.summary_dialog = None
+        self._syncing_correction_selection = False
         self._init_vendor_invoice_filters_table()
         self.init_ui()
 
@@ -890,13 +893,18 @@ class VendorInvoiceManager(QWidget):
         self.details_tabs.addTab(
             self._create_banking_link_tab(), "🏦 Banking Link"
         )
-        self.ledger_tab_widget = self._create_ledger_tab()
-        self.details_tabs.addTab(self.ledger_tab_widget, "📒 Ledger")
-        self.details_tabs.addTab(
-            self._create_account_summary_tab(), "📊 Summary"
+        self.details_scroll = QScrollArea()
+        self.details_scroll.setWidget(self.details_tabs)
+        self.details_scroll.setWidgetResizable(True)
+        self.details_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.details_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        self.details_scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOn
         )
 
-        content_splitter.addWidget(self.details_tabs)
+        content_splitter.addWidget(self.details_scroll)
         content_splitter.setStretchFactor(0, 1)
         content_splitter.setStretchFactor(1, 1)
         content_splitter.setSizes([300, 300])
@@ -1003,6 +1011,18 @@ class VendorInvoiceManager(QWidget):
         )
         ledger_btn.clicked.connect(self._open_ledger_editor)
         layout.addWidget(ledger_btn)
+
+        summary_btn = QPushButton("📊 Summary")
+        summary_btn.setStyleSheet(
+            "background-color: #6c757d; color: white; padding: 4px 8px; "
+            "font-weight: bold; font-size: 10px;"
+        )
+        summary_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        summary_btn.setFixedHeight(24)
+        summary_btn.clicked.connect(self._open_summary_window)
+        layout.addWidget(summary_btn)
 
         return controls
 
@@ -1248,6 +1268,9 @@ class VendorInvoiceManager(QWidget):
         self.invoice_table.itemSelectionChanged.connect(
             self._refresh_payment_history
         )
+        self.invoice_table.itemSelectionChanged.connect(
+            self._sync_correction_selection
+        )
         # Enable inline editing
         self.invoice_table.itemChanged.connect(self._on_invoice_item_changed)
         # Keep invoice list in FIFO date order (oldest to newest).
@@ -1299,12 +1322,6 @@ class VendorInvoiceManager(QWidget):
         self.new_invoice_desc.setMaximumHeight(60)
         self.new_invoice_desc.setPlaceholderText("Optional description...")
         form.addRow("Description:", self.new_invoice_desc)
-
-        # Category
-        self.new_invoice_category = QComboBox()
-        self.new_invoice_category.setEditable(True)
-        self._load_categories(self.new_invoice_category)
-        form.addRow("Category:", self.new_invoice_category)
 
         layout.addLayout(form)
 
@@ -1447,11 +1464,6 @@ class VendorInvoiceManager(QWidget):
 
         # RIGHT COLUMN
         right_form = QFormLayout()
-
-        self.edit_invoice_category = QComboBox()
-        self.edit_invoice_category.setEditable(True)
-        self._load_categories(self.edit_invoice_category)
-        right_form.addRow("Category:", self.edit_invoice_category)
 
         self.edit_invoice_desc = QTextEdit()
         self.edit_invoice_desc.setMaximumHeight(90)
@@ -1951,16 +1963,26 @@ class VendorInvoiceManager(QWidget):
         return widget
 
     def _open_ledger_editor(self) -> None:
-        """Open a chronological ledger popup with guarded row editing."""
+        """Open the modeless legacy-data ledger correction window."""
         if not self.current_vendor:
             QMessageBox.warning(
                 self, "No Vendor", "Select a vendor before opening the ledger."
             )
             return
 
+        if self.ledger_editor_dialog is not None:
+            self._refresh_ledger_editor()
+            self.ledger_editor_dialog.show()
+            self.ledger_editor_dialog.raise_()
+            self.ledger_editor_dialog.activateWindow()
+            return
+
         dialog = QDialog(self)
+        self.ledger_editor_dialog = dialog
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        dialog.destroyed.connect(self._ledger_editor_closed)
         dialog.setWindowTitle(
-            f"Editable Vendor Ledger - {self.current_vendor}"
+            f"Legacy Data Ledger - {self.current_vendor}"
         )
         dialog.resize(1180, 720)
         layout = QVBoxLayout(dialog)
@@ -2036,11 +2058,22 @@ class VendorInvoiceManager(QWidget):
                 "unknown",
             ]
         )
-        editor_layout.addRow("Payment method:", self.ledger_editor_method)
+        self.ledger_editor_method_label = QLabel("Payment method:")
+        editor_layout.addRow(
+            self.ledger_editor_method_label, self.ledger_editor_method
+        )
 
         self.ledger_editor_reference = QLineEdit()
+        self.ledger_editor_reference_label = QLabel("Payment # / reference:")
         editor_layout.addRow(
-            "Payment # / reference:", self.ledger_editor_reference
+            self.ledger_editor_reference_label, self.ledger_editor_reference
+        )
+
+        self.ledger_editor_banking_id = QLineEdit()
+        self.ledger_editor_banking_id_label = QLabel("Banking TX ID:")
+        editor_layout.addRow(
+            self.ledger_editor_banking_id_label,
+            self.ledger_editor_banking_id,
         )
 
         self.ledger_editor_notes = QTextEdit()
@@ -2052,6 +2085,14 @@ class VendorInvoiceManager(QWidget):
         refresh_btn = QPushButton("Refresh")
         refresh_btn.clicked.connect(self._refresh_ledger_editor)
         button_row.addWidget(refresh_btn)
+
+        edit_invoice_btn = QPushButton("Edit Selected Invoice")
+        edit_invoice_btn.clicked.connect(self._edit_selected_invoice)
+        button_row.addWidget(edit_invoice_btn)
+
+        summary_btn = QPushButton("Open Summary")
+        summary_btn.clicked.connect(self._open_summary_window)
+        button_row.addWidget(summary_btn)
 
         add_invoice_btn = QPushButton("Add Invoice")
         add_invoice_btn.clicked.connect(self._add_ledger_editor_invoice)
@@ -2079,12 +2120,33 @@ class VendorInvoiceManager(QWidget):
         button_row.addStretch()
 
         close_btn = QPushButton("Close")
-        close_btn.clicked.connect(dialog.accept)
+        close_btn.clicked.connect(dialog.close)
         button_row.addWidget(close_btn)
         layout.addLayout(button_row)
 
         self._refresh_ledger_editor()
-        dialog.exec()
+        dialog.show()
+
+    def _ledger_editor_closed(self) -> None:
+        """Clear references to controls owned by the closed ledger window."""
+        self.ledger_editor_dialog = None
+        for name in (
+            "ledger_editor_summary",
+            "ledger_editor_table",
+            "ledger_editor_date",
+            "ledger_editor_invoice_number",
+            "ledger_editor_invoice_number_label",
+            "ledger_editor_amount",
+            "ledger_editor_method",
+            "ledger_editor_method_label",
+            "ledger_editor_reference",
+            "ledger_editor_reference_label",
+            "ledger_editor_banking_id",
+            "ledger_editor_banking_id_label",
+            "ledger_editor_notes",
+        ):
+            if hasattr(self, name):
+                delattr(self, name)
 
     def _selected_ledger_editor_metadata(self) -> dict | None:
         """Return metadata for the selected editable ledger row."""
@@ -2099,11 +2161,9 @@ class VendorInvoiceManager(QWidget):
 
     def _refresh_after_ledger_change(self) -> None:
         """Refresh every surface affected by a ledger correction."""
-        self._refresh_ledger_editor()
         self._load_vendor_invoices()
-        self._refresh_vendor_ledger()
         self._refresh_payment_history()
-        self._refresh_account_summary()
+        self._refresh_receipt_evidence()
 
     def _add_ledger_editor_invoice(self) -> None:
         """Create an invoice using the values in the ledger editor."""
@@ -2174,6 +2234,12 @@ class VendorInvoiceManager(QWidget):
             return
 
         reference = self.ledger_editor_reference.text().strip()
+        try:
+            banking_id = self._ledger_editor_banking_id()
+        except ValueError as e:
+            QMessageBox.warning(self, "Invalid Banking TX ID", str(e))
+            return
+
         confirm = QMessageBox.question(
             self,
             "Confirm New Payment",
@@ -2207,8 +2273,9 @@ class VendorInvoiceManager(QWidget):
                     """
                     INSERT INTO vendor_invoice_payments
                         (receipt_id, payment_date, payment_amount,
-                         payment_method, reference, notes)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                         payment_method, reference, banking_transaction_id,
+                         notes)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING payment_id
                     """,
                     (
@@ -2217,6 +2284,7 @@ class VendorInvoiceManager(QWidget):
                         amount,
                         self.ledger_editor_method.currentText(),
                         reference or None,
+                        banking_id,
                         self.ledger_editor_notes.toPlainText().strip() or None,
                     ),
                 )
@@ -2347,7 +2415,8 @@ class VendorInvoiceManager(QWidget):
                         COALESCE(vi.notes, '') AS details,
                         COALESCE(vi.invoice_amount, 0) AS amount,
                         ''::text AS payment_method,
-                        ''::text AS reference
+                        ''::text AS reference,
+                        ''::text AS banking_transaction_id
                     FROM vendor_invoices vi
                     WHERE vi.vendor_name = %s
                       AND (
@@ -2367,7 +2436,9 @@ class VendorInvoiceManager(QWidget):
                         COALESCE(vip.notes, '') AS details,
                         COALESCE(vip.payment_amount, 0) AS amount,
                         COALESCE(vip.payment_method, '') AS payment_method,
-                        COALESCE(vip.reference, '') AS reference
+                        COALESCE(vip.reference, '') AS reference,
+                        COALESCE(vip.banking_transaction_id::text, '')
+                            AS banking_transaction_id
                     FROM vendor_invoice_payments vip
                     JOIN vendor_invoices vi
                         ON vi.vendor_invoice_id = vip.receipt_id
@@ -2388,7 +2459,8 @@ class VendorInvoiceManager(QWidget):
                     details,
                     amount,
                     payment_method,
-                    reference
+                    reference,
+                    banking_transaction_id
                 FROM ledger_rows
                 ORDER BY
                     row_date NULLS LAST,
@@ -2411,11 +2483,19 @@ class VendorInvoiceManager(QWidget):
             return
 
         try:
+            selected = self._selected_ledger_editor_metadata()
+            selected_key = (
+                (selected["row_type"], selected["record_id"])
+                if selected
+                else None
+            )
             rows = self._fetch_editable_ledger_rows()
+            self.ledger_editor_table.blockSignals(True)
             self.ledger_editor_table.setRowCount(len(rows))
             running_balance = 0.0
             total_charges = 0.0
             total_payments = 0.0
+            restored_row = -1
 
             for row_index, row in enumerate(rows):
                 (
@@ -2428,6 +2508,7 @@ class VendorInvoiceManager(QWidget):
                     amount,
                     payment_method,
                     reference,
+                    banking_transaction_id,
                 ) = row
                 raw_amount = Decimal(str(amount or 0))
                 display_amount = float(
@@ -2482,7 +2563,12 @@ class VendorInvoiceManager(QWidget):
                     "amount": raw_amount,
                     "payment_method": str(payment_method or ""),
                     "reference": str(reference or ""),
+                    "banking_transaction_id": str(
+                        banking_transaction_id or ""
+                    ),
                 }
+                if selected_key == (row_type, int(record_id)):
+                    restored_row = row_index
 
                 for column, value in enumerate(values):
                     item = QTableWidgetItem(value)
@@ -2506,6 +2592,11 @@ class VendorInvoiceManager(QWidget):
                         row_index, column, item
                     )
 
+            self.ledger_editor_table.blockSignals(False)
+            if restored_row >= 0:
+                self.ledger_editor_table.selectRow(restored_row)
+                self._load_ledger_editor_selection()
+
             self.ledger_editor_summary.setText(
                 f"{self.current_vendor}: {len(rows)} rows | "
                 f"Charges ${total_charges:,.2f} | "
@@ -2513,6 +2604,7 @@ class VendorInvoiceManager(QWidget):
                 f"Balance ${running_balance:,.2f}"
             )
         except Exception as e:
+            self.ledger_editor_table.blockSignals(False)
             logger.error("Failed to load editable vendor ledger: %s", e)
             QMessageBox.critical(
                 self,
@@ -2553,8 +2645,12 @@ class VendorInvoiceManager(QWidget):
             else metadata["amount"]
         )
         self.ledger_editor_amount.setText(f"{editor_amount:.2f}")
-        self.ledger_editor_method.setEnabled(not is_invoice)
-        self.ledger_editor_reference.setEnabled(not is_invoice)
+        self.ledger_editor_method.setVisible(not is_invoice)
+        self.ledger_editor_method_label.setVisible(not is_invoice)
+        self.ledger_editor_reference.setVisible(not is_invoice)
+        self.ledger_editor_reference_label.setVisible(not is_invoice)
+        self.ledger_editor_banking_id.setVisible(not is_invoice)
+        self.ledger_editor_banking_id_label.setVisible(not is_invoice)
 
         method = metadata["payment_method"] or "unknown"
         method_index = self.ledger_editor_method.findText(method)
@@ -2563,7 +2659,72 @@ class VendorInvoiceManager(QWidget):
             method_index = self.ledger_editor_method.findText(method)
         self.ledger_editor_method.setCurrentIndex(method_index)
         self.ledger_editor_reference.setText(metadata["reference"])
+        self.ledger_editor_banking_id.setText(
+            metadata["banking_transaction_id"]
+        )
         self.ledger_editor_notes.setPlainText(metadata["details"])
+        self._select_main_invoice(metadata["invoice_id"])
+
+    def _ledger_editor_banking_id(self) -> int | None:
+        """Return the optional banking transaction ID from the editor."""
+        value = self.ledger_editor_banking_id.text().strip()
+        if not value:
+            return None
+        try:
+            return int(value)
+        except ValueError as exc:
+            raise ValueError("Banking TX ID must be a whole number.") from exc
+
+    def _select_main_invoice(self, invoice_id: int) -> None:
+        """Keep the main invoice and correction windows on the same record."""
+        if self._syncing_correction_selection:
+            return
+
+        self._syncing_correction_selection = True
+        try:
+            for row in range(self.invoice_table.rowCount()):
+                item = self.invoice_table.item(row, 0)
+                if item and int(item.text()) == int(invoice_id):
+                    self.invoice_table.blockSignals(True)
+                    self.invoice_table.selectRow(row)
+                    self.invoice_table.scrollToItem(item)
+                    self.invoice_table.blockSignals(False)
+                    self._load_selected_invoice_for_edit(switch_to_edit=False)
+                    self._refresh_payment_history()
+                    break
+        finally:
+            self.invoice_table.blockSignals(False)
+            self._syncing_correction_selection = False
+
+    def _sync_correction_selection(self) -> None:
+        """Select the current invoice in any open correction window."""
+        if self._syncing_correction_selection:
+            return
+
+        row = self.invoice_table.currentRow()
+        if row < 0:
+            return
+        item = self.invoice_table.item(row, 0)
+        if item is None:
+            return
+
+        invoice_id = int(item.text())
+        if hasattr(self, "ledger_editor_table"):
+            self._syncing_correction_selection = True
+            try:
+                for ledger_row in range(self.ledger_editor_table.rowCount()):
+                    ledger_item = self.ledger_editor_table.item(ledger_row, 0)
+                    metadata = (
+                        ledger_item.data(Qt.ItemDataRole.UserRole)
+                        if ledger_item is not None
+                        else None
+                    )
+                    if metadata and metadata["invoice_id"] == invoice_id:
+                        self.ledger_editor_table.selectRow(ledger_row)
+                        self.ledger_editor_table.scrollToItem(ledger_item)
+                        break
+            finally:
+                self._syncing_correction_selection = False
 
     def _save_ledger_editor_row(self) -> None:
         """Persist corrections for the selected invoice or payment row."""
@@ -2587,23 +2748,17 @@ class VendorInvoiceManager(QWidget):
         row_type = metadata["row_type"]
         record_id = metadata["record_id"]
         amount = Decimal(str(self.ledger_editor_amount.get_value()))
+        banking_id = None
         if row_type == "PAYMENT":
             original_amount = metadata["amount"]
             amount = (
                 -abs(amount) if original_amount < 0 else abs(amount)
             )
-        confirm = QMessageBox.question(
-            self,
-            "Confirm Ledger Correction",
-            f"Save changes to {row_type.lower()} record {record_id}?\n\n"
-            "This changes the accounting record and recalculates all "
-            "subsequent running balances.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if confirm != QMessageBox.StandardButton.Yes:
-            return
-
+            try:
+                banking_id = self._ledger_editor_banking_id()
+            except ValueError as e:
+                QMessageBox.warning(self, "Invalid Banking TX ID", str(e))
+                return
         try:
             with DatabaseContext(self.conn, auto_commit=True) as cur:
                 if row_type == "INVOICE":
@@ -2701,6 +2856,7 @@ class VendorInvoiceManager(QWidget):
                             COALESCE(vip.payment_amount, 0),
                             COALESCE(vip.payment_method, ''),
                             COALESCE(vip.reference, ''),
+                            COALESCE(vip.banking_transaction_id::text, ''),
                             COALESCE(vip.notes, '')
                         FROM vendor_invoice_payments vip
                         JOIN vendor_invoices vi
@@ -2717,6 +2873,7 @@ class VendorInvoiceManager(QWidget):
                         metadata["amount"],
                         metadata["payment_method"],
                         metadata["reference"],
+                        metadata["banking_transaction_id"],
                         metadata["details"],
                     )
                     if current_row is None:
@@ -2737,6 +2894,7 @@ class VendorInvoiceManager(QWidget):
                             payment_amount = %s,
                             payment_method = %s,
                             reference = %s,
+                            banking_transaction_id = %s,
                             notes = %s
                         WHERE vip.payment_id = %s
                           AND EXISTS (
@@ -2753,6 +2911,7 @@ class VendorInvoiceManager(QWidget):
                             amount,
                             self.ledger_editor_method.currentText(),
                             self.ledger_editor_reference.text().strip(),
+                            banking_id,
                             self.ledger_editor_notes.toPlainText().strip(),
                             record_id,
                             self.current_vendor,
@@ -2765,16 +2924,7 @@ class VendorInvoiceManager(QWidget):
                         "was not found for the selected vendor."
                     )
 
-            self._refresh_ledger_editor()
-            self._load_vendor_invoices()
-            self._refresh_vendor_ledger()
-            self._refresh_payment_history()
-            self._refresh_account_summary()
-            QMessageBox.information(
-                self,
-                "Ledger Updated",
-                f"{row_type.title()} record {record_id} was saved.",
-            )
+            self._refresh_after_ledger_change()
         except Exception as e:
             logger.error("Failed to save ledger correction: %s", e)
             QMessageBox.critical(
@@ -2784,7 +2934,7 @@ class VendorInvoiceManager(QWidget):
             )
 
     def _create_account_summary_tab(self) -> QWidget:
-        """Tab showing account summary and payment history"""
+        """Build the live account summary content."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
@@ -2801,9 +2951,61 @@ class VendorInvoiceManager(QWidget):
             "font-weight: bold;"
         )
         refresh_btn.clicked.connect(self._refresh_account_summary)
-        layout.addWidget(refresh_btn)
+        button_row = QHBoxLayout()
+        button_row.addWidget(refresh_btn)
+
+        edit_btn = QPushButton("✏️ Edit Selected Invoice")
+        edit_btn.clicked.connect(self._edit_selected_invoice)
+        button_row.addWidget(edit_btn)
+
+        ledger_btn = QPushButton("📒 Open Ledger")
+        ledger_btn.clicked.connect(self._open_ledger_editor)
+        button_row.addWidget(ledger_btn)
+
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self._close_summary_window)
+        button_row.addWidget(close_btn)
+        button_row.addStretch()
+        layout.addLayout(button_row)
 
         return widget
+
+    def _open_summary_window(self) -> None:
+        """Open the modeless live summary beside the correction surfaces."""
+        if not self.current_vendor:
+            QMessageBox.warning(
+                self, "No Vendor", "Select a vendor before opening the summary."
+            )
+            return
+
+        if self.summary_dialog is not None:
+            self._refresh_account_summary()
+            self.summary_dialog.show()
+            self.summary_dialog.raise_()
+            self.summary_dialog.activateWindow()
+            return
+
+        dialog = QDialog(self)
+        self.summary_dialog = dialog
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        dialog.destroyed.connect(self._summary_window_closed)
+        dialog.setWindowTitle(f"Live Account Summary - {self.current_vendor}")
+        dialog.resize(720, 620)
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(self._create_account_summary_tab())
+        self._refresh_account_summary()
+        dialog.show()
+
+    def _close_summary_window(self) -> None:
+        """Close the modeless summary window if it is open."""
+        if self.summary_dialog is not None:
+            self.summary_dialog.close()
+
+    def _summary_window_closed(self) -> None:
+        """Clear references to controls owned by the closed summary window."""
+        self.summary_dialog = None
+        if hasattr(self, "summary_text"):
+            del self.summary_text
 
     def _load_categories(self, combo_box=None) -> None:
         """Load GL account codes into the category combo box(es)"""
@@ -2846,6 +3048,20 @@ class VendorInvoiceManager(QWidget):
         self._refresh_account_summary()
         self._refresh_payment_history()
         self._refresh_receipt_evidence()
+        self._refresh_open_correction_windows()
+
+    def _refresh_open_correction_windows(self) -> None:
+        """Refresh open modeless correction surfaces from current data."""
+        if self.ledger_editor_dialog is not None:
+            self.ledger_editor_dialog.setWindowTitle(
+                f"Legacy Data Ledger - {self.current_vendor}"
+            )
+            self._refresh_ledger_editor()
+        if self.summary_dialog is not None:
+            self.summary_dialog.setWindowTitle(
+                f"Live Account Summary - {self.current_vendor}"
+            )
+            self._refresh_account_summary()
 
     def _ensure_receipt_invoice_link_schema(self) -> None:
         """Ensure receipts can link to vendor invoices.
@@ -4730,6 +4946,7 @@ class VendorInvoiceManager(QWidget):
                     " color: #666; font-weight: bold;"
                 )
                 self._refresh_invoice_table()
+                self._refresh_open_correction_windows()
                 return
 
         try:
@@ -4917,6 +5134,7 @@ class VendorInvoiceManager(QWidget):
 
             self._refresh_invoice_table()
             self._refresh_vendor_ledger()
+            self._refresh_open_correction_windows()
 
         except Exception as e:
             logger.error(f"Failed: {e}")
@@ -4927,6 +5145,8 @@ class VendorInvoiceManager(QWidget):
     def _refresh_invoice_table(self) -> None:
         """Refresh the invoice table display with running balance"""
         was_sorting = self.invoice_table.isSortingEnabled()
+        selected_invoice_id = getattr(self, "editing_receipt_id", None)
+        self.invoice_table.blockSignals(True)
         self.invoice_table.setSortingEnabled(False)
         self.invoice_table.setRowCount(len(self.current_invoices))
 
@@ -4969,12 +5189,9 @@ class VendorInvoiceManager(QWidget):
             inv_item.setBackground(QBrush(row_color))
             self.invoice_table.setItem(idx, 1, inv_item)
 
-            # Description / details (read-only)
+            # Description / details (editable source data)
             details_item = SortableTableWidgetItem(str(details or ""))
             details_item.setBackground(QBrush(row_color))
-            details_item.setFlags(
-                details_item.flags() & ~Qt.ItemFlag.ItemIsEditable
-            )
             self.invoice_table.setItem(idx, 2, details_item)
 
             # Date (editable) - standardize format to MM/dd/yyyy
@@ -5010,14 +5227,13 @@ class VendorInvoiceManager(QWidget):
             date_item.setBackground(QBrush(row_color))
             self.invoice_table.setItem(idx, 3, date_item)
 
-            # Amount (read-only)
+            # Amount (editable source data)
             amt_item = SortableTableWidgetItem(f"${amount:,.2f}")
             amt_item.setData(Qt.ItemDataRole.UserRole, amount)
             amt_item.setTextAlignment(
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
             )
             amt_item.setBackground(QBrush(row_color))
-            amt_item.setFlags(amt_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.invoice_table.setItem(idx, 4, amt_item)
 
             # Receipts linked as evidence (read-only; does not affect balance)
@@ -5085,6 +5301,14 @@ class VendorInvoiceManager(QWidget):
             self.invoice_table.setItem(idx, 9, status_item)
 
         self.invoice_table.setSortingEnabled(was_sorting)
+        self.invoice_table.blockSignals(False)
+
+        if selected_invoice_id is not None:
+            for row in range(self.invoice_table.rowCount()):
+                item = self.invoice_table.item(row, 0)
+                if item and int(item.text()) == int(selected_invoice_id):
+                    self.invoice_table.selectRow(row)
+                    break
 
     def _get_bold_font(self) -> QFont:
         """Get bold font for running balance"""
@@ -5826,6 +6050,9 @@ class VendorInvoiceManager(QWidget):
     @pyqtSlot()
     def _refresh_account_summary(self) -> None:
         """Generate and display account summary"""
+        if not hasattr(self, "summary_text"):
+            return
+
         if not self.current_vendor:
             self.summary_text.setPlainText(
                 "Select a vendor to view account summary."
@@ -5904,6 +6131,10 @@ class VendorInvoiceManager(QWidget):
 
     @pyqtSlot()
     def _edit_selected_invoice(self) -> None:
+        """Open the selected invoice in the main correction pane."""
+        self._load_selected_invoice_for_edit(switch_to_edit=True)
+
+    def _load_selected_invoice_for_edit(self, switch_to_edit: bool) -> None:
         """Edit selected invoice - load into edit form"""
         row = self.invoice_table.currentRow()
         if row < 0 or row >= len(self.current_invoices):
@@ -5959,8 +6190,8 @@ class VendorInvoiceManager(QWidget):
                 self.edit_invoice_amount.setText(f"{data[3]:.2f}")
                 self.edit_invoice_desc.setPlainText(data[4] or "")
 
-                # Switch to edit tab (index 1)
-                self.details_tabs.setCurrentIndex(1)
+                if switch_to_edit:
+                    self.details_tabs.setCurrentIndex(1)
 
                 # Update status label
                 self.edit_status_label.setText(
@@ -6121,9 +6352,9 @@ class VendorInvoiceManager(QWidget):
         if not hasattr(self, "_editing_enabled"):
             self._editing_enabled = True
 
-        # Only allow editing invoice # (column 1) and date (column 3)
+        # Invoice number, description, date, and amount are source fields.
         col = item.column()
-        if col not in [1, 3]:
+        if col not in [1, 2, 3, 4]:
             return
 
         # Enable save button
@@ -6158,9 +6389,17 @@ class VendorInvoiceManager(QWidget):
                     # Get receipt_id from first column
                     receipt_id = int(self.invoice_table.item(row, 0).text())
 
-                    # Get new values
+                    # Get corrected source values.
                     new_invoice_num = self.invoice_table.item(row, 1).text()
+                    new_description = self.invoice_table.item(row, 2).text()
                     new_date_str = self.invoice_table.item(row, 3).text()
+                    amount_text = (
+                        self.invoice_table.item(row, 4)
+                        .text()
+                        .replace("$", "")
+                        .replace(",", "")
+                        .strip()
+                    )
 
                     # Parse date (MM/dd/yyyy format)
                     try:
@@ -6178,14 +6417,33 @@ class VendorInvoiceManager(QWidget):
                         )
                         continue
 
+                    try:
+                        new_amount = Decimal(amount_text)
+                    except Exception:
+                        QMessageBox.warning(
+                            self,
+                            "Invalid Amount",
+                            f"Row {row + 1}: Invalid invoice amount.",
+                        )
+                        continue
+
                     # Update database
                     cur.execute(
                         """
                         UPDATE vendor_invoices
-                        SET invoice_number = %s, invoice_date = %s
+                        SET invoice_number = %s,
+                            notes = %s,
+                            invoice_date = %s,
+                            invoice_amount = %s
                         WHERE vendor_invoice_id = %s
                     """,
-                        (new_invoice_num, new_date, receipt_id),
+                        (
+                            new_invoice_num,
+                            new_description,
+                            new_date,
+                            new_amount,
+                            receipt_id,
+                        ),
                     )
 
                     changes_made += 1
@@ -6197,7 +6455,7 @@ class VendorInvoiceManager(QWidget):
                     f"✅ Saved {changes_made} invoice change(s)!",
                 )
                 self.save_changes_btn.setEnabled(False)
-                self._load_vendor_invoices()  # Reload to show updated data
+                self._load_vendor_invoices()
             else:
                 QMessageBox.information(
                     self, "No Changes", "No changes detected to save."
@@ -6309,10 +6567,8 @@ class VendorInvoiceManager(QWidget):
         self.edit_invoice_date.setDate(QDate.currentDate())
         self.edit_invoice_amount.setText("0.00")
         self.edit_invoice_desc.clear()
-        self.edit_invoice_category.setCurrentIndex(0)
         self.edit_status_label.setText(
-            "No invoice loaded. Select an invoice"
-            " and click 'Edit Selected Invoice' button."
+            "No invoice selected."
         )
         self.edit_status_label.setStyleSheet(
             "font-size: 11px; color: #004085;"
@@ -6337,7 +6593,5 @@ class VendorInvoiceManager(QWidget):
 
     @pyqtSlot()
     def _show_summary_tab(self) -> None:
-        """Show ledger tab and refresh data."""
-        self.details_tabs.setCurrentWidget(self.ledger_tab_widget)
-        self._refresh_vendor_ledger()
-        self._refresh_account_summary()
+        """Open the modeless summary window."""
+        self._open_summary_window()
