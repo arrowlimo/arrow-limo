@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
+from ..audit.engine import ensure_audit_storage
 from ..auth import SUPPORT_SESSION_ROLE
 from ..db import get_connection, return_connection
 from ..services.auth.audit import record_auth_event
@@ -152,45 +153,6 @@ def _require_support_session(request: Request) -> dict:
     return session
 
 
-def _get_support_phone(user_id: int) -> str:
-    conn = get_connection()
-    try:
-        ensure_auth_tables(conn)
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT COALESCE(
-                    NULLIF(TRIM(s.mfa_phone), ''),
-                    NULLIF(TRIM(e.cell_phone), ''),
-                    NULLIF(TRIM(e.phone), '')
-                )
-                FROM users u
-                LEFT JOIN driver_auth_state s ON s.user_id = u.user_id
-                LEFT JOIN driver_user_links l ON l.user_id = u.user_id
-                LEFT JOIN employees e
-                  ON e.employee_id = l.employee_id
-                  OR (
-                    u.email IS NOT NULL
-                    AND e.email IS NOT NULL
-                    AND LOWER(TRIM(e.email)) = LOWER(TRIM(u.email))
-                  )
-                WHERE u.user_id = %s
-                ORDER BY CASE WHEN l.employee_id = e.employee_id THEN 0 ELSE 1 END
-                LIMIT 1
-                """,
-                (user_id,),
-            )
-            row = cur.fetchone()
-        if not row or not row[0]:
-            raise HTTPException(
-                status_code=409,
-                detail="Administrator mobile phone is not configured",
-            )
-        return row[0]
-    finally:
-        return_connection(conn)
-
-
 def _sms_mfa_ready() -> bool:
     settings = get_settings()
     return bool(
@@ -228,32 +190,15 @@ async def login_json(payload: LoginRequest, request: Request):
         raise HTTPException(status_code=401, detail=INVALID_CREDENTIALS)
     role = str(user.get("role") or "").strip().lower()
     if role in SUPPORT_ACCOUNT_ROLES:
-        if not _sms_mfa_ready():
-            raise HTTPException(
-                status_code=503,
-                detail="SMS verification is temporarily unavailable",
-            )
-        challenge_token = create_onboarding_challenge(user["account_id"], purpose="support_mfa")
-        phone = issue_phone_code(
-            challenge_token,
-            user["account_id"],
-            _get_support_phone(user["account_id"]),
-            "support_mfa",
-        )
         record_auth_event(
-            action="support_mfa_challenge_sent",
+            action="support_login",
             username=user["username"],
             user_id=user["account_id"],
             role=role,
             request=request,
-            note="Restricted driver support verification required",
+            note="Restricted driver support session opened",
         )
-        return {
-            "next_step": "verify_support_mfa",
-            "challenge_token": challenge_token,
-            "masked_phone": mask_phone(phone),
-            "user": _user_response(user),
-        }
+        return _authenticated_support_response(user)
     _require_driver_account(user)
 
     if not _sms_mfa_ready():
@@ -302,7 +247,7 @@ async def login_json(payload: LoginRequest, request: Request):
 
 
 @router.post("/change-password")
-async def change_password(payload: PasswordChangeRequest):
+async def change_password(payload: PasswordChangeRequest, request: Request):
     user_id, _, _ = require_challenge(payload.challenge_token, {"onboarding"})
     user = get_user_by_id(user_id)
     if not user:
@@ -317,6 +262,14 @@ async def change_password(payload: PasswordChangeRequest):
     refreshed_user = get_user_by_id(user_id)
     if not refreshed_user:
         raise HTTPException(status_code=401, detail="Driver account not found")
+    record_auth_event(
+        action="password_changed",
+        username=refreshed_user["username"],
+        user_id=refreshed_user["employee_id"],
+        role=refreshed_user["role"],
+        request=request,
+        note="Driver changed the pending first-login password",
+    )
     if refreshed_user["phone_verified"] and refreshed_user["mfa_phone"]:
         return _authenticated_response(refreshed_user)
     set_challenge_purpose(payload.challenge_token, user_id, "enroll_phone")
@@ -363,7 +316,7 @@ async def enroll_phone(payload: PhoneEnrollmentRequest):
 @router.post("/resend-code")
 async def resend_code(payload: ChallengeRequest):
     user_id, purpose, phone = require_challenge(
-        payload.challenge_token, {"activation", "phone_verify", "mfa", "support_mfa"}
+        payload.challenge_token, {"activation", "phone_verify", "mfa"}
     )
     if not phone:
         raise HTTPException(status_code=400, detail="Mobile phone is required")
@@ -375,8 +328,6 @@ async def resend_code(payload: ChallengeRequest):
             else "verify_phone"
             if purpose == "phone_verify"
             else "verify_mfa"
-            if purpose == "mfa"
-            else "verify_support_mfa"
         ),
         "challenge_token": payload.challenge_token,
         "masked_phone": mask_phone(phone),
@@ -386,20 +337,6 @@ async def resend_code(payload: ChallengeRequest):
 @router.post("/verify-code")
 async def verify_code(payload: CodeVerificationRequest, request: Request):
     user_id, purpose, phone = verify_phone_code(payload.challenge_token, payload.code)
-    if purpose == "support_mfa":
-        user = get_user_by_id(user_id)
-        role = str(user.get("role") if user else "").strip().lower()
-        if not user or role not in SUPPORT_ACCOUNT_ROLES:
-            raise HTTPException(status_code=403, detail="Administrator support access required")
-        record_auth_event(
-            action="support_mfa_verified",
-            username=user["username"],
-            user_id=user["account_id"],
-            role=role,
-            request=request,
-            note="Restricted driver support session opened",
-        )
-        return _authenticated_support_response(user)
     if purpose == "activation":
         mark_phone_verified(user_id, phone)
         user = get_user_by_id(user_id)
@@ -474,6 +411,64 @@ async def list_support_employees(request: Request):
                 for row in rows
             ],
         }
+    finally:
+        return_connection(conn)
+
+
+@router.get("/support/notifications")
+async def list_support_notifications(request: Request):
+    _require_support_session(request)
+    conn = get_connection()
+    try:
+        ensure_audit_storage(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT occurred_at, action, actor_json->>'username', note
+                FROM audit_events
+                WHERE module = 'driver_auth'
+                  AND (
+                    action IN (
+                        'login_failed',
+                        'password_changed',
+                        'support_login',
+                        'support_pending_password_reset',
+                        'support_impersonation_started'
+                    )
+                    OR action LIKE 'support_impersonated_%'
+                  )
+                ORDER BY occurred_at DESC
+                LIMIT 50
+                """
+            )
+            rows = cur.fetchall()
+
+        def notification(row):
+            action = row[1]
+            username = row[2] or "Unknown account"
+            messages = {
+                "login_failed": f"Failed login attempt for {username}",
+                "password_changed": f"{username} changed their password",
+                "support_login": f"{username} opened Admin Driver Access",
+                "support_pending_password_reset": (
+                    f"{username} reset a pending driver login password"
+                ),
+                "support_impersonation_started": f"{username} opened a driver account",
+            }
+            return {
+                "occurred_at": row[0].isoformat(),
+                "action": action,
+                "severity": "warning"
+                if action in {"login_failed", "support_pending_password_reset"}
+                else "info",
+                "message": messages.get(
+                    action,
+                    f"{username} changed a driver record through Admin Driver Access",
+                ),
+                "detail": row[3],
+            }
+
+        return {"items": [notification(row) for row in rows]}
     finally:
         return_connection(conn)
 

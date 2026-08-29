@@ -27,7 +27,11 @@ def record_auth_event(
             username=username,
             role=role,
         )
-        corr = request.headers.get("X-Request-ID") if request else None
+        corr = getattr(request.state, "request_id", None) if request else None
+        if not corr and request:
+            corr = request.headers.get("X-Request-ID", "")[:128] or None
+        elif corr:
+            corr = str(corr)[:128]
         record_audit_event(
             conn,
             AuditEvent(

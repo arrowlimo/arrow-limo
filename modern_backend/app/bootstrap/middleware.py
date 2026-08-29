@@ -47,7 +47,8 @@ def _is_trusted_proxy_peer(host: str) -> bool:
 def _register_correlation_middleware(app: FastAPI) -> None:
     @app.middleware("http")
     async def add_correlation_and_timing(request: Request, call_next):
-        rid = request.headers.get("X-Request-ID") or uuid.uuid4().hex[:16]
+        requested_id = request.headers.get("X-Request-ID", "").strip()
+        rid = requested_id[:128] or uuid.uuid4().hex[:16]
         request.state.request_id = rid
         start = time.time()
         response = await call_next(request)

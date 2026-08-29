@@ -235,7 +235,7 @@ def _send_sms(phone: str, code: str) -> None:
 
 
 def create_onboarding_challenge(user_id: int, purpose: str = "onboarding") -> str:
-    if purpose not in {"activation", "onboarding", "enroll_phone", "support_mfa"}:
+    if purpose not in {"activation", "onboarding", "enroll_phone"}:
         raise ValueError("Invalid onboarding challenge purpose")
     token = secrets.token_urlsafe(32)
     conn = get_connection()
@@ -421,7 +421,6 @@ def verify_phone_code(challenge_token: str, code: str) -> tuple[int, str, str]:
                 "activation",
                 "phone_verify",
                 "mfa",
-                "support_mfa",
             }:
                 raise HTTPException(status_code=401, detail="Verification code expired")
             if row[4] >= row[5] or not hmac.compare_digest(

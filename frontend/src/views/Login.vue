@@ -72,7 +72,7 @@
       </form>
 
       <div v-if="error" class="error-message">{{ error }}</div>
-      <button v-if="step === 'verify_activation' || step === 'verify_phone' || step === 'verify_mfa' || step === 'verify_support_mfa'" class="restart" type="button" :disabled="loading" @click="resendCode">
+      <button v-if="step === 'verify_activation' || step === 'verify_phone' || step === 'verify_mfa'" class="restart" type="button" :disabled="loading" @click="resendCode">
         Send another code
       </button>
       <button v-if="step === 'verify_phone'" class="restart" type="button" :disabled="loading" @click="step = 'enroll_phone'">
@@ -107,7 +107,6 @@ export default {
   computed: {
     verificationButtonLabel() {
       if (this.step === 'verify_activation') return 'Verify and create private password'
-      if (this.step === 'verify_support_mfa') return 'Verify and open driver support'
       return 'Verify and open portal'
     }
   },

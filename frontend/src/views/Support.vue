@@ -5,10 +5,27 @@
         <h1>Admin Driver Access</h1>
         <p>Open a driver account to verify access or assist with their records. Every switch is audited.</p>
       </div>
-      <button class="secondary" :disabled="loading" @click="loadEmployees">Refresh</button>
+      <button class="secondary" :disabled="loading" @click="loadAdminData">Refresh</button>
     </header>
 
     <div v-if="error" class="message error">{{ error }}</div>
+    <section class="notifications" aria-labelledby="security-notifications">
+      <div class="section-heading">
+        <h2 id="security-notifications">Security Notifications</h2>
+        <span>{{ notifications.length }} recent events</span>
+      </div>
+      <p v-if="!notifications.length" class="empty">No recent password or security events.</p>
+      <ul v-else>
+        <li v-for="notification in notifications" :key="`${notification.occurred_at}-${notification.action}`" :class="notification.severity">
+          <div>
+            <strong>{{ notification.message }}</strong>
+            <span v-if="notification.detail">{{ notification.detail }}</span>
+          </div>
+          <time :datetime="notification.occurred_at">{{ formatDate(notification.occurred_at) }}</time>
+        </li>
+      </ul>
+    </section>
+
     <div class="selector">
       <label for="driver-account">Driver account</label>
       <select id="driver-account" v-model.number="selectedEmployeeId" :disabled="loading">
@@ -56,22 +73,35 @@ import { authFetch } from '@/utils/authFetch'
 
 const router = useRouter()
 const employees = ref([])
+const notifications = ref([])
 const selectedEmployeeId = ref(null)
 const loading = ref(false)
 const error = ref('')
 const temporaryPassword = ref('')
 
-const loadEmployees = async () => {
+const readResponse = async (response, fallback) => {
+  const payload = await response?.json().catch(() => ({}))
+  if (!response?.ok) throw new Error(payload?.detail || fallback)
+  return payload
+}
+
+const formatDate = value => new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short'
+}).format(new Date(value))
+
+const loadAdminData = async () => {
   loading.value = true
   error.value = ''
   try {
-    const response = await authFetch('/auth/support/employees')
-    if (!response?.ok) {
-      const payload = await response?.json().catch(() => ({}))
-      throw new Error(payload?.detail || 'Unable to load driver accounts')
-    }
-    const payload = await response.json()
-    employees.value = payload.items || []
+    const [employeeResponse, notificationResponse] = await Promise.all([
+      authFetch('/auth/support/employees'),
+      authFetch('/auth/support/notifications')
+    ])
+    const employeePayload = await readResponse(employeeResponse, 'Unable to load driver accounts')
+    const notificationPayload = await readResponse(notificationResponse, 'Unable to load security notifications')
+    employees.value = employeePayload.items || []
+    notifications.value = notificationPayload.items || []
   } catch (err) {
     error.value = err.message
   } finally {
@@ -124,7 +154,7 @@ const resetPendingPassword = async () => {
   }
 }
 
-onMounted(loadEmployees)
+onMounted(loadAdminData)
 </script>
 
 <style scoped>
@@ -132,6 +162,17 @@ onMounted(loadEmployees)
 header { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
 h1 { margin: 0 0 .35rem; }
 header p { margin: 0; color: #475569; }
+.notifications { margin-top: 1.5rem; border: 1px solid #dbe3ee; border-radius: 8px; overflow: hidden; }
+.section-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .8rem 1rem; background: #f8fafc; }
+.section-heading h2 { margin: 0; font-size: 1.05rem; }
+.section-heading span, .empty { color: #64748b; }
+.notifications ul { list-style: none; padding: 0; margin: 0; max-height: 280px; overflow: auto; }
+.notifications li { display: flex; justify-content: space-between; gap: 1rem; padding: .8rem 1rem; border-top: 1px solid #e2e8f0; }
+.notifications li.warning { border-left: 4px solid #dc2626; background: #fff7f7; }
+.notifications li div { display: grid; gap: .2rem; }
+.notifications li div span, .notifications time { color: #64748b; font-size: .85rem; }
+.notifications time { white-space: nowrap; }
+.empty { margin: 0; padding: 1rem; border-top: 1px solid #e2e8f0; }
 .selector { display: grid; grid-template-columns: minmax(240px, 1fr) auto; gap: .75rem; align-items: end; margin: 1.5rem 0; }
 .selector label { grid-column: 1 / -1; font-weight: 700; }
 select, input, button { padding: .75rem; border-radius: 6px; font: inherit; }
@@ -150,5 +191,6 @@ button:disabled { opacity: .6; cursor: wait; }
 @media (max-width: 680px) {
   .selector { grid-template-columns: 1fr; }
   header { flex-direction: column; }
+  .notifications li { flex-direction: column; }
 }
 </style>
