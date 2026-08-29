@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = False
     rate_limit_requests: int = 120
     rate_limit_window_seconds: int = 60
+    max_login_attempts: int = 5
+    login_lockout_minutes: int = 15
+    driver_initial_password: str | None = None
+    twilio_account_sid: str | None = None
+    twilio_auth_token: str | None = None
+    twilio_from_number: str | None = None
 
     # Pydantic v2 config
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")

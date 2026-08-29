@@ -1,22 +1,27 @@
-"""
-User authentication routes - supports any user role (admin, driver, manager,
-super_user, etc.)
-Serves login page and handles login for all user types
-Last updated: 2026-02-07 - Added auto-login support for local development
-"""
-
 import logging
-import os
-from typing import Annotated
 
-from fastapi import APIRouter, Form, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi.responses import JSONResponse, RedirectResponse
+from pydantic import BaseModel, Field
 
 from ..services.auth.audit import record_auth_event
-from ..services.auth.credentials import verify_user_credentials
-from ..services.auth.dashboard import generate_dashboard_content
-from ..services.auth.driver_data import get_driver_trips, get_employee_role
+from ..services.auth.credentials import (
+    get_user_by_id,
+    replace_password,
+    verify_password,
+    verify_user_credentials,
+)
+from ..services.auth.onboarding import (
+    create_mfa_challenge,
+    create_onboarding_challenge,
+    issue_phone_code,
+    mark_phone_verified,
+    mask_phone,
+    require_challenge,
+    require_enrollment_phone,
+    set_challenge_purpose,
+    verify_phone_code,
+)
 from ..services.auth.session_store import (
     SESSION_TIMEOUT,
     create_session,
@@ -26,122 +31,101 @@ from ..services.auth.session_store import (
 )
 from ..settings import get_settings
 
-router = APIRouter(prefix="/auth", tags=["user_auth"])
+router = APIRouter(prefix="/auth", tags=["driver_auth"])
 LOGIN_PATH = "/login"
 INVALID_CREDENTIALS = "Invalid credentials"
-logger = logging.getLogger("modern_backend.auth")
 DRIVER_ROLES = {"driver", "operator"}
+logger = logging.getLogger("modern_backend.auth")
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=150)
+    password: str = Field(min_length=1, max_length=255)
+
+
+class PasswordChangeRequest(BaseModel):
+    challenge_token: str = Field(min_length=20, max_length=255)
+    new_password: str = Field(min_length=12, max_length=255)
+
+
+class PhoneEnrollmentRequest(BaseModel):
+    challenge_token: str = Field(min_length=20, max_length=255)
+    phone: str = Field(min_length=10, max_length=30)
+
+
+class CodeVerificationRequest(BaseModel):
+    challenge_token: str = Field(min_length=20, max_length=255)
+    code: str = Field(pattern=r"^\d{6}$")
+
+
+class ChallengeRequest(BaseModel):
+    challenge_token: str = Field(min_length=20, max_length=255)
 
 
 def _require_driver_account(user: dict) -> dict:
     if str(user.get("role") or "").strip().lower() not in DRIVER_ROLES:
         raise HTTPException(status_code=403, detail="Driver portal access only")
+    if user.get("employee_id") is None:
+        raise HTTPException(status_code=403, detail="Driver account is not linked")
     return user
 
 
-def _auto_login_allowed(request: Request) -> bool:
-    settings = get_settings()
-    legacy_auto_login = os.getenv("AUTO_LOGIN", "false").strip().lower() in {
-        "true",
-        "1",
-        "yes",
+def _user_response(user: dict) -> dict:
+    return {
+        "user_id": user["employee_id"],
+        "username": user["username"],
+        "name": user["name"],
+        "role": user.get("role", "driver"),
+        "permissions": user.get("permissions", {}),
     }
-    if legacy_auto_login and not settings.enable_auto_login:
-        logger.warning(
-            "AUTO_LOGIN is deprecated and ignored; set ALMS_ENABLE_AUTO_LOGIN=1 for local dev"
-        )
-
-    if not settings.enable_auto_login:
-        return False
-
-    if settings.environment.strip().lower() not in {"development", "dev", "local"}:
-        return False
-
-    client_host = (request.client.host if request.client else "") or ""
-    normalized = client_host.strip().lower()
-    if normalized.startswith("127."):
-        return True
-    return normalized in {"127.0.0.1", "::1", "localhost", "0.0.0.0", "testclient"}
 
 
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+def _authenticated_response(user: dict) -> dict:
+    token = create_session(
+        user["employee_id"],
+        user["name"],
+        role=user.get("role", "driver"),
+        permissions=user.get("permissions", {}),
+        username=user["username"],
+    )
+    return {
+        "next_step": "complete",
+        "access_token": token,
+        "token_type": "bearer",
+        "expires_in": SESSION_TIMEOUT,
+        "user": _user_response(user),
+    }
 
 
-@router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
-    """Route browser login requests to the SPA login page."""
-    session_token = request.cookies.get("session_token")
-    if session_token and get_session(session_token):
-        return RedirectResponse(url="/", status_code=302)
+def _sms_mfa_ready() -> bool:
+    settings = get_settings()
+    return bool(
+        settings.twilio_account_sid and settings.twilio_auth_token and settings.twilio_from_number
+    )
+
+
+@router.get("/login")
+async def login_page():
     return RedirectResponse(url=LOGIN_PATH, status_code=302)
 
 
 @router.get("/auto-login-check")
-async def auto_login_check(request: Request):
-    """Never bypass credentials in the driver-only web portal."""
-    if _auto_login_allowed(request):
-        logger.warning("Blocked auto-login for the driver-only portal")
+async def auto_login_check():
     return JSONResponse({"auto_login": False})
 
 
-@router.post("/login-submit", responses={401: {"description": "Invalid credentials"}})
-async def login_submit(
-    username: Annotated[str, Form(...)],
-    password: Annotated[str, Form(...)],
-    request: Request = None,
-    response: Response = None,
-):
-    """Handle login form submission (HTML form)"""
-    user = verify_user_credentials(username, password)
-    if not user:
-        record_auth_event(
-            action="login_failed",
-            username=username,
-            user_id=None,
-            role=None,
-            request=request,
-            note=INVALID_CREDENTIALS,
-        )
-        raise HTTPException(status_code=401, detail=INVALID_CREDENTIALS)
-    _require_driver_account(user)
-    session_token = create_session(
-        user["employee_id"],
-        user["name"],
-        role=user.get("role", "user"),
-        permissions=user.get("permissions", {}),
-        username=username,
-    )
-    response.set_cookie(
-        key="session_token",
-        value=session_token,
-        max_age=30 * 60,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-    )
-    record_auth_event(
-        action="login_succeeded",
-        username=username,
-        user_id=user.get("employee_id"),
-        role=user.get("role", "user"),
-        request=request,
-        note="HTML login",
-    )
-    return {"status": "success", "redirect": "/auth/dashboard"}
+@router.post("/login-submit")
+async def login_submit_disabled():
+    raise HTTPException(status_code=410, detail="Use the driver portal login")
 
 
 @router.post("/login", responses={401: {"description": "Invalid credentials"}})
-async def login_json(login_request: LoginRequest, request: Request):
-    """Handle JSON login (for Vue frontend)"""
-    logger.info("Login attempt via JSON endpoint")
-    user = verify_user_credentials(login_request.username, login_request.password)
+async def login_json(payload: LoginRequest, request: Request):
+    user = verify_user_credentials(payload.username, payload.password)
     if not user:
-        logger.warning("Login failed via JSON endpoint")
         record_auth_event(
             action="login_failed",
-            username=login_request.username,
+            username=payload.username,
             user_id=None,
             role=None,
             request=request,
@@ -150,98 +134,157 @@ async def login_json(login_request: LoginRequest, request: Request):
         raise HTTPException(status_code=401, detail=INVALID_CREDENTIALS)
     _require_driver_account(user)
 
-    logger.info("Login succeeded via JSON endpoint")
-    # Create session token
-    session_token = create_session(
-        user["employee_id"],
-        user["name"],
-        role=user.get("role", "user"),
-        permissions=user.get("permissions", {}),
-        username=login_request.username,
-    )
-    record_auth_event(
-        action="login_succeeded",
-        username=login_request.username,
-        user_id=user.get("employee_id"),
-        role=user.get("role", "user"),
-        request=request,
-        note="JSON login",
-    )
+    if user["must_change_password"]:
+        return {
+            "next_step": "change_password",
+            "challenge_token": create_onboarding_challenge(user["account_id"]),
+            "user": _user_response(user),
+        }
+    if not _sms_mfa_ready():
+        logger.warning("SMS MFA is not configured; using existing driver authentication")
+        return _authenticated_response(user)
+    if not user["phone_verified"] or not user["mfa_phone"]:
+        return {
+            "next_step": "enroll_phone",
+            "challenge_token": create_onboarding_challenge(
+                user["account_id"], purpose="enroll_phone"
+            ),
+            "user": _user_response(user),
+        }
 
-    # Return JWT-style response for frontend
+    challenge_token, phone = create_mfa_challenge(user["account_id"], user["mfa_phone"])
+    record_auth_event(
+        action="mfa_challenge_sent",
+        username=user["username"],
+        user_id=user["employee_id"],
+        role=user["role"],
+        request=request,
+        note="SMS verification required",
+    )
     return {
-        "access_token": session_token,
-        "token_type": "bearer",
-        "expires_in": SESSION_TIMEOUT,
-        "user": {
-            "user_id": user["employee_id"],
-            "username": login_request.username,
-            "name": user["name"],
-            "role": user.get("role", "user"),
-            "permissions": user.get("permissions", {}),
-        },
+        "next_step": "verify_mfa",
+        "challenge_token": challenge_token,
+        "masked_phone": mask_phone(phone),
+        "user": _user_response(user),
     }
+
+
+@router.post("/change-password")
+async def change_password(payload: PasswordChangeRequest):
+    user_id, _, _ = require_challenge(payload.challenge_token, {"onboarding"})
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="Login challenge expired")
+    if verify_password(payload.new_password, _password_hash_for_user(user_id)):
+        raise HTTPException(
+            status_code=400,
+            detail="New password must be different from the temporary password",
+        )
+    _validate_new_password(payload.new_password)
+    replace_password(user_id, payload.new_password)
+    if not _sms_mfa_ready():
+        refreshed_user = get_user_by_id(user_id)
+        if not refreshed_user:
+            raise HTTPException(status_code=401, detail="Driver account not found")
+        return _authenticated_response(refreshed_user)
+    set_challenge_purpose(payload.challenge_token, user_id, "enroll_phone")
+    return {
+        "next_step": "enroll_phone",
+        "challenge_token": payload.challenge_token,
+    }
+
+
+def _password_hash_for_user(user_id: int):
+    from ..db import get_connection, return_connection
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT password_hash FROM users WHERE user_id = %s", (user_id,))
+            row = cur.fetchone()
+        return row[0] if row else None
+    finally:
+        return_connection(conn)
+
+
+def _validate_new_password(password: str) -> None:
+    if not (
+        any(char.islower() for char in password)
+        and any(char.isupper() for char in password)
+        and any(char.isdigit() for char in password)
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain upper-case, lower-case, and number characters",
+        )
+
+
+@router.post("/enroll-phone")
+async def enroll_phone(payload: PhoneEnrollmentRequest):
+    user_id, _, _ = require_challenge(payload.challenge_token, {"enroll_phone", "phone_verify"})
+    phone = require_enrollment_phone(user_id, payload.phone)
+    phone = issue_phone_code(payload.challenge_token, user_id, phone, "phone_verify")
+    return {
+        "next_step": "verify_phone",
+        "challenge_token": payload.challenge_token,
+        "masked_phone": mask_phone(phone),
+    }
+
+
+@router.post("/resend-code")
+async def resend_code(payload: ChallengeRequest):
+    user_id, purpose, phone = require_challenge(payload.challenge_token, {"phone_verify", "mfa"})
+    if not phone:
+        raise HTTPException(status_code=400, detail="Mobile phone is required")
+    phone = issue_phone_code(payload.challenge_token, user_id, phone, purpose)
+    return {
+        "next_step": "verify_phone" if purpose == "phone_verify" else "verify_mfa",
+        "challenge_token": payload.challenge_token,
+        "masked_phone": mask_phone(phone),
+    }
+
+
+@router.post("/verify-code")
+async def verify_code(payload: CodeVerificationRequest, request: Request):
+    user_id, purpose, phone = verify_phone_code(payload.challenge_token, payload.code)
+    if purpose == "phone_verify":
+        mark_phone_verified(user_id, phone)
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="Driver account not found")
+    _require_driver_account(user)
+    record_auth_event(
+        action="mfa_verified",
+        username=user["username"],
+        user_id=user["employee_id"],
+        role=user["role"],
+        request=request,
+        note="Phone verification completed",
+    )
+    return _authenticated_response(user)
 
 
 @router.get("/validate", responses={401: {"description": "Invalid or expired token"}})
 async def validate_token(request: Request):
-    """Validate bearer token for SPA route/API guards."""
-    authorization = request.headers.get("Authorization")
-    token = parse_bearer_token(authorization)
-    session = get_session(token) if token else None
+    token = parse_bearer_token(request.headers.get("Authorization"))
+    session = get_session(token)
     if not session:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     _require_driver_account(session)
-
     return {
         "authenticated": True,
         "expires_at": session["expires_at"].isoformat(),
-        "user": {
-            "user_id": session["employee_id"],
-            "username": session.get("username") or session["name"],
-            "name": session["name"],
-            "role": session.get("role", "user"),
-            "permissions": session.get("permissions", {}),
-        },
+        "user": _user_response(session),
     }
-
-
-@router.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request):
-    """User dashboard - shows different content based on role"""
-    session_token = request.cookies.get("session_token")
-    session = get_session(session_token)
-    if not session:
-        return RedirectResponse(url=LOGIN_PATH, status_code=302)
-
-    employee_id = session["employee_id"]
-    user_name = session["name"]
-
-    user_role = get_employee_role(employee_id)
-    trips = get_driver_trips(employee_id) if user_role in ["driver", "operator"] else []
-    return generate_dashboard_content(user_name, user_role, trips)
 
 
 @router.get("/logout")
 async def logout(response: Response):
-    """Logout user and clear session"""
     response.delete_cookie("session_token")
     return RedirectResponse(url=LOGIN_PATH, status_code=302)
 
 
 @router.post("/logout")
 async def logout_json(request: Request):
-    """API logout for SPA clients using bearer token."""
-    authorization = request.headers.get("Authorization")
-    token = parse_bearer_token(authorization)
-    session = get_session(token) if token else None
-    revoke_session(token)
-    record_auth_event(
-        action="logout",
-        username=(session or {}).get("username"),
-        user_id=(session or {}).get("employee_id"),
-        role=(session or {}).get("role"),
-        request=request,
-        note="Bearer token logout",
-    )
-    return {"status": "ok"}
+    revoke_session(parse_bearer_token(request.headers.get("Authorization")))
+    return {"status": "success"}

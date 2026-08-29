@@ -7,3 +7,9 @@ const app = createApp(App)
 app.use(router)
 initSentry(app, router)
 app.mount('#app')
+
+if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+  })
+}

@@ -37,7 +37,10 @@
       </section>
 
       <section v-if="activeTab === 'run'" class="panel">
-        <h2>Complete My Run Information</h2>
+        <div class="section-heading">
+          <h2>Complete My Run Information</h2>
+          <button v-if="selectedTrip" class="secondary print-button" @click="printReport">Print run report</button>
+        </div>
         <div v-if="!selectedTrip" class="empty-state">Choose a run from My Runs.</div>
         <form v-else class="form-grid" @submit.prevent="saveTrip">
           <div class="readonly wide">
@@ -173,10 +176,13 @@
       <section v-if="activeTab === 'statements'" class="panel">
         <div class="section-heading">
           <h2>My Final Pay Statements</h2>
-          <label>
-            Year
-            <input v-model.number="statementYear" type="number" min="2000" max="2100" @change="loadStatements">
-          </label>
+          <div class="statement-actions">
+            <label>
+              Year
+              <input v-model.number="statementYear" type="number" min="2000" max="2100" @change="loadStatements">
+            </label>
+            <button class="secondary print-button" @click="printReport">Print statements</button>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -368,6 +374,7 @@ const submitFloatReturn = async () => {
 const money = value => new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(Number(value || 0))
 const formatDate = value => value ? new Date(`${String(value).slice(0, 10)}T12:00:00`).toLocaleDateString('en-CA') : '—'
 const formatTime = value => value ? String(value).slice(0, 5) : 'Time not set'
+const printReport = () => window.print()
 
 onMounted(loadPortal)
 </script>
@@ -400,6 +407,7 @@ input, select, textarea { box-sizing: border-box; width: 100%; padding: .65rem; 
 .summary-grid strong { font-size: 1.5rem; }
 .summary-grid .settled { border-color: #16a34a; background: #f0fdf4; }
 .table-wrap { overflow-x: auto; margin-top: 1rem; }
+.statement-actions { display: flex; align-items: end; gap: .75rem; }
 table { width: 100%; border-collapse: collapse; }
 th, td { border-bottom: 1px solid #e2e8f0; padding: .7rem; text-align: left; white-space: nowrap; }
 .message { padding: .75rem; margin: .75rem 0; border-radius: 6px; background: #eff6ff; }
@@ -410,5 +418,13 @@ th, td { border-bottom: 1px solid #e2e8f0; padding: .7rem; text-align: left; whi
   .form-grid, .inline-form { grid-template-columns: 1fr; }
   .wide, .actions { grid-column: auto; }
   .portal-header { align-items: flex-start; }
+  .statement-actions { align-items: stretch; flex-direction: column; }
+}
+@media print {
+  .portal-header, .tabs, .message, .print-button, .actions, .receipt-form, .inline-form { display: none !important; }
+  .driver-portal, .panel { max-width: none; border: 0; padding: 0; }
+  .panel { color: #000; }
+  input, select, textarea { border: 0; padding: .15rem; color: #000; background: transparent; }
+  .table-wrap { overflow: visible; }
 }
 </style>

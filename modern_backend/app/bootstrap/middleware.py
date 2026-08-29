@@ -48,11 +48,12 @@ def _register_rate_limit_middleware(app: FastAPI, settings: Any) -> None:
 
     @app.middleware("http")
     async def enforce_rate_limit(request: Request, call_next):
-        if (
-            not settings.rate_limit_enabled
-            or is_auth_exempt_path(request.url.path)
-            or not is_protected_path(request.url.path)
-        ):
+        auth_rate_limited = request.url.path.startswith("/auth/") and request.url.path not in {
+            "/auth/validate",
+            "/auth/logout",
+        }
+        rate_limited_path = is_protected_path(request.url.path) or auth_rate_limited
+        if not settings.rate_limit_enabled or not rate_limited_path:
             return await call_next(request)
 
         key = _get_rate_limit_key(request)
