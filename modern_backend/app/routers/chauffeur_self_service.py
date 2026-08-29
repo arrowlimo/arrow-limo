@@ -27,6 +27,8 @@ class DriverTripUpdate(BaseModel):
     odometer_end: Decimal | None = Field(default=None, ge=0)
     fuel_added_liters: Decimal | None = Field(default=None, ge=0)
     actual_hours: Decimal | None = Field(default=None, ge=0, le=24)
+    bus_driving_hours: Decimal | None = Field(default=None, ge=0, le=24)
+    break_minutes: int | None = Field(default=None, ge=0, le=1440)
     status: Literal["in_progress", "completed"] | None = None
 
 
@@ -54,6 +56,85 @@ def _employee_id_from_user(user: dict) -> int:
         return int(employee_id)
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=403, detail="Invalid employee context") from exc
+
+
+def _hours(value) -> float | None:
+    if value is None or value == "":
+        return None
+    return round(float(value), 2)
+
+
+def _as_datetime(day: date, value) -> datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if hasattr(value, "hour"):
+        return datetime.combine(day, value)
+    return None
+
+
+def _daily_hos_status(
+    *,
+    day: date,
+    on_duty: float | None,
+    driving: float | None,
+    off_duty: float | None,
+    worked: bool,
+    bus_worked: bool,
+    capacity_missing: bool,
+    has_hos_record: bool,
+    rest_before: float | None,
+    shift_elapsed: float | None,
+) -> tuple[str, list[str]]:
+    alerts = []
+    warnings = []
+    if worked and not has_hos_record:
+        alerts.append("Assigned charter exists but the HOS time record is missing.")
+    if bus_worked and driving is None:
+        alerts.append("D.A.B. hours are not recorded.")
+    if capacity_missing:
+        warnings.append(
+            "Assigned vehicle capacity is missing; D.A.B. classification cannot be confirmed."
+        )
+    if on_duty is not None and off_duty is not None:
+        total = round(on_duty + off_duty, 2)
+        if abs(total - 24) > 0.01:
+            alerts.append(f"On-duty and off-duty hours total {total:g}, not 24.")
+    elif has_hos_record:
+        alerts.append("On-duty or off-duty hours are incomplete.")
+    if driving is not None and driving > 13:
+        alerts.append("Driving exceeds Alberta's 13-hour limit.")
+    if on_duty is not None and on_duty >= 15:
+        warnings.append(
+            "On-duty time reached Alberta's 15-hour driving cutoff; "
+            "verify that no driving occurred after the cutoff."
+        )
+    if rest_before is not None and rest_before < 8:
+        alerts.append(
+            f"Only {rest_before:g} consecutive hours off before this shift; 8 are required."
+        )
+    if shift_elapsed is not None and shift_elapsed > 15:
+        alerts.append(
+            f"Shift elapsed time is {shift_elapsed:g} hours; the Alberta 160 km "
+            "daily-log exemption requires release within 15 hours."
+        )
+
+    if alerts:
+        return "red", alerts
+    if day == date.today():
+        warnings.append("Current-day totals are provisional until the day is complete.")
+    if rest_before is not None and abs(rest_before - 8) <= 0.01:
+        warnings.append("Minimum 8 consecutive hours off before this shift.")
+    if bus_worked:
+        warnings.append(
+            "Confirm the required Alberta continuous-driving breaks from duty timestamps."
+        )
+    if warnings:
+        return "yellow", warnings
+    if not worked and not has_hos_record:
+        return "green", ["No assigned work; 24 hours off duty."]
+    return "green", ["Recorded daily totals have no Alberta HOS limit alerts."]
 
 
 def _ensure_driver_portal_tables(conn) -> None:
@@ -95,21 +176,51 @@ def _ensure_driver_portal_tables(conn) -> None:
     conn.commit()
 
 
+def _ensure_driver_charter_hos_table(conn) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS driver_charter_hos (
+                charter_id INTEGER PRIMARY KEY
+                    REFERENCES charters(charter_id) ON DELETE CASCADE,
+                employee_id INTEGER NOT NULL REFERENCES employees(employee_id),
+                bus_driving_hours NUMERIC(5, 2)
+                    CHECK (bus_driving_hours BETWEEN 0 AND 24),
+                break_minutes INTEGER CHECK (break_minutes BETWEEN 0 AND 1440),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_driver_charter_hos_employee
+            ON driver_charter_hos (employee_id, charter_id)
+            """
+        )
+    conn.commit()
+
+
 def _get_owned_charter(cur, charter_id: int, employee_id: int):
     cur.execute(
         """
         SELECT
-            charter_id, reserve_number, charter_date, pickup_time, dropoff_time,
-            pickup_address, dropoff_address, status, COALESCE(driver_notes, ''),
-            COALESCE(vehicle_notes, ''), odometer_start, odometer_end, total_kms,
-            fuel_added_liters, actual_hours, completion_timestamp,
-            COALESCE(float_received, 0), vehicle_id
-        FROM charters
-        WHERE charter_id = %s
-          AND (assigned_driver_id = %s OR employee_id = %s)
+            c.charter_id, c.reserve_number, c.charter_date, c.pickup_time,
+            c.dropoff_time, c.pickup_address, c.dropoff_address, c.status,
+            COALESCE(c.driver_notes, ''), COALESCE(c.vehicle_notes, ''),
+            c.odometer_start, c.odometer_end, c.total_kms,
+            c.fuel_added_liters, c.actual_hours, c.completion_timestamp,
+            COALESCE(c.float_received, 0), c.vehicle_id,
+            COALESCE(v.vehicle_type, ''), v.passenger_capacity,
+            h.bus_driving_hours, h.break_minutes
+        FROM charters c
+        LEFT JOIN vehicles v ON v.vehicle_id = c.vehicle_id
+        LEFT JOIN driver_charter_hos h
+          ON h.charter_id = c.charter_id AND h.employee_id = %s
+        WHERE c.charter_id = %s
+          AND (c.assigned_driver_id = %s OR c.employee_id = %s)
         LIMIT 1
         """,
-        (charter_id, employee_id, employee_id),
+        (employee_id, charter_id, employee_id, employee_id),
     )
     return cur.fetchone()
 
@@ -134,6 +245,11 @@ def _trip_payload(row) -> dict:
         "completion_timestamp": row[15].isoformat() if row[15] else None,
         "float_received": float(row[16] or 0),
         "vehicle_id": row[17],
+        "vehicle_type": row[18] or "",
+        "passenger_capacity": int(row[19]) if row[19] is not None else None,
+        "is_bus": row[19] is not None and int(row[19]) >= 11,
+        "bus_driving_hours": float(row[20]) if row[20] is not None else None,
+        "break_minutes": int(row[21]) if row[21] is not None else None,
     }
 
 
@@ -309,6 +425,7 @@ def get_my_trip(
     employee_id = _employee_id_from_user(current_user)
     conn = get_connection()
     try:
+        _ensure_driver_charter_hos_table(conn)
         with conn.cursor() as cur:
             row = _get_owned_charter(cur, charter_id, employee_id)
         if not row:
@@ -330,6 +447,7 @@ def update_my_trip(
         raise HTTPException(status_code=400, detail="No driver fields supplied")
     conn = get_connection()
     try:
+        _ensure_driver_charter_hos_table(conn)
         with conn.cursor() as cur:
             existing = _get_owned_charter(cur, charter_id, employee_id)
             if not existing:
@@ -346,6 +464,20 @@ def update_my_trip(
                     detail="Ending odometer cannot be lower than starting odometer",
                 )
 
+            hos_updates = {
+                field: updates.pop(field)
+                for field in ("bus_driving_hours", "break_minutes")
+                if field in updates
+            }
+            is_bus = existing[19] is not None and int(existing[19]) >= 11
+            if not is_bus and (hos_updates.get("bus_driving_hours") or 0) > 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="D.A.B. hours apply only to vehicles with capacity of 11 or more",
+                )
+            if not is_bus and "bus_driving_hours" in hos_updates:
+                hos_updates["bus_driving_hours"] = Decimal("0")
+
             assignments = []
             values = []
             for field, value in updates.items():
@@ -354,19 +486,46 @@ def update_my_trip(
                     raise HTTPException(status_code=400, detail="Unsupported driver field")
                 assignments.append(f"{column} = %s")
                 values.append(value)
-            if updates.get("status") == "completed":
-                assignments.append("completion_timestamp = COALESCE(completion_timestamp, NOW())")
-            assignments.append("updated_at = NOW()")
-            values.extend([charter_id, employee_id, employee_id])
-            cur.execute(
-                f"""
-                UPDATE charters
-                SET {", ".join(assignments)}
-                WHERE charter_id = %s
-                  AND (assigned_driver_id = %s OR employee_id = %s)
-                """,
-                values,
-            )
+            if assignments:
+                if updates.get("status") == "completed":
+                    assignments.append(
+                        "completion_timestamp = COALESCE(completion_timestamp, NOW())"
+                    )
+                assignments.append("updated_at = NOW()")
+                values.extend([charter_id, employee_id, employee_id])
+                cur.execute(
+                    f"""
+                    UPDATE charters
+                    SET {", ".join(assignments)}
+                    WHERE charter_id = %s
+                      AND (assigned_driver_id = %s OR employee_id = %s)
+                    """,
+                    values,
+                )
+            if hos_updates:
+                update_clauses = [
+                    f"{field} = EXCLUDED.{field}"
+                    for field in ("bus_driving_hours", "break_minutes")
+                    if field in hos_updates
+                ]
+                cur.execute(
+                    f"""
+                    INSERT INTO driver_charter_hos (
+                        charter_id, employee_id, bus_driving_hours, break_minutes
+                    )
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (charter_id) DO UPDATE SET
+                        employee_id = EXCLUDED.employee_id,
+                        {", ".join(update_clauses)},
+                        updated_at = NOW()
+                    """,
+                    (
+                        charter_id,
+                        employee_id,
+                        hos_updates.get("bus_driving_hours"),
+                        hos_updates.get("break_minutes"),
+                    ),
+                )
             row = _get_owned_charter(cur, charter_id, employee_id)
         conn.commit()
         return _trip_payload(row)
@@ -761,6 +920,8 @@ def get_my_hos(
     try:
         days = 14
         start_date = date.today() - timedelta(days=days - 1)
+        query_start = start_date - timedelta(days=1)
+        _ensure_driver_charter_hos_table(conn)
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -790,9 +951,9 @@ def get_my_hos(
                     WHERE employee_id = %s
                       AND hos_date >= %s
                     GROUP BY hos_date
-                    ORDER BY hos_date DESC
+                    ORDER BY hos_date ASC
                     """,
-                    (employee_id, start_date),
+                    (employee_id, query_start),
                 )
             elif {"log_date", "workshift_start", "workshift_end"} <= columns:
                 cur.execute(
@@ -813,37 +974,174 @@ def get_my_hos(
                     FROM hos_log
                     WHERE employee_id = %s
                       AND log_date >= %s
-                    ORDER BY log_date DESC
+                    ORDER BY log_date ASC
                     """,
-                    (employee_id, start_date),
+                    (employee_id, query_start),
                 )
             else:
                 raise HTTPException(status_code=503, detail="HOS records are unavailable")
-            rows = cur.fetchall()
+            hos_rows = cur.fetchall()
+            cur.execute(
+                """
+                SELECT
+                    c.charter_id,
+                    c.reserve_number,
+                    c.charter_date,
+                    c.pickup_time,
+                    c.dropoff_time,
+                    c.actual_hours,
+                    c.workshift_start,
+                    c.workshift_end,
+                    c.passenger_count,
+                    COALESCE(c.is_out_of_town, FALSE),
+                    c.status,
+                    v.vehicle_number,
+                    v.passenger_capacity,
+                    COALESCE(v.vehicle_type, ''),
+                    h.bus_driving_hours,
+                    h.break_minutes
+                FROM charters c
+                LEFT JOIN vehicles v ON v.vehicle_id = c.vehicle_id
+                LEFT JOIN driver_charter_hos h
+                  ON h.charter_id = c.charter_id AND h.employee_id = %s
+                WHERE (c.assigned_driver_id = %s OR c.employee_id = %s)
+                  AND c.charter_date BETWEEN %s AND %s
+                  AND COALESCE(c.cancelled, FALSE) = FALSE
+                  AND LOWER(COALESCE(c.status, '')) NOT LIKE 'cancel%'
+                ORDER BY c.charter_date ASC, c.pickup_time ASC NULLS LAST
+                """,
+                (employee_id, employee_id, employee_id, start_date, date.today()),
+            )
+            charter_rows = cur.fetchall()
 
-        entries = [
-            {
-                "date": row[0].isoformat() if row[0] else None,
-                "workshift_start": str(row[1]) if row[1] is not None else None,
-                "workshift_end": str(row[2]) if row[2] is not None else None,
-                "total_on_duty": str(row[3]) if row[3] is not None else "",
-                "total_driving": str(row[4]) if row[4] is not None else "",
-                "total_off_duty": str(row[5]) if row[5] is not None else "",
-                "breaks": str(row[6]) if row[6] is not None else "",
-                "duty_log": row[7] if isinstance(row[7], list) else [],
-                "deferral": bool(row[8]) if row[8] is not None else None,
-                "deferral_hours": float(row[9]) if row[9] is not None else None,
-                "emergency": bool(row[10]) if row[10] is not None else None,
-                "emergency_reason": row[11] or "",
-            }
-            for row in rows
-        ]
+        hos_by_date = {row[0]: row for row in hos_rows if row[0]}
+        charters_by_date: dict[date, list[dict]] = {}
+        for row in charter_rows:
+            charter_day = row[2]
+            if not charter_day:
+                continue
+            capacity = int(row[12]) if row[12] is not None else None
+            passengers = int(row[8]) if row[8] is not None else None
+            vehicle_type = row[13] or ""
+            charter_start = _as_datetime(charter_day, row[6]) or _as_datetime(charter_day, row[3])
+            charter_end = _as_datetime(charter_day, row[7]) or _as_datetime(charter_day, row[4])
+            if charter_start and charter_end and charter_end <= charter_start:
+                charter_end += timedelta(days=1)
+            charters_by_date.setdefault(charter_day, []).append(
+                {
+                    "charter_id": row[0],
+                    "reserve_number": row[1] or str(row[0]),
+                    "pickup_time": str(row[3]) if row[3] is not None else None,
+                    "dropoff_time": str(row[4]) if row[4] is not None else None,
+                    "actual_hours": _hours(row[5]),
+                    "workshift_start": charter_start.isoformat() if charter_start else None,
+                    "workshift_end": charter_end.isoformat() if charter_end else None,
+                    "passenger_count": passengers,
+                    "vehicle_number": row[11] or "",
+                    "vehicle_type": vehicle_type,
+                    "passenger_capacity": capacity,
+                    "is_bus": capacity is not None and capacity >= 11,
+                    "is_out_of_town": bool(row[9]),
+                    "status": row[10] or "",
+                    "bus_driving_hours": _hours(row[14]),
+                    "break_minutes": int(row[15]) if row[15] is not None else None,
+                }
+            )
+
+        entries = []
+        previous_shift_end = None
+        prior_row = hos_by_date.get(query_start)
+        if prior_row:
+            previous_shift_end = _as_datetime(query_start, prior_row[2])
+        for offset in range(days):
+            day = start_date + timedelta(days=offset)
+            row = hos_by_date.get(day)
+            day_charters = charters_by_date.get(day, [])
+            bus_worked = any(charter["is_bus"] for charter in day_charters)
+            capacity_missing = any(
+                charter["passenger_capacity"] is None for charter in day_charters
+            )
+            bus_charters = [charter for charter in day_charters if charter["is_bus"]]
+            bus_hours = [charter["bus_driving_hours"] for charter in bus_charters]
+            has_hos_record = row is not None
+            on_duty = _hours(row[3]) if row else 0.0 if not day_charters else None
+            driving = (
+                round(sum(bus_hours), 2)
+                if not capacity_missing
+                and bus_hours
+                and all(value is not None for value in bus_hours)
+                else None
+                if bus_worked or capacity_missing
+                else 0.0
+            )
+            off_duty = _hours(row[5]) if row else 24.0 if not day_charters else None
+            shift_start = _as_datetime(day, row[1]) if row else None
+            shift_end = _as_datetime(day, row[2]) if row else None
+            if shift_start and shift_end and shift_end <= shift_start:
+                shift_end += timedelta(days=1)
+            rest_before = None
+            shift_elapsed = None
+            if shift_start and previous_shift_end:
+                rest_before = round(
+                    max(0, (shift_start - previous_shift_end).total_seconds() / 3600), 2
+                )
+            if shift_start and shift_end:
+                shift_elapsed = round((shift_end - shift_start).total_seconds() / 3600, 2)
+            status, alerts = _daily_hos_status(
+                day=day,
+                on_duty=on_duty,
+                driving=driving,
+                off_duty=off_duty,
+                worked=bool(day_charters),
+                bus_worked=bus_worked,
+                capacity_missing=capacity_missing,
+                has_hos_record=has_hos_record,
+                rest_before=rest_before,
+                shift_elapsed=shift_elapsed,
+            )
+            entries.append(
+                {
+                    "date": day.isoformat(),
+                    "workshift_start": shift_start.isoformat() if shift_start else None,
+                    "workshift_end": shift_end.isoformat() if shift_end else None,
+                    "total_on_duty": on_duty,
+                    "total_driving": driving,
+                    "total_off_duty": off_duty,
+                    "total_hours": (
+                        round(on_duty + off_duty, 2)
+                        if on_duty is not None and off_duty is not None
+                        else None
+                    ),
+                    "breaks": _hours(row[6]) if row else None,
+                    "rest_before_shift": rest_before,
+                    "shift_elapsed": shift_elapsed,
+                    "status": status,
+                    "alerts": alerts,
+                    "charters": day_charters,
+                    "has_hos_record": has_hos_record,
+                    "duty_log": row[7] if row and isinstance(row[7], list) else [],
+                }
+            )
+            if shift_end:
+                previous_shift_end = shift_end
 
         return {
             "employee_id": employee_id,
             "days": days,
             "source": "hos_log",
-            "items": entries,
+            "jurisdiction": "Alberta provincial",
+            "daily_log_exemption": "160 km radius",
+            "rules": {
+                "driving_limit_hours": 13,
+                "on_duty_driving_cutoff_hours": 15,
+                "minimum_consecutive_off_duty_hours": 8,
+                "break_rule": (
+                    "10 minutes after up to 4 continuous driving hours; "
+                    "30 minutes after more than 4 and up to 6 continuous driving hours."
+                ),
+                "record_retention_months": 6,
+            },
+            "items": list(reversed(entries)),
         }
     finally:
         return_connection(conn)

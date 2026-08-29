@@ -122,12 +122,12 @@ class CharterPDFForm:
 
         summary_lines = [
             [
-                f"Run Type:" f"{self._friendly_run_type(self.data.get('charter_type'))}",
+                f"Run Type:{self._friendly_run_type(self.data.get('charter_type'))}",
                 f"Pickup: {pickup_time}",
                 f"DO Time: {dropoff_time}",
             ],
             [
-                f"Est Hours:" f"{self._format_decimal(self.data.get('quoted_hours'))}",
+                f"Est Hours:{self._format_decimal(self.data.get('quoted_hours'))}",
                 f"Pax: {self._safe(self.data.get('passenger_load'))}",
                 "",
             ],
@@ -144,10 +144,7 @@ class CharterPDFForm:
         client_name = self._safe(self.data.get("client_name"))
         client_detail_lines = [
             f"Address: {self._safe(self.data.get('address_line1'))}",
-            (
-                f"City: {self._safe(self.data.get('city'))}, "
-                f"{self._safe(self.data.get('province'))}"
-            ),
+            (f"City: {self._safe(self.data.get('city'))}, {self._safe(self.data.get('province'))}"),
             f"Phone: {self._safe(self.data.get('phone'))}",
             "Alternate Phone: ____________________",
             f"Email: {self._safe(self.data.get('email'))}",
@@ -483,7 +480,7 @@ class CharterPDFForm:
             ["Status", *day_headers],
             ["Off-Duty", *off_vals],
             ["On-Duty", *on_vals],
-            ["Driving Bus", *driving_vals],
+            ["D.A.B.", *driving_vals],
             ["24h", *total_vals],
         ]
         status_col_width = 0.58 * inch
@@ -564,31 +561,12 @@ class CharterPDFForm:
             "Home Terminal: 38014 C and E Trail, Red Deer County, AB T4E 1R9",
         )
 
-        # Right portion: Cycle 1 / Cycle 2 radio buttons + Deferral checkbox
+        # Right portion: Alberta provincial exemption identification.
         radio_x = x_left + width * 0.60
-        r_cy_1 = y_top - 24  # vertical centre of cycle row
-        r_cy_2 = y_top - 38  # vertical centre of deferral row
-        r = 4.0  # radio circle radius
-
         pdf.setFont("Helvetica-Bold", 8.0)
-        pdf.drawString(radio_x, y_top - 27, "Cycle:")
-        pdf.setLineWidth(0.7)
-        # Circle for Cycle 1
-        c1_x = radio_x + 40
-        pdf.circle(c1_x, r_cy_1, r, stroke=1, fill=0)
-        pdf.setFont("Helvetica", 8.5)
-        pdf.drawString(c1_x + r + 2, y_top - 27, "1")
-        # Circle for Cycle 2
-        c2_x = c1_x + 24
-        pdf.circle(c2_x, r_cy_1, r, stroke=1, fill=0)
-        pdf.drawString(c2_x + r + 2, y_top - 27, "2")
-
-        # Deferral checkbox
-        cb_size = 8
-        pdf.setLineWidth(0.7)
-        pdf.rect(radio_x, r_cy_2 - cb_size / 2, cb_size, cb_size, stroke=1, fill=0)
-        pdf.setFont("Helvetica-Bold", 8.0)
-        pdf.drawString(radio_x + cb_size + 3, y_top - 38, "Deferral Used")
+        pdf.drawString(radio_x, y_top - 27, "Alberta Provincial")
+        pdf.setFont("Helvetica", 8.0)
+        pdf.drawString(radio_x, y_top - 38, "160 km daily-log exemption")
 
         # Draw table
         route_table.drawOn(pdf, x_left + 4, route_table_bottom_y)
@@ -598,10 +576,7 @@ class CharterPDFForm:
         pdf.drawString(
             x_left + 5,
             totals_y,
-            (
-                "TOTALS  Off-Duty: ___:____ hrs | On-Duty: ___:____ hrs | "
-                "Driving a Bus: ___:____ hrs"
-            ),
+            ("TOTALS  Off-Duty: ___:____ hrs | On-Duty: ___:____ hrs | D.A.B.: ___:____ hrs"),
         )
 
         # ─── Vehicle & Fuel Section — 2 columns ────────────────────────────
@@ -1073,7 +1048,7 @@ class CharterPDFForm:
         pdf.drawString(
             x_left + 8,
             signature_y,
-            ("CLIENT SIGNATURE: " "_______________________________________________"),
+            ("CLIENT SIGNATURE: _______________________________________________"),
         )
         pdf.drawString(x_left + width - 170, signature_y, "DATE: __________________")
 

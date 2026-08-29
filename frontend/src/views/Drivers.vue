@@ -59,20 +59,77 @@
           <h2>My HOS · Preceding 14 days</h2>
           <button class="secondary print-button" @click="printReport">Print HOS</button>
         </div>
+        <p class="hos-scope">
+          Alberta provincial · 160 km daily-log exemption · carrier time records retained for at least 6 months
+        </p>
+        <p class="hos-rule">
+          Review limits: 13 driving hours; no driving after 15 consecutive on-duty hours; at least 8 consecutive
+          hours off before a shift. Breaks: 10 minutes after up to 4 continuous driving hours, or 30 minutes after
+          more than 4 and up to 6 continuous driving hours.
+        </p>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Date</th><th>Shift start</th><th>Shift end</th><th>On duty</th><th>Driving</th><th>Off duty</th><th>Breaks</th></tr></thead>
+            <thead><tr><th>Status</th><th>Date</th><th>Off duty</th><th>On duty</th><th>D.A.B.</th><th>Total</th><th>Runs</th></tr></thead>
             <tbody>
-              <tr v-for="entry in hosEntries" :key="entry.date">
+              <template v-for="entry in hosEntries" :key="entry.date">
+              <tr :class="`hos-${entry.status}`">
+                <td><span class="hos-status">{{ hosStatus(entry) }}</span></td>
                 <td>{{ formatDate(entry.date) }}</td>
-                <td>{{ formatTime(entry.workshift_start) }}</td>
-                <td>{{ formatTime(entry.workshift_end) }}</td>
+                <td>{{ recorded(entry.total_off_duty) }}</td>
                 <td>{{ recorded(entry.total_on_duty) }}</td>
                 <td>{{ recorded(entry.total_driving) }}</td>
-                <td>{{ recorded(entry.total_off_duty) }}</td>
-                <td>{{ recorded(entry.breaks) }}</td>
+                <td>{{ recorded(entry.total_hours) }}</td>
+                <td>
+                  <button class="table-button" @click="toggleHosDay(entry.date)">
+                    {{ entry.charters.length }} · {{ expandedHosDay === entry.date ? 'Hide' : 'Details' }}
+                  </button>
+                </td>
               </tr>
-              <tr v-if="hosEntries.length === 0"><td colspan="7">No HOS records found in the preceding 14 days.</td></tr>
+              <tr v-if="expandedHosDay === entry.date" class="hos-detail-row">
+                <td colspan="7">
+                  <div class="hos-alerts">
+                    <strong>Daily review</strong>
+                    <ul><li v-for="alert in entry.alerts" :key="alert">{{ alert }}</li></ul>
+                    <div>
+                      Shift {{ formatTimestamp(entry.workshift_start) }} to {{ formatTimestamp(entry.workshift_end) }}
+                      · Elapsed {{ hours(entry.shift_elapsed) }}
+                      · Consecutive rest before shift: {{ hours(entry.rest_before_shift) }}
+                    </div>
+                  </div>
+                  <div v-if="entry.charters.length === 0">No assigned charters.</div>
+                  <div v-else class="hos-charters">
+                    <article v-for="trip in entry.charters" :key="trip.charter_id">
+                      <strong>Run {{ trip.reserve_number }}</strong>
+                      <span>{{ formatTime(trip.pickup_time) }} to {{ formatTime(trip.dropoff_time) }}</span>
+                      <span>
+                        Vehicle {{ trip.vehicle_number || 'not assigned' }} ·
+                        {{ trip.vehicle_type || 'type not recorded' }} ·
+                        {{ trip.passenger_capacity ?? 'unknown' }} seats
+                      </span>
+                      <span>Passengers {{ trip.passenger_count ?? 'not recorded' }} · Actual run hours {{ recorded(trip.actual_hours) }}</span>
+                      <span>D.A.B. {{ hours(trip.bus_driving_hours) }} · Breaks {{ trip.break_minutes ?? 'not recorded' }} minutes</span>
+                      <span>
+                        {{
+                          trip.passenger_capacity === null
+                            ? 'Capacity missing · D.A.B. classification needs review'
+                            : trip.is_bus
+                              ? 'Capacity 11+ · D.A.B. applies'
+                              : 'Capacity 10 or fewer · all hours are On Duty; D.A.B. is zero'
+                        }}
+                      </span>
+                      <span v-if="trip.is_out_of_town">Out-of-town run · dispatch must confirm it remained within 160 km</span>
+                      <button @click="openTrip(trip.charter_id)">Open run</button>
+                    </article>
+                  </div>
+                  <p class="hos-evidence">
+                    Total break hours alone cannot prove Alberta's continuous-driving break rule. Duty-status
+                    timestamps must show each required interruption. “Out of town” does not by itself prove travel
+                    beyond 160 km; dispatch must confirm exemption eligibility.
+                  </p>
+                </td>
+              </tr>
+              </template>
+              <tr v-if="hosEntries.length === 0"><td colspan="7">HOS records are unavailable for the preceding 14 days.</td></tr>
             </tbody>
           </table>
         </div>
@@ -104,6 +161,30 @@
           <label>
             Actual hours
             <input v-model.number="tripForm.actual_hours" type="number" min="0" max="24" step="0.25">
+          </label>
+          <label>
+            D.A.B. hours
+            <input
+              v-model.number="tripForm.bus_driving_hours"
+              type="number"
+              min="0"
+              max="24"
+              step="0.25"
+              :disabled="!selectedTrip.is_bus"
+            >
+            <small>
+              {{
+                selectedTrip.passenger_capacity === null
+                  ? 'Vehicle capacity is missing; have dispatch correct the vehicle record.'
+                  : selectedTrip.is_bus
+                    ? 'Vehicle capacity is 11+ including the driver. Enter driving time only.'
+                    : 'Vehicle capacity is 10 or fewer; record all work as On Duty. D.A.B. is zero.'
+              }}
+            </small>
+          </label>
+          <label>
+            Non-driving / off-duty break minutes
+            <input v-model.number="tripForm.break_minutes" type="number" min="0" max="1440" step="1">
           </label>
           <label class="wide">
             Driver notes
@@ -298,6 +379,7 @@ const calendarStart = ref('')
 const calendarHasMore = ref(false)
 const calendarNextOffset = ref(null)
 const hosEntries = ref([])
+const expandedHosDay = ref(null)
 const selectedTrip = ref(null)
 const receipts = ref([])
 const statements = ref([])
@@ -400,6 +482,12 @@ const openTrip = async (charterId) => {
       odometer_end: selectedTrip.value.odometer_end,
       fuel_added_liters: selectedTrip.value.fuel_added_liters,
       actual_hours: selectedTrip.value.actual_hours,
+      bus_driving_hours: selectedTrip.value.passenger_capacity === null
+        ? selectedTrip.value.bus_driving_hours
+        : selectedTrip.value.is_bus
+          ? selectedTrip.value.bus_driving_hours
+          : 0,
+      break_minutes: selectedTrip.value.break_minutes,
       mark_completed: selectedTrip.value.status === 'completed'
     })
     activeTab.value = 'run'
@@ -414,6 +502,12 @@ const saveTrip = async () => {
   try {
     const payload = { ...tripForm }
     delete payload.mark_completed
+    if (selectedTrip.value.passenger_capacity === null) {
+      delete payload.bus_driving_hours
+    }
+    for (const field of ['bus_driving_hours', 'break_minutes']) {
+      if (payload[field] === '') payload[field] = null
+    }
     if (tripForm.mark_completed && selectedTrip.value.status !== 'completed') {
       payload.status = 'completed'
     }
@@ -482,7 +576,19 @@ const money = value => value === null || value === undefined
   : new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(Number(value))
 const formatDate = value => value ? new Date(`${String(value).slice(0, 10)}T12:00:00`).toLocaleDateString('en-CA') : '—'
 const formatTime = value => value ? String(value).slice(0, 5) : 'Time not set'
+const formatTimestamp = value => value
+  ? new Date(value).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })
+  : 'not recorded'
 const recorded = value => value === null || value === undefined || value === '' ? 'Not recorded' : value
+const hours = value => value === null || value === undefined ? 'Not verified' : `${value} hours`
+const hosStatus = entry => ({
+  green: 'OK',
+  yellow: 'Review',
+  red: 'Alert'
+}[entry.status] || 'Review')
+const toggleHosDay = day => {
+  expandedHosDay.value = expandedHosDay.value === day ? null : day
+}
 const monthName = value => value ? new Intl.DateTimeFormat('en-CA', { month: 'long' }).format(new Date(2000, Number(value) - 1, 1)) : '—'
 const t4ForYear = year => t4Records.value.find(record => Number(record.tax_year) === Number(year))
 const printReport = () => window.print()
@@ -518,6 +624,17 @@ input, select, textarea { box-sizing: border-box; width: 100%; padding: .65rem; 
 .record-grid > div { display: grid; gap: .25rem; border: 1px solid #dbe3ee; border-radius: 8px; padding: .85rem; }
 .record-grid span { color: #64748b; font-size: .85rem; }
 .t4-record { margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #dbe3ee; break-inside: avoid; }
+.hos-scope { margin-bottom: .35rem; font-weight: 700; }
+.hos-rule, .hos-evidence { color: #475569; }
+.hos-green { background: #f0fdf4; }
+.hos-yellow { background: #fefce8; }
+.hos-red { background: #fef2f2; }
+.hos-status { font-weight: 700; }
+.hos-alerts ul { margin: .4rem 0 .75rem; }
+.hos-detail-row td { white-space: normal; padding: 1rem; }
+.hos-charters { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .75rem; margin-top: .75rem; }
+.hos-charters article { display: grid; gap: .35rem; border: 1px solid #cbd5e1; border-radius: 6px; padding: .75rem; }
+.table-button { padding: .35rem .6rem; }
 .load-more { margin-top: 1rem; }
 .summary-grid strong { font-size: 1.5rem; }
 .summary-grid .settled { border-color: #16a34a; background: #f0fdf4; }
