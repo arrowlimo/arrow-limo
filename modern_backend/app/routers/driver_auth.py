@@ -14,6 +14,7 @@ from ..services.auth.credentials import (
 from ..services.auth.onboarding import (
     create_mfa_challenge,
     create_onboarding_challenge,
+    get_linked_employee_phone,
     issue_phone_code,
     mark_phone_verified,
     mask_phone,
@@ -134,15 +135,25 @@ async def login_json(payload: LoginRequest, request: Request):
         raise HTTPException(status_code=401, detail=INVALID_CREDENTIALS)
     _require_driver_account(user)
 
+    if not _sms_mfa_ready():
+        raise HTTPException(
+            status_code=503,
+            detail="SMS verification is temporarily unavailable",
+        )
     if user["must_change_password"]:
+        challenge_token = create_onboarding_challenge(user["account_id"], purpose="activation")
+        phone = issue_phone_code(
+            challenge_token,
+            user["account_id"],
+            get_linked_employee_phone(user["account_id"]),
+            "activation",
+        )
         return {
-            "next_step": "change_password",
-            "challenge_token": create_onboarding_challenge(user["account_id"]),
+            "next_step": "verify_activation",
+            "challenge_token": challenge_token,
+            "masked_phone": mask_phone(phone),
             "user": _user_response(user),
         }
-    if not _sms_mfa_ready():
-        logger.warning("SMS MFA is not configured; using existing driver authentication")
-        return _authenticated_response(user)
     if not user["phone_verified"] or not user["mfa_phone"]:
         return {
             "next_step": "enroll_phone",
@@ -182,16 +193,13 @@ async def change_password(payload: PasswordChangeRequest):
         )
     _validate_new_password(payload.new_password)
     replace_password(user_id, payload.new_password)
-    if not _sms_mfa_ready():
-        refreshed_user = get_user_by_id(user_id)
-        if not refreshed_user:
-            raise HTTPException(status_code=401, detail="Driver account not found")
+    refreshed_user = get_user_by_id(user_id)
+    if not refreshed_user:
+        raise HTTPException(status_code=401, detail="Driver account not found")
+    if refreshed_user["phone_verified"] and refreshed_user["mfa_phone"]:
         return _authenticated_response(refreshed_user)
     set_challenge_purpose(payload.challenge_token, user_id, "enroll_phone")
-    return {
-        "next_step": "enroll_phone",
-        "challenge_token": payload.challenge_token,
-    }
+    return {"next_step": "enroll_phone", "challenge_token": payload.challenge_token}
 
 
 def _password_hash_for_user(user_id: int):
@@ -233,12 +241,20 @@ async def enroll_phone(payload: PhoneEnrollmentRequest):
 
 @router.post("/resend-code")
 async def resend_code(payload: ChallengeRequest):
-    user_id, purpose, phone = require_challenge(payload.challenge_token, {"phone_verify", "mfa"})
+    user_id, purpose, phone = require_challenge(
+        payload.challenge_token, {"activation", "phone_verify", "mfa"}
+    )
     if not phone:
         raise HTTPException(status_code=400, detail="Mobile phone is required")
     phone = issue_phone_code(payload.challenge_token, user_id, phone, purpose)
     return {
-        "next_step": "verify_phone" if purpose == "phone_verify" else "verify_mfa",
+        "next_step": (
+            "verify_activation"
+            if purpose == "activation"
+            else "verify_phone"
+            if purpose == "phone_verify"
+            else "verify_mfa"
+        ),
         "challenge_token": payload.challenge_token,
         "masked_phone": mask_phone(phone),
     }
@@ -247,6 +263,25 @@ async def resend_code(payload: ChallengeRequest):
 @router.post("/verify-code")
 async def verify_code(payload: CodeVerificationRequest, request: Request):
     user_id, purpose, phone = verify_phone_code(payload.challenge_token, payload.code)
+    if purpose == "activation":
+        mark_phone_verified(user_id, phone)
+        user = get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=401, detail="Driver account not found")
+        _require_driver_account(user)
+        record_auth_event(
+            action="activation_mfa_verified",
+            username=user["username"],
+            user_id=user["employee_id"],
+            role=user["role"],
+            request=request,
+            note="First-login phone verification completed",
+        )
+        return {
+            "next_step": "change_password",
+            "challenge_token": create_onboarding_challenge(user_id),
+            "user": _user_response(user),
+        }
     if purpose == "phone_verify":
         mark_phone_verified(user_id, phone)
     user = get_user_by_id(user_id)

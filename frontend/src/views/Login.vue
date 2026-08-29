@@ -18,7 +18,7 @@
       </form>
 
       <form v-else-if="step === 'change_password'" @submit.prevent="changePassword">
-        <p class="instructions">Create your private password before entering the portal.</p>
+        <p class="instructions">Create your private password after confirming the security code sent to the mobile number in your employee file.</p>
         <div class="form-group">
           <label for="new-password">New password</label>
           <input id="new-password" v-model="newPassword" type="password" minlength="12" required autocomplete="new-password" :disabled="loading">
@@ -56,11 +56,11 @@
             :disabled="loading"
           >
         </div>
-        <button type="submit" :disabled="loading">{{ loading ? 'Verifying...' : 'Verify and open portal' }}</button>
+        <button type="submit" :disabled="loading">{{ loading ? 'Verifying...' : verificationButtonLabel }}</button>
       </form>
 
       <div v-if="error" class="error-message">{{ error }}</div>
-      <button v-if="step === 'verify_phone' || step === 'verify_mfa'" class="restart" type="button" :disabled="loading" @click="resendCode">
+      <button v-if="step === 'verify_activation' || step === 'verify_phone' || step === 'verify_mfa'" class="restart" type="button" :disabled="loading" @click="resendCode">
         Send another code
       </button>
       <button v-if="step === 'verify_phone'" class="restart" type="button" :disabled="loading" @click="step = 'enroll_phone'">
@@ -89,6 +89,11 @@ export default {
       maskedPhone: '',
       error: '',
       loading: false
+    }
+  },
+  computed: {
+    verificationButtonLabel() {
+      return this.step === 'verify_activation' ? 'Verify and create private password' : 'Verify and open portal'
     }
   },
   methods: {

@@ -177,6 +177,39 @@ def require_enrollment_phone(user_id: int, submitted_phone: str) -> str:
         return_connection(conn)
 
 
+def get_linked_employee_phone(user_id: int) -> str:
+    conn = get_connection()
+    try:
+        ensure_auth_tables(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.cell_phone, e.phone
+                FROM driver_user_links l
+                JOIN employees e ON e.employee_id = l.employee_id
+                WHERE l.user_id = %s
+                LIMIT 1
+                """,
+                (user_id,),
+            )
+            row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=409, detail="Driver account is not linked")
+        for candidate in row:
+            if not candidate:
+                continue
+            try:
+                return normalize_phone(candidate)
+            except HTTPException:
+                continue
+        raise HTTPException(
+            status_code=409,
+            detail="Ask the office to add your mobile number to your employee file",
+        )
+    finally:
+        return_connection(conn)
+
+
 def _send_sms(phone: str, code: str) -> None:
     settings = get_settings()
     if not all(
@@ -202,7 +235,7 @@ def _send_sms(phone: str, code: str) -> None:
 
 
 def create_onboarding_challenge(user_id: int, purpose: str = "onboarding") -> str:
-    if purpose not in {"onboarding", "enroll_phone"}:
+    if purpose not in {"activation", "onboarding", "enroll_phone"}:
         raise ValueError("Invalid onboarding challenge purpose")
     token = secrets.token_urlsafe(32)
     conn = get_connection()
@@ -384,7 +417,7 @@ def verify_phone_code(challenge_token: str, code: str) -> tuple[int, str, str]:
                 (_hash(challenge_token),),
             )
             row = cur.fetchone()
-            if not row or row[1] not in {"phone_verify", "mfa"}:
+            if not row or row[1] not in {"activation", "phone_verify", "mfa"}:
                 raise HTTPException(status_code=401, detail="Verification code expired")
             if row[4] >= row[5] or not hmac.compare_digest(
                 row[2] or "", _otp_hash(challenge_token, code.strip())

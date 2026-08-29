@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     db_password: str | None = None
     sentry_dsn: str | None = None
     sentry_traces_sample_rate: float = 0.0
-    cors_origins: list[str] = ["*"]
+    cors_origins: list[str] = []
     trusted_hosts: list[str] = ["*"]
     log_requests: bool = True
     security_headers_enabled: bool = True
@@ -41,7 +41,7 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             stripped = value.strip()
             if not stripped:
-                return ["*"]
+                return []
             if stripped.startswith("["):
                 try:
                     parsed = json.loads(stripped)
