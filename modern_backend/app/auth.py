@@ -11,7 +11,6 @@ PROTECTED_PATH_PREFIXES = (
 )
 AUTH_EXEMPT_PATHS = {
     "/health",
-    "/db-ping",
 }
 AUTH_EXEMPT_PREFIXES = (
     "/auth",

@@ -19,7 +19,13 @@ from .settings import get_settings
 load_dotenv()
 
 settings = get_settings()
-app = FastAPI(title=settings.app_name)
+production = settings.environment.lower() == "production"
+app = FastAPI(
+    title=settings.app_name,
+    docs_url=None if production else "/docs",
+    redoc_url=None if production else "/redoc",
+    openapi_url=None if production else "/openapi.json",
+)
 logger = logging.getLogger("modern_backend")
 # Optional Sentry & OpenTelemetry (env-gated)
 SENTRY_DSN = os.environ.get("SENTRY_DSN")
@@ -93,29 +99,6 @@ async def provision_driver_accounts():
         provision_2026_chauffeur_accounts()
     except Exception:
         logger.exception("Driver account provisioning failed")
-
-
-@app.get("/db-ping")
-async def db_ping():
-    """Test database connectivity by running a simple query."""
-    try:
-        from .db import get_connection, return_connection
-
-        conn = get_connection()
-        try:
-            cur = conn.cursor()
-            cur.execute("SELECT COUNT(*) FROM banking_transactions")
-            count = cur.fetchone()[0]
-            cur.close()
-            return {
-                "status": "ok",
-                "database": "connected",
-                "banking_transactions_count": count,
-            }
-        finally:
-            return_connection(conn)
-    except Exception as e:
-        return {"status": "error", "database": "disconnected", "error": str(e)}
 
 
 # Routers (MUST be included BEFORE mounting static files)

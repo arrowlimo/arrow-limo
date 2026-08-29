@@ -9,6 +9,15 @@ from ..auth import get_current_user
 from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/chauffeur", tags=["chauffeur_self_service"])
+TRIP_UPDATE_COLUMNS = {
+    "driver_notes": "driver_notes",
+    "vehicle_notes": "vehicle_notes",
+    "odometer_start": "odometer_start",
+    "odometer_end": "odometer_end",
+    "fuel_added_liters": "fuel_added_liters",
+    "actual_hours": "actual_hours",
+    "status": "status",
+}
 
 
 class DriverTripUpdate(BaseModel):
@@ -334,7 +343,10 @@ def update_my_trip(
             assignments = []
             values = []
             for field, value in updates.items():
-                assignments.append(f"{field} = %s")
+                column = TRIP_UPDATE_COLUMNS.get(field)
+                if not column:
+                    raise HTTPException(status_code=400, detail="Unsupported driver field")
+                assignments.append(f"{column} = %s")
                 values.append(value)
             if updates.get("status") == "completed":
                 assignments.append("completion_timestamp = COALESCE(completion_timestamp, NOW())")
