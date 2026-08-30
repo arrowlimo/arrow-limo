@@ -191,6 +191,18 @@ def _register_unhandled_exception_handler(
             request.url.path,
             type(exc).__name__,
         )
+        current_user = getattr(request.state, "current_user", None) or {}
+        if request.url.path == "/api/chauffeur/me/hos" and current_user.get(
+            "impersonator_user_id"
+        ):
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": "internal_error",
+                    "message": f"{type(exc).__name__}: {exc}",
+                    "request_id": rid,
+                },
+            )
         return JSONResponse(
             status_code=500,
             content={
