@@ -1,6 +1,7 @@
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -9,6 +10,7 @@ from ..auth import get_current_user
 from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/chauffeur", tags=["chauffeur_self_service"])
+ALBERTA_TIMEZONE = ZoneInfo("America/Edmonton")
 TRIP_UPDATE_COLUMNS = {
     "driver_notes": "driver_notes",
     "vehicle_notes": "vehicle_notes",
@@ -68,9 +70,11 @@ def _as_datetime(day: date, value) -> datetime | None:
     if value is None:
         return None
     if isinstance(value, datetime):
-        return value
+        if value.tzinfo is not None:
+            return value.astimezone(ALBERTA_TIMEZONE)
+        return value.replace(tzinfo=ALBERTA_TIMEZONE)
     if hasattr(value, "hour"):
-        return datetime.combine(day, value)
+        return datetime.combine(day, value).replace(tzinfo=ALBERTA_TIMEZONE)
     return None
 
 

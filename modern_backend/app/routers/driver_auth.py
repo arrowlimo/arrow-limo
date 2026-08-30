@@ -431,36 +431,6 @@ async def list_support_notifications(request: Request):
         return_connection(conn)
 
 
-@router.get("/support/hos-schema")
-async def get_support_hos_schema(request: Request):
-    _require_support_session(request)
-    conn = get_connection()
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT table_name, column_name, data_type
-                FROM information_schema.columns
-                WHERE table_schema = 'public'
-                  AND table_name IN ('hos_log', 'charters', 'vehicles')
-                ORDER BY table_name, ordinal_position
-                """
-            )
-            rows = cur.fetchall()
-        return {
-            "tables": {
-                table_name: [
-                    {"name": column_name, "type": data_type}
-                    for row_table, column_name, data_type in rows
-                    if row_table == table_name
-                ]
-                for table_name in ("hos_log", "charters", "vehicles")
-            }
-        }
-    finally:
-        return_connection(conn)
-
-
 @router.post("/support/impersonate")
 async def impersonate_driver(
     payload: SupportImpersonationRequest,
