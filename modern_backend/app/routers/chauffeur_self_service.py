@@ -1066,7 +1066,7 @@ def get_my_hos(
                 WHERE (c.assigned_driver_id = %s OR c.employee_id = %s)
                   AND c.charter_date BETWEEN %s AND %s
                   {not_cancelled}
-                  AND LOWER(COALESCE(c.status, '')) NOT LIKE 'cancel%'
+                  AND LOWER(COALESCE(c.status, '')) NOT LIKE 'cancel%%'
                 ORDER BY c.charter_date ASC, c.pickup_time ASC NULLS LAST
                 """,
                 (employee_id, employee_id, employee_id, start_date, date.today()),
