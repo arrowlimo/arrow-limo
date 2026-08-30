@@ -1,6 +1,7 @@
 import ipaddress
 import logging
 import time
+import traceback
 import uuid
 from collections import defaultdict, deque
 from threading import Lock
@@ -192,14 +193,13 @@ def _register_unhandled_exception_handler(
             type(exc).__name__,
         )
         current_user = getattr(request.state, "current_user", None) or {}
-        if request.url.path == "/api/chauffeur/me/hos" and current_user.get(
-            "impersonator_user_id"
-        ):
+        if request.url.path == "/api/chauffeur/me/hos" and current_user.get("impersonator_user_id"):
+            frame = traceback.extract_tb(exc.__traceback__)[-1]
             return JSONResponse(
                 status_code=500,
                 content={
                     "error": "internal_error",
-                    "message": f"{type(exc).__name__}: {exc}",
+                    "message": f"{type(exc).__name__}: {exc} at line {frame.lineno}",
                     "request_id": rid,
                 },
             )
