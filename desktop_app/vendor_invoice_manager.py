@@ -31,6 +31,7 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QMenu,
@@ -358,6 +359,8 @@ class MultiInvoicePaymentDialog(QDialog):
         available_invoices,
         parent=None,
         payment_method="check",
+        initial_allocations=None,
+        preferred_invoice_id=None,
     ) -> None:
         super().__init__(parent)
         self.conn = conn
@@ -365,7 +368,8 @@ class MultiInvoicePaymentDialog(QDialog):
         self.payment_amount = payment_amount
         self.available_invoices = available_invoices
         self.payment_method = payment_method
-        self.allocations = {}  # invoice_id -> allocated_amount
+        self.allocations = dict(initial_allocations or {})
+        self.preferred_invoice_id = preferred_invoice_id
 
         self.setWindowTitle(f"Allocate Payment - {vendor_name}")
         self.setMinimumWidth(700)
@@ -445,6 +449,7 @@ class MultiInvoicePaymentDialog(QDialog):
 
         # Load invoices
         self._load_invoices()
+        self.invoice_table.itemChanged.connect(self._on_allocation_edited)
 
     def _load_invoices(self) -> None:
         """Load available invoices with outstanding balances"""
@@ -467,7 +472,8 @@ class MultiInvoicePaymentDialog(QDialog):
 
             # Checkbox
             check = QCheckBox()
-            check.setChecked(False)
+            initial_amount = float(self.allocations.get(receipt_id, 0))
+            check.setChecked(initial_amount > 0)
             check.stateChanged.connect(
                 lambda state, row=idx: self._on_checkbox_changed(row, state)
             )
@@ -519,13 +525,92 @@ class MultiInvoicePaymentDialog(QDialog):
                 bal_item.setForeground(QBrush(QColor("red")))
             self.invoice_table.setItem(idx, 5, bal_item)
 
-            # To Pay (initially empty, filled during allocation)
-            to_pay_item = QTableWidgetItem("$0.00")
+            # To Pay (initially empty, or populated for an existing split)
+            to_pay_item = QTableWidgetItem(f"${initial_amount:,.2f}")
             to_pay_item.setTextAlignment(
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
             )
             to_pay_item.setFont(self._get_bold_font())
             self.invoice_table.setItem(idx, 6, to_pay_item)
+            for col in range(1, 6):
+                item = self.invoice_table.item(idx, col)
+                if item:
+                    item.setFlags(
+                        item.flags() & ~Qt.ItemFlag.ItemIsEditable
+                    )
+            if initial_amount > 0:
+                for col in range(self.invoice_table.columnCount()):
+                    item = self.invoice_table.item(idx, col)
+                    if item:
+                        item.setBackground(QBrush(QColor("#c8e6c9")))
+            if receipt_id == self.preferred_invoice_id:
+                self.invoice_table.setCurrentCell(idx, 1)
+                self.invoice_table.scrollToItem(
+                    self.invoice_table.item(idx, 1)
+                )
+        self._update_summary()
+
+    def _on_allocation_edited(self, item) -> None:
+        """Apply a directly edited To Pay value while preserving the total."""
+        if item.column() != 6:
+            return
+        row = item.row()
+        invoice = self.available_invoices[row]
+        invoice_id = int(invoice[0])
+        available_balance = float(invoice[6])
+        try:
+            requested = float(
+                item.text().replace("$", "").replace(",", "").strip() or "0"
+            )
+        except ValueError:
+            requested = 0.0
+        other_total = sum(
+            amount
+            for current_id, amount in self.allocations.items()
+            if int(current_id) != invoice_id
+        )
+        maximum = max(
+            0.0,
+            min(available_balance, self.payment_amount - other_total),
+        )
+        applied = max(0.0, min(requested, maximum))
+        self.invoice_table.blockSignals(True)
+        try:
+            item.setText(f"${applied:,.2f}")
+            checkbox = self.invoice_table.cellWidget(row, 0)
+            if checkbox:
+                checkbox.blockSignals(True)
+                checkbox.setChecked(applied > 0.005)
+                checkbox.blockSignals(False)
+            if applied > 0.005:
+                self.allocations[invoice_id] = applied
+            else:
+                self.allocations.pop(invoice_id, None)
+        finally:
+            self.invoice_table.blockSignals(False)
+        if abs(requested - applied) >= 0.005:
+            QMessageBox.warning(
+                self,
+                "Allocation Adjusted",
+                f"Invoice {invoice[1] or invoice_id} can receive at most "
+                f"${maximum:,.2f} from this parent payment.",
+            )
+        self._update_summary()
+
+    def accept(self) -> None:
+        """Require the complete parent amount to remain allocated."""
+        remaining = self._get_remaining()
+        if abs(remaining) >= 0.005:
+            QMessageBox.warning(
+                self,
+                "Allocation Must Balance",
+                f"The parent payment is not balanced.\n\n"
+                f"Remaining to allocate: ${remaining:,.2f}\n\n"
+                "Remove an incorrect allocation and add the correct invoice "
+                "until Remaining is $0.00.",
+            )
+            return
+        super().accept()
 
     def _get_bold_font(self) -> QFont:
         """Get bold font"""
@@ -2286,6 +2371,14 @@ class VendorInvoiceManager(QWidget):
         add_payment_btn.clicked.connect(self._add_ledger_editor_payment)
         button_row.addWidget(add_payment_btn)
 
+        edit_split_btn = QPushButton("Edit Existing Split")
+        edit_split_btn.setToolTip(
+            "Find a parent payment by banking transaction ID or reference "
+            "and rebalance its invoice allocations."
+        )
+        edit_split_btn.clicked.connect(self._edit_existing_split_payment)
+        button_row.addWidget(edit_split_btn)
+
         save_btn = QPushButton("Save Corrected Row")
         save_btn.setStyleSheet(
             "background-color: #28a745; color: white; "
@@ -2529,6 +2622,275 @@ class VendorInvoiceManager(QWidget):
             QMessageBox.critical(
                 self, "Add Error", f"Unable to add the payment:\n\n{e}"
             )
+
+    def _edit_existing_split_payment(self) -> None:
+        """Find a parent payment and replace its balanced invoice allocations."""
+        metadata = self._selected_ledger_editor_metadata()
+        preferred_invoice_id = (
+            metadata["invoice_id"] if metadata is not None else None
+        )
+        lookup, accepted = QInputDialog.getText(
+            self,
+            "Edit Existing Split Payment",
+            "Banking transaction ID or payment reference:",
+        )
+        lookup = lookup.strip()
+        if not accepted or not lookup:
+            return
+
+        try:
+            with DatabaseContext(self.conn, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        vip.payment_group_id,
+                        MAX(ABS(COALESCE(
+                            vip.parent_payment_amount,
+                            vip.payment_amount
+                        ))) AS parent_amount,
+                        MIN(vip.payment_date) AS payment_date,
+                        MIN(COALESCE(vip.payment_method, '')) AS payment_method,
+                        MIN(COALESCE(vip.reference, '')) AS reference,
+                        MIN(COALESCE(vip.cheque_number, '')) AS cheque_number,
+                        MIN(vip.banking_transaction_id) AS banking_transaction_id,
+                        MIN(COALESCE(vip.notes, '')) AS notes
+                    FROM vendor_invoice_payments vip
+                    JOIN vendor_invoices vi
+                      ON vi.vendor_invoice_id = vip.receipt_id
+                    WHERE vi.vendor_name = %s
+                      AND vip.payment_group_id IS NOT NULL
+                      AND (
+                          vip.banking_transaction_id::text = %s
+                          OR LOWER(COALESCE(vip.reference, '')) = LOWER(%s)
+                      )
+                    GROUP BY vip.payment_group_id
+                    ORDER BY MAX(vip.created_at) DESC
+                    """,
+                    (self.current_vendor, lookup, lookup),
+                )
+                groups = cur.fetchall()
+                if not groups:
+                    raise ValueError(
+                        f"No split payment for {self.current_vendor} matches "
+                        f"'{lookup}'. Enter the banking TX ID shown in the "
+                        "payment row or the exact payment reference."
+                    )
+                if len(groups) > 1:
+                    raise ValueError(
+                        f"'{lookup}' matches more than one parent payment. "
+                        "Use the unique banking transaction ID instead."
+                    )
+
+                (
+                    group_id,
+                    parent_amount,
+                    payment_date,
+                    payment_method,
+                    reference,
+                    cheque_number,
+                    banking_transaction_id,
+                    notes,
+                ) = groups[0]
+                cur.execute(
+                    """
+                    SELECT receipt_id, SUM(ABS(payment_amount))
+                    FROM vendor_invoice_payments
+                    WHERE payment_group_id = %s
+                    GROUP BY receipt_id
+                    """,
+                    (group_id,),
+                )
+                current_allocations = {
+                    int(invoice_id): float(amount)
+                    for invoice_id, amount in cur.fetchall()
+                }
+                cur.execute(
+                    """
+                    SELECT
+                        vi.vendor_invoice_id,
+                        COALESCE(vi.invoice_number, ''),
+                        COALESCE(vi.notes, ''),
+                        vi.invoice_date,
+                        COALESCE(vi.invoice_amount, 0),
+                        COALESCE(other_payments.paid, 0),
+                        COALESCE(vi.invoice_amount, 0)
+                            - COALESCE(other_payments.paid, 0),
+                        ''
+                    FROM vendor_invoices vi
+                    LEFT JOIN LATERAL (
+                        SELECT SUM(ABS(vip.payment_amount)) AS paid
+                        FROM vendor_invoice_payments vip
+                        WHERE vip.receipt_id = vi.vendor_invoice_id
+                          AND vip.payment_group_id IS DISTINCT FROM %s
+                    ) other_payments ON TRUE
+                    WHERE vi.vendor_name = %s
+                      AND COALESCE(vi.invoice_number, '')
+                          <> 'BANKING_IMPORT'
+                      AND (
+                          COALESCE(vi.invoice_amount, 0)
+                              - COALESCE(other_payments.paid, 0) > 0.005
+                          OR vi.vendor_invoice_id = ANY(%s)
+                      )
+                    ORDER BY vi.invoice_date, vi.vendor_invoice_id
+                    """,
+                    (
+                        group_id,
+                        self.current_vendor,
+                        list(current_allocations),
+                    ),
+                )
+                available_invoices = cur.fetchall()
+
+            dialog = MultiInvoicePaymentDialog(
+                self.conn,
+                self.current_vendor,
+                float(parent_amount),
+                available_invoices,
+                self,
+                payment_method,
+                initial_allocations=current_allocations,
+                preferred_invoice_id=preferred_invoice_id,
+            )
+            dialog.setWindowTitle(
+                f"Edit Split {reference or group_id} - {self.current_vendor}"
+            )
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+
+            allocations = {
+                int(invoice_id): Decimal(str(amount))
+                for invoice_id, amount in dialog.get_allocations().items()
+                if Decimal(str(amount)) > Decimal("0.005")
+            }
+            allocated_total = sum(allocations.values(), Decimal("0"))
+            parent_amount = Decimal(str(parent_amount))
+            if abs(allocated_total - parent_amount) >= Decimal("0.005"):
+                raise ValueError(
+                    f"Allocations total ${allocated_total:,.2f}, but the "
+                    f"parent payment is ${parent_amount:,.2f}."
+                )
+
+            with DatabaseContext(self.conn, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    SELECT payment_id
+                    FROM vendor_invoice_payments
+                    WHERE payment_group_id = %s
+                    FOR UPDATE
+                    """,
+                    (group_id,),
+                )
+                if not cur.fetchall():
+                    raise ValueError(
+                        "The parent payment no longer exists. Refresh and try "
+                        "again."
+                    )
+                cur.execute(
+                    """
+                    SELECT MAX(ABS(COALESCE(
+                        parent_payment_amount,
+                        payment_amount
+                    )))
+                    FROM vendor_invoice_payments
+                    WHERE payment_group_id = %s
+                    """,
+                    (group_id,),
+                )
+                locked_parent = cur.fetchone()
+                if (
+                    not locked_parent
+                    or Decimal(str(locked_parent[0])) != parent_amount
+                ):
+                    raise ValueError(
+                        "The parent payment changed while it was being edited. "
+                        "Refresh and try again."
+                    )
+                self._lock_and_validate_replacement_allocations(
+                    cur, allocations, group_id
+                )
+                cur.execute(
+                    """
+                    DELETE FROM vendor_invoice_payments
+                    WHERE payment_group_id = %s
+                    """,
+                    (group_id,),
+                )
+                for invoice_id, amount in allocations.items():
+                    cur.execute(
+                        """
+                        INSERT INTO vendor_invoice_payments (
+                            receipt_id, payment_date, payment_amount,
+                            payment_method, reference, cheque_number,
+                            payment_group_id, parent_payment_amount,
+                            banking_transaction_id, notes
+                        )
+                        VALUES (
+                            %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s
+                        )
+                        """,
+                        (
+                            invoice_id,
+                            payment_date,
+                            amount,
+                            payment_method,
+                            reference or None,
+                            cheque_number or None,
+                            group_id,
+                            parent_amount,
+                            banking_transaction_id,
+                            notes or None,
+                        ),
+                    )
+
+            self._refresh_after_ledger_change()
+            QMessageBox.information(
+                self,
+                "Split Payment Updated",
+                f"{reference or group_id} now has {len(allocations)} invoice "
+                f"allocation(s) totaling ${allocated_total:,.2f}.",
+            )
+        except Exception as e:
+            logger.error("Failed to edit existing split payment: %s", e)
+            QMessageBox.critical(
+                self,
+                "Split Payment Error",
+                f"Unable to update the split payment:\n\n{e}",
+            )
+
+    @staticmethod
+    def _lock_and_validate_replacement_allocations(
+        cur, allocations, group_id
+    ) -> None:
+        """Validate replacement rows against balances excluding this group."""
+        for invoice_id, amount in allocations.items():
+            cur.execute(
+                """
+                SELECT
+                    COALESCE(vi.invoice_number, ''),
+                    COALESCE(vi.invoice_amount, 0)
+                        - COALESCE((
+                            SELECT SUM(ABS(vip.payment_amount))
+                            FROM vendor_invoice_payments vip
+                            WHERE vip.receipt_id = vi.vendor_invoice_id
+                              AND vip.payment_group_id IS DISTINCT FROM %s
+                        ), 0)
+                FROM vendor_invoices vi
+                WHERE vi.vendor_invoice_id = %s
+                FOR UPDATE
+                """,
+                (group_id, invoice_id),
+            )
+            invoice = cur.fetchone()
+            if not invoice:
+                raise ValueError(f"Invoice ID {invoice_id} no longer exists.")
+            invoice_number, available_balance = invoice
+            if amount > Decimal(str(available_balance)) + Decimal("0.005"):
+                raise ValueError(
+                    f"Allocation for invoice "
+                    f"{invoice_number or invoice_id} exceeds its available "
+                    f"${Decimal(str(available_balance)):,.2f} balance."
+                )
 
     def _delete_ledger_editor_row(self) -> None:
         """Delete the selected ledger row after dependency checks."""
