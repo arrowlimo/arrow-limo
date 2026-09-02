@@ -19,7 +19,7 @@ from uuid import uuid4
 
 from common_widgets import StandardDateEdit
 from db_error_handling import DatabaseContext
-from PyQt6.QtCore import QDate, Qt, QTimer, pyqtSlot
+from PyQt6.QtCore import QDate, QSettings, Qt, QTimer, pyqtSlot
 from PyQt6.QtGui import QAction, QBrush, QColor, QFont
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -667,6 +667,7 @@ class VendorInvoiceManager(QWidget):
         self.details_workspace_tabs = None
         self._syncing_correction_selection = False
         self._lower_workspace_expanded = False
+        self._settings = QSettings("ArrowLimo", "Desktop")
         self._init_vendor_invoice_filters_table()
         self._ensure_vendor_payment_link_schema()
         self.init_ui()
@@ -1047,9 +1048,28 @@ class VendorInvoiceManager(QWidget):
         QTimer.singleShot(0, self._load_initial_vendor)
 
     def _load_initial_vendor(self) -> None:
-        """Load invoices for vendor already shown in combo at startup."""
+        """Restore the last opened vendor, then fall back to the first vendor."""
         if self.current_vendor:
             return  # Already loaded via signal
+
+        last_vendor = str(
+            self._settings.value("vendor_invoice_manager/last_vendor", "") or ""
+        ).strip()
+        if last_vendor:
+            matched_vendor = next(
+                (
+                    vendor_name
+                    for _vendor_id, vendor_name, _category
+                    in self.vendor_lookup.vendors
+                    if vendor_name.casefold() == last_vendor.casefold()
+                ),
+                None,
+            )
+            if matched_vendor:
+                self.vendor_lookup.set_vendor(matched_vendor)
+                if self.current_vendor:
+                    return
+
         current_text = self.vendor_lookup.vendor_combo.currentText()
         if current_text:
             vendor_name = (
@@ -3280,6 +3300,9 @@ class VendorInvoiceManager(QWidget):
         if self.details_workspace_dialog is not None:
             self._clear_edit_fields()
         self.current_vendor = vendor_name
+        self._settings.setValue(
+            "vendor_invoice_manager/last_vendor", vendor_name
+        )
         self._load_vendor_invoices()
         self._refresh_account_summary()
         self._refresh_payment_history()
