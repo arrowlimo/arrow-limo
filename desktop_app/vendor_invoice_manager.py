@@ -15,6 +15,7 @@ Features:
 import logging
 from datetime import datetime
 from decimal import Decimal
+from uuid import uuid4
 
 from common_widgets import StandardDateEdit
 from db_error_handling import DatabaseContext
@@ -662,11 +663,137 @@ class VendorInvoiceManager(QWidget):
         self.editing_receipt_id = None
         self.hide_auto_import_checkbox = None
         self._vendor_filter_cache = {}
-        self.ledger_editor_dialog = None
-        self.summary_dialog = None
+        self.details_workspace_dialog = None
+        self.details_workspace_tabs = None
         self._syncing_correction_selection = False
+        self._lower_workspace_expanded = False
         self._init_vendor_invoice_filters_table()
+        self._ensure_vendor_payment_link_schema()
         self.init_ui()
+
+    def _ensure_vendor_payment_link_schema(self) -> None:
+        """Add durable parent/split-payment fields and backfill legacy rows."""
+        try:
+            with DatabaseContext(self.conn, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS vendor_invoice_payments (
+                        payment_id SERIAL PRIMARY KEY,
+                        receipt_id INTEGER NOT NULL,
+                        payment_date DATE NOT NULL,
+                        payment_amount DECIMAL(10,2) NOT NULL,
+                        payment_method VARCHAR(50),
+                        reference VARCHAR(255),
+                        cheque_number VARCHAR(100),
+                        payment_group_id VARCHAR(64),
+                        parent_payment_amount DECIMAL(12,2),
+                        banking_transaction_id INTEGER,
+                        notes TEXT,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                    """
+                )
+                cur.execute(
+                    """
+                    ALTER TABLE vendor_invoice_payments
+                    ADD COLUMN IF NOT EXISTS cheque_number VARCHAR(100)
+                    """
+                )
+                cur.execute(
+                    """
+                    ALTER TABLE vendor_invoice_payments
+                    ADD COLUMN IF NOT EXISTS payment_group_id VARCHAR(64)
+                    """
+                )
+                cur.execute(
+                    """
+                    ALTER TABLE vendor_invoice_payments
+                    ADD COLUMN IF NOT EXISTS parent_payment_amount DECIMAL(12,2)
+                    """
+                )
+                cur.execute(
+                    """
+                    UPDATE vendor_invoice_payments vip
+                    SET cheque_number = NULLIF(TRIM(bt.check_number), '')
+                    FROM banking_transactions bt
+                    WHERE bt.transaction_id = vip.banking_transaction_id
+                      AND vip.cheque_number IS NULL
+                      AND LOWER(COALESCE(vip.payment_method, ''))
+                          IN ('check', 'cheque', 'banking link')
+                    """
+                )
+                cur.execute(
+                    """
+                    WITH grouped AS (
+                        SELECT
+                            vip.payment_id,
+                            md5(
+                                vi.vendor_name || '|' ||
+                                CASE
+                                    WHEN vip.banking_transaction_id IS NOT NULL
+                                    THEN 'bank:' || vip.banking_transaction_id::text
+                                    WHEN LOWER(COALESCE(
+                                        vip.payment_method, ''
+                                    )) = 'cash'
+                                    THEN 'cash:' || vip.payment_id::text
+                                    ELSE
+                                        'manual:' ||
+                                        vip.payment_date::text || '|' ||
+                                        LOWER(COALESCE(vip.payment_method, '')) || '|' ||
+                                        LOWER(COALESCE(
+                                            NULLIF(vip.cheque_number, ''),
+                                            NULLIF(vip.reference, ''),
+                                            vip.payment_id::text
+                                        ))
+                                END
+                            ) AS group_id
+                        FROM vendor_invoice_payments vip
+                        JOIN vendor_invoices vi
+                          ON vi.vendor_invoice_id = vip.receipt_id
+                        WHERE vip.payment_group_id IS NULL
+                    )
+                    UPDATE vendor_invoice_payments vip
+                    SET payment_group_id = grouped.group_id
+                    FROM grouped
+                    WHERE grouped.payment_id = vip.payment_id
+                    """
+                )
+                cur.execute(
+                    """
+                    WITH totals AS (
+                        SELECT
+                            payment_group_id,
+                            SUM(ABS(COALESCE(payment_amount, 0))) AS group_total
+                        FROM vendor_invoice_payments
+                        WHERE payment_group_id IS NOT NULL
+                        GROUP BY payment_group_id
+                    )
+                    UPDATE vendor_invoice_payments vip
+                    SET parent_payment_amount = totals.group_total
+                    FROM totals
+                    WHERE totals.payment_group_id = vip.payment_group_id
+                      AND vip.parent_payment_amount IS NULL
+                    """
+                )
+                cur.execute(
+                    """
+                    UPDATE vendor_invoice_payments vip
+                    SET parent_payment_amount = ABS(bt.debit_amount)
+                    FROM banking_transactions bt
+                    WHERE bt.transaction_id = vip.banking_transaction_id
+                      AND ABS(COALESCE(bt.debit_amount, 0)) >= 0.005
+                    """
+                )
+                cur.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS
+                        idx_vendor_invoice_payments_group
+                    ON vendor_invoice_payments (payment_group_id, payment_id)
+                    """
+                )
+        except Exception as e:
+            logger.error("Failed to initialize vendor payment links: %s", e)
+            raise
 
     def _init_vendor_invoice_filters_table(self) -> None:
         """Create and seed DB-backed invoice vendor filters.
@@ -864,11 +991,20 @@ class VendorInvoiceManager(QWidget):
         layout.addWidget(top_controls)
 
         # Keep the invoice list and detail workspace independently resizable.
-        content_splitter = QSplitter(Qt.Orientation.Vertical)
-        content_splitter.setChildrenCollapsible(False)
+        self.content_splitter = QSplitter(Qt.Orientation.Vertical)
+        self.content_splitter.setChildrenCollapsible(False)
+        self.content_splitter.setOpaqueResize(True)
+        self.content_splitter.setHandleWidth(10)
+        self.content_splitter.setStyleSheet(
+            "QSplitter::handle:vertical {"
+            " background-color: #b8cde0;"
+            " border-top: 1px solid #7f9db9;"
+            " border-bottom: 1px solid #7f9db9;"
+            "}"
+        )
 
         invoice_panel = self._create_invoice_list()
-        content_splitter.addWidget(invoice_panel)
+        self.content_splitter.addWidget(invoice_panel)
 
         # Preserve enough height for roughly eight compact lines of detail.
         self.details_tabs = QTabWidget()
@@ -883,9 +1019,6 @@ class VendorInvoiceManager(QWidget):
         )
         self.details_tabs.addTab(
             self._create_add_invoice_tab(), "➕ Add Invoice"
-        )
-        self.details_tabs.addTab(
-            self._create_edit_invoice_tab(), "✏️ Edit Invoice"
         )
         self.details_tabs.addTab(
             self._create_payment_tab(), "💰 Apply Payment"
@@ -904,11 +1037,11 @@ class VendorInvoiceManager(QWidget):
             Qt.ScrollBarPolicy.ScrollBarAlwaysOn
         )
 
-        content_splitter.addWidget(self.details_scroll)
-        content_splitter.setStretchFactor(0, 1)
-        content_splitter.setStretchFactor(1, 1)
-        content_splitter.setSizes([300, 300])
-        layout.addWidget(content_splitter, stretch=1)
+        self.content_splitter.addWidget(self.details_scroll)
+        self.content_splitter.setStretchFactor(0, 1)
+        self.content_splitter.setStretchFactor(1, 1)
+        self.content_splitter.setSizes([300, 300])
+        layout.addWidget(self.content_splitter, stretch=1)
 
         # Trigger initial invoice load for vendor shown in combo at startup.
         QTimer.singleShot(0, self._load_initial_vendor)
@@ -926,6 +1059,45 @@ class VendorInvoiceManager(QWidget):
             )
             if vendor_name:
                 self._on_vendor_selected(vendor_name)
+
+    def _toggle_lower_workspace(self) -> None:
+        """Expand or restore the lower operational workspace."""
+        sizes = self.content_splitter.sizes()
+        total = sum(sizes)
+        if not self._lower_workspace_expanded:
+            self._normal_splitter_sizes = sizes
+            self.content_splitter.setSizes([120, max(total - 120, 260)])
+            self._lower_workspace_expanded = True
+            self.expand_lower_btn.setText("↕ Restore")
+        else:
+            restored = getattr(
+                self, "_normal_splitter_sizes", [max(total // 2, 180)] * 2
+            )
+            self.content_splitter.setSizes(restored)
+            self._lower_workspace_expanded = False
+            self.expand_lower_btn.setText("↕ Expand Lower")
+
+    def _toggle_navigation_ribbon(self) -> None:
+        """Hide or restore ancestor navigation tabs like an Office ribbon."""
+        hidden_bars = getattr(self, "_hidden_navigation_tab_bars", [])
+        if hidden_bars:
+            for tab_bar in hidden_bars:
+                tab_bar.setVisible(True)
+            self._hidden_navigation_tab_bars = []
+            self.ribbon_toggle_btn.setText("▲ Hide Ribbon")
+            return
+
+        tab_bars = []
+        parent = self.parentWidget()
+        while parent is not None:
+            if isinstance(parent, QTabWidget) and parent.tabBar().isVisible():
+                tab_bars.append(parent.tabBar())
+            parent = parent.parentWidget()
+
+        for tab_bar in tab_bars:
+            tab_bar.setVisible(False)
+        self._hidden_navigation_tab_bars = tab_bars
+        self.ribbon_toggle_btn.setText("▼ Show Ribbon")
 
     def _create_quick_actions(self) -> QWidget:
         """Quick action buttons for common tasks"""
@@ -949,7 +1121,7 @@ class VendorInvoiceManager(QWidget):
         layout.addWidget(add_invoice_btn)
 
         # Edit selected invoice button
-        edit_invoice_btn = QPushButton("✏️ Edit")
+        edit_invoice_btn = QPushButton("✏️ Details")
         edit_invoice_btn.setStyleSheet(
             "background-color: #fd7e14; color: white; padding: 4px 8px; "
             "font-weight: bold; font-size: 10px;"
@@ -1023,6 +1195,16 @@ class VendorInvoiceManager(QWidget):
         summary_btn.setFixedHeight(24)
         summary_btn.clicked.connect(self._open_summary_window)
         layout.addWidget(summary_btn)
+
+        self.expand_lower_btn = QPushButton("↕ Expand Lower")
+        self.expand_lower_btn.setFixedHeight(24)
+        self.expand_lower_btn.clicked.connect(self._toggle_lower_workspace)
+        layout.addWidget(self.expand_lower_btn)
+
+        self.ribbon_toggle_btn = QPushButton("▲ Hide Ribbon")
+        self.ribbon_toggle_btn.setFixedHeight(24)
+        self.ribbon_toggle_btn.clicked.connect(self._toggle_navigation_ribbon)
+        layout.addWidget(self.ribbon_toggle_btn)
 
         return controls
 
@@ -1102,8 +1284,6 @@ class VendorInvoiceManager(QWidget):
         )
         filter_layout = QHBoxLayout(filter_frame)
         filter_layout.setContentsMargins(5, 5, 5, 5)
-
-        filter_layout.addWidget(QLabel("🔍 Filters:"))
 
         # Invoice number filter
         filter_layout.addWidget(QLabel("Invoice #:"))
@@ -1415,25 +1595,10 @@ class VendorInvoiceManager(QWidget):
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
-        # Selection info with status
-        info_widget = QWidget()
-        info_layout = QVBoxLayout(info_widget)
-        info_layout.setContentsMargins(5, 5, 5, 5)
-        info_widget.setStyleSheet(
-            "background-color: #d4edda; border-radius: 5px;"
-        )
-
         self.edit_status_label = QLabel(
             "No invoice selected."
         )
-        self.edit_status_label.setWordWrap(True)
-        self.edit_status_label.setStyleSheet(
-            "font-size: 11px; color: #004085; font-weight: bold; "
-            "margin-top: 5px;"
-        )
-        info_layout.addWidget(self.edit_status_label)
-
-        layout.addWidget(info_widget)
+        self.edit_status_label.setVisible(False)
 
         # Main form - 2 column layout
         form_widget = QWidget()
@@ -1556,9 +1721,14 @@ class VendorInvoiceManager(QWidget):
         left_form.addRow("Amount:", payment_amount_row)
 
         self.payment_reference = QLineEdit()
-        self.payment_reference.setPlaceholderText("Check # or reference")
+        self.payment_reference.setPlaceholderText("Payment reference")
         self.payment_reference.setMaximumWidth(200)
         left_form.addRow("Reference:", self.payment_reference)
+
+        self.payment_cheque_number = QLineEdit()
+        self.payment_cheque_number.setPlaceholderText("Cheque number")
+        self.payment_cheque_number.setMaximumWidth(200)
+        left_form.addRow("Cheque #:", self.payment_cheque_number)
 
         self.payment_receipt_tx = QLineEdit()
         self.payment_receipt_tx.setPlaceholderText("Receipt/TX # (optional)")
@@ -1630,29 +1800,30 @@ class VendorInvoiceManager(QWidget):
         history_refresh_btn = QPushButton("🔄 Refresh Payment History")
         history_refresh_btn.clicked.connect(self._refresh_payment_history)
         history_row.addWidget(history_refresh_btn)
-        history_row.addStretch()
-        history_layout.addLayout(history_row)
 
         self.payment_history_label = QLabel(
             "No payment rows loaded."
         )
         self.payment_history_label.setWordWrap(True)
         self.payment_history_label.setStyleSheet(
-            "font-size: 11px; color: #444; padding: 4px;"
+            "font-size: 11px; color: #444;"
         )
-        history_layout.addWidget(self.payment_history_label)
+        history_row.addWidget(self.payment_history_label, stretch=1)
+        history_layout.addLayout(history_row)
 
         self.payment_history_table = QTableWidget()
-        self.payment_history_table.setColumnCount(9)
+        self.payment_history_table.setColumnCount(11)
         self.payment_history_table.setHorizontalHeaderLabels(
             [
                 "Payment ID",
                 "Invoice ID",
                 "Invoice #",
                 "Date",
-                "Amount",
+                "Allocated",
+                "Parent / Connected",
                 "Method",
                 "Reference",
+                "Cheque #",
                 "Bank TX",
                 "Created",
             ]
@@ -1675,6 +1846,9 @@ class VendorInvoiceManager(QWidget):
         )
         self.payment_history_table.setVerticalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        self.payment_history_table.itemDoubleClicked.connect(
+            self._show_selected_payment_family
         )
         history_layout.addWidget(self.payment_history_table, stretch=1)
         layout.addWidget(history_panel, stretch=3)
@@ -1963,29 +2137,13 @@ class VendorInvoiceManager(QWidget):
         return widget
 
     def _open_ledger_editor(self) -> None:
-        """Open the modeless legacy-data ledger correction window."""
-        if not self.current_vendor:
-            QMessageBox.warning(
-                self, "No Vendor", "Select a vendor before opening the ledger."
-            )
-            return
+        """Show the Ledger tab in the shared Details workspace."""
+        self._show_details_workspace(1)
 
-        if self.ledger_editor_dialog is not None:
-            self._refresh_ledger_editor()
-            self.ledger_editor_dialog.show()
-            self.ledger_editor_dialog.raise_()
-            self.ledger_editor_dialog.activateWindow()
-            return
-
-        dialog = QDialog(self)
-        self.ledger_editor_dialog = dialog
-        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
-        dialog.destroyed.connect(self._ledger_editor_closed)
-        dialog.setWindowTitle(
-            f"Legacy Data Ledger - {self.current_vendor}"
-        )
-        dialog.resize(1180, 720)
-        layout = QVBoxLayout(dialog)
+    def _create_ledger_editor_tab(self) -> QWidget:
+        """Build the editable ledger tab for the Details workspace."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
 
         self.ledger_editor_summary = QLabel()
         layout.addWidget(self.ledger_editor_summary)
@@ -2086,14 +2244,6 @@ class VendorInvoiceManager(QWidget):
         refresh_btn.clicked.connect(self._refresh_ledger_editor)
         button_row.addWidget(refresh_btn)
 
-        edit_invoice_btn = QPushButton("Edit Selected Invoice")
-        edit_invoice_btn.clicked.connect(self._edit_selected_invoice)
-        button_row.addWidget(edit_invoice_btn)
-
-        summary_btn = QPushButton("Open Summary")
-        summary_btn.clicked.connect(self._open_summary_window)
-        button_row.addWidget(summary_btn)
-
         add_invoice_btn = QPushButton("Add Invoice")
         add_invoice_btn.clicked.connect(self._add_ledger_editor_invoice)
         button_row.addWidget(add_invoice_btn)
@@ -2118,19 +2268,58 @@ class VendorInvoiceManager(QWidget):
         delete_btn.clicked.connect(self._delete_ledger_editor_row)
         button_row.addWidget(delete_btn)
         button_row.addStretch()
-
-        close_btn = QPushButton("Close")
-        close_btn.clicked.connect(dialog.close)
-        button_row.addWidget(close_btn)
         layout.addLayout(button_row)
 
-        self._refresh_ledger_editor()
-        dialog.show()
+        return widget
 
-    def _ledger_editor_closed(self) -> None:
-        """Clear references to controls owned by the closed ledger window."""
-        self.ledger_editor_dialog = None
+    def _show_details_workspace(self, tab_index: int) -> None:
+        """Open one shared Details, Ledger, and Summary workspace."""
+        if not self.current_vendor:
+            QMessageBox.warning(
+                self, "No Vendor", "Select a vendor before opening details."
+            )
+            return
+
+        if self.details_workspace_dialog is None:
+            dialog = QDialog(self)
+            self.details_workspace_dialog = dialog
+            dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            dialog.destroyed.connect(self._details_workspace_closed)
+            dialog.resize(1180, 720)
+            layout = QVBoxLayout(dialog)
+
+            self.details_workspace_tabs = QTabWidget()
+            self.details_workspace_tabs.addTab(
+                self._create_edit_invoice_tab(), "Details"
+            )
+            self.details_workspace_tabs.addTab(
+                self._create_ledger_editor_tab(), "Ledger"
+            )
+            self.details_workspace_tabs.addTab(
+                self._create_account_summary_tab(), "Summary"
+            )
+            layout.addWidget(self.details_workspace_tabs)
+            self._refresh_ledger_editor()
+            self._refresh_account_summary()
+
+        self.details_workspace_dialog.setWindowTitle(
+            f"Vendor Details - {self.current_vendor}"
+        )
+        self.details_workspace_tabs.setCurrentIndex(tab_index)
+        self.details_workspace_dialog.show()
+        self.details_workspace_dialog.raise_()
+        self.details_workspace_dialog.activateWindow()
+
+    def _details_workspace_closed(self) -> None:
+        """Clear controls owned by the closed Details workspace."""
+        self.details_workspace_dialog = None
+        self.details_workspace_tabs = None
         for name in (
+            "edit_status_label",
+            "edit_invoice_num",
+            "edit_invoice_date",
+            "edit_invoice_amount",
+            "edit_invoice_desc",
             "ledger_editor_summary",
             "ledger_editor_table",
             "ledger_editor_date",
@@ -2144,6 +2333,7 @@ class VendorInvoiceManager(QWidget):
             "ledger_editor_banking_id",
             "ledger_editor_banking_id_label",
             "ledger_editor_notes",
+            "summary_text",
         ):
             if hasattr(self, name):
                 delattr(self, name)
@@ -2274,8 +2464,8 @@ class VendorInvoiceManager(QWidget):
                     INSERT INTO vendor_invoice_payments
                         (receipt_id, payment_date, payment_amount,
                          payment_method, reference, banking_transaction_id,
-                         notes)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                         payment_group_id, parent_payment_amount, notes)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING payment_id
                     """,
                     (
@@ -2285,6 +2475,8 @@ class VendorInvoiceManager(QWidget):
                         self.ledger_editor_method.currentText(),
                         reference or None,
                         banking_id,
+                        uuid4().hex,
+                        amount,
                         self.ledger_editor_notes.toPlainText().strip() or None,
                     ),
                 )
@@ -2953,59 +3145,14 @@ class VendorInvoiceManager(QWidget):
         refresh_btn.clicked.connect(self._refresh_account_summary)
         button_row = QHBoxLayout()
         button_row.addWidget(refresh_btn)
-
-        edit_btn = QPushButton("✏️ Edit Selected Invoice")
-        edit_btn.clicked.connect(self._edit_selected_invoice)
-        button_row.addWidget(edit_btn)
-
-        ledger_btn = QPushButton("📒 Open Ledger")
-        ledger_btn.clicked.connect(self._open_ledger_editor)
-        button_row.addWidget(ledger_btn)
-
-        close_btn = QPushButton("Close")
-        close_btn.clicked.connect(self._close_summary_window)
-        button_row.addWidget(close_btn)
         button_row.addStretch()
         layout.addLayout(button_row)
 
         return widget
 
     def _open_summary_window(self) -> None:
-        """Open the modeless live summary beside the correction surfaces."""
-        if not self.current_vendor:
-            QMessageBox.warning(
-                self, "No Vendor", "Select a vendor before opening the summary."
-            )
-            return
-
-        if self.summary_dialog is not None:
-            self._refresh_account_summary()
-            self.summary_dialog.show()
-            self.summary_dialog.raise_()
-            self.summary_dialog.activateWindow()
-            return
-
-        dialog = QDialog(self)
-        self.summary_dialog = dialog
-        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
-        dialog.destroyed.connect(self._summary_window_closed)
-        dialog.setWindowTitle(f"Live Account Summary - {self.current_vendor}")
-        dialog.resize(720, 620)
-        layout = QVBoxLayout(dialog)
-        layout.addWidget(self._create_account_summary_tab())
-        self._refresh_account_summary()
-        dialog.show()
-
-    def _close_summary_window(self) -> None:
-        """Close the modeless summary window if it is open."""
-        if self.summary_dialog is not None:
-            self.summary_dialog.close()
-
-    def _summary_window_closed(self) -> None:
-        """Clear references to controls owned by the closed summary window."""
-        self.summary_dialog = None
-        if hasattr(self, "summary_text"):
-            del self.summary_text
+        """Show the Summary tab in the shared Details workspace."""
+        self._show_details_workspace(2)
 
     def _load_categories(self, combo_box=None) -> None:
         """Load GL account codes into the category combo box(es)"""
@@ -3043,6 +3190,8 @@ class VendorInvoiceManager(QWidget):
         if not vendor_name:
             return
 
+        if self.details_workspace_dialog is not None:
+            self._clear_edit_fields()
         self.current_vendor = vendor_name
         self._load_vendor_invoices()
         self._refresh_account_summary()
@@ -3051,16 +3200,12 @@ class VendorInvoiceManager(QWidget):
         self._refresh_open_correction_windows()
 
     def _refresh_open_correction_windows(self) -> None:
-        """Refresh open modeless correction surfaces from current data."""
-        if self.ledger_editor_dialog is not None:
-            self.ledger_editor_dialog.setWindowTitle(
-                f"Legacy Data Ledger - {self.current_vendor}"
+        """Refresh the open shared Details workspace from current data."""
+        if self.details_workspace_dialog is not None:
+            self.details_workspace_dialog.setWindowTitle(
+                f"Vendor Details - {self.current_vendor}"
             )
             self._refresh_ledger_editor()
-        if self.summary_dialog is not None:
-            self.summary_dialog.setWindowTitle(
-                f"Live Account Summary - {self.current_vendor}"
-            )
             self._refresh_account_summary()
 
     def _ensure_receipt_invoice_link_schema(self) -> None:
@@ -3579,7 +3724,6 @@ class VendorInvoiceManager(QWidget):
                 self.invoice_table.scrollToItem(
                     self.invoice_table.item(selected_row, 0)
                 )
-                self.details_tabs.setCurrentIndex(1)  # Edit tab
                 self._edit_selected_invoice()
                 return
 
@@ -3699,71 +3843,9 @@ class VendorInvoiceManager(QWidget):
                     return
 
                 if row_type == "PAYMENT" and payment_id:
-                    cur.execute(
-                        """
-                        SELECT
-                            vip.payment_id,
-                            vip.payment_date,
-                            COALESCE(vip.payment_amount, 0) AS payment_amount,
-                            COALESCE(vip.payment_method, '') AS payment_method,
-                            COALESCE(vip.reference, '') AS reference,
-                            vip.banking_transaction_id,
-                            COALESCE(vip.notes, '') AS notes,
-                            COALESCE(vi.invoice_number, '(no #)')
-                                AS invoice_number,
-                            vi.vendor_invoice_id,
-                            bt.transaction_date,
-                            COALESCE(bt.check_number, '') AS check_number,
-                            COALESCE(bt.description, '') AS bank_description
-                        FROM vendor_invoice_payments vip
-                        JOIN vendor_invoices vi
-                            ON vi.vendor_invoice_id = vip.receipt_id
-                        LEFT JOIN banking_transactions bt
-                            ON bt.transaction_id = vip.banking_transaction_id
-                        WHERE vip.payment_id = %s
-                        """,
-                        (payment_id,),
+                    self.ledger_details_text.setPlainText(
+                        self._payment_family_details(payment_id)
                     )
-                    pay_row = cur.fetchone()
-
-                    if not pay_row:
-                        self.ledger_details_text.setPlainText(
-                            "Payment details not found."
-                        )
-                        return
-
-                    (
-                        pay_id,
-                        pay_date,
-                        pay_amt,
-                        pay_method,
-                        pay_ref,
-                        bank_tx,
-                        pay_notes,
-                        inv_num,
-                        inv_id,
-                        bank_date,
-                        check_number,
-                        bank_desc,
-                    ) = pay_row
-
-                    details = [
-                        "LEDGER ROW DETAILS",
-                        "=" * 40,
-                        "Type: PAYMENT",
-                        f"Payment ID: {pay_id}",
-                        f"Date: {pay_date}",
-                        f"Amount Paid: ${float(pay_amt or 0):,.2f}",
-                        f"Method: {pay_method or '-'}",
-                        f"Reference: {pay_ref or '-'}",
-                        f"Invoice: {inv_num} (ID {inv_id})",
-                        f"Bank TX: {bank_tx or '-'}",
-                        f"Bank Date: {bank_date or '-'}",
-                        f"Check #: {check_number or '-'}",
-                        f"Bank Description: {bank_desc or '-'}",
-                        f"Notes: {pay_notes or '-'}",
-                    ]
-                    self.ledger_details_text.setPlainText("\n".join(details))
                     return
 
                 self.ledger_details_text.setPlainText(
@@ -3917,20 +3999,6 @@ class VendorInvoiceManager(QWidget):
 
         try:
             with DatabaseContext(self.conn, auto_commit=False) as cur:
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS vendor_invoice_payments (
-                        payment_id SERIAL PRIMARY KEY,
-                        receipt_id INTEGER NOT NULL,
-                        payment_date DATE NOT NULL,
-                        payment_amount DECIMAL(10,2) NOT NULL,
-                        payment_method VARCHAR(50),
-                        reference VARCHAR(255),
-                        banking_transaction_id INTEGER,
-                        notes TEXT,
-                        created_at TIMESTAMP DEFAULT NOW()
-                    )
-                """)
-
                 sql = """
                     SELECT
                         vip.payment_id,
@@ -3939,8 +4007,13 @@ class VendorInvoiceManager(QWidget):
                             AS invoice_number,
                         vip.payment_date,
                         vip.payment_amount,
+                        COALESCE(
+                            vip.parent_payment_amount,
+                            ABS(vip.payment_amount)
+                        ) AS parent_payment_amount,
                         COALESCE(vip.payment_method, '') AS payment_method,
                         COALESCE(vip.reference, '') AS reference,
+                        COALESCE(vip.cheque_number, '') AS cheque_number,
                         vip.banking_transaction_id,
                         vip.created_at
                     FROM vendor_invoice_payments vip
@@ -3979,12 +4052,15 @@ class VendorInvoiceManager(QWidget):
                     invoice_num,
                     pay_date,
                     pay_amt,
+                    parent_amt,
                     pay_method,
                     pay_ref,
+                    cheque_number,
                     bank_tx,
                     created_at,
                 ) = row
                 pay_amt = abs(float(pay_amt or 0))
+                parent_amt = abs(float(parent_amt or 0))
                 total_amount += pay_amt
 
                 values = [
@@ -3997,8 +4073,10 @@ class VendorInvoiceManager(QWidget):
                         else str(pay_date)
                     ),
                     f"${pay_amt:,.2f}",
+                    f"${parent_amt:,.2f}",
                     pay_method,
                     pay_ref,
+                    cheque_number,
                     str(bank_tx or ""),
                     (
                         created_at.strftime("%Y-%m-%d %H:%M")
@@ -4009,12 +4087,12 @@ class VendorInvoiceManager(QWidget):
 
                 for col, value in enumerate(values):
                     item = QTableWidgetItem(value)
-                    if col == 4:
+                    if col in (4, 5):
                         item.setTextAlignment(
                             Qt.AlignmentFlag.AlignRight
                             | Qt.AlignmentFlag.AlignVCenter
                         )
-                    if col == 5 and str(pay_method).lower() == "cash":
+                    if col == 6 and str(pay_method).lower() == "cash":
                         item.setBackground(QBrush(QColor("#fff4ce")))
                     self.payment_history_table.setItem(idx, col, item)
 
@@ -4030,6 +4108,100 @@ class VendorInvoiceManager(QWidget):
             self.payment_history_label.setText(
                 f"Unable to load payment history: {e}"
             )
+
+    def _show_selected_payment_family(self, _item=None) -> None:
+        """Show every invoice allocation connected to a payment-history row."""
+        row = self.payment_history_table.currentRow()
+        if row < 0:
+            return
+        payment_item = self.payment_history_table.item(row, 0)
+        if payment_item is None:
+            return
+        try:
+            details = self._payment_family_details(int(payment_item.text()))
+            QMessageBox.information(
+                self, "Connected Payment Allocations", details
+            )
+        except Exception as e:
+            logger.error("Failed payment-family drill-down: %s", e)
+            QMessageBox.critical(
+                self, "Payment Details Error", f"Unable to load payment:\n\n{e}"
+            )
+
+    def _payment_family_details(self, payment_id: int) -> str:
+        """Return formatted parent-payment and child-allocation details."""
+        with DatabaseContext(self.conn, auto_commit=False) as cur:
+            cur.execute(
+                """
+                SELECT payment_group_id
+                FROM vendor_invoice_payments
+                WHERE payment_id = %s
+                """,
+                (payment_id,),
+            )
+            selected = cur.fetchone()
+            if not selected:
+                return "Payment details not found."
+            group_id = selected[0]
+            cur.execute(
+                """
+                SELECT
+                    vip.payment_id,
+                    vip.payment_date,
+                    ABS(COALESCE(vip.payment_amount, 0)),
+                    COALESCE(
+                        vip.parent_payment_amount,
+                        ABS(vip.payment_amount)
+                    ),
+                    COALESCE(vip.payment_method, ''),
+                    COALESCE(vip.reference, ''),
+                    COALESCE(vip.cheque_number, ''),
+                    vip.banking_transaction_id,
+                    COALESCE(vip.notes, ''),
+                    vi.vendor_invoice_id,
+                    COALESCE(vi.invoice_number, '(no #)')
+                FROM vendor_invoice_payments vip
+                JOIN vendor_invoices vi
+                  ON vi.vendor_invoice_id = vip.receipt_id
+                WHERE vip.payment_group_id IS NOT DISTINCT FROM %s
+                  AND (
+                      vip.payment_group_id IS NOT NULL
+                      OR vip.payment_id = %s
+                  )
+                ORDER BY vi.invoice_date, vi.vendor_invoice_id, vip.payment_id
+                """,
+                (group_id, payment_id),
+            )
+            rows = cur.fetchall()
+
+        if not rows:
+            return "Payment details not found."
+        first = rows[0]
+        allocated_total = sum(float(row[2] or 0) for row in rows)
+        parent_total = float(first[3] or allocated_total)
+        lines = [
+            "PARENT / CONNECTED PAYMENT",
+            "=" * 44,
+            f"Date: {first[1]}",
+            f"Method: {first[4] or '-'}",
+            f"Payment reference: {first[5] or '-'}",
+            f"Cheque #: {first[6] or '-'}",
+            f"Bank TX: {first[7] or '-'}",
+            f"Parent payment total: ${parent_total:,.2f}",
+            f"Connected allocations: {len(rows)}",
+            f"Connected allocation total: ${allocated_total:,.2f}",
+            f"Unallocated remainder: ${parent_total - allocated_total:,.2f}",
+            "",
+            "INVOICE ALLOCATIONS",
+            "-" * 44,
+        ]
+        for row in rows:
+            marker = "  < selected" if row[0] == payment_id else ""
+            lines.append(
+                f"{row[10]} (ID {row[9]}): ${float(row[2]):,.2f}"
+                f" [payment {row[0]}]{marker}"
+            )
+        return "\n".join(lines)
 
     def _find_existing_payment_rows(
         self,
@@ -5453,6 +5625,7 @@ class VendorInvoiceManager(QWidget):
         payment_date = self.payment_date.date().toPyDate()
         payment_method = self.payment_method.currentText()
         payment_ref_raw = self.payment_reference.text().strip()
+        cheque_number = self.payment_cheque_number.text().strip()
         receipt_tx = self.payment_receipt_tx.text().strip()
 
         banking_id = None
@@ -5513,21 +5686,7 @@ class VendorInvoiceManager(QWidget):
                     payment_ref_raw
                     or f"Payment for invoice {ref or receipt_id}"
                 )
-
-                # Create vendor_invoice_payments table if it doesn't exist
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS vendor_invoice_payments (
-                        payment_id SERIAL PRIMARY KEY,
-                        receipt_id INTEGER NOT NULL,
-                        payment_date DATE NOT NULL,
-                        payment_amount DECIMAL(10,2) NOT NULL,
-                        payment_method VARCHAR(50),
-                        reference VARCHAR(255),
-                        banking_transaction_id INTEGER,
-                        notes TEXT,
-                        created_at TIMESTAMP DEFAULT NOW()
-                    )
-                """)
+                payment_group_id = uuid4().hex
 
                 self._lock_and_validate_payment_allocations(
                     cur, {receipt_id: payment_amt}
@@ -5538,9 +5697,10 @@ class VendorInvoiceManager(QWidget):
                     """
                     INSERT INTO vendor_invoice_payments
                     (receipt_id, payment_date, payment_amount,
-                     payment_method, reference,
+                     payment_method, reference, cheque_number,
+                     payment_group_id, parent_payment_amount,
                      banking_transaction_id, notes)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                     (
                         receipt_id,
@@ -5548,6 +5708,9 @@ class VendorInvoiceManager(QWidget):
                         payment_amt,
                         payment_method,
                         payment_ref,
+                        cheque_number or None,
+                        payment_group_id,
+                        payment_amt,
                         banking_id,
                         self._compose_payment_note(
                             f"Payment to {self.current_vendor}", receipt_tx
@@ -5569,6 +5732,7 @@ class VendorInvoiceManager(QWidget):
             # Clear form
             self.payment_amount.setText("0.00")
             self.payment_reference.clear()
+            self.payment_cheque_number.clear()
             self.payment_receipt_tx.clear()
             self.payment_banking_id.clear()
 
@@ -5640,6 +5804,7 @@ class VendorInvoiceManager(QWidget):
                 payment_ref_raw = self.payment_reference.text().strip()
                 payment_date = self.payment_date.date().toPyDate()
                 payment_method = self.payment_method.currentText()
+                cheque_number = self.payment_cheque_number.text().strip()
                 receipt_tx = self.payment_receipt_tx.text().strip()
 
                 banking_id = None
@@ -5684,21 +5849,7 @@ class VendorInvoiceManager(QWidget):
                         payment_ref_raw
                         or f"Multi-invoice payment to {self.current_vendor}"
                     )
-
-                    # Create vendor_invoice_payments table if it doesn't exist
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS vendor_invoice_payments (
-                            payment_id SERIAL PRIMARY KEY,
-                            receipt_id INTEGER NOT NULL,
-                            payment_date DATE NOT NULL,
-                            payment_amount DECIMAL(10,2) NOT NULL,
-                            payment_method VARCHAR(50),
-                            reference VARCHAR(255),
-                            banking_transaction_id INTEGER,
-                            notes TEXT,
-                            created_at TIMESTAMP DEFAULT NOW()
-                        )
-                    """)
+                    payment_group_id = uuid4().hex
 
                     self._lock_and_validate_payment_allocations(cur, allocations)
 
@@ -5708,9 +5859,13 @@ class VendorInvoiceManager(QWidget):
                             """
                             INSERT INTO vendor_invoice_payments
                             (receipt_id, payment_date, payment_amount,
-                             payment_method, reference,
+                             payment_method, reference, cheque_number,
+                             payment_group_id, parent_payment_amount,
                              banking_transaction_id, notes)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            VALUES (
+                                %s, %s, %s, %s, %s,
+                                %s, %s, %s, %s, %s
+                            )
                         """,
                             (
                                 receipt_id,
@@ -5718,6 +5873,9 @@ class VendorInvoiceManager(QWidget):
                                 allocated_amt,
                                 payment_method,
                                 payment_ref,
+                                cheque_number or None,
+                                payment_group_id,
+                                payment_amt,
                                 banking_id,
                                 self._compose_payment_note(
                                     f"Split payment to {self.current_vendor}",
@@ -5742,6 +5900,7 @@ class VendorInvoiceManager(QWidget):
                 # Clear form
                 self.payment_amount.setText("0.00")
                 self.payment_reference.clear()
+                self.payment_cheque_number.clear()
                 self.payment_receipt_tx.clear()
                 self.payment_banking_id.clear()
 
@@ -5969,6 +6128,7 @@ class VendorInvoiceManager(QWidget):
 
                 remaining = tx_amount
                 applied_count = 0
+                payment_group_id = uuid4().hex
 
                 payment_date = datetime.strptime(
                     tx_date_text, "%m/%d/%Y"
@@ -5990,18 +6150,28 @@ class VendorInvoiceManager(QWidget):
                             """
                             INSERT INTO vendor_invoice_payments (
                                 receipt_id, payment_date, payment_amount,
-                                payment_method, banking_transaction_id, notes
-                            ) VALUES (%s, %s, %s, %s, %s, %s)
+                            payment_method, cheque_number,
+                            payment_group_id, parent_payment_amount,
+                            banking_transaction_id, notes
+                        )
+                        SELECT %s, %s, %s, %s,
+                               NULLIF(TRIM(check_number), ''),
+                               %s, %s, %s, %s
+                        FROM banking_transactions
+                        WHERE transaction_id = %s
                         """,
-                            (
-                                receipt_id,
-                                payment_date,
-                                apply_amount,
-                                "Banking Link",
-                                tx_id,
-                                f"Auto-allocated from banking"
-                                f" transaction #{tx_id}",
-                            ),
+                        (
+                            receipt_id,
+                            payment_date,
+                            apply_amount,
+                            "Banking Link",
+                            payment_group_id,
+                            tx_amount,
+                            tx_id,
+                            f"Auto-allocated from banking"
+                            f" transaction #{tx_id}",
+                            tx_id,
+                        ),
                         )
 
                         # (banking_transaction_id not on vendor_invoices)
@@ -6087,7 +6257,7 @@ class VendorInvoiceManager(QWidget):
         summary += f"INVOICE DETAILS ({len(self.current_invoices)} total):\n"
         summary += "-" * 60 + "\n"
 
-        for inv in self.current_invoices:
+        for inv in sorted(self.current_invoices, key=self._invoice_sort_key):
             receipt_id, ref, details, date, amount, paid, balance, status = inv
             summary += (
                 f"\nInvoice: {ref or f'R-{receipt_id}':<15}" f" Date: {date}\n"
@@ -6143,6 +6313,11 @@ class VendorInvoiceManager(QWidget):
             )
             return
 
+        if switch_to_edit:
+            self._show_details_workspace(0)
+        if self.details_workspace_dialog is None:
+            return
+
         invoice = self.current_invoices[row]
         receipt_id, ref, _details, date, amount, paid, balance, status = (
             invoice
@@ -6189,9 +6364,6 @@ class VendorInvoiceManager(QWidget):
 
                 self.edit_invoice_amount.setText(f"{data[3]:.2f}")
                 self.edit_invoice_desc.setPlainText(data[4] or "")
-
-                if switch_to_edit:
-                    self.details_tabs.setCurrentIndex(1)
 
                 # Update status label
                 self.edit_status_label.setText(
@@ -6579,7 +6751,7 @@ class VendorInvoiceManager(QWidget):
     def _quick_pay_single(self) -> None:
         """Quick pay from left panel (payment tab, single invoice)."""
         # Switch to payment tab first
-        self.details_tabs.setCurrentIndex(2)  # Apply Payment tab
+        self.details_tabs.setCurrentIndex(1)  # Apply Payment tab
         # Then call the actual payment function
         self._apply_to_single_invoice()
 
@@ -6587,7 +6759,7 @@ class VendorInvoiceManager(QWidget):
     def _quick_pay_multiple(self) -> None:
         """Quick pay from left panel (payment tab, multiple invoices)."""
         # Switch to payment tab first
-        self.details_tabs.setCurrentIndex(2)  # Apply Payment tab
+        self.details_tabs.setCurrentIndex(1)  # Apply Payment tab
         # Then call the actual payment function
         self._apply_to_multiple_invoices()
 
