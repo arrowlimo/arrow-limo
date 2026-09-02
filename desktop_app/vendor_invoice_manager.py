@@ -668,6 +668,12 @@ class VendorInvoiceManager(QWidget):
         self._syncing_correction_selection = False
         self._lower_workspace_expanded = False
         self._settings = QSettings("ArrowLimo", "Desktop")
+        self._initial_vendor_name = str(
+            self._settings.value(
+                "vendor_invoice_manager/last_vendor", ""
+            ) or ""
+        ).strip()
+        self._restoring_initial_vendor = True
         self._init_vendor_invoice_filters_table()
         self._ensure_vendor_payment_link_schema()
         self.init_ui()
@@ -1049,12 +1055,8 @@ class VendorInvoiceManager(QWidget):
 
     def _load_initial_vendor(self) -> None:
         """Restore the last opened vendor, then fall back to the first vendor."""
-        if self.current_vendor:
-            return  # Already loaded via signal
-
-        last_vendor = str(
-            self._settings.value("vendor_invoice_manager/last_vendor", "") or ""
-        ).strip()
+        last_vendor = self._initial_vendor_name
+        self._initial_vendor_name = ""
         if last_vendor:
             matched_vendor = next(
                 (
@@ -1067,8 +1069,18 @@ class VendorInvoiceManager(QWidget):
             )
             if matched_vendor:
                 self.vendor_lookup.set_vendor(matched_vendor)
-                if self.current_vendor:
-                    return
+                self._restoring_initial_vendor = False
+                self._settings.setValue(
+                    "vendor_invoice_manager/last_vendor", matched_vendor
+                )
+                return
+
+        self._restoring_initial_vendor = False
+        if self.current_vendor:
+            self._settings.setValue(
+                "vendor_invoice_manager/last_vendor", self.current_vendor
+            )
+            return
 
         current_text = self.vendor_lookup.vendor_combo.currentText()
         if current_text:
@@ -3300,9 +3312,10 @@ class VendorInvoiceManager(QWidget):
         if self.details_workspace_dialog is not None:
             self._clear_edit_fields()
         self.current_vendor = vendor_name
-        self._settings.setValue(
-            "vendor_invoice_manager/last_vendor", vendor_name
-        )
+        if not self._restoring_initial_vendor:
+            self._settings.setValue(
+                "vendor_invoice_manager/last_vendor", vendor_name
+            )
         self._load_vendor_invoices()
         self._refresh_account_summary()
         self._refresh_payment_history()
