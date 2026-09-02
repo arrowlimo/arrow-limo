@@ -2484,7 +2484,6 @@ class VendorInvoiceManager(QWidget):
                     FROM vendor_invoices
                     WHERE vendor_invoice_id = %s
                       AND vendor_name = %s
-                    FOR UPDATE
                     """,
                     (invoice_id, self.current_vendor),
                 )
@@ -2492,6 +2491,9 @@ class VendorInvoiceManager(QWidget):
                     raise ValueError(
                         "The selected invoice no longer exists for this vendor."
                     )
+                self._lock_and_validate_payment_allocations(
+                    cur, {invoice_id: amount}
+                )
 
                 cur.execute(
                     """
@@ -4906,9 +4908,15 @@ class VendorInvoiceManager(QWidget):
             cur.execute(
                 """
                 SELECT
-                    COALESCE(invoice_number, '')
-                FROM vendor_invoices
-                WHERE vendor_invoice_id = %s
+                    COALESCE(vi.invoice_number, ''),
+                    COALESCE(vi.invoice_amount, 0)
+                        - COALESCE((
+                            SELECT SUM(ABS(vip.payment_amount))
+                            FROM vendor_invoice_payments vip
+                            WHERE vip.receipt_id = vi.vendor_invoice_id
+                        ), 0) AS remaining_balance
+                FROM vendor_invoices vi
+                WHERE vi.vendor_invoice_id = %s
                 FOR UPDATE
                 """,
                 (receipt_id,),
@@ -4916,6 +4924,15 @@ class VendorInvoiceManager(QWidget):
             invoice_row = cur.fetchone()
             if not invoice_row:
                 raise ValueError(f"Invoice ID {receipt_id} no longer exists.")
+            invoice_number, remaining_balance = invoice_row
+            remaining_balance = Decimal(str(remaining_balance or 0))
+            if payment_amount > remaining_balance + Decimal("0.005"):
+                raise ValueError(
+                    f"Payment for invoice {invoice_number or receipt_id} "
+                    f"exceeds its ${remaining_balance:,.2f} remaining balance. "
+                    "Use Apply to Multiple Invoices so the credit carries "
+                    "forward instead of creating a negative invoice balance."
+                )
 
     def _check_existing_payment_entries(self) -> None:
         """Manual check: verify a cash/check payment was already entered."""
