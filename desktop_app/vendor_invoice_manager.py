@@ -2149,13 +2149,15 @@ class VendorInvoiceManager(QWidget):
         layout.addWidget(self.ledger_editor_summary)
 
         self.ledger_editor_table = QTableWidget()
-        self.ledger_editor_table.setColumnCount(10)
+        self.ledger_editor_table.setColumnCount(12)
         self.ledger_editor_table.setHorizontalHeaderLabels(
             [
                 "Date",
                 "Type",
                 "Document #",
                 "Applied To Invoice",
+                "Paid By / Link",
+                "Invoice Balance",
                 "Details",
                 "Charge",
                 "Payment",
@@ -2608,8 +2610,56 @@ class VendorInvoiceManager(QWidget):
                         COALESCE(vi.invoice_amount, 0) AS amount,
                         ''::text AS payment_method,
                         ''::text AS reference,
-                        ''::text AS banking_transaction_id
+                        ''::text AS banking_transaction_id,
+                        COALESCE(payments.payment_links, '') AS payment_links,
+                        COALESCE(vi.invoice_amount, 0)
+                            - COALESCE(payments.paid_total, 0)
+                            AS invoice_balance
                     FROM vendor_invoices vi
+                    LEFT JOIN LATERAL (
+                        SELECT
+                            SUM(ABS(COALESCE(vip.payment_amount, 0)))
+                                AS paid_total,
+                            STRING_AGG(
+                                DISTINCT CONCAT(
+                                    COALESCE(
+                                        NULLIF(vip.reference, ''),
+                                        'Payment'
+                                    ),
+                                    CASE
+                                        WHEN COALESCE(
+                                            NULLIF(vip.cheque_number, ''),
+                                            NULLIF(bt.check_number, '')
+                                        ) IS NOT NULL
+                                        THEN CONCAT(
+                                            ' / Cheque ',
+                                            COALESCE(
+                                                NULLIF(vip.cheque_number, ''),
+                                                NULLIF(bt.check_number, '')
+                                            )
+                                        )
+                                        ELSE ''
+                                    END,
+                                    ' ($',
+                                    TO_CHAR(
+                                        ABS(COALESCE(
+                                            vip.payment_amount, 0
+                                        )),
+                                        'FM9999999990.00'
+                                    ),
+                                    ')'
+                                ),
+                                ', '
+                            ) AS payment_links
+                        FROM vendor_invoice_payments vip
+                        LEFT JOIN banking_transactions bt
+                            ON bt.transaction_id
+                                = vip.banking_transaction_id
+                        WHERE vip.receipt_id = vi.vendor_invoice_id
+                          AND ABS(COALESCE(
+                              vip.payment_amount, 0
+                          )) >= 0.005
+                    ) payments ON TRUE
                     WHERE vi.vendor_name = %s
                       AND (
                           %s = false
@@ -2630,10 +2680,37 @@ class VendorInvoiceManager(QWidget):
                         COALESCE(vip.payment_method, '') AS payment_method,
                         COALESCE(vip.reference, '') AS reference,
                         COALESCE(vip.banking_transaction_id::text, '')
-                            AS banking_transaction_id
+                            AS banking_transaction_id,
+                        CONCAT(
+                            'Parent $',
+                            TO_CHAR(
+                                ABS(COALESCE(
+                                    vip.parent_payment_amount,
+                                    vip.payment_amount
+                                )),
+                                'FM9999999990.00'
+                            ),
+                            CASE
+                                WHEN COALESCE(
+                                    NULLIF(vip.cheque_number, ''),
+                                    NULLIF(bt.check_number, '')
+                                ) IS NOT NULL
+                                THEN CONCAT(
+                                    ' / Cheque ',
+                                    COALESCE(
+                                        NULLIF(vip.cheque_number, ''),
+                                        NULLIF(bt.check_number, '')
+                                    )
+                                )
+                                ELSE ''
+                            END
+                        ) AS payment_links,
+                        NULL::numeric AS invoice_balance
                     FROM vendor_invoice_payments vip
                     JOIN vendor_invoices vi
                         ON vi.vendor_invoice_id = vip.receipt_id
+                    LEFT JOIN banking_transactions bt
+                        ON bt.transaction_id = vip.banking_transaction_id
                     WHERE vi.vendor_name = %s
                       AND ABS(COALESCE(vip.payment_amount, 0)) >= 0.005
                       AND (
@@ -2652,7 +2729,9 @@ class VendorInvoiceManager(QWidget):
                     amount,
                     payment_method,
                     reference,
-                    banking_transaction_id
+                    banking_transaction_id,
+                    payment_links,
+                    invoice_balance
                 FROM ledger_rows
                 ORDER BY
                     row_date NULLS LAST,
@@ -2701,6 +2780,8 @@ class VendorInvoiceManager(QWidget):
                     payment_method,
                     reference,
                     banking_transaction_id,
+                    payment_links,
+                    invoice_balance,
                 ) = row
                 raw_amount = Decimal(str(amount or 0))
                 display_amount = float(
@@ -2715,6 +2796,8 @@ class VendorInvoiceManager(QWidget):
                     detail_text = details
                     document_number = invoice_number
                     applied_to_invoice = ""
+                    payment_link_text = payment_links or "Unpaid"
+                    balance_text = f"${float(invoice_balance or 0):,.2f}"
                 else:
                     charge = 0.0
                     payment = display_amount
@@ -2727,6 +2810,8 @@ class VendorInvoiceManager(QWidget):
                     )
                     document_number = reference
                     applied_to_invoice = invoice_number
+                    payment_link_text = payment_links
+                    balance_text = ""
 
                 values = [
                     (
@@ -2737,6 +2822,8 @@ class VendorInvoiceManager(QWidget):
                     row_type,
                     str(document_number),
                     str(applied_to_invoice),
+                    str(payment_link_text),
+                    balance_text,
                     detail_text,
                     f"${charge:,.2f}" if charge else "",
                     f"${payment:,.2f}" if payment else "",
@@ -2764,7 +2851,7 @@ class VendorInvoiceManager(QWidget):
 
                 for column, value in enumerate(values):
                     item = QTableWidgetItem(value)
-                    if column in (5, 6, 7):
+                    if column in (5, 7, 8, 9):
                         item.setTextAlignment(
                             Qt.AlignmentFlag.AlignRight
                             | Qt.AlignmentFlag.AlignVCenter
