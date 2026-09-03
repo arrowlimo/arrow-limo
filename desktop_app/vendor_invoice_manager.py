@@ -13,8 +13,10 @@ Features:
 """
 
 import logging
+import re
 from datetime import datetime
 from decimal import Decimal
+from difflib import SequenceMatcher
 from uuid import uuid4
 
 from common_widgets import StandardDateEdit
@@ -1405,8 +1407,10 @@ class VendorInvoiceManager(QWidget):
         # Invoice number filter
         filter_layout.addWidget(QLabel("Invoice #:"))
         self.filter_invoice_num = QLineEdit()
-        self.filter_invoice_num.setPlaceholderText("Search invoice #...")
-        self.filter_invoice_num.setMaximumWidth(150)
+        self.filter_invoice_num.setPlaceholderText(
+            "Type SI, RD, PRD, or ending digits..."
+        )
+        self.filter_invoice_num.setMaximumWidth(240)
         self.filter_invoice_num.textChanged.connect(
             self._apply_invoice_filters
         )
@@ -1414,7 +1418,9 @@ class VendorInvoiceManager(QWidget):
 
         lookup_btn = QPushButton("Find")
         lookup_btn.setMaximumWidth(60)
-        lookup_btn.setToolTip("Jump to first visible invoice number match")
+        lookup_btn.setToolTip(
+            "Find by prefix, ending digits, normalized number, or close match"
+        )
         lookup_btn.clicked.connect(self._lookup_invoice_number)
         filter_layout.addWidget(lookup_btn)
 
@@ -2501,6 +2507,16 @@ class VendorInvoiceManager(QWidget):
 
         try:
             with DatabaseContext(self.conn, auto_commit=True) as cur:
+                duplicate = self._find_matching_vendor_invoice(
+                    cur, invoice_number
+                )
+                if duplicate:
+                    duplicate_id, duplicate_number = duplicate
+                    raise ValueError(
+                        f"Invoice {duplicate_number} already exists for "
+                        f"{self.current_vendor} as record {duplicate_id}. "
+                        "Open and correct the existing invoice instead."
+                    )
                 cur.execute(
                     """
                     INSERT INTO vendor_invoices
@@ -5416,7 +5432,7 @@ class VendorInvoiceManager(QWidget):
         if not hasattr(self, "current_invoices") or not self.current_invoices:
             return
 
-        invoice_num_filter = self.filter_invoice_num.text().strip().lower()
+        invoice_num_filter = self.filter_invoice_num.text().strip()
         year_filter = self.filter_year.currentData()
         status_filter = self.filter_status.currentText()
 
@@ -5432,7 +5448,7 @@ class VendorInvoiceManager(QWidget):
             filtered = [
                 inv
                 for inv in filtered
-                if invoice_num_filter in str(inv[1]).lower()
+                if self._invoice_number_matches(invoice_num_filter, inv[1])
             ]
 
         # Apply year filter
@@ -5486,6 +5502,78 @@ class VendorInvoiceManager(QWidget):
 
         return (0, invoice_id)
 
+    @staticmethod
+    def _normalize_invoice_number(value) -> str:
+        """Normalize formatting and insignificant leading numeric zeros."""
+        compact = re.sub(r"[^a-z0-9]", "", str(value or "").casefold())
+        match = re.fullmatch(r"([a-z]+)0*(\d+)", compact)
+        if match:
+            prefix, digits = match.groups()
+            return f"{prefix}{digits or '0'}"
+        return compact
+
+    @classmethod
+    def _invoice_number_matches(cls, query, invoice_number) -> bool:
+        """Match prefixes, ending digits, normalized values, and close typos."""
+        raw_query = str(query or "").strip().casefold()
+        raw_invoice = str(invoice_number or "").strip().casefold()
+        if not raw_query:
+            return True
+        compact_query = re.sub(r"[^a-z0-9]", "", raw_query)
+        compact_invoice = re.sub(r"[^a-z0-9]", "", raw_invoice)
+        if compact_query and compact_query in compact_invoice:
+            return True
+        normalized_query = cls._normalize_invoice_number(raw_query)
+        normalized_invoice = cls._normalize_invoice_number(raw_invoice)
+        if (
+            normalized_query
+            and normalized_query in normalized_invoice
+        ):
+            return True
+
+        query_letters = "".join(re.findall(r"[a-z]+", compact_query))
+        invoice_letters = "".join(re.findall(r"[a-z]+", compact_invoice))
+        query_digits = "".join(re.findall(r"\d+", compact_query))
+        invoice_digits = "".join(re.findall(r"\d+", compact_invoice))
+        if not query_letters and query_digits:
+            return invoice_digits.endswith(query_digits)
+        if query_letters and not query_digits:
+            return invoice_letters.startswith(query_letters)
+        if len(normalized_query) < 4:
+            return False
+        if (
+            query_letters
+            and invoice_letters
+            and not invoice_letters.startswith(query_letters[:2])
+        ):
+            return False
+        return (
+            SequenceMatcher(
+                None, normalized_query, normalized_invoice
+            ).ratio()
+            >= 0.78
+        )
+
+    def _find_matching_vendor_invoice(self, cur, invoice_number):
+        """Return an existing same-vendor invoice with an equivalent number."""
+        if not str(invoice_number or "").strip():
+            return None
+        cur.execute(
+            """
+            SELECT vendor_invoice_id, invoice_number
+            FROM vendor_invoices
+            WHERE vendor_name = %s
+              AND COALESCE(invoice_number, '') <> ''
+            ORDER BY vendor_invoice_id
+            """,
+            (self.current_vendor,),
+        )
+        normalized = self._normalize_invoice_number(invoice_number)
+        for invoice_id, existing_number in cur.fetchall():
+            if self._normalize_invoice_number(existing_number) == normalized:
+                return int(invoice_id), str(existing_number)
+        return None
+
     @pyqtSlot()
     def _clear_invoice_filters(self) -> None:
         """Clear all invoice filters"""
@@ -5512,13 +5600,13 @@ class VendorInvoiceManager(QWidget):
     @pyqtSlot()
     def _lookup_invoice_number(self) -> None:
         """Scroll to first visible invoice matching the search text."""
-        query = self.filter_invoice_num.text().strip().lower()
+        query = self.filter_invoice_num.text().strip()
         if not query:
             return
 
         for row in range(self.invoice_table.rowCount()):
             item = self.invoice_table.item(row, 1)
-            if item and query in item.text().strip().lower():
+            if item and self._invoice_number_matches(query, item.text()):
                 self.invoice_table.setCurrentCell(row, 1)
                 self.invoice_table.selectRow(row)
                 self.invoice_table.scrollToItem(item)
@@ -6031,6 +6119,16 @@ class VendorInvoiceManager(QWidget):
 
         try:
             with DatabaseContext(self.conn, auto_commit=True) as cur:
+                duplicate = self._find_matching_vendor_invoice(
+                    cur, invoice_num
+                )
+                if duplicate:
+                    duplicate_id, duplicate_number = duplicate
+                    raise ValueError(
+                        f"Invoice {duplicate_number} already exists for "
+                        f"{self.current_vendor} as record {duplicate_id}. "
+                        "Use Find or Details to open the existing record."
+                    )
                 notes = self.new_invoice_desc.toPlainText().strip() or None
                 if use_split and fee_amount > 0:
                     split_note = (
