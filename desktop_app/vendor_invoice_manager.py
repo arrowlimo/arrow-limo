@@ -1350,6 +1350,21 @@ class VendorInvoiceManager(QWidget):
         refresh_btn.clicked.connect(self._refresh_current_vendor)
         layout.addWidget(refresh_btn)
 
+        refresh_math_btn = QPushButton("🧮 Refresh Math")
+        refresh_math_btn.setStyleSheet(
+            "padding: 4px 8px; font-weight: bold; font-size: 11px;"
+        )
+        refresh_math_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        refresh_math_btn.setFixedHeight(24)
+        refresh_math_btn.setToolTip(
+            "Reload invoices and payments from the database, then recalculate "
+            "every invoice balance and chronological running balance."
+        )
+        refresh_math_btn.clicked.connect(self._refresh_current_vendor)
+        layout.addWidget(refresh_math_btn)
+
         return controls
 
     def _create_invoice_list(self) -> QGroupBox:
@@ -6872,7 +6887,7 @@ class VendorInvoiceManager(QWidget):
 
     @pyqtSlot()
     def _refresh_current_vendor(self) -> None:
-        """Refresh current vendor's invoices"""
+        """Reload current vendor data and recalculate all displayed balances."""
         if not self.current_vendor:
             # Pull vendor from combo if not yet set
             current_text = self.vendor_lookup.vendor_combo.currentText()
@@ -6886,6 +6901,7 @@ class VendorInvoiceManager(QWidget):
                     self._on_vendor_selected(vendor_name)
             return
         self._load_vendor_invoices()
+        self._refresh_payment_history()
         self._refresh_account_summary()
 
     @pyqtSlot()
