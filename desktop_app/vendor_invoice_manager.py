@@ -1592,15 +1592,37 @@ class VendorInvoiceManager(QWidget):
 
         # Date and Invoice# on same line (matching receipt layout)
         date_invoice_layout = QHBoxLayout()
+        date_invoice_layout.addWidget(QLabel("Date:"))
 
-        self.new_invoice_date = StandardDateEdit(prefer_month_text=True)
+        previous_month_btn = QPushButton("◀")
+        previous_month_btn.setFixedWidth(28)
+        previous_month_btn.setToolTip("Previous month")
+        previous_month_btn.clicked.connect(
+            lambda: self._shift_new_invoice_month(-1)
+        )
+        date_invoice_layout.addWidget(previous_month_btn)
+
+        self.new_invoice_date = StandardDateEdit(
+            prefer_month_text=True, select_all_on_click=False
+        )
         self.new_invoice_date.setCalendarPopup(True)
         self.new_invoice_date.setDate(QDate.currentDate())
         self.new_invoice_date.setDisplayFormat("MM/dd/yyyy")
-        self.new_invoice_date.setMaximumWidth(110)  # Shortened like receipt
+        self.new_invoice_date.setMaximumWidth(110)
         self.new_invoice_date.lineEdit().setClearButtonEnabled(True)
-        date_invoice_layout.addWidget(QLabel("Date:"))
+        self.new_invoice_date.setToolTip(
+            "Click where you want to edit, type MM/DD/YYYY, or use the "
+            "month arrow buttons."
+        )
         date_invoice_layout.addWidget(self.new_invoice_date)
+
+        next_month_btn = QPushButton("▶")
+        next_month_btn.setFixedWidth(28)
+        next_month_btn.setToolTip("Next month")
+        next_month_btn.clicked.connect(
+            lambda: self._shift_new_invoice_month(1)
+        )
+        date_invoice_layout.addWidget(next_month_btn)
 
         self.new_invoice_num = QLineEdit()
         self.new_invoice_num.setPlaceholderText("Invoice #")
@@ -1696,6 +1718,20 @@ class VendorInvoiceManager(QWidget):
         split_group.setLayout(split_layout)
         layout.addWidget(split_group)
 
+        self.repeat_interest_btn = QPushButton("📌 Repeat Monthly Interest")
+        self.repeat_interest_btn.setCheckable(True)
+        self.repeat_interest_btn.setToolTip(
+            "Keep the description and fee settings after adding an invoice. "
+            "The date moves ahead one month; enter only the next amount."
+        )
+        self.repeat_interest_btn.toggled.connect(
+            self._on_repeat_interest_toggled
+        )
+        self.new_invoice_amount.textChanged.connect(
+            self._sync_repeat_interest_amount
+        )
+        layout.addWidget(self.repeat_interest_btn)
+
         # Add button
         add_btn = QPushButton("✅ Add Invoice")
         add_btn.setStyleSheet(
@@ -1712,6 +1748,36 @@ class VendorInvoiceManager(QWidget):
         layout.addStretch()
 
         return widget
+
+    def _shift_new_invoice_month(self, months: int) -> None:
+        """Move the new-invoice date while preserving its day when possible."""
+        current_date = self.new_invoice_date.date() or QDate.currentDate()
+        self.new_invoice_date.setDate(current_date.addMonths(months))
+
+    def _on_repeat_interest_toggled(self, enabled: bool) -> None:
+        """Prepare and visibly mark the reusable monthly-interest entry mode."""
+        self.repeat_interest_btn.setText(
+            "📌 Monthly Interest: ON"
+            if enabled
+            else "📌 Repeat Monthly Interest"
+        )
+        if enabled and not self.new_invoice_desc.toPlainText().strip():
+            self.new_invoice_desc.setPlainText("Interest Charge")
+        if enabled:
+            self.new_invoice_use_split.setChecked(True)
+            interest_index = self.new_invoice_fee_type.findText(
+                "Interest Charge"
+            )
+            if interest_index >= 0:
+                self.new_invoice_fee_type.setCurrentIndex(interest_index)
+            self._sync_repeat_interest_amount()
+
+    def _sync_repeat_interest_amount(self) -> None:
+        """Use the total as the fee for an interest-only recurring invoice."""
+        if not self.repeat_interest_btn.isChecked():
+            return
+        self.new_invoice_base_amount.setText("0.00")
+        self.new_invoice_fee_amount.setText(self.new_invoice_amount.text())
 
     def _create_edit_invoice_tab(self) -> QWidget:
         """Tab for editing selected invoice details"""
@@ -6177,14 +6243,19 @@ class VendorInvoiceManager(QWidget):
 
             QMessageBox.information(self, "Success", msg)
 
-            # Clear form
+            repeat_interest = self.repeat_interest_btn.isChecked()
+            if repeat_interest:
+                self._shift_new_invoice_month(1)
+
+            # Clear one-off values. Sticky mode retains the repeated details.
             self.new_invoice_num.clear()
             self.new_invoice_amount.setText("0.00")
             self.new_invoice_base_amount.setText("0.00")
             self.new_invoice_fee_amount.setText("0.00")
-            self.new_invoice_desc.clear()
-            self.new_invoice_use_split.setChecked(False)
-            self.split_details.setVisible(False)
+            if not repeat_interest:
+                self.new_invoice_desc.clear()
+                self.new_invoice_use_split.setChecked(False)
+                self.split_details.setVisible(False)
 
             # Refresh
             self._load_vendor_invoices()
