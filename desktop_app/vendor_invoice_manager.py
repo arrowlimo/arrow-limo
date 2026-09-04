@@ -6238,7 +6238,7 @@ class VendorInvoiceManager(QWidget):
             # Status (read-only)
             status_item = SortableTableWidgetItem(status)
             status_item.setData(
-                Qt.ItemDataRole.UserRole, 0 if "Paid" in status else 1
+                Qt.ItemDataRole.UserRole, 0 if status == "✅ Paid" else 1
             )
             status_item.setBackground(QBrush(row_color))
             status_item.setFlags(
