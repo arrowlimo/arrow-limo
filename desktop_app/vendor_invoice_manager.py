@@ -1523,7 +1523,7 @@ class VendorInvoiceManager(QWidget):
                 "Description",
                 "Date",
                 "Invoice Total",
-                "Receipt Evidence",
+                "Evidence",
                 "Payments Made",
                 "Running Balance",
                 "Balance",
@@ -1549,7 +1549,7 @@ class VendorInvoiceManager(QWidget):
         header.setSectionResizeMode(
             5, QHeaderView.ResizeMode.Fixed
         )  # Receipts
-        self.invoice_table.setColumnWidth(5, 110)
+        self.invoice_table.setColumnWidth(5, 150)
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Paid
         self.invoice_table.setColumnWidth(6, 110)
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)  # Balance
@@ -4231,10 +4231,10 @@ class VendorInvoiceManager(QWidget):
                 if row_type == "INVOICE":
                     detail_text = details or ""
                     evidence_text = (
-                        f"{int(receipt_count)} receipt(s), "
+                        f"Paper Invoice + {int(receipt_count)} receipt(s), "
                         f"${float(receipt_total or 0):,.2f}"
                         if receipt_count
-                        else ""
+                        else "Paper Invoice"
                     )
                 else:
                     parts = [
@@ -6189,9 +6189,13 @@ class VendorInvoiceManager(QWidget):
             amt_item.setBackground(QBrush(row_color))
             self.invoice_table.setItem(idx, 4, amt_item)
 
-            # Receipts linked as evidence (read-only; does not affect balance)
+            # The invoice row represents the entered paper document. Separately
+            # linked receipt records are additional evidence, not the invoice.
             receipt_total = float(receipt_totals.get(int(receipt_id), 0.0))
-            receipt_item = SortableTableWidgetItem(f"${receipt_total:,.2f}")
+            evidence_text = "Paper Invoice"
+            if receipt_total > 0:
+                evidence_text += f" + ${receipt_total:,.2f}"
+            receipt_item = SortableTableWidgetItem(evidence_text)
             receipt_item.setData(Qt.ItemDataRole.UserRole, receipt_total)
             receipt_item.setTextAlignment(
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
