@@ -4134,29 +4134,72 @@ class VendorInvoiceManager(QWidget):
                 else "All"
             )
 
-            if (
+            use_date_filter = (
                 hasattr(self, "ledger_use_date_filter")
                 and self.ledger_use_date_filter.isChecked()
-            ):
+            )
+            from_date = None
+            to_date = None
+            if use_date_filter:
                 from_date = self.ledger_date_from.date().toPyDate()
                 to_date = self.ledger_date_to.date().toPyDate()
-                rows = [
-                    r
-                    for r in rows
-                    if r[0] is not None and from_date <= r[0] <= to_date
-                ]
 
-            if selected_filter == "Invoices only":
-                rows = [r for r in rows if r[1] == "INVOICE"]
-            elif selected_filter == "Payments only":
-                rows = [r for r in rows if r[1] == "PAYMENT"]
-
-            self.ledger_table.setRowCount(len(rows))
+            opening_balance = 0.0
             running_balance = 0.0
+            closing_balance = 0.0
+            visible_rows = []
+
+            for row in rows:
+                row_date = row[0]
+                row_type = row[1]
+                row_change = float(row[6] or 0) - float(row[7] or 0)
+
+                if (
+                    use_date_filter
+                    and row_date is not None
+                    and row_date < from_date
+                ):
+                    opening_balance += row_change
+
+                running_balance += row_change
+
+                in_date_range = (
+                    not use_date_filter
+                    or (
+                        row_date is not None
+                        and from_date <= row_date <= to_date
+                    )
+                )
+                if in_date_range:
+                    closing_balance = running_balance
+
+                type_is_visible = (
+                    selected_filter == "All"
+                    or (
+                        selected_filter == "Invoices only"
+                        and row_type == "INVOICE"
+                    )
+                    or (
+                        selected_filter == "Payments only"
+                        and row_type == "PAYMENT"
+                    )
+                )
+                if in_date_range and type_is_visible:
+                    visible_rows.append((row, running_balance))
+
+            if not use_date_filter:
+                closing_balance = running_balance
+            elif not any(
+                row[0] is not None and from_date <= row[0] <= to_date
+                for row in rows
+            ):
+                closing_balance = opening_balance
+
+            self.ledger_table.setRowCount(len(visible_rows))
             total_owed = 0.0
             total_paid = 0.0
 
-            for idx, row in enumerate(rows):
+            for idx, (row, row_running_balance) in enumerate(visible_rows):
                 (
                     row_date,
                     row_type,
@@ -4177,7 +4220,6 @@ class VendorInvoiceManager(QWidget):
                 amount_paid = float(amount_paid or 0)
                 total_owed += amount_owed
                 total_paid += amount_paid
-                running_balance += amount_owed - amount_paid
 
                 if row_type == "INVOICE":
                     detail_text = details or ""
@@ -4213,7 +4255,7 @@ class VendorInvoiceManager(QWidget):
                     detail_text,
                     f"${amount_owed:,.2f}" if amount_owed else "",
                     f"${amount_paid:,.2f}" if amount_paid else "",
-                    f"${running_balance:,.2f}",
+                    f"${row_running_balance:,.2f}",
                     evidence_text,
                 ]
 
@@ -4251,16 +4293,21 @@ class VendorInvoiceManager(QWidget):
 
             self.ledger_label.setText(
                 f"Ledger ({selected_filter}) for {self.current_vendor}: "
-                f"{len(rows)} rows | Invoiced ${total_owed:,.2f} | "
-                f"Paid ${total_paid:,.2f} | Balance ${running_balance:,.2f}"
+                f"{len(visible_rows)} rows | Invoiced ${total_owed:,.2f} | "
+                f"Paid ${total_paid:,.2f} | "
+                + (
+                    f"Opening ${opening_balance:,.2f} | "
+                    if use_date_filter
+                    else ""
+                )
+                + f"Balance ${closing_balance:,.2f}"
                 + (
                     f" | Date: "
                     f"{self.ledger_date_from.date().toString('MM/dd/yyyy')}"
                     f" to "
                     f"{self.ledger_date_to.date().toString('MM/dd/yyyy')}"
                     if (
-                        hasattr(self, "ledger_use_date_filter")
-                        and self.ledger_use_date_filter.isChecked()
+                        use_date_filter
                     )
                     else ""
                 )
