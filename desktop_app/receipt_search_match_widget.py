@@ -555,9 +555,9 @@ class ReceiptSearchMatchWidget(QWidget):
         self.results_panel = self._build_results_panel()
         self.top_splitter.addWidget(self.results_panel)
 
-        # At 1920×1080 / 125 % scale (1536 logical px wide): sidebar ~280,
+        # At 1920×1080 / 125 % scale (1536 logical px wide): sidebar ~340,
         # table gets rest
-        self.top_splitter.setSizes([280, 1256])
+        self.top_splitter.setSizes([340, 1196])
         # sidebar: don't grow by default
         self.top_splitter.setStretchFactor(0, 0)
         self.top_splitter.setStretchFactor(1, 1)  # results: absorb spare width
@@ -568,12 +568,13 @@ class ReceiptSearchMatchWidget(QWidget):
         self.detail_panel = self._build_detail_panel()
         self.main_splitter.addWidget(self.detail_panel)
 
-        # At 1080 p with taskbar (~784 usable logical px): top ~310, form ~474
-        self.main_splitter.setSizes([310, 474])
-        self.main_splitter.setStretchFactor(0, 1)  # top grows proportionally
+        # Keep Search/Results readable by default; the detail form scrolls when
+        # its smaller share cannot show every field.
+        self.main_splitter.setSizes([360, 240])
+        self.main_splitter.setStretchFactor(0, 3)
         self.main_splitter.setStretchFactor(
             1, 2
-        )  # form gets more vertical room
+        )
 
         outer.addWidget(self.main_splitter)
 
@@ -581,12 +582,19 @@ class ReceiptSearchMatchWidget(QWidget):
         """Left panel: Quick load + search filters (improved vertical "
         "layout)"""
 
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        scroll.setMinimumWidth(200)
+        scroll.setMaximumWidth(420)
+
         panel = QWidget()
-        panel.setMinimumWidth(
-            200
-        )  # Splitter handles sizing; just enforce a usable minimum
-        # Allow user to drag it a bit wider if needed
-        panel.setMaximumWidth(420)
+        panel.setMinimumWidth(300)
         vbox = QVBoxLayout(panel)
         vbox.setContentsMargins(8, 8, 8, 8)
         vbox.setSpacing(10)
@@ -913,7 +921,9 @@ class ReceiptSearchMatchWidget(QWidget):
         vbox.addWidget(self.write_mode_label)
 
         vbox.addStretch()
-        return panel
+        panel.setMinimumHeight(vbox.sizeHint().height())
+        scroll.setWidget(panel)
+        return scroll
 
     def _search_banking_transactions(self) -> None:
         """Search for banking transactions with filters."""
@@ -1157,11 +1167,12 @@ class ReceiptSearchMatchWidget(QWidget):
         form_main_layout.setSpacing(8)
 
         # Document Type selector at top with ALL ACTION BUTTONS inline
-        doc_type_group = QGroupBox("📄 Add New Receipt or Invoice")
-        # Do NOT cap height — at 125 % DPI the buttons need ~70–80 logical px
-        # and a hard cap of 62 causes them to overlap/clip
-        doc_type_group.setMinimumHeight(54)
+        doc_type_group = QWidget()
+        doc_type_group.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
         doc_type_layout = QHBoxLayout(doc_type_group)
+        doc_type_layout.setContentsMargins(0, 0, 0, 0)
         doc_type_layout.setSpacing(6)
         doc_type_layout.addWidget(QLabel("Document Type:"))
         self.doc_type_receipt = QRadioButton("Receipt (Paid Immediately)")
@@ -1311,6 +1322,7 @@ class ReceiptSearchMatchWidget(QWidget):
         doc_type_layout.addWidget(reconcile_btn)
 
         doc_type_layout.addStretch()
+        doc_type_group.setFixedHeight(doc_type_layout.sizeHint().height())
         form_main_layout.addWidget(doc_type_group, 0)  # 0 = no stretch
 
         # Main form fields
@@ -1682,8 +1694,18 @@ class ReceiptSearchMatchWidget(QWidget):
         driver_row.addWidget(QLabel(" Charter #:"))
         self.new_charter_input = QLineEdit()
         self.new_charter_input.setPlaceholderText("e.g., 015234")
-        self.new_charter_input.setMinimumWidth(100)
-        self.new_charter_input.setMaximumWidth(140)
+        self.new_charter_input.setMinimumWidth(220)
+        self.new_charter_input.setMaximumWidth(360)
+        self.new_charter_input.focusInEvent = (
+            lambda event: self._on_lineedit_focus(
+                self.new_charter_input, event
+            )
+        )
+        self.new_charter_input.mousePressEvent = (
+            lambda event: self._on_lineedit_click(
+                self.new_charter_input, event
+            )
+        )
         driver_row.addWidget(self.new_charter_input)
 
         # Vehicle field moved here (right of Charter #)
@@ -1972,6 +1994,13 @@ class ReceiptSearchMatchWidget(QWidget):
         QLineEdit.focusInEvent(lineedit, event)
         lineedit.selectAll()
 
+    def _on_lineedit_click(self, lineedit, event) -> None:
+        """Select the complete value even when the field already has focus."""
+        from PyQt6.QtWidgets import QLineEdit
+
+        QLineEdit.mousePressEvent(lineedit, event)
+        QTimer.singleShot(0, lineedit.selectAll)
+
     def _on_amount_enter(self) -> None:
         """Called when Enter is pressed in amount field - triggers search."""
         self._do_search()
@@ -1990,14 +2019,14 @@ class ReceiptSearchMatchWidget(QWidget):
             "    ELSE COALESCE(r.gl_account_code, "
             "r.mapped_expense_account_id::text, r.category, '')",
             "END AS gl_name,",
-            "COALESCE(r.banking_transaction_id, bt_link.transaction_id) AS "
+            "COALESCE(bt_link.transaction_id, r.banking_transaction_id) AS "
             "banking_transaction_id,",
             "CASE",
             "    WHEN COALESCE(NULLIF(bt_id.check_number, ''), "
             "NULLIF(bt_link.check_number, '')) IS NOT NULL THEN 'Cheque'",
-            "    WHEN COALESCE(bt_id.credit_amount, bt_link.credit_amount, 0) "
+            "    WHEN COALESCE(bt_link.credit_amount, bt_id.credit_amount, 0) "
             "> 0 THEN 'Credit'",
-            "    WHEN COALESCE(bt_id.debit_amount, bt_link.debit_amount, 0) > "
+            "    WHEN COALESCE(bt_link.debit_amount, bt_id.debit_amount, 0) > "
             "0 THEN 'Debit'",
             "    ELSE ''",
             "END AS banking_type,",
@@ -2144,8 +2173,8 @@ class ReceiptSearchMatchWidget(QWidget):
                     )
                 END AS gl_name,
                 COALESCE(
-                    r.banking_transaction_id,
-                    bt_link.transaction_id
+                    bt_link.transaction_id,
+                    r.banking_transaction_id
                 ) AS banking_transaction_id,
                 CASE
                     WHEN COALESCE(
@@ -2153,10 +2182,10 @@ class ReceiptSearchMatchWidget(QWidget):
                         NULLIF(bt_link.check_number, '')
                     ) IS NOT NULL THEN 'Cheque'
                     WHEN COALESCE(
-                        bt_id.credit_amount, bt_link.credit_amount, 0
+                        bt_link.credit_amount, bt_id.credit_amount, 0
                     )
                         > 0 THEN 'Credit'
-                    WHEN COALESCE(bt_id.debit_amount, bt_link.debit_amount, 0)
+                    WHEN COALESCE(bt_link.debit_amount, bt_id.debit_amount, 0)
                         > 0 THEN 'Debit'
                     ELSE ''
                 END AS banking_type,
@@ -2386,7 +2415,7 @@ class ReceiptSearchMatchWidget(QWidget):
                                ''
                            )
                        END AS gl_name,
-                       COALESCE(r.banking_transaction_id, bt_link.transaction_id)
+                       COALESCE(bt_link.transaction_id, r.banking_transaction_id)
                            AS banking_transaction_id,
                        CASE
                            WHEN COALESCE(
@@ -2394,10 +2423,10 @@ class ReceiptSearchMatchWidget(QWidget):
                                NULLIF(bt_link.check_number, '')
                            ) IS NOT NULL THEN 'Cheque'
                            WHEN COALESCE(
-                               bt_id.credit_amount, bt_link.credit_amount, 0
+                               bt_link.credit_amount, bt_id.credit_amount, 0
                            ) > 0 THEN 'Credit'
                            WHEN COALESCE(
-                               bt_id.debit_amount, bt_link.debit_amount, 0
+                               bt_link.debit_amount, bt_id.debit_amount, 0
                            ) > 0 THEN 'Debit'
                            ELSE ''
                        END AS banking_type,
@@ -4793,8 +4822,7 @@ class ReceiptSearchMatchWidget(QWidget):
             cur.execute("SET statement_timeout = 5000")
             cur.execute(
                 "SELECT DISTINCT CAST(reserve_number AS TEXT) FROM charters "
-                "WHERE reserve_number IS NOT NULL ORDER BY reserve_number "
-                "LIMIT 5000"
+                "WHERE reserve_number IS NOT NULL ORDER BY reserve_number"
             )
             charters = [row[0] for row in cur.fetchall()]
             cur.close()
@@ -4804,6 +4832,8 @@ class ReceiptSearchMatchWidget(QWidget):
                 comp = QCompleter(charters)
                 comp.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
                 comp.setFilterMode(Qt.MatchFlag.MatchContains)
+                comp.setMaxVisibleItems(15)
+                comp.popup().setMinimumWidth(320)
                 self.new_charter_input.setCompleter(comp)
                 logger.debug(
                     f"✓ Charter completer attached with {len(charters)} "
