@@ -3254,6 +3254,10 @@ class VendorInvoiceManager(QWidget):
                 else None
             )
             rows = self._fetch_editable_ledger_rows()
+            effective_balances = {
+                int(invoice[0]): float(invoice[6] or 0)
+                for invoice in getattr(self, "unfiltered_invoices", [])
+            }
             self.ledger_editor_table.blockSignals(True)
             self.ledger_editor_table.setRowCount(len(rows))
             running_balance = 0.0
@@ -3290,7 +3294,10 @@ class VendorInvoiceManager(QWidget):
                     document_number = invoice_number
                     applied_to_invoice = ""
                     payment_link_text = payment_links or "Unpaid"
-                    balance_text = f"${float(invoice_balance or 0):,.2f}"
+                    effective_balance = effective_balances.get(
+                        int(invoice_id), float(invoice_balance or 0)
+                    )
+                    balance_text = f"${effective_balance:,.2f}"
                 else:
                     charge = 0.0
                     payment = display_amount
