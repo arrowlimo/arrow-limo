@@ -350,7 +350,13 @@ class VendorLookupWidget(QWidget):
                         INSERT INTO vendor_accounts (canonical_vendor,
                         display_name, default_category, status)
                         VALUES (%s, %s, %s, 'active')
-                        ON CONFLICT DO NOTHING
+                        ON CONFLICT (canonical_vendor) DO UPDATE SET
+                            display_name = EXCLUDED.display_name,
+                            default_category = COALESCE(
+                                EXCLUDED.default_category,
+                                vendor_accounts.default_category
+                            ),
+                            status = 'active'
                         RETURNING account_id
                     """,
                         (
@@ -361,25 +367,25 @@ class VendorLookupWidget(QWidget):
                     )
 
                     result = cur.fetchone()
-                    if result:
-                        self.conn.commit()
-                        QMessageBox.information(
-                            self,
-                            "Success",
-                            f"Vendor '{vendor_data['vendor_name']}' added to"
-                            f"master list",
+                    if not result:
+                        raise RuntimeError(
+                            "The database did not return the saved vendor."
                         )
-                        self._load_vendors()
-                        # Select the newly added vendor
-                        self.set_vendor(vendor_data["vendor_name"])
-                    else:
-                        QMessageBox.warning(
-                            self,
-                            "Info",
-                            f"Vendor '{vendor_data['vendor_name']}' already"
-                            f"exists",
+                    vendor_id = int(result[0])
+                    self.conn.commit()
+                    self._load_vendors()
+                    self.set_vendor(vendor_data["vendor_name"])
+                    if self.current_vendor_id != vendor_id:
+                        raise RuntimeError(
+                            "The vendor was saved but could not be selected "
+                            "after refreshing the list."
                         )
-                        self.set_vendor(vendor_data["vendor_name"])
+                    QMessageBox.information(
+                        self,
+                        "Success",
+                        f"Vendor '{vendor_data['vendor_name']}' is saved and "
+                        "selected.",
+                    )
 
             except Exception as e:
                 self.conn.rollback()
