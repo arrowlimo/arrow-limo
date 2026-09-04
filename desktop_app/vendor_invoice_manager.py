@@ -5591,7 +5591,11 @@ class VendorInvoiceManager(QWidget):
         if status_filter == "Paid":
             filtered = [inv for inv in filtered if inv[7] == "✅ Paid"]
         elif status_filter == "Unpaid":
-            filtered = [inv for inv in filtered if inv[7] == "❌ Unpaid"]
+            filtered = [
+                inv
+                for inv in filtered
+                if inv[7] in ("❌ Unpaid", "🟠 Partially Paid")
+            ]
 
         # Keep filtered results in chronological order.
         filtered.sort(key=self._invoice_sort_key)
@@ -5629,6 +5633,57 @@ class VendorInvoiceManager(QWidget):
                     continue
 
         return (0, invoice_id)
+
+    @staticmethod
+    def _apply_fifo_invoice_credits(invoice_data: list[tuple]) -> list[tuple]:
+        """Apply overpayment credits to later invoice balances for display."""
+        adjusted = [list(invoice) for invoice in invoice_data]
+        credit_lots: list[list[float | int]] = []
+
+        for index, invoice in enumerate(adjusted):
+            paid = round(float(invoice[5] or 0), 2)
+            raw_balance = round(float(invoice[6] or 0), 2)
+
+            if raw_balance < -0.01:
+                credit_lots.append([index, abs(raw_balance)])
+                invoice[6] = 0.0
+                invoice[7] = "✅ Paid"
+                continue
+
+            credit_applied = 0.0
+            if raw_balance > 0.01:
+                remaining = raw_balance
+                for lot in credit_lots:
+                    available_credit = float(lot[1])
+                    if available_credit <= 0.01:
+                        continue
+                    applied = min(available_credit, remaining)
+                    lot[1] = round(available_credit - applied, 2)
+                    remaining = round(remaining - applied, 2)
+                    credit_applied = round(credit_applied + applied, 2)
+                    if remaining <= 0.01:
+                        remaining = 0.0
+                        break
+                invoice[6] = remaining
+            else:
+                invoice[6] = 0.0
+
+            effective_balance = float(invoice[6])
+            if effective_balance <= 0.01:
+                invoice[7] = "✅ Paid"
+            elif paid > 0.01 or credit_applied > 0.01:
+                invoice[7] = "🟠 Partially Paid"
+            else:
+                invoice[7] = "❌ Unpaid"
+
+        for source_index, remaining_credit in credit_lots:
+            if float(remaining_credit) > 0.01:
+                adjusted[int(source_index)][6] = -round(
+                    float(remaining_credit), 2
+                )
+                adjusted[int(source_index)][7] = "💳 Credit"
+
+        return [tuple(invoice) for invoice in adjusted]
 
     @staticmethod
     def _normalize_invoice_number(value) -> str:
@@ -5967,6 +6022,7 @@ class VendorInvoiceManager(QWidget):
             total_balance = total_invoiced - total_paid
 
             invoice_data.sort(key=self._invoice_sort_key)
+            invoice_data = self._apply_fifo_invoice_credits(invoice_data)
             self.current_invoices = invoice_data
             self.unfiltered_invoices = invoice_data.copy()
             self.current_receipts_total = receipts_total
