@@ -1,19 +1,20 @@
 """Bank statement import folder layout.
 
-The admin downloads statements one month at a time and drops each download in a
-per-month folder named ``<last4><mon><year>``::
+The app creates one parent folder per institution and then waits for the admin
+to drop downloaded statement files in, named ``<last4><mon><year>.xls``::
 
     Y:\\limo\\bankaccount\\
         CIBC\\
-            1615jan2026\\
-            8362jan2026\\
+            1615jan2026.xls
+            8362jan2026.xlsx
         TD\\
-            1234jan2026\\
+            1234jan2026.xls
         ATB\\
-            5678jan2026\\
+            5678jan2026.csv
 
 Institution folders are derived from the ``bank_accounts`` registry, so newly
-registered accounts pick up folders automatically.
+registered accounts pick up folders automatically. A same-named subfolder is
+also accepted, so ``CIBC\\1615jan2026\\statement.xls`` works too.
 
 Root location resolves in this order:
     1. ``ARROW_BANK_STATEMENTS_DIR`` environment variable
@@ -76,18 +77,24 @@ def account_last4(account_number: str) -> str:
     return digits[-4:] if len(digits) >= 4 else (digits or "xxxx")
 
 
-def month_folder_name(account_number: str, year: int, month: int) -> str:
-    """Build a folder name such as ``1615jan2026``."""
-    return f"{account_last4(account_number)}{MONTH_ABBR[month - 1]}{year}"
+def statement_name(account_number: str, year: int, month: int,
+                   suffix: str = "") -> str:
+    """Build a statement name such as ``1615jan2026`` (or ``1615jan2026.xls``)."""
+    base = f"{account_last4(account_number)}{MONTH_ABBR[month - 1]}{year}"
+    return f"{base}{suffix}" if suffix else base
 
 
-def parse_month_folder(folder_name: str):
+# Backwards-compatible alias: the naming scheme is shared by files and folders.
+month_folder_name = statement_name
+
+
+def parse_statement_name(name: str):
     """Parse ``1615jan2026`` -> ``("1615", 2026, 1)``. Returns None if unmatched.
 
     Two-digit years are interpreted as 2000-2099, matching how the admin
-    abbreviates (``jan26`` means 2026).
+    abbreviates (``jan26`` means 2026). Pass a filename stem, not the suffix.
     """
-    match = FOLDER_RE.match((folder_name or "").strip())
+    match = FOLDER_RE.match((name or "").strip())
     if not match:
         return None
     year = int(match.group("year"))
@@ -95,6 +102,9 @@ def parse_month_folder(folder_name: str):
         year += 2000
     month = MONTH_ABBR.index(match.group("month").lower()) + 1
     return match.group("last4"), year, month
+
+
+parse_month_folder = parse_statement_name
 
 
 @dataclass(frozen=True)
@@ -107,9 +117,7 @@ class AccountPaths:
     institution_dir: Path
 
     def month_dir(self, year: int, month: int) -> Path:
-        return self.institution_dir / month_folder_name(
-            self.account_number, year, month
-        )
+        return self.institution_dir / statement_name(self.account_number, year, month)
 
 
 def get_statements_root(settings=None) -> Path:
@@ -182,10 +190,10 @@ def plan_accounts(conn, root=None, include_inactive: bool = False):
 
 
 def ensure_folders(conn, root=None, include_inactive: bool = False):
-    """Create the institution folders if missing. Safe to re-run.
+    """Create the institution parent folders if missing. Safe to re-run.
 
-    Month folders are created by the admin as statements are downloaded, so
-    only the institution level is scaffolded here.
+    Only the institution level is created; the admin drops statement files in
+    directly, so there is nothing further to scaffold.
     """
     base, accounts = plan_accounts(conn, root, include_inactive)
     created = []
@@ -200,12 +208,18 @@ def ensure_folders(conn, root=None, include_inactive: bool = False):
     return base, accounts, created
 
 
-def scan_month_folders(conn, root=None, include_inactive: bool = False):
-    """Inspect the tree and report what the admin has actually downloaded.
+STATEMENT_SUFFIXES = {".xls", ".xlsx", ".csv", ".ofx", ".qfx", ".pdf", ".txt"}
+
+
+def scan_statements(conn, root=None, include_inactive: bool = False):
+    """Find downloaded statements and report what the admin has provided.
+
+    Accepts either a file (``1615jan2026.xls``) or a same-named subfolder
+    (``1615jan2026\\anything.xls``) directly under the institution folder.
 
     Returns ``(base, accounts, found, unknown)`` where ``found`` maps
-    ``bank_id`` to a sorted list of ``(year, month, path, file_count)`` and
-    ``unknown`` lists folders that match no registered account.
+    ``bank_id`` to a sorted list of ``(year, month, path, size_bytes)`` and
+    ``unknown`` lists entries matching no registered account.
     """
     base, accounts = plan_accounts(conn, root, include_inactive)
 
@@ -215,24 +229,35 @@ def scan_month_folders(conn, root=None, include_inactive: bool = False):
 
     found = {account.bank_id: [] for account in accounts}
     unknown = []
-    seen_dirs = set()
+    scanned = set()
 
     for account in accounts:
         directory = account.institution_dir
-        if not directory.is_dir() or directory in seen_dirs:
+        if not directory.is_dir() or directory in scanned:
             continue
-        seen_dirs.add(directory)
+        scanned.add(directory)
+
         for child in sorted(directory.iterdir()):
-            if not child.is_dir():
+            if child.is_file() and child.suffix.lower() not in STATEMENT_SUFFIXES:
                 continue
-            parsed = parse_month_folder(child.name)
+
+            parsed = parse_statement_name(child.stem if child.is_file() else child.name)
             owner = by_last4.get(parsed[0]) if parsed else None
             if owner is None:
                 unknown.append(child)
                 continue
+
             _last4, year, month = parsed
-            file_count = sum(1 for f in child.iterdir() if f.is_file())
-            found[owner.bank_id].append((year, month, child, file_count))
+            if child.is_file():
+                size = child.stat().st_size
+            else:
+                files = [f for f in child.iterdir() if f.is_file()]
+                if not files:
+                    # An empty month folder is a placeholder, not a download.
+                    unknown.append(child)
+                    continue
+                size = sum(f.stat().st_size for f in files)
+            found[owner.bank_id].append((year, month, child, size))
 
     for bank_id in found:
         found[bank_id].sort(key=lambda entry: (entry[0], entry[1]))
@@ -248,24 +273,24 @@ def _month_range(start: date, end: date):
             month, year = 1, year + 1
 
 
-def last_complete_month(today: date = None) -> date:
+def last_complete_month(today: date | None = None) -> date:
     """First day of the most recently completed month."""
     today = today or date.today()
     return (date(today.year, today.month, 1) - timedelta(days=1)).replace(day=1)
 
 
-def missing_months(conn, root=None, through: date = None,
+def missing_months(conn, root=None, through: date | None = None,
                    include_inactive: bool = False):
-    """Report months with no downloaded folder, per account.
+    """Report months with no downloaded statement, per account.
 
-    The window runs from the month after the account's last imported
-    transaction through ``through`` (default: last complete month), so it
-    answers "what still needs downloading" rather than flagging all history.
+    The window runs from the month of the account's last imported transaction
+    through ``through`` (default: last complete month), so it answers "what
+    still needs downloading" rather than flagging all history.
     """
     if through is None:
         through = last_complete_month()
 
-    base, accounts, found, unknown = scan_month_folders(conn, root, include_inactive)
+    base, accounts, found, unknown = scan_statements(conn, root, include_inactive)
 
     with conn.cursor() as cur:
         cur.execute(
@@ -295,7 +320,7 @@ def missing_months(conn, root=None, through: date = None,
 
 
 def describe_layout(conn, root=None, include_inactive: bool = False) -> str:
-    """Human-readable tree showing expected folders and what is present."""
+    """Human-readable summary of expected statements and what is present."""
     base, accounts, found, report, unknown = missing_months(
         conn, root, include_inactive=include_inactive
     )
@@ -309,26 +334,28 @@ def describe_layout(conn, root=None, include_inactive: bool = False) -> str:
             current = slug
         downloaded = found.get(account.bank_id, [])
         missing = report.get(account.bank_id, [])
-        example = month_folder_name(account.account_number, 2026, 1)
+        example = statement_name(account.account_number, 2026, 1, ".xls")
         lines.append(
             f"    {account.last4}  ({account.account_name}) "
             f"e.g. {example}  downloaded={len(downloaded)} missing={len(missing)}"
         )
         for year, month in missing[:6]:
             lines.append(
-                f"        needs {month_folder_name(account.account_number, year, month)}"
+                "        needs "
+                + statement_name(account.account_number, year, month, ".xls")
             )
         if len(missing) > 6:
             lines.append(f"        ... and {len(missing) - 6} more")
     for path in unknown:
-        lines.append(f"  ?? unrecognized folder: {path}")
+        lines.append(f"  ?? unrecognized: {path}")
     return "\n".join(lines)
 
 
 __all__ = [
+    "DEFAULT_ROOT",
     "ENV_VAR",
     "SETTINGS_KEY",
-    "DEFAULT_ROOT",
+    "STATEMENT_SUFFIXES",
     "AccountPaths",
     "account_last4",
     "describe_layout",
@@ -339,7 +366,9 @@ __all__ = [
     "missing_months",
     "month_folder_name",
     "parse_month_folder",
+    "parse_statement_name",
     "plan_accounts",
-    "scan_month_folders",
+    "scan_statements",
     "set_statements_root",
+    "statement_name",
 ]
