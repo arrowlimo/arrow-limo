@@ -395,8 +395,11 @@ async def list_available_support_employees(request: Request):
                 FROM employees e
                 LEFT JOIN driver_user_links l ON l.employee_id = e.employee_id
                 WHERE l.employee_id IS NULL
-                  AND LOWER(COALESCE(e.employee_category, '')) IN (
-                      'driver', 'chauffeur', 'operator'
+                  AND (
+                      e.is_chauffeur IS TRUE
+                      OR LOWER(COALESCE(e.employee_category, '')) IN (
+                          'driver', 'chauffeur', 'operator'
+                      )
                   )
                   AND LOWER(COALESCE(e.employment_status, e.status, 'active')) = 'active'
                 ORDER BY e.last_name, e.first_name, e.employee_id
@@ -440,8 +443,11 @@ async def create_support_driver_account(
                 LEFT JOIN driver_user_links l ON l.employee_id = e.employee_id
                 WHERE e.employee_id = %s
                   AND l.employee_id IS NULL
-                  AND LOWER(COALESCE(e.employee_category, '')) IN (
-                      'driver', 'chauffeur', 'operator'
+                  AND (
+                      e.is_chauffeur IS TRUE
+                      OR LOWER(COALESCE(e.employee_category, '')) IN (
+                          'driver', 'chauffeur', 'operator'
+                      )
                   )
                   AND LOWER(COALESCE(e.employment_status, e.status, 'active')) = 'active'
                 FOR UPDATE
