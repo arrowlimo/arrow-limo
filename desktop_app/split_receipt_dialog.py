@@ -224,7 +224,18 @@ class SplitReceiptDialog(QDialog):
             payment_combo = QComboBox()
             payment_combo.addItems(payment_methods)
             if row == 0:
-                payment_combo.setCurrentText("Debit")
+                original_payment = (
+                    self.receipt_data[9]
+                    if len(self.receipt_data) > 9
+                    else "cash"
+                )
+                display_payment = {
+                    "cash": "Cash",
+                    "debit_card": "Debit",
+                    "credit_card": "Credit Card",
+                    "bank_transfer": "Bank Transfer",
+                }.get(original_payment, "Cash")
+                payment_combo.setCurrentText(display_payment)
             else:
                 payment_combo.setCurrentText("Cash")
             self.splits_table.setCellWidget(row, 2, payment_combo)
