@@ -21,10 +21,322 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from ..db import cursor
+from . import pdf_generation_helpers as pdfh
 from .pdf_layout_settings import load_pdf_layout_settings
 
 SERVICE_FEE_LABEL = "Service Fee"
 UTC_OFFSET_SUFFIX = "+00:00"
+DEFAULT_CONFIRMATION_TEMPLATE = (
+    "Dear {{client_name}}:\n\n"
+    "Thank you for choosing Arrow Limousine & Sedan Services Ltd. "
+    "We have reserved the following transportation for you.\n\n"
+    "Date for the Reservation: {{charter_date}}    "
+    "Starting at: {{pickup_time}}    Predicted End Time: {{dropoff_time}}\n\n"
+    "Type of Vehicle: {{vehicle_type}}\n\n"
+    "Itinerary:\n{{itinerary}}\n\n"
+    "Please review the details above and contact our office with any questions. "
+    "We look forward to serving you."
+)
+DEFAULT_QUOTE_TEMPLATE = (
+    "Dear {{client_name}},\n\n"
+    "Thank you for requesting a quote from Arrow Limousine & Sedan Services Ltd. "
+    "We are pleased to provide the following transportation estimate for your reservation. "
+    "Quote Number: {{quote_number}}. Request date: {{charter_date}}. "
+    "Vehicle type: {{vehicle_type}}. Pickup / dropoff: {{pickup_time}} to {{dropoff_time}}.\n\n"
+    "Please review the itinerary and rates below. We would be happy to confirm the booking "
+    "once you are ready to proceed."
+)
+
+
+def _normalize_template_text(raw_text: str | None) -> str:
+    """Convert rich text or HTML stored in template rows into plain text PDF content."""
+    if raw_text is None:
+        return ""
+    text = str(raw_text)
+    text = text.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n")
+    text = text.replace("</p>", "\n\n").replace("</div>", "\n\n")
+    text = text.replace("&nbsp;", " ")
+    text = text.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+    text = re.sub(r"<li[^>]*>", "\n• ", text, flags=re.IGNORECASE)
+    text = text.replace("</li>", "\n")
+    text = re.sub(r"<[^>]+>", "", text)
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def _ensure_confirmation_letter_template_table() -> None:
+    """Create the admin-managed confirmation template table if needed."""
+    with cursor() as cur:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS confirmation_letter_templates (
+                template_id SERIAL PRIMARY KEY,
+                name VARCHAR(120) NOT NULL DEFAULT 'default',
+                subject VARCHAR(255) NOT NULL DEFAULT 'Confirmation Letter',
+                body TEXT NOT NULL,
+                is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
+        )
+        cur.execute(
+            """
+            INSERT INTO confirmation_letter_templates (name, subject, body, is_active)
+            SELECT %s, %s, %s, TRUE
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM confirmation_letter_templates
+                WHERE name = %s
+            )
+            """,
+            (
+                "default",
+                "Confirmation Letter",
+                DEFAULT_CONFIRMATION_TEMPLATE,
+                "default",
+            ),
+        )
+
+
+def _load_active_confirmation_template() -> str:
+    """Return the current template body from the database, or the built-in default."""
+    try:
+        _ensure_confirmation_letter_template_table()
+        with cursor() as cur:
+            cur.execute(
+                """
+                SELECT body
+                FROM confirmation_letter_templates
+                WHERE is_active = TRUE
+                ORDER BY updated_at DESC, template_id DESC
+                LIMIT 1
+                """
+            )
+            row = cur.fetchone()
+            if row and row[0]:
+                return str(row[0])
+    except Exception:
+        pass
+    return DEFAULT_CONFIRMATION_TEMPLATE
+
+
+def _ensure_quote_letter_template_table() -> None:
+    """Create the admin-managed quote template table if needed."""
+    with cursor() as cur:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS quote_letter_templates (
+                template_id SERIAL PRIMARY KEY,
+                name VARCHAR(120) NOT NULL DEFAULT 'default',
+                subject VARCHAR(255) NOT NULL DEFAULT 'Quote Letter',
+                body TEXT NOT NULL,
+                is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
+        )
+        cur.execute(
+            """
+            INSERT INTO quote_letter_templates (name, subject, body, is_active)
+            SELECT %s, %s, %s, TRUE
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM quote_letter_templates
+                WHERE name = %s
+            )
+            """,
+            (
+                "default",
+                "Quote Letter",
+                DEFAULT_QUOTE_TEMPLATE,
+                "default",
+            ),
+        )
+
+
+def _load_active_quote_template() -> str:
+    """Return the current quote template body from the database, or the built-in default."""
+    try:
+        _ensure_quote_letter_template_table()
+        with cursor() as cur:
+            cur.execute(
+                """
+                SELECT body
+                FROM quote_letter_templates
+                WHERE is_active = TRUE
+                ORDER BY updated_at DESC, template_id DESC
+                LIMIT 1
+                """
+            )
+            row = cur.fetchone()
+            if row and row[0]:
+                return str(row[0])
+    except Exception:
+        pass
+    return DEFAULT_QUOTE_TEMPLATE
+
+
+def _render_confirmation_template_body(charter_data: dict[str, Any] | None) -> str:
+    """Merge placeholders in the active confirmation template using charter data."""
+    template = _normalize_template_text(_load_active_confirmation_template())
+    if not charter_data:
+        return template
+
+    def _value(*keys: str) -> str:
+        for key in keys:
+            if key in charter_data and charter_data.get(key) not in (None, ""):
+                return str(charter_data.get(key))
+        return ""
+
+    client_name = _value("client_name", "client_display_name", "company_name")
+    reserve_number = _value("reservation_number", "reserve_number", "charter_id")
+    charter_date = _value("charter_date")
+    pickup_time = _value("pickup_time", "actual_pickup_time")
+    dropoff_time = _value("dropoff_time", "actual_dropoff_time")
+    vehicle = _value(
+        "vehicle_type",
+        "requested_vehicle_type",
+        "vehicle_type_requested",
+        "vehicle",
+        "vehicle_description",
+    )
+    driver = _value("driver_name", "assigned_driver", "driver", "driver_display_name")
+    itinerary = _value("itinerary", "itinerary_summary")
+    if not itinerary:
+        routes = charter_data.get("routes") or []
+        parts = []
+        for route in routes:
+            addr = route.get("address") or route.get("pickup_location") or route.get("dropoff_location") or ""
+            stop_time = route.get("stop_time") or route.get("pickup_time") or route.get("dropoff_time") or ""
+            event_type = route.get("event_type_label") or route.get("event_type_code") or "Stop"
+            if addr:
+                piece = f"{event_type}: {addr}"
+                if stop_time:
+                    piece += f" at {stop_time}"
+                parts.append(piece)
+        itinerary = "; ".join(parts)
+
+    replacements = {
+        "client_name": client_name or "Client",
+        "reservation_number": reserve_number or "TBD",
+        "charter_date": charter_date or "TBD",
+        "pickup_time": pickup_time or "",
+        "dropoff_time": dropoff_time or "",
+        "vehicle_type": vehicle or "TBD",
+        "driver_name": driver or "TBD",
+        "itinerary": itinerary or "No itinerary details entered.",
+        "payment_method": _value("payment_method") or "Credit Card",
+        "total_amount_due": _value("total_amount_due", "grand_total") or "0.00",
+        "balance_due": _value("balance_due") or "0.00",
+        "notes": _value("notes", "booking_notes", "client_notes") or "",
+    }
+
+    rendered = template
+    for key, value in replacements.items():
+        rendered = rendered.replace(f"{{{{{key}}}}}", str(value).strip())
+    return rendered.strip()
+
+
+def _render_quote_template_body(charter_data: dict[str, Any] | None) -> str:
+    """Merge placeholders in the active quote template using charter data."""
+    template = _normalize_template_text(_load_active_quote_template())
+    if not charter_data:
+        return template
+
+    def _value(*keys: str) -> str:
+        for key in keys:
+            if key in charter_data and charter_data.get(key) not in (None, ""):
+                return str(charter_data.get(key))
+        return ""
+
+    client_name = _value("client_name", "client_display_name", "company_name")
+    quote_number = _value("quote_number", "reservation_number", "reserve_number", "charter_id")
+    charter_date = _value("charter_date")
+    pickup_time = _value("pickup_time", "actual_pickup_time")
+    dropoff_time = _value("dropoff_time", "actual_dropoff_time")
+    vehicle = _value(
+        "vehicle_type_requested",
+        "vehicle_type",
+        "vehicle",
+        "vehicle_description",
+        "requested_vehicle_type",
+    )
+    itinerary = _value("itinerary", "quote_itinerary_lines")
+    quote_lines = charter_data.get("quote_itinerary_lines")
+    if not itinerary and isinstance(quote_lines, (list, tuple)):
+        itinerary = "\n".join(str(item) for item in quote_lines if item)
+    if not itinerary:
+        route_rows = charter_data.get("routes")
+        if isinstance(route_rows, (list, tuple)):
+            itinerary = "; ".join(
+                str(
+                    route.get("address")
+                    or route.get("pickup_location")
+                    or route.get("dropoff_location")
+                    or ""
+                )
+                for route in route_rows
+                if isinstance(route, dict)
+            )
+
+    replacements = {
+        "client_name": client_name or "Client",
+        "quote_number": quote_number or "QUOTE",
+        "reservation_number": quote_number or "QUOTE",
+        "charter_date": charter_date or "TBD",
+        "pickup_time": pickup_time or "TBD",
+        "dropoff_time": dropoff_time or "TBD",
+        "vehicle_type": vehicle or "TBD",
+        "itinerary": itinerary or "No itinerary details entered.",
+    }
+
+    rendered = template
+    for key, value in replacements.items():
+        rendered = rendered.replace(f"{{{{{key}}}}}", str(value).strip())
+    return rendered.strip()
+
+
+def _load_docx_policy_sections() -> list[tuple[str, str]]:
+    """Read policy sections from the authoritative confirmation DOCX."""
+    try:
+        from docx import Document
+
+        root = Path(__file__).resolve().parents[3]
+        template_path = root / "forms" / "templates" / "confirmationletter.docx"
+        document = Document(str(template_path))
+        paragraphs = [p.text.strip() for p in document.paragraphs]
+        start = next(
+            (i for i, text in enumerate(paragraphs) if text.lower() == "policies & terms"),
+            None,
+        )
+        if start is None:
+            return []
+
+        sections: list[tuple[str, list[str]]] = []
+        current_heading = ""
+        current_body: list[str] = []
+        heading_pattern = re.compile(r"^(?:\d+\.\s+|non-refundable retainer)", re.IGNORECASE)
+        for text in paragraphs[start + 1 :]:
+            if not text:
+                continue
+            if text.lower().startswith("sincerely"):
+                break
+            if heading_pattern.match(text):
+                if current_heading:
+                    sections.append((current_heading, current_body))
+                current_heading = text
+                current_body = []
+            elif current_heading:
+                current_body.append(text)
+        if current_heading:
+            sections.append((current_heading, current_body))
+        return [(heading, "\n".join(body)) for heading, body in sections]
+    except Exception:
+        return []
 
 
 class CharterPDFForm:
@@ -39,22 +351,26 @@ class CharterPDFForm:
         """
         self.data = charter_data
         self.buffer = BytesIO()
-        self.width, self.height = LEGAL
-        self.left_margin = 0.5 * inch
-        self.right_margin = 0.5 * inch
-        self.top_margin = 0.5 * inch
-        self.bottom_margin = 0.5 * inch
+        self.width, self.height = LETTER
+        # Keep printable area wide so output doesn't get visually compressed.
+        self.left_margin = 0.2 * inch
+        self.right_margin = 0.2 * inch
+        self.top_margin = 0.2 * inch
+        self.bottom_margin = 0.2 * inch
         self.layout = load_pdf_layout_settings()
 
     def generate(self):
         """Generate the reservation run sheet and return bytes."""
-        pdf = canvas.Canvas(self.buffer, pagesize=LEGAL)
+        page_size = self._select_run_sheet_page_size()
+        self.width, self.height = page_size
+
+        pdf = canvas.Canvas(self.buffer, pagesize=page_size)
         pdf.setTitle("Charter Sheet - {}".format(self.data.get("reserve_number", "TBD")))
 
-        page_left = 0.35 * inch
-        page_right = self.width - 0.35 * inch
+        page_left = self.left_margin
+        page_right = self.width - self.right_margin
         content_width = page_right - page_left
-        y = self.height - 0.35 * inch
+        y = self.height - self.top_margin
 
         y = self._draw_header(pdf, page_left, page_right, y)
         y = self._draw_summary_and_client(pdf, page_left, content_width, y)
@@ -77,6 +393,111 @@ class CharterPDFForm:
         pdf.save()
         self.buffer.seek(0)
         return self.buffer.getvalue()
+
+    def _select_run_sheet_page_size(self):
+        """Use Letter by default, switch to Legal when estimated content exceeds 11 inches."""
+        routes = self.data.get("routes") or []
+        # Deterministic guardrails for dispatch-heavy run sheets.
+        if len(routes) > 8:
+            return LEGAL
+
+        notes_text = " ".join(
+            part
+            for part in [
+                self._safe(self.data.get("notes")),
+                self._safe(self.data.get("booking_notes")),
+                self._safe(self.data.get("special_requirements")),
+            ]
+            if part and part != "-"
+        )
+        if notes_text:
+            page_width = LETTER[0]
+            content_width = page_width - (self.left_margin + self.right_margin)
+            note_lines = simpleSplit(notes_text, "Helvetica", 6.5, max(60.0, content_width - 12))
+            if len(note_lines) > 9:
+                return LEGAL
+
+        letter_content_height = LETTER[1] - (self.top_margin + self.bottom_margin)
+        estimated_height = self._estimate_run_sheet_content_height()
+        return LEGAL if estimated_height > letter_content_height else LETTER
+
+    def _estimate_run_sheet_content_height(self) -> float:
+        """Approximate vertical space needed by run sheet sections (points)."""
+        routing_cfg = self.layout.get("routing", {})
+        summary_cfg = self.layout.get("summary_client", {})
+        driver_vehicle_cfg = self.layout.get("driver_vehicle", {})
+
+        page_width = LETTER[0]
+        content_width = page_width - (self.left_margin + self.right_margin)
+
+        # Header section.
+        total_height = 22.0
+        # Summary/client section.
+        # Summary/client section.
+        summary_lines = [
+            [
+                f"Run Type:{self._friendly_run_type(self.data.get('charter_type'))}",
+                f"Pickup: {self._format_time(self.data.get('pickup_time') or self.data.get('actual_pickup_time'))}",
+                f"DO Time: {self._format_time(self.data.get('dropoff_time') or self.data.get('actual_dropoff_time'))}",
+            ],
+            [
+                f"Est Hours:{self._format_decimal(self.data.get('quoted_hours'))}",
+                f"Pax: {self._safe(self.data.get('passenger_load'))}",
+                "",
+            ],
+            [
+                "Vehicle Type: "
+                f"{self._safe(self.data.get('vehicle_type_requested') or self.data.get('vehicle_description') or self.data.get('vehicle'))}"
+                "   |   Vehicle ID: "
+                f"{self._safe(self.data.get('vehicle_number') or self.data.get('vehicle_booked_id'))}",
+            ],
+            [f"Driver: {self._safe(self.data.get('driver_name') or self.data.get('driver'))}", "", ""],
+        ]
+        summary_font_size = float(summary_cfg.get("summary_font_size", 7.8))
+        summary_height = self._estimate_box_height(summary_lines, summary_font_size)
+        client_height = 23 + 13 + 5 * 10.4 + 4
+        summary_box_height = max(
+            summary_height,
+            client_height,
+            float(summary_cfg.get("client_min_height", 90)),
+        )
+        total_height += summary_box_height
+
+        # Routing section.
+        routes = self.data.get("routes") or []
+        route_count = len(routes) + 1 if routes else 3  # header + rows/fallback
+        route_row_height = float(routing_cfg.get("row_height", 15))
+        min_rows = int(routing_cfg.get("min_rows", 8))
+        routing_height = max(route_count * route_row_height, min_rows * route_row_height)
+        total_height += routing_height
+
+        # Notes + beverages section.
+        notes_text = " ".join(
+            part
+            for part in [
+                self._safe(self.data.get("notes")),
+                self._safe(self.data.get("booking_notes")),
+                self._safe(self.data.get("special_requirements")),
+            ]
+            if part and part != "-"
+        )
+        note_lines = simpleSplit(notes_text, "Helvetica", 6.5, max(60.0, content_width - 12)) if notes_text else []
+        notes_height = 9 + max(1, len(note_lines)) * 8 + 4
+        bev_count = len(self.data.get("beverages") or [])
+        bev_rows = (bev_count + 2) // 3 if bev_count else 1
+        bev_height = 9 + bev_rows * 8 + 4
+        total_height += notes_height + bev_height
+
+        # Driver/HOS block (derived from draw math).
+        table_row_height = float(driver_vehicle_cfg.get("line_height", 18.0))
+        route_table_height = 14.0 + table_row_height + (4 * 13.0)
+        hos_table_height = 19.0 + (4 * 13.0)
+        driver_block_height = (46 + route_table_height + 10 + (3 * 14) + 8 + hos_table_height + 8) + 4
+        total_height += driver_block_height
+
+        # Footer signature allowance.
+        total_height += 22.0
+        return total_height
 
     def _draw_header(self, pdf, x_left, x_right, y_top):
         center_x = (x_left + x_right) / 2
@@ -816,10 +1237,10 @@ class CharterPDFForm:
                 ]
             )
 
-        total_due = float(self.data.get("total_amount_due") or 0)
+        total_due = 0.0 if _is_cancelled_charter(self.data) else float(self.data.get("total_amount_due") or 0)
         total_paid = float(self.data.get("total_paid") or 0)
         deposit = float(self.data.get("nrr_amount") or 0)
-        balance = total_due - total_paid
+        balance = 0.0 if _is_cancelled_charter(self.data) else max(total_due - total_paid, 0.0)
         chauffeur_cash_collected = self._safe(
             self.data.get("chauffeur_cash_collected") or self.data.get("driver_cash_collected")
         )
@@ -991,8 +1412,8 @@ class CharterPDFForm:
         line_height = font_size + 3
 
         policy_paragraphs = [
-            "By placing a reservation and securing it with a nonrefundable retainer you acknowledge and expressly agree to the following policies, terms and conditions and further expressly authorize Arrow Limousine to charge your credit card in full or part amounts relating to your reservation including but not limited to charging your credit card in full for the reservation should you be considered a no-show.",
-            "We accept Visa, or MasterCard. Cash or E-transfer can be arranged. All orders are charged in Canadian Dollars (CAD). We automatically add a standard but adjustable 18 percent gratuity, and GST. All beverage orders, parking fees, tolls, event entrance fees or other charter requirement are billed to your credit card/account unless alternate arrangements are made with the office and noted on the booking.",
+            "By placing a reservation and securing it with a nonrefundable retainer you acknowledge and expressly agree to the following policies, terms and conditions and further expressly authorize Arrow Limousine to charge your credit card in full or part amounts relating to your reservation including but not limited to charging your credit card in full for the reservation should you be considered a no-show. Most foods and non-alcoholic beverages are welcome on the trip. Please avoid peanuts and other allergy-triggering foods.",
+            "We accept Visa, or MasterCard. Cash or E-transfer can be arranged. All orders are charged in Canadian Dollars (CAD). A standard but adjustable 18 percent gratuity, as listed, is subject to GST, as required by CRA. All beverage orders, parking fees, tolls, event entrance fees or other charter requirement are billed to your credit card/account unless alternate arrangements are made with the office and noted on the booking.",
             "A retainer is a fee paid in advance and used to hold goods or services and is nonrefundable (NRR).",
             "A Set non-refundable retainer (NRR) is required to confirm and secure a charter run. As soon as your retainer clears, the vehicle is yours for that specific time and date and a confirmation run charter is sent to your email address. We immediately begin turning away business for any, and all inquiries that come in for that vehicle and date.",
             "Bookings for 5 or more hours require a NRR equal to half of the total run charter charges.",
@@ -1235,7 +1656,6 @@ class CharterPDFForm:
             return str(value)
 
     def _normalize_charges(self):
-        normalized = []
         label_map = {
             "base_rate": SERVICE_FEE_LABEL,
             "service_fee": SERVICE_FEE_LABEL,
@@ -1244,9 +1664,13 @@ class CharterPDFForm:
             "airport_fee": "Airport Fee",
             "additional": "Additional",
         }
+        if _is_cancelled_charter(self.data):
+            return []
         bev_total = 0.0
+        ordered_rows = []
         for charge in self.data.get("charges") or []:
             ctype = charge.get("charge_type") or ""
+            is_taxable = bool(charge.get("is_taxable", True))
             # Individual beverage items are consolidated into one summary line.
             if ctype == "beverage":
                 bev_total += float(charge.get("amount") or 0)
@@ -1256,13 +1680,27 @@ class CharterPDFForm:
             label = (
                 re.sub(r"\s*\[calc:[^\]]+\]", "", label).strip() or label_map.get(ctype) or "Charge"
             )
-            normalized.append({"label": label, "amount": charge.get("amount") or 0})
+            priority = 2
+            if ctype in {"gst", "tax", "hst"} or label.lower().startswith(("g.s.t.", "gst")):
+                priority = 0
+            elif ctype == "gratuity" and not is_taxable:
+                priority = 1
+                if "gst exempt" not in label.lower():
+                    label = "Direct Gratuity (GST Exempt)"
+            ordered_rows.append(
+                (
+                    priority,
+                    len(ordered_rows),
+                    {"label": label, "amount": charge.get("amount") or 0},
+                )
+            )
         if bev_total:
-            normalized.append({"label": "Beverages", "amount": bev_total})
-        if not normalized:
+            ordered_rows.append((2, len(ordered_rows), {"label": "Beverages", "amount": bev_total}))
+        if not ordered_rows:
             total_due = float(self.data.get("total_amount_due") or 0)
-            normalized.append({"label": SERVICE_FEE_LABEL, "amount": total_due})
-        return normalized
+            ordered_rows.append((2, 0, {"label": SERVICE_FEE_LABEL, "amount": total_due}))
+        ordered_rows.sort(key=lambda item: (item[0], item[1]))
+        return [item[2] for item in ordered_rows]
 
     def _format_datetime_line(self):
         charter_date = self.data.get("charter_date")
@@ -1353,7 +1791,10 @@ class CharterPDFForm:
             "airport_pu": "Airport PU",
             "airport_do": "Airport DO",
             "leave_red_deer": "Leave",
+            "return_to_red_deer": "Return",
             "return_red_deer": "Return",
+            "dropoff_billing_paused": "Billing Pause",
+            "wait_time": "Wait",
             "stop": "Stop",
         }
         key = str(value or "").strip().lower()
@@ -1646,7 +2087,7 @@ def _parse_route_sort_minutes(value: Any) -> int | None:
 
 
 def _sorted_routes_for_itinerary(routes: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Sort itinerary rows chronologically, with sequence/index as stable fallback."""
+    """Sort itinerary rows by saved sequence, with time/index only as fallback."""
 
     def _sequence(route: dict[str, Any], fallback: int) -> int:
         try:
@@ -1654,9 +2095,21 @@ def _sorted_routes_for_itinerary(routes: list[dict[str, Any]]) -> list[dict[str,
         except Exception:
             return fallback
 
+    def _has_sequence(route: dict[str, Any]) -> bool:
+        value = route.get("route_sequence")
+        if value in (None, ""):
+            return False
+        try:
+            int(str(value))
+            return True
+        except Exception:
+            return False
+
     sorted_pairs = sorted(
         enumerate(routes),
         key=lambda pair: (
+            not _has_sequence(pair[1]),
+            _sequence(pair[1], pair[0]),
             _parse_route_sort_minutes(
                 pair[1].get("stop_time")
                 or pair[1].get("pickup_time")
@@ -1669,7 +2122,6 @@ def _sorted_routes_for_itinerary(routes: list[dict[str, Any]]) -> list[dict[str,
                 or pair[1].get("dropoff_time")
             )
             or 0,
-            _sequence(pair[1], pair[0]),
             pair[0],
         ),
     )
@@ -1685,7 +2137,7 @@ class ConfirmationLetterPDF:
     """
 
     COMPANY_NAME = "Arrow Limousine & Sedan Services Ltd."
-    COMPANY_ADDR = "38014 C&E Trl, Red Deer County, AB, T4E 1R9"
+    COMPANY_ADDR = "PO Box 33046, Red Deer, AB, T4P 0N9"
     COMPANY_PHONE = "403-346-0034  |  403-346-4444"
     COMPANY_WEB = "www.arrowlimo.ca"
     COMPANY_TAGLINE = (
@@ -1700,16 +2152,20 @@ class ConfirmationLetterPDF:
             "plans, notice must be provided at least twenty-four (24) hours prior to the scheduled "
             "reservation time to ensure the best possible service."
         ),
-        "If no changes are communicated, services will proceed as booked and regular fees will apply.",
+        "If no changes are communicated, services will proceed as booked, and regular fees will apply.",
     )
 
     CLAUSES = (
         (
             "Client Verification\n"
-            "As the Client (the individual or entity making the reservation and financially responsible "
-            "for the charter), you verify that the rental date, anticipated times, number of passengers, "
-            "routing details, and billing information provided are accurate. Routing details may be "
-            "amended up to the day of the scheduled charter."
+            "As you the Client, meaning the individual or entity making the reservation and financially "
+            "responsible for the charter, confirm that the rental date, anticipated times, number of "
+            "passengers, routing details, and billing information provided are accurate. Routing details "
+            "may be amended up to the day of the scheduled charter, and as travel times vary depending on "
+            "conditions, please do not rely on Google Maps times. If you are unsure about anything, please "
+            "ask us. If changes to timing or routing are needed during the trip, please speak directly with "
+            "the chauffeur. We can always update the details afterward, provided you approve the change, "
+            "and the charter will be considered amended for your convenience."
         ),
         (
             "Reservation Authorization & No-Show Policy\n"
@@ -1732,10 +2188,11 @@ class ConfirmationLetterPDF:
             "Payments, Fees & Charges\n"
             "Arrow Limousine accepts Visa and MasterCard. Cash or e-Transfer may be arranged in advance.\n"
             "• All charges are processed in Canadian Dollars (CAD)\n"
-            "• GST and a standard but adjustable eighteen percent (18%) gratuity are applied\n"
+            "• A standard but adjustable eighteen percent (18%) gratuity, as listed, is subject to GST, as required by CRA.\n"
             "• Beverage orders, parking fees, tolls, event entrance fees, or other charter-related expenses "
-            "will be charged to the Client's account unless alternate arrangements are approved in advance "
-            "and noted on the booking"
+            "will be billed at our prices and charged to your card or account unless alternate arrangements are "
+            "approved in advance and noted on the booking, while unopened non-alcoholic beverages and your own "
+            "snacks or non-allergenic food are welcome on board."
         ),
         (
             "Balance Due & Additional Time\n"
@@ -1834,11 +2291,12 @@ class ConfirmationLetterPDF:
             return "-"
         try:
             if hasattr(v, "strftime"):
-                return v.strftime("%m/%d/%Y")
+                return f"{v.strftime('%B')} {v.day}, {v.year}"
             if isinstance(v, str):
                 for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):
                     try:
-                        return datetime.strptime(v[:10], fmt).strftime("%m/%d/%Y")
+                        parsed = datetime.strptime(v[:10], fmt)
+                        return f"{parsed.strftime('%B')} {parsed.day}, {parsed.year}"
                     except ValueError:
                         pass
         except Exception:
@@ -1949,14 +2407,13 @@ class ConfirmationLetterPDF:
         reg_f = self._f()
         bottom = self.bm + lh  # one line of breathing room above bottom margin
 
-        num_w = pdfmetrics.stringWidth("10. ", bold_f, size)
+        num_w = 0 if num is None else pdfmetrics.stringWidth("10. ", bold_f, size)
         tx = x + num_w
         bw = w - num_w
 
         def _emit(draw_fn):
             """draw_fn(y) draws one line at y. Page-break BEFORE drawing."""
             if pg["y"] < bottom:
-                self._draw_footer(pdf, pg["page_num"])
                 pdf.showPage()
                 pg["page_num"] += 1
                 pg["y"] = self.height - self.tm
@@ -1977,7 +2434,7 @@ class ConfirmationLetterPDF:
 
             def _draw_title(y, ln=_line, f=_first, n=_num):
                 pdf.setFont(bold_f, size)
-                if f:
+                if f and n is not None:
                     pdf.drawString(x, y, f"{n}.")
                 pdf.drawString(tx, y, ln)
 
@@ -2112,46 +2569,40 @@ class ConfirmationLetterPDF:
         pdf = canvas.Canvas(self.buffer, pagesize=LETTER)
         d = self.d
         lm, cw = self.lm, self.cw
+        page_num = 1
 
         # ── PAGE 1 ────────────────────────────────────────────────────────
-        y = self.height - self.tm
+        y = self.height - (0.25 * inch)
         y = self._draw_letterhead(pdf, y)
-        y -= 8
+        y -= 2
 
-        # Dear
         client = self._s(d.get("client_display_name") or d.get("client_name"), "")
-        pdf.setFont(self._f(), 9.5)
-        pdf.drawString(lm, y, f"Dear {client}:")
-        y -= 14
-
-        # Body intro
-        intro = (
-            "Thank you for choosing Arrow Limousine & Sedan Services Ltd.  "
-            "We have reserved the following transportation for you:"
-        )
-        y = self._draw_wrapped(pdf, lm, y, cw, intro, size=9.5, lh=13)
-        y -= 4
-
-        # Reservation number line — label normal, number bold, note italic
         reserve = self._s(d.get("reserve_number"), "TBD")
-        label_txt = "Your Reservation Number is "
-        note_txt = "Please quote this number when calling us."
-        pdf.setFont(self._f(), 9.5)
-        pdf.drawString(lm, y, label_txt)
-        lbl_w = pdfmetrics.stringWidth(label_txt, self._f(), 9.5)
-        pdf.setFont(self._f(bold=True), 9.5)
-        pdf.drawString(lm + lbl_w, y, reserve)
-        res_w = pdfmetrics.stringWidth(reserve, self._f(bold=True), 9.5)
-        pdf.setFont(self._f(italic=True), 8.5)
-        pdf.drawString(lm + lbl_w + res_w + 8, y, note_txt)
-        y -= 14
+        greeting = (
+            f"Dear: {client}     Your Reservation Number is {reserve} "
+            "(Please quote this number when calling us.)"
+        )
+        y = self._draw_wrapped(pdf, lm, y, cw, greeting, size=9.5, lh=12)
+        y -= 6
+
+        intro = (
+            "Thank you for placing your reservation with Arrow Limousine & Sedan Services Ltd. "
+            "and Party Bus Red Deer. We appreciate the opportunity to serve you."
+        )
+        y = self._draw_wrapped(pdf, lm, y, cw, intro, size=9.5, lh=12)
+        y -= 7
 
         # Charter summary
         charter_date = self._fmt_date(d.get("charter_date"))
         res_time = self._fmt_time(d.get("pickup_time") or d.get("actual_pickup_time"))
         do_time = self._fmt_time(d.get("dropoff_time") or d.get("actual_dropoff_time"))
         vehicle = self._s(
-            d.get("vehicle_description") or d.get("vehicle") or d.get("vehicle_type"), ""
+            d.get("vehicle_type_requested")
+            or d.get("vehicle")
+            or d.get("vehicle_type")
+            or d.get("vehicle_description")
+            or d.get("vehicle_id"),
+            "",
         )
 
         # Date line — labels normal, values bold
@@ -2165,22 +2616,21 @@ class ConfirmationLetterPDF:
             vw = pdfmetrics.stringWidth(value, self._f(bold=True), 9.5)
             return x_start + lw + vw
 
-        x = lm
-        x = _inline("Date for the Reservation: ", charter_date, x)
-        x = _inline("    Reservation Time: ", res_time, x + 10)
+        x = _inline("Date for the Reservation: ", charter_date, lm)
+        x = _inline("    Start Time: ", res_time, x + 10)
         if do_time:
-            _inline("    Drop off Time: ", do_time, x)
-        y -= 13
+            _inline("    Predicted End Time: ", do_time, x)
+        y -= 10
         pdf.setFont(self._f(), 9.5)
         pdf.drawString(lm, y, "Type of Vehicle:  ")
         tw = pdfmetrics.stringWidth("Type of Vehicle:  ", self._f(), 9.5)
         pdf.setFont(self._f(bold=True), 9.5)
         pdf.drawString(lm + tw, y, vehicle)
-        y -= 14
+        y -= 10
 
         # Itinerary
         pdf.setFont(self._f(bold=True), 9.5)
-        pdf.drawString(lm, y, "Itinerary:")
+        pdf.drawString(lm, y, "Basic Itinerary:")
         y -= 13
         routes = _sorted_routes_for_itinerary(d.get("routes") or [])
         if routes:
@@ -2209,13 +2659,21 @@ class ConfirmationLetterPDF:
                         t = charter_pickup
                     elif idx == len(routes) - 1:
                         t = charter_dropoff
-                line = f"{etype},  {addr}"
+                narrative_addr = addr.lower().startswith(
+                    ("leave ", "arrive ", "return ", "depart ")
+                )
+                line = addr if narrative_addr else f"{etype},  {addr}"
                 if t:
                     line += f",  {at_by} {t}"
-                if notes:
+                if notes and " ".join(notes.lower().split()) != " ".join(addr.lower().split()):
                     line += f",  Notes: {notes}"
                 lines = simpleSplit(line, self._f(), 9, cw - 12)
                 for ln in lines:
+                    if y < self.bm + 12:
+                        pdf.showPage()
+                        page_num += 1
+                        y = self.height - self.tm
+                        pdf.setFont(self._f(), 9)
                     pdf.drawString(lm + 12, y, ln)
                     y -= 12
         else:
@@ -2223,33 +2681,40 @@ class ConfirmationLetterPDF:
             pu = self._s(d.get("pickup_address"), "")
             do = self._s(d.get("dropoff_address"), "")
             if pu:
+                if y < self.bm + 12:
+                    pdf.showPage()
+                    page_num += 1
+                    y = self.height - self.tm
+                    pdf.setFont(self._f(), 9)
                 pdf.drawString(
                     lm + 12, y, f"Pick up, {self._fmt_time(d.get('pickup_time'))}, Leave For {pu}"
                 )
                 y -= 12
             if do:
+                if y < self.bm + 12:
+                    pdf.showPage()
+                    page_num += 1
+                    y = self.height - self.tm
+                    pdf.setFont(self._f(), 9)
                 pdf.drawString(
                     lm + 12, y, f"Drop off, {self._fmt_time(d.get('dropoff_time'))}, {do}"
                 )
                 y -= 12
         y -= 8
 
-        # Charges
-        pdf.setFont(self._f(bold=True), 9.5)
-        pdf.drawString(lm, y, "Current Charges:")
-        y -= 8
-
         charges = d.get("charges") or []
         col_widths = [3.9 * inch, 0.85 * inch, 0.9 * inch, 0.85 * inch]
 
         _unit_map = {
-            "service": "Flat",
+            "base_rate": "Hourly",
+            "service": "Hourly",
+            "service_fee": "Hourly",
             "flat": "Flat",
             "hourly": "Hourly",
             "hour": "Hourly",
             "fuel_surcharge": "Hour",
             "fuel": "Flat",
-            "gratuity": "Flat",
+            "gratuity": "%",
             "tax": "%",
             "gst": "%",
             "hst": "%",
@@ -2272,7 +2737,10 @@ class ConfirmationLetterPDF:
                     flags=re.IGNORECASE,
                 ).strip()
             ct_raw = str(ch.get("charge_type") or "").lower().strip()
+            calc_raw = str(ch.get("calc_type") or ch.get("type") or "").strip().lower()
             unit = _unit_map.get(ct_raw, "Flat")
+            if calc_raw in {"hourly", "fixed", "flat", "percent"}:
+                unit = {"hourly": "Hourly", "fixed": "Flat", "flat": "Flat", "percent": "%"}[calc_raw]
             rate_val = ch.get("rate") or 0
             amount_val = ch.get("amount") or 0
             if calc_type == "hourly":
@@ -2318,6 +2786,10 @@ class ConfirmationLetterPDF:
         )
         tbl_w = sum(col_widths)
         tbl_h = charges_table.wrap(tbl_w, self.height)[1]
+        if y - tbl_h < self.bm:
+            pdf.showPage()
+            page_num += 1
+            y = self.height - self.tm
         charges_table.drawOn(pdf, lm, y - tbl_h)
         y -= tbl_h + 10
 
@@ -2353,6 +2825,10 @@ class ConfirmationLetterPDF:
             )
         )
         tot_h = totals_table.wrap(tbl_w, self.height)[1]
+        if y - tot_h < self.bm:
+            pdf.showPage()
+            page_num += 1
+            y = self.height - self.tm
         totals_table.drawOn(pdf, lm, y - tot_h)
         y -= tot_h + 10
 
@@ -2383,19 +2859,28 @@ class ConfirmationLetterPDF:
         pdf.drawString(lm, y, "Policies & Terms")
         y -= 12
 
-        # Flow ALL clauses — line-by-line page breaking via shared state
+        docx_sections = pdfh._load_docx_policy_sections()
+        policy_sections = docx_sections or [
+            (f"{i}. {clause.split(chr(10), 1)[0]}", clause.split(chr(10), 1)[1] if chr(10) in clause else "")
+            for i, clause in enumerate(self.CLAUSES, start=1)
+        ]
+
+        # Flow all policy sections — line-by-line page breaking via shared state
         inter_clause_gap = 5
         min_start = self.bm + 44  # need at least 4 lines before starting a new clause
-        pg = {"y": y, "page_num": 1}
+        pg = {"y": y, "page_num": page_num}
 
-        for i, clause in enumerate(self.CLAUSES, start=1):
+        for i, (heading, body) in enumerate(policy_sections, start=1):
             # Orphan prevention: if less than 2 lines of room, start on new page
             if pg["y"] < min_start:
-                self._draw_footer(pdf, pg["page_num"])
                 pdf.showPage()
                 pg["page_num"] += 1
                 pg["y"] = self.height - self.tm
-            self._draw_clause(pdf, lm, pg, cw, i, clause)
+            clean_heading = re.sub(r"^\s*(?:\d+\.\s*)+", "", heading).strip()
+            clause = clean_heading
+            if body:
+                clause += f"\n{body}"
+            self._draw_clause(pdf, lm, pg, cw, None, clause)
             pg["y"] -= inter_clause_gap
 
         y = pg["y"]
@@ -2404,7 +2889,6 @@ class ConfirmationLetterPDF:
         # Closing block: ~120pt needed
         closing_height = 120
         if y < self.bm + closing_height:
-            self._draw_footer(pdf, page_num)
             pdf.showPage()
             page_num += 1
             y = self.height - self.tm
@@ -2414,29 +2898,23 @@ class ConfirmationLetterPDF:
 
         # Closing paragraph
         closing = (
-            "We appreciate your business.  If you need further clarification or would like to make "
-            "changes, please contact us at (403) 346-0034 or www.arrowlimo.ca"
+            "We appreciate your business. If you need further clarification or would like to make "
+            "changes, please contact us."
         )
         y = self._draw_wrapped(pdf, lm, y, cw, closing, font=self._f(), size=9, lh=12)
         y -= 20
 
-        # Sincerely block
         pdf.setFont(self._f(), 9.5)
-        pdf.drawString(lm, y, "Sincerely,")
-        y -= 36
-        pdf.setFont(self._f(bold=True), 9.5)
-        pdf.drawString(lm, y, "Paul Richard")
+        pdf.drawString(lm, y, "Sincerely,    Paul Richard")
         y -= 13
-        pdf.setFont(self._f(), 9.5)
-        pdf.drawString(lm, y, "Arrow Limousine & Sedan Services Ltd.")
+        pdf.drawString(lm, y, "(403) 346-0034")
         y -= 13
-        pdf.drawString(lm, y, "And Party Bus Red Deer")
-        y -= 13
-        pdf.drawString(lm, y, "www.arrowlimo.ca")
-        y -= 13
-        pdf.drawString(lm, y, "info@arrowlimo.ca")
+        pdf.drawString(
+            lm,
+            y,
+            "Arrow Limousine & Sedan Services Ltd. And Party Bus Red Deer www.arrowlimo.ca",
+        )
 
-        self._draw_footer(pdf, page_num)
         pdf.save()
         return self.buffer.getvalue()
 
@@ -2451,7 +2929,9 @@ def generate_confirmation_letter_pdf(charter_data: dict[str, Any]) -> bytes:
     Returns:
         bytes: PDF file content
     """
-    return ConfirmationLetterPDF(charter_data).generate()
+    payload = dict(charter_data or {})
+    payload["_confirmation_template_body"] = pdfh._render_confirmation_template_body(payload)
+    return ConfirmationLetterPDF(payload).generate()
 
 
 class QuoteLetterPDF(ConfirmationLetterPDF):
@@ -2471,14 +2951,6 @@ class QuoteLetterPDF(ConfirmationLetterPDF):
             d.get("client_display_name") or d.get("client_name"),
             "Client",
         )
-        quote_no = self._s(d.get("reserve_number") or d.get("charter_id"), "QUOTE")
-        charter_date = self._fmt_date(d.get("charter_date"))
-        pickup_time = self._fmt_time(d.get("pickup_time") or d.get("actual_pickup_time"))
-        dropoff_time = self._fmt_time(d.get("dropoff_time") or d.get("actual_dropoff_time"))
-        vehicle = self._s(
-            d.get("vehicle_description") or d.get("vehicle") or d.get("vehicle_type"),
-            "TBD",
-        )
 
         def ensure_space(min_y: float):
             nonlocal y
@@ -2489,37 +2961,28 @@ class QuoteLetterPDF(ConfirmationLetterPDF):
                 y = self._draw_letterhead(pdf, y)
                 y -= 8
 
-        pdf.setFont(self._f(), 9.5)
-        pdf.drawString(lm, y, f"Dear {client}:")
-        y -= 14
+        template_body = d.get("_quote_template_body") or pdfh._render_quote_template_body(d)
+        template_lines = [line.strip() for line in str(template_body).splitlines() if line.strip()]
+        if template_lines:
+            for idx, line in enumerate(template_lines):
+                if idx == 0 and line.lower().startswith("dear "):
+                    line = line.rstrip(":") if line.endswith(":") else line
+                if idx == 0 and not line.lower().startswith("dear "):
+                    line = f"Dear {client}:"
+                y = self._draw_wrapped(pdf, lm, y, cw, line, size=9.5, lh=13)
+                if idx < len(template_lines) - 1:
+                    y -= 2
+        else:
+            pdf.setFont(self._f(), 9.5)
+            pdf.drawString(lm, y, f"Dear {client}:")
+            y -= 14
 
-        intro = (
-            "Thank you for requesting a quote from Arrow Limousine & Sedan Services Ltd. "
-            "And Party Bus Red Deer. We have the following transportation options for you:"
-        )
-        y = self._draw_wrapped(pdf, lm, y, cw, intro, size=9.5, lh=13)
-        y -= 4
-
-        label_txt = "Your Quote Number is "
-        note_txt = "Please quote this number when calling us."
-        pdf.setFont(self._f(), 9.5)
-        pdf.drawString(lm, y, label_txt)
-        lbl_w = pdfmetrics.stringWidth(label_txt, self._f(), 9.5)
-        pdf.setFont(self._f(bold=True), 9.5)
-        pdf.drawString(lm + lbl_w, y, quote_no)
-        q_w = pdfmetrics.stringWidth(quote_no, self._f(bold=True), 9.5)
-        pdf.setFont(self._f(italic=True), 8.5)
-        pdf.drawString(lm + lbl_w + q_w + 8, y, note_txt)
-        y -= 14
-
-        pdf.setFont(self._f(), 9.5)
-        date_line = f"Date for the requested charter: {charter_date}"
-        if pickup_time or dropoff_time:
-            date_line += f" at Time: {pickup_time or '-'} to {dropoff_time or '-'}"
-        pdf.drawString(lm, y, date_line)
-        y -= 13
-        pdf.drawString(lm, y, f"Type of Vehicle: {vehicle}")
-        y -= 16
+            intro = (
+                "Thank you for requesting a quote from Arrow Limousine & Sedan Services Ltd. "
+                "And Party Bus Red Deer. We have the following transportation options for you:"
+            )
+            y = self._draw_wrapped(pdf, lm, y, cw, intro, size=9.5, lh=13)
+            y -= 4
 
         options = d.get("quote_options") or []
         default_itinerary = d.get("quote_itinerary_lines") or []
@@ -2576,8 +3039,7 @@ class QuoteLetterPDF(ConfirmationLetterPDF):
                 y = self._draw_wrapped(
                     pdf, lm + 12, y, cw - 12, total_line, font=self._f(bold=True), size=9, lh=11
                 )
-
-            y -= 8
+                y -= 4
 
         placed_by = self._s(d.get("quote_requested_by") or client, "")
         if placed_by:
@@ -2609,7 +3071,9 @@ class QuoteLetterPDF(ConfirmationLetterPDF):
 
 def generate_quote_letter_pdf(charter_data: dict[str, Any]) -> bytes:
     """Generate a client-facing quote letter PDF without policy clauses."""
-    return QuoteLetterPDF(charter_data).generate()
+    payload = dict(charter_data or {})
+    payload["_quote_template_body"] = pdfh._render_quote_template_body(payload)
+    return QuoteLetterPDF(payload).generate()
 
 
 def _safe_text(v: Any, default: str = "") -> str:
@@ -2623,13 +3087,13 @@ def _fmt_date_mmddyyyy(v: Any) -> str:
     if not v:
         return ""
     if hasattr(v, "strftime"):
-        return v.strftime("%m/%d/%Y")
+        return v.strftime("%B %d, %Y")
     s = str(v).strip()
     if not s:
         return ""
     for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%Y-%m-%d %H:%M:%S"):
         try:
-            return datetime.strptime(s[:19], fmt).strftime("%m/%d/%Y")
+            return datetime.strptime(s[:19], fmt).strftime("%B %d, %Y")
         except Exception:
             continue
     return s[:10]
@@ -2660,6 +3124,92 @@ def _fmt_money(v: Any) -> str:
         return "0.00"
 
 
+def _is_cancelled_charter(charter_data: dict[str, Any] | None) -> bool:
+    if not charter_data:
+        return False
+    status = str(
+        charter_data.get("status")
+        or charter_data.get("reconciliation_status")
+        or charter_data.get("invoice_status")
+        or ""
+    ).strip().lower()
+    return status == "cancelled" or bool(charter_data.get("cancelled"))
+
+
+def _normalize_charge_row(ch: dict[str, Any]) -> dict[str, str]:
+    desc_raw = _safe_text(ch.get("description") or ch.get("charge_type"))
+    charge_type = _safe_text(ch.get("charge_type")).lower()
+    amount_val = float(ch.get("amount") or 0)
+    rate_val = ch.get("rate")
+    calc_type = ""
+    calc_value = None
+
+    meta_match = re.search(
+        r"\s\[calc:(Fixed|Percent|Hourly|Flat|Daily|Package):([0-9.]+)\]$",
+        desc_raw,
+        re.IGNORECASE,
+    )
+    desc = desc_raw
+    if meta_match:
+        calc_type = meta_match.group(1).lower()
+        try:
+            calc_value = float(meta_match.group(2))
+        except Exception:
+            calc_value = None
+        desc = re.sub(
+            r"\s\[calc:(Fixed|Percent|Hourly|Flat|Daily|Package):([0-9.]+)\]$",
+            "",
+            desc_raw,
+            flags=re.IGNORECASE,
+        ).strip()
+
+    unit = "Flat"
+    display_rate = ""
+    if calc_type == "hourly":
+        unit = "Hourly"
+        display_rate = _fmt_money(calc_value if calc_value is not None else rate_val or 0)
+    elif calc_type == "percent":
+        unit = "Percent"
+        pct_match = re.search(r"(\d+(?:\.\d+)?)%", desc)
+        pct_val = calc_value if calc_value is not None else (
+            float(pct_match.group(1)) if pct_match else float(rate_val or 0)
+        )
+        display_rate = f"{pct_val:g}%"
+    elif calc_type in {"daily", "package", "flat", "fixed"}:
+        unit = "Flat"
+        display_rate = _fmt_money(calc_value if calc_value is not None else rate_val or 0)
+    elif charge_type in {"base_rate", "service", "service_fee", "hourly"} or (
+        "service fee" in desc.lower() or "charter charge" in desc.lower()
+    ):
+        unit = "Hourly"
+        if rate_val not in (None, 0, 0.0, ""):
+            display_rate = _fmt_money(rate_val)
+    elif charge_type in {"tax", "gst", "hst", "gratuity"}:
+        unit = "Percent"
+        pct_match = re.search(r"(\d+(?:\.\d+)?)%", desc)
+        pct_val = float(pct_match.group(1)) if pct_match else 5.0
+        display_rate = f"{pct_val:g}%"
+    else:
+        unit = "Flat"
+        if rate_val not in (None, 0, 0.0, ""):
+            display_rate = _fmt_money(rate_val)
+
+    if unit == "Flat":
+        try:
+            rv = float(rate_val or 0)
+            if rv > 0 and abs(amount_val - rv) > 0.009:
+                unit = "Hourly"
+        except Exception:
+            pass
+
+    return {
+        "description": desc,
+        "unit": unit,
+        "rate": display_rate,
+        "amount": _fmt_money(amount_val),
+    }
+
+
 def _build_confirmation_template_values(charter_data: dict[str, Any]) -> dict[str, str]:
     d = charter_data or {}
 
@@ -2675,7 +3225,10 @@ def _build_confirmation_template_values(charter_data: dict[str, Any]) -> dict[st
     pickup_time = _fmt_time_12h(d.get("pickup_time") or d.get("actual_pickup_time"))
     dropoff_time = _fmt_time_12h(d.get("dropoff_time") or d.get("actual_dropoff_time"))
     vehicle_description = _safe_text(
-        d.get("vehicle_description") or d.get("vehicle") or d.get("vehicle_type")
+        d.get("vehicle_type_requested")
+        or d.get("vehicle")
+        or d.get("vehicle_type")
+        or d.get("vehicle_description")
     )
 
     routes = _sorted_routes_for_itinerary(d.get("routes") or [])
@@ -2725,20 +3278,20 @@ def _build_confirmation_template_values(charter_data: dict[str, Any]) -> dict[st
     charge_rate = ""
     charge_amount = ""
     if charges:
-        first = charges[0]
-        charge_desc = _safe_text(first.get("description") or first.get("charge_type"))
-        charge_unit = _safe_text(first.get("unit") or first.get("unit_type") or "Flat")
-        if first.get("rate") is not None:
-            charge_rate = _fmt_money(first.get("rate"))
-        charge_amount = _fmt_money(first.get("amount"))
+        first_norm = _normalize_charge_row(charges[0])
+        charge_desc = first_norm["description"]
+        charge_unit = first_norm["unit"]
+        charge_rate = first_norm["rate"]
+        charge_amount = first_norm["amount"]
 
-    total_charges = float(d.get("total_amount_due") or d.get("grand_total") or 0)
+    cancelled = _is_cancelled_charter(d)
+    total_charges = 0.0 if cancelled else float(d.get("total_amount_due") or d.get("grand_total") or 0)
     nrr_amount = float(d.get("nrr_amount") or 0)
     total_payments = float(d.get("total_paid") or d.get("amount_paid") or d.get("paid_amount") or 0)
-    balance_owing = total_charges - total_payments
+    balance_owing = 0.0 if cancelled else max(total_charges - total_payments, 0.0)
 
     return {
-        "[[ TODAY'S DATE ]]": datetime.now().strftime("%m/%d/%Y"),
+        "[[ TODAY'S DATE ]]": datetime.now().strftime("%b/%d/%Y"),
         "[[ RESERVE_NUMBER ]]": reserve_number,
         "[[ CLIENT_NAME ]]": client_name,
         "[[ CHARTER_DATE ]]": charter_date,
@@ -2810,16 +3363,7 @@ def _generate_confirmation_from_template(
         route_lines.append(", ".join(parts))
 
     charges = d.get("charges") or []
-    charge_rows = []
-    for ch in charges:
-        charge_rows.append(
-            {
-                "description": _safe_text(ch.get("description") or ch.get("charge_type")),
-                "unit": _safe_text(ch.get("unit") or ch.get("unit_type") or "Flat"),
-                "rate": _fmt_money(ch.get("rate") if ch.get("rate") is not None else 0),
-                "amount": _fmt_money(ch.get("amount") if ch.get("amount") is not None else 0),
-            }
-        )
+    charge_rows = [_normalize_charge_row(ch) for ch in charges]
 
     dollar_values: list[str] = []
     if len(charge_rows) > 1:
@@ -2837,6 +3381,14 @@ def _generate_confirmation_from_template(
             if route_lines:
                 return " | ".join(route_lines[:4])
             return ""
+        if token == "[[ CHARGE DESCRIPTION ]]":
+            return charge_rows[idx]["description"] if idx < len(charge_rows) else ""
+        if token == "[[ Unit ]]":
+            return charge_rows[idx]["unit"] if idx < len(charge_rows) else ""
+        if token == "[[ Rate ]]":
+            return charge_rows[idx]["rate"] if idx < len(charge_rows) else ""
+        if token == "[[ Amount ]]":
+            return charge_rows[idx]["amount"] if idx < len(charge_rows) else ""
         if token == "[[ e.g. Limo Service 3 hrs ]]":
             return charge_rows[1]["description"] if len(charge_rows) > 1 else ""
         if token == "[[ e.g. Beverages ]]":
@@ -2875,6 +3427,10 @@ def _generate_confirmation_from_template(
                 if token not in replacements and token not in {
                     "[[ TIME ]]",
                     "[[ ADDRESS ]]",
+                    "[[ CHARGE DESCRIPTION ]]",
+                    "[[ Unit ]]",
+                    "[[ Rate ]]",
+                    "[[ Amount ]]",
                     "[[ e.g. Limo Service 3 hrs ]]",
                     "[[ e.g. Beverages ]]",
                     "[[ $ ]]",
