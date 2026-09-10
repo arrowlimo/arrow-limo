@@ -33,13 +33,13 @@
         <p class="instructions">Create your private password before opening the driver portal. The administrator will be notified when it changes.</p>
         <div class="form-group">
           <label for="new-password">New password</label>
-          <input id="new-password" v-model="newPassword" type="password" minlength="12" required autocomplete="new-password" :disabled="loading">
+          <input id="new-password" v-model="newPassword" type="text" minlength="8" required autocomplete="new-password" :disabled="loading">
         </div>
         <div class="form-group">
           <label for="confirm-password">Confirm new password</label>
-          <input id="confirm-password" v-model="confirmPassword" type="password" minlength="12" required autocomplete="new-password" :disabled="loading">
+          <input id="confirm-password" v-model="confirmPassword" type="text" minlength="8" required autocomplete="new-password" :disabled="loading">
         </div>
-        <p class="hint">Use at least 12 characters with upper-case, lower-case, and a number.</p>
+        <p class="hint">Use at least 8 characters. Both entries must match.</p>
         <button type="submit" :disabled="loading">{{ loading ? 'Saving...' : 'Save password' }}</button>
       </form>
 
@@ -162,7 +162,8 @@ export default {
       }
       return this.run(() => this.request('/auth/change-password', {
         challenge_token: this.challengeToken,
-        new_password: this.newPassword
+        new_password: this.newPassword,
+        confirm_password: this.confirmPassword
       }))
     },
     enrollPhone() {

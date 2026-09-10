@@ -41,15 +41,36 @@
       <input
         id="temporary-password"
         v-model="temporaryPassword"
-        type="password"
-        minlength="12"
+        type="text"
+        minlength="8"
         autocomplete="new-password"
-        placeholder="Enter a temporary password"
+        placeholder="Enter a temporary password (default: Limousine1#)"
       >
-      <button class="warning" :disabled="loading || !selectedEmployeeId || temporaryPassword.length < 12" @click="resetPendingPassword">
+      <button class="warning" :disabled="loading || !selectedEmployeeId || temporaryPassword.length < 8" @click="resetPendingPassword">
         Reset Pending Login
       </button>
     </div>
+
+    <section class="create-account">
+      <h2>Create Driver Login</h2>
+      <p>Create a portal login for an existing active chauffeur/driver. It will require a new password at first sign-in.</p>
+      <div class="selector">
+        <label for="new-driver-employee">Driver employee</label>
+        <select id="new-driver-employee" v-model.number="newDriver.employeeId" :disabled="loading">
+          <option :value="null">Select an active driver without a portal login</option>
+          <option v-for="employee in availableEmployees" :key="employee.employee_id" :value="employee.employee_id">
+            {{ employee.name }} · {{ employee.employee_type }}
+          </option>
+        </select>
+        <label for="new-driver-username">Login username</label>
+        <input id="new-driver-username" v-model.trim="newDriver.username" type="text" autocomplete="username" placeholder="e.g. richardm">
+        <label for="new-driver-password">Temporary first-login password</label>
+        <input id="new-driver-password" v-model="newDriver.temporaryPassword" type="text" minlength="8" autocomplete="new-password">
+        <button class="primary" :disabled="loading || !canCreateDriver" @click="createDriverAccount">
+          {{ loading ? 'Creating...' : 'Create Driver Login' }}
+        </button>
+      </div>
+    </section>
 
     <div class="account-list">
       <button
@@ -67,7 +88,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authFetch } from '@/utils/authFetch'
 
@@ -78,6 +99,17 @@ const selectedEmployeeId = ref(null)
 const loading = ref(false)
 const error = ref('')
 const temporaryPassword = ref('')
+const availableEmployees = ref([])
+const newDriver = ref({
+  employeeId: null,
+  username: '',
+  temporaryPassword: 'Limousine1#'
+})
+const canCreateDriver = computed(() => (
+  newDriver.value.employeeId &&
+  newDriver.value.username.length >= 3 &&
+  newDriver.value.temporaryPassword.length >= 8
+))
 
 const readResponse = async (response, fallback) => {
   const payload = await response?.json().catch(() => ({}))
@@ -94,13 +126,16 @@ const loadAdminData = async () => {
   loading.value = true
   error.value = ''
   try {
-    const [employeeResponse, notificationResponse] = await Promise.all([
+    const [employeeResponse, availableEmployeeResponse, notificationResponse] = await Promise.all([
       authFetch('/auth/support/employees'),
+      authFetch('/auth/support/available-employees'),
       authFetch('/auth/support/notifications')
     ])
     const employeePayload = await readResponse(employeeResponse, 'Unable to load driver accounts')
+    const availableEmployeePayload = await readResponse(availableEmployeeResponse, 'Unable to load available drivers')
     const notificationPayload = await readResponse(notificationResponse, 'Unable to load security notifications')
     employees.value = employeePayload.items || []
+    availableEmployees.value = availableEmployeePayload.items || []
     notifications.value = notificationPayload.items || []
   } catch (err) {
     error.value = err.message
@@ -133,7 +168,7 @@ const openDriver = async () => {
 }
 
 const resetPendingPassword = async () => {
-  if (!selectedEmployeeId.value || temporaryPassword.value.length < 12) return
+  if (!selectedEmployeeId.value || temporaryPassword.value.length < 8) return
   loading.value = true
   error.value = ''
   try {
@@ -147,6 +182,34 @@ const resetPendingPassword = async () => {
     const payload = await response?.json().catch(() => ({}))
     if (!response?.ok) throw new Error(payload.detail || 'Unable to reset pending login')
     temporaryPassword.value = ''
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
+const createDriverAccount = async () => {
+  if (!canCreateDriver.value) return
+  loading.value = true
+  error.value = ''
+  try {
+    const response = await authFetch('/auth/support/driver-accounts', {
+      method: 'POST',
+      body: JSON.stringify({
+        employee_id: newDriver.value.employeeId,
+        username: newDriver.value.username,
+        temporary_password: newDriver.value.temporaryPassword
+      })
+    })
+    const payload = await readResponse(response, 'Unable to create driver login')
+    newDriver.value = {
+      employeeId: null,
+      username: '',
+      temporaryPassword: 'Limousine1#'
+    }
+    await loadAdminData()
+    error.value = `Created driver login ${payload.username}.`
   } catch (err) {
     error.value = err.message
   } finally {
@@ -182,6 +245,9 @@ button:disabled { opacity: .6; cursor: wait; }
 .primary { background: #2563eb; color: white; font-weight: 700; }
 .secondary { background: #e2e8f0; color: #1e293b; }
 .warning { background: #f59e0b; color: #422006; font-weight: 700; }
+.create-account { margin: 1.5rem 0; padding-top: 1.25rem; border-top: 1px solid #dbe3ee; }
+.create-account h2 { margin: 0 0 .35rem; font-size: 1.15rem; }
+.create-account p { margin: 0; color: #475569; }
 .account-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .75rem; }
 .account { display: grid; gap: .3rem; text-align: left; background: #f8fafc; border: 1px solid #dbe3ee; color: #1e293b; }
 .account.selected { border-color: #2563eb; background: #eff6ff; }

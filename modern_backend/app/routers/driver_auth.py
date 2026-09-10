@@ -1,4 +1,5 @@
 import logging
+import re
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -50,7 +51,8 @@ class LoginRequest(BaseModel):
 
 class PasswordChangeRequest(BaseModel):
     challenge_token: str = Field(min_length=20, max_length=255)
-    new_password: str = Field(min_length=12, max_length=255)
+    new_password: str = Field(min_length=8, max_length=255)
+    confirm_password: str = Field(min_length=8, max_length=255)
 
 
 class PhoneEnrollmentRequest(BaseModel):
@@ -73,7 +75,13 @@ class SupportImpersonationRequest(BaseModel):
 
 class SupportPasswordResetRequest(BaseModel):
     employee_id: int = Field(gt=0)
-    temporary_password: str = Field(min_length=12, max_length=255)
+    temporary_password: str = Field(min_length=8, max_length=255)
+
+
+class SupportDriverAccountCreateRequest(BaseModel):
+    employee_id: int = Field(gt=0)
+    username: str = Field(min_length=3, max_length=150)
+    temporary_password: str = Field(min_length=8, max_length=255)
 
 
 def _require_driver_account(user: dict) -> dict:
@@ -210,6 +218,8 @@ async def login_json(payload: LoginRequest, request: Request):
 @router.post("/change-password")
 async def change_password(payload: PasswordChangeRequest, request: Request):
     user_id, _, _ = require_challenge(payload.challenge_token, {"onboarding"})
+    if payload.new_password != payload.confirm_password:
+        raise HTTPException(status_code=400, detail="The new passwords do not match")
     user = get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=401, detail="Login challenge expired")
@@ -248,14 +258,10 @@ def _password_hash_for_user(user_id: int):
 
 
 def _validate_new_password(password: str) -> None:
-    if not (
-        any(char.islower() for char in password)
-        and any(char.isupper() for char in password)
-        and any(char.isdigit() for char in password)
-    ):
+    if len(password) < 8:
         raise HTTPException(
             status_code=400,
-            detail="Password must contain upper-case, lower-case, and number characters",
+            detail="Password must be at least 8 characters",
         )
 
 
@@ -373,6 +379,130 @@ async def list_support_employees(request: Request):
         return_connection(conn)
 
 
+@router.get("/support/available-employees")
+async def list_available_support_employees(request: Request):
+    _require_support_session(request)
+    conn = get_connection()
+    try:
+        ensure_auth_tables(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    e.employee_id,
+                    TRIM(COALESCE(e.first_name, '') || ' ' || COALESCE(e.last_name, '')),
+                    COALESCE(e.employee_category, '')
+                FROM employees e
+                LEFT JOIN driver_user_links l ON l.employee_id = e.employee_id
+                WHERE l.employee_id IS NULL
+                  AND LOWER(COALESCE(e.employee_category, '')) IN (
+                      'driver', 'chauffeur', 'operator'
+                  )
+                  AND LOWER(COALESCE(e.employment_status, e.status, 'active')) = 'active'
+                ORDER BY e.last_name, e.first_name, e.employee_id
+                """
+            )
+            rows = cur.fetchall()
+        return {
+            "items": [
+                {
+                    "employee_id": row[0],
+                    "name": row[1] or f"Employee {row[0]}",
+                    "employee_type": row[2],
+                }
+                for row in rows
+            ]
+        }
+    finally:
+        return_connection(conn)
+
+
+@router.post("/support/driver-accounts")
+async def create_support_driver_account(
+    payload: SupportDriverAccountCreateRequest,
+    request: Request,
+):
+    support = _require_support_session(request)
+    username = payload.username.strip().lower()
+    if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,149}", username):
+        raise HTTPException(
+            status_code=400,
+            detail="Username must be 3-150 characters using letters, numbers, dots, hyphens, or underscores",
+        )
+    conn = get_connection()
+    try:
+        ensure_auth_tables(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.email
+                FROM employees e
+                LEFT JOIN driver_user_links l ON l.employee_id = e.employee_id
+                WHERE e.employee_id = %s
+                  AND l.employee_id IS NULL
+                  AND LOWER(COALESCE(e.employee_category, '')) IN (
+                      'driver', 'chauffeur', 'operator'
+                  )
+                  AND LOWER(COALESCE(e.employment_status, e.status, 'active')) = 'active'
+                FOR UPDATE
+                """,
+                (payload.employee_id,),
+            )
+            employee = cur.fetchone()
+            if not employee:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Choose an active driver without an existing portal account",
+                )
+            cur.execute(
+                """
+                INSERT INTO users (
+                    username, email, password_hash, role, status, permissions
+                )
+                VALUES (%s, %s, %s, 'driver', 'active', %s::jsonb)
+                RETURNING user_id
+                """,
+                (
+                    username,
+                    employee[0] or f"{username}@driver.invalid",
+                    hash_password(payload.temporary_password),
+                    '{"modules":["chauffeur_self_service"]}',
+                ),
+            )
+            user_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                INSERT INTO driver_user_links (user_id, employee_id)
+                VALUES (%s, %s)
+                """,
+                (user_id, payload.employee_id),
+            )
+            cur.execute(
+                """
+                INSERT INTO driver_auth_state (
+                    user_id, must_change_password, bootstrap_password_randomized_at
+                )
+                VALUES (%s, TRUE, NOW())
+                """,
+                (user_id,),
+            )
+        conn.commit()
+        record_auth_event(
+            action="support_driver_account_created",
+            username=support["username"],
+            user_id=support["auth_user_id"],
+            role=support["role"],
+            request=request,
+            note=f"Created driver login {username} for employee_id={payload.employee_id}",
+        )
+        return {"status": "created", "username": username}
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        return_connection(conn)
+
+
 @router.get("/support/notifications")
 async def list_support_notifications(request: Request):
     _require_support_session(request)
@@ -391,6 +521,7 @@ async def list_support_notifications(request: Request):
                         'password_changed',
                         'support_login',
                         'support_pending_password_reset',
+                        'support_driver_account_created',
                         'support_impersonation_started'
                     )
                     OR action LIKE 'support_impersonated_%'
@@ -411,6 +542,7 @@ async def list_support_notifications(request: Request):
                 "support_pending_password_reset": (
                     f"{username} reset a pending driver login password"
                 ),
+                "support_driver_account_created": f"{username} created a driver login",
                 "support_impersonation_started": f"{username} opened a driver account",
             }
             return {
