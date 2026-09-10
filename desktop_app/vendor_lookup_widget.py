@@ -165,6 +165,11 @@ class VendorLookupWidget(QWidget):
                     else:
                         self.vendor_combo.setCurrentIndex(-1)
                         self.vendor_combo.setEditText(current_text)
+                else:
+                    # Adding items selects the first one by default. A blank
+                    # form must remain blank until the user chooses a vendor.
+                    self.vendor_combo.setCurrentIndex(-1)
+                    self.vendor_combo.clearEditText()
             finally:
                 del blocker
 
