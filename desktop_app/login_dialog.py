@@ -226,7 +226,7 @@ class LoginDialog(QDialog):
 
         # Logo
         logo = QLabel()
-        logo_pixmap = QPixmap(r"L:\limo\photo\arrow.ico")
+        logo_pixmap = QPixmap(str(Path(__file__).with_name("icon.ico")))
         if not logo_pixmap.isNull():
             logo.setPixmap(
                 logo_pixmap.scaledToWidth(

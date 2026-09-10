@@ -46,19 +46,34 @@ class DatabaseConnectionMonitor(QObject):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_connection)
 
-    def start_monitoring(self) -> None:
-        """Start periodic connection health checks"""
-        logger.info(
-            f"Starting database connection monitoring (interval:"
-            f"{self.check_interval_ms}ms)"
-        )
+    def start_monitoring(self, *, periodic=True) -> None:
+        """Verify connectivity once and optionally start periodic checks."""
         self.check_connection()  # Initial check
-        self.timer.start(self.check_interval_ms)
+        if periodic:
+            logger.info(
+                "Starting periodic database connection monitoring "
+                "(interval: %sms)",
+                self.check_interval_ms,
+            )
+            self.timer.start(self.check_interval_ms)
+        else:
+            logger.info(
+                "Periodic database checks disabled; reconnecting on demand"
+            )
+            self.timer.stop()
 
     def stop_monitoring(self) -> None:
         """Stop monitoring"""
         logger.info("Stopping database connection monitoring")
         self.timer.stop()
+
+    def _run_health_check(self) -> None:
+        cur = self.db.get_cursor()
+        try:
+            cur.execute("SELECT 1")
+            cur.fetchone()
+        finally:
+            cur.close()
 
     def check_connection(self) -> None:
         """
@@ -66,11 +81,14 @@ class DatabaseConnectionMonitor(QObject):
         Emits signals if status changes.
         """
         try:
-            # Try a simple query — use get_cursor() so auto-reconnect fires
-            cur = self.db.get_cursor()
-            cur.execute("SELECT 1")
-            cur.fetchone()
-            cur.close()
+            try:
+                self._run_health_check()
+            except (psycopg2.OperationalError, psycopg2.InterfaceError):
+                if not hasattr(self.db, "_reconnect"):
+                    raise
+                logger.info("Database connection is stale; reconnecting")
+                self.db._reconnect()
+                self._run_health_check()
 
             # Connection is good
             if not self.is_online:

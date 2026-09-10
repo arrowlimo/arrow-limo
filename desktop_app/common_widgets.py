@@ -156,10 +156,15 @@ class StandardDateEdit(QLineEdit):
     dateChanged = pyqtSignal(QDate)
 
     def __init__(
-        self, parent=None, prefer_month_text=False, allow_blank: bool = False
+        self,
+        parent=None,
+        prefer_month_text=False,
+        allow_blank: bool = False,
+        select_all_on_click: bool = True,
     ) -> None:
         super().__init__(parent)
         self._allow_blank = allow_blank
+        self._select_all_on_click = select_all_on_click
         self._has_value = not allow_blank
         self._current_date = QDate.currentDate()
         self._is_formatting = False
@@ -241,11 +246,13 @@ class StandardDateEdit(QLineEdit):
 
     def focusInEvent(self, event) -> None:
         super().focusInEvent(event)
-        QTimer.singleShot(0, self.selectAll)
+        if self._select_all_on_click:
+            QTimer.singleShot(0, self.selectAll)
 
     def mousePressEvent(self, event) -> None:
         super().mousePressEvent(event)
-        QTimer.singleShot(0, self.selectAll)
+        if self._select_all_on_click:
+            QTimer.singleShot(0, self.selectAll)
 
     def keyPressEvent(self, event) -> None:
         # Support +/- day adjustments

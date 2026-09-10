@@ -172,8 +172,8 @@ class SimpleReceiptEditor(QDialog):
         self.business_personal = QCheckBox("Business/Personal")
         flags_layout.addWidget(self.business_personal)
 
-        self.verified_by_edit = QCheckBox("Verified")
-        flags_layout.addWidget(self.verified_by_edit)
+        verification_note = QLabel("Saving marks this receipt as Paper Verified")
+        flags_layout.addWidget(verification_note)
 
         flags_layout.addStretch()
         layout.addWidget(flags_group)
@@ -211,8 +211,7 @@ class SimpleReceiptEditor(QDialog):
                     category, gl_account_code, gl_account_name, payment_method,
                     banking_transaction_id, charter_id, vehicle_number,
                     employee_id,
-                    fuel_amount, business_personal, verified_by_edit, comment,
-                    odometer_reading
+                    fuel_amount, business_personal, comment, odometer_reading
                 FROM receipts
                 WHERE receipt_id = %s
             """,
@@ -272,11 +271,8 @@ class SimpleReceiptEditor(QDialog):
                     else False
                 )
             )
-            self.verified_by_edit.setChecked(
-                bool(row[16]) if row[16] is not None else False
-            )
-            self.comment.setPlainText(row[17] or "")
-            self.odometer_reading.setValue(int(row[18]) if row[18] else 0)
+            self.comment.setPlainText(row[16] or "")
+            self.odometer_reading.setValue(int(row[17]) if row[17] else 0)
 
             # Update field requirements based on loaded data
             self._update_field_requirements()
@@ -448,9 +444,18 @@ class SimpleReceiptEditor(QDialog):
                     employee_id = %s,
                     fuel_amount = %s,
                     business_personal = %s,
-                    verified_by_edit = %s,
                     comment = %s,
-                    odometer_reading = %s
+                    odometer_reading = %s,
+                    verified_by_edit = TRUE,
+                    verified_at = COALESCE(verified_at, NOW()),
+                    verified_by_user = COALESCE(verified_by_user, 'desktop_app'),
+                    is_paper_verified = TRUE,
+                    paper_verification_date =
+                        COALESCE(paper_verification_date, NOW()),
+                    verified = TRUE,
+                    verified_date = COALESCE(verified_date, NOW()),
+                    verified_by = COALESCE(verified_by, 'desktop_app'),
+                    updated_at = NOW()
                 WHERE receipt_id = %s
             """,
                 (
@@ -475,7 +480,6 @@ class SimpleReceiptEditor(QDialog):
                     employee_id_val,
                     Decimal(str(self.fuel_amount.value())),
                     self.business_personal.isChecked(),
-                    self.verified_by_edit.isChecked(),
                     self.comment.toPlainText().strip() or None,
                     odometer_val,
                     self.receipt_id,
