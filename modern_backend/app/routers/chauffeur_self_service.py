@@ -790,15 +790,53 @@ def get_my_pay_statements(
                     pp.period_start_date,
                     pp.period_end_date,
                     pp.pay_date,
-                    epm.total_hours_worked,
+                    COALESCE(live_pay.approved_hours, 0),
                     epm.overtime_hours,
-                    epm.gross_pay,
+                    COALESCE(live_pay.approved_hours, 0)
+                        * COALESCE(e.hourly_rate, epm.hourly_rate, 0)
+                        + COALESCE(live_pay.approved_gratuity, 0)
+                        + COALESCE(work_pay.payable_income, 0),
                     epm.total_deductions,
-                    epm.net_pay,
+                    (
+                        COALESCE(live_pay.approved_hours, 0)
+                            * COALESCE(e.hourly_rate, epm.hourly_rate, 0)
+                            + COALESCE(live_pay.approved_gratuity, 0)
+                            + COALESCE(work_pay.payable_income, 0)
+                            - COALESCE(epm.total_deductions, 0)
+                    ),
                     epm.notes,
                     COALESCE(epm.updated_at, epm.created_at)
                 FROM employee_pay_master epm
                 JOIN pay_periods pp ON pp.pay_period_id = epm.pay_period_id
+                JOIN employees e ON e.employee_id = epm.employee_id
+                LEFT JOIN LATERAL (
+                    SELECT
+                        SUM(COALESCE(c.approved_hours, 0))
+                            AS approved_hours,
+                        SUM(COALESCE(c.approved_gratuity, 0))
+                            AS approved_gratuity
+                    FROM charters c
+                    WHERE c.employee_id = epm.employee_id
+                      AND c.status = 'Closed'
+                      AND c.charter_date BETWEEN pp.period_start_date
+                          AND pp.period_end_date
+                ) live_pay ON TRUE
+                LEFT JOIN LATERAL (
+                    SELECT SUM(COALESCE(w.amount, 0)) AS payable_income
+                    FROM employee_work_items w
+                    WHERE w.employee_id = epm.employee_id
+                      AND (w.pay_period_id = pp.pay_period_id
+                           OR (w.pay_period_id IS NULL
+                               AND w.work_date BETWEEN pp.period_start_date
+                               AND pp.period_end_date))
+                      AND w.item_type IN (
+                          'CLEANING', 'OFFICE', 'BEVERAGE', 'TRAINING',
+                          'STANDBY', 'BONUS', 'OTHER_WORK', 'CHARTER_HOST',
+                          'CHARTER_CO_DRIVER', 'TIP'
+                      )
+                      AND UPPER(COALESCE(w.status, 'OPEN'))
+                          NOT IN ('VOID', 'CANCELLED')
+                ) work_pay ON TRUE
                 WHERE epm.employee_id = %s AND pp.fiscal_year = %s
                 ORDER BY pp.period_number ASC, pp.period_start_date ASC
                 """,
