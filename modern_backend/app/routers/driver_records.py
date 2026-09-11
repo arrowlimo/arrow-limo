@@ -7,6 +7,7 @@ value until an administrator authorizes it in the PC app.
 """
 
 import base64
+import json
 from datetime import date, datetime
 
 import psycopg2
@@ -92,6 +93,24 @@ class DocumentUpload(BaseModel):
     expiry_date: date | None = None
     document_number: str | None = Field(default=None, max_length=100)
     notes: str | None = Field(default=None, max_length=2000)
+
+
+# Statuses a driver may claim for themselves. "completed" is deliberately
+# allowed only as a *request* — it becomes real once an administrator
+# authorizes it in the PC app, so no driver can self-certify their own
+# compliance.
+TRAINING_STATUSES = {"not_started", "in_progress", "completed"}
+
+
+class TrainingSubmission(BaseModel):
+    program_id: int
+    status: str = Field(min_length=1, max_length=30)
+    started_date: date | None = None
+    completed_date: date | None = None
+    trainer_name: str | None = Field(default=None, max_length=120)
+    score: float | None = Field(default=None, ge=0, le=100)
+    notes: str | None = Field(default=None, max_length=2000)
+
 
 
 def _employee_id_from_user(user: dict) -> int:
@@ -218,11 +237,11 @@ def get_my_compliance_records(current_user: dict = Depends(get_current_user)):
 
 @router.get("/me/training")
 def get_my_training_checklist(current_user: dict = Depends(get_current_user)):
-    """Read-only view of this driver's training checklist progress.
+    """This driver's training checklist, with any pending change requests.
 
-    Deliberately read-only: training completion is a verification performed by
-    the company, so a driver must not be able to mark their own courses
-    complete. Recording and sign-off happen in the PC app.
+    Progress shown here is what the office has verified. Anything the driver
+    has submitted but that is not yet authorized appears separately as
+    ``pending`` so they can see it is awaiting review rather than live.
     """
     employee_id = _employee_id_from_user(current_user)
     conn = get_connection()
@@ -255,6 +274,35 @@ def get_my_training_checklist(current_user: dict = Depends(get_current_user)):
             )
             item_rows = cur.fetchall()
 
+            cur.execute(
+                """
+                SELECT field_key, new_value, submitted_at
+                  FROM employee_change_requests
+                 WHERE employee_id = %s
+                   AND status = 'PENDING'
+                   AND field_key LIKE 'training:%%'
+                """,
+                (employee_id,),
+            )
+            pending_rows = cur.fetchall()
+
+        pending_by_program: dict[int, dict] = {}
+        for field_key, raw_value, submitted_at in pending_rows:
+            try:
+                pending_program_id = int(str(field_key).split(":", 1)[1])
+                proposed = json.loads(raw_value or "")
+            except (IndexError, ValueError, TypeError):
+                continue
+            if not isinstance(proposed, dict):
+                continue
+            pending_by_program[pending_program_id] = {
+                "summary": _summarise_training(proposed),
+                "is_removal": bool(proposed.get("_removed")),
+                "submitted_at": (
+                    submitted_at.isoformat() if submitted_at else None
+                ),
+            }
+
         items_by_program: dict[int, list] = {}
         for program_id, name, required, completed, completed_date in item_rows:
             items_by_program.setdefault(program_id, []).append(
@@ -277,6 +325,7 @@ def get_my_training_checklist(current_user: dict = Depends(get_current_user)):
             programs.append(
                 {
                     "step_number": row[0],
+                    "program_id": row[9],
                     "category": row[1],
                     "program_name": row[2],
                     "is_mandatory": bool(row[3]),
@@ -286,10 +335,209 @@ def get_my_training_checklist(current_user: dict = Depends(get_current_user)):
                     "expiry_date": row[7].isoformat() if row[7] else None,
                     "days_until_expiry": row[8],
                     "items": items_by_program.get(row[9], []),
+                    "pending": pending_by_program.get(row[9]),
                 }
             )
 
         return {"programs": programs, "summary": counts}
+    finally:
+        return_connection(conn)
+
+
+def _training_field_key(program_id: int) -> str:
+    return f"training:{int(program_id)}"
+
+
+def _summarise_training(record: dict | None) -> str:
+    """Render a training record the way a reviewer wants to read it."""
+    if not record:
+        return "Not on checklist"
+    if record.get("_removed"):
+        return "Remove from checklist"
+    parts = [str(record.get("status") or "not_started").replace("_", " ")]
+    if record.get("started_date"):
+        parts.append(f"started {record['started_date']}")
+    if record.get("completed_date"):
+        parts.append(f"completed {record['completed_date']}")
+    if record.get("trainer_name"):
+        parts.append(f"trainer {record['trainer_name']}")
+    if record.get("score") is not None:
+        parts.append(f"score {record['score']}")
+    return ", ".join(parts)
+
+
+def _queue_training_request(cur, employee_id, user, program_id, proposed):
+    """Queue one training change for administrator authorization."""
+    cur.execute(
+        "SELECT program_name FROM training_programs WHERE program_id = %s",
+        (program_id,),
+    )
+    program = cur.fetchone()
+    if not program:
+        raise HTTPException(status_code=404, detail="Training program not found")
+
+    cur.execute(
+        """
+        SELECT status, started_date, completed_date, trainer_name, score
+          FROM employee_training_records
+         WHERE employee_id = %s AND program_id = %s
+        """,
+        (employee_id, program_id),
+    )
+    row = cur.fetchone()
+    current = None
+    if row:
+        current = {
+            "status": row[0],
+            "started_date": _display_value(row[1]) or None,
+            "completed_date": _display_value(row[2]) or None,
+            "trainer_name": row[3],
+            "score": float(row[4]) if row[4] is not None else None,
+        }
+
+    if proposed.get("_removed") and not row:
+        raise HTTPException(
+            status_code=400,
+            detail="That program is not on your checklist",
+        )
+
+    field_key = _training_field_key(program_id)
+    cur.execute(
+        """
+        UPDATE employee_change_requests
+        SET status = 'REJECTED',
+            reviewed_at = NOW(),
+            review_notes = 'Superseded by a newer driver submission'
+        WHERE employee_id = %s AND field_key = %s AND status = 'PENDING'
+        """,
+        (employee_id, field_key),
+    )
+    cur.execute("SELECT nextval('employee_change_batch_seq')")
+    batch_id = cur.fetchone()[0]
+    cur.execute(
+        """
+        INSERT INTO employee_change_requests (
+            batch_id, employee_id, submitted_by_user_id,
+            submitted_by_username, field_key, field_label,
+            old_value, new_value
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING request_id
+        """,
+        (
+            batch_id,
+            employee_id,
+            user.get("user_id"),
+            str(user.get("username") or ""),
+            field_key,
+            f"Training — {program[0]}",
+            _summarise_training(current),
+            json.dumps(proposed),
+        ),
+    )
+    return {
+        "request_id": cur.fetchone()[0],
+        "batch_id": batch_id,
+        "program": program[0],
+        "old_value": _summarise_training(current),
+        "new_value": _summarise_training(proposed),
+    }
+
+
+@router.post("/me/training", status_code=201)
+def submit_training_record(
+    payload: TrainingSubmission,
+    current_user: dict = Depends(get_current_user),
+):
+    """Request that a training record be added or updated.
+
+    The driver's checklist is not changed here. The request waits in the
+    approval queue so an administrator verifies the training actually
+    happened before it counts towards compliance.
+    """
+    employee_id = _employee_id_from_user(current_user)
+
+    if payload.status not in TRAINING_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Status must be one of: {', '.join(sorted(TRAINING_STATUSES))}",
+        )
+    if payload.status == "completed" and not payload.completed_date:
+        raise HTTPException(
+            status_code=400,
+            detail="A completed program needs the date it was completed",
+        )
+    today = date.today()
+    for label, value in (
+        ("Completion date", payload.completed_date),
+        ("Start date", payload.started_date),
+    ):
+        if value and value > today:
+            raise HTTPException(
+                status_code=400, detail=f"{label} cannot be in the future"
+            )
+
+    proposed = {
+        "status": payload.status,
+        "started_date": payload.started_date.isoformat()
+        if payload.started_date
+        else None,
+        "completed_date": payload.completed_date.isoformat()
+        if payload.completed_date
+        else None,
+        "trainer_name": (payload.trainer_name or "").strip() or None,
+        "score": payload.score,
+        "notes": (payload.notes or "").strip() or None,
+    }
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            queued = _queue_training_request(
+                cur, employee_id, current_user, payload.program_id, proposed
+            )
+        conn.commit()
+        return {
+            "status": "pending_approval",
+            "queued": queued,
+            "message": (
+                "Your training update was submitted and is waiting for "
+                "administrator authorization. Your checklist stays unchanged "
+                "until it is approved."
+            ),
+        }
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        return_connection(conn)
+
+
+@router.delete("/me/training/{program_id}", status_code=201)
+def request_training_removal(
+    program_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Request that a program be taken off this driver's checklist."""
+    employee_id = _employee_id_from_user(current_user)
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            queued = _queue_training_request(
+                cur, employee_id, current_user, program_id, {"_removed": True}
+            )
+        conn.commit()
+        return {
+            "status": "pending_approval",
+            "queued": queued,
+            "message": (
+                "Your removal request was submitted and is waiting for "
+                "administrator authorization."
+            ),
+        }
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         return_connection(conn)
 

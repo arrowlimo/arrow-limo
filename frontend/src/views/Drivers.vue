@@ -446,10 +446,12 @@
           <button class="secondary" @click="loadTraining">Refresh</button>
         </div>
         <p class="records-note">
-          This is a <strong>read-only</strong> view. Training completion is verified and recorded by
-          the office &mdash; if something here looks wrong, contact dispatch.
+          You can submit training you have completed, update it, or ask for a program to be
+          removed. Nothing changes on your record until the office authorizes it &mdash; your
+          submission shows as <strong>awaiting authorization</strong> until then.
         </p>
         <div v-if="trainingError" class="records-error">{{ trainingError }}</div>
+        <div v-if="trainingNotice" class="records-success">{{ trainingNotice }}</div>
 
         <div class="training-summary">
           <span class="training-chip done">{{ trainingSummary.completed || 0 }} complete</span>
@@ -460,7 +462,7 @@
           </span>
         </div>
 
-        <article v-for="program in trainingPrograms" :key="program.step_number" class="training-card">
+        <article v-for="program in trainingPrograms" :key="program.program_id" class="training-card">
           <header class="training-card-head">
             <div>
               <span class="training-step">Step {{ program.step_number }}</span>
@@ -482,6 +484,11 @@
               </template>
             </span>
           </div>
+
+          <p v-if="program.pending" class="training-pending">
+            ⏳ Awaiting authorization: <strong>{{ program.pending.summary }}</strong>
+          </p>
+
           <ul v-if="program.items.length" class="training-items">
             <li v-for="item in program.items" :key="item.item_name">
               <span>{{ item.completed ? '☑' : '☐' }}</span>
@@ -490,6 +497,59 @@
               <span v-if="item.completed_date"> &mdash; {{ formatDate(item.completed_date) }}</span>
             </li>
           </ul>
+
+          <div v-if="trainingEditId === program.program_id" class="training-form">
+            <label>
+              Status
+              <select v-model="trainingForm.status">
+                <option value="in_progress">In progress</option>
+                <option value="completed">Completed</option>
+                <option value="not_started">Not started</option>
+              </select>
+            </label>
+            <label>
+              Started
+              <input v-model="trainingForm.started_date" type="date" :max="today" />
+            </label>
+            <label>
+              Completed
+              <input v-model="trainingForm.completed_date" type="date" :max="today" />
+            </label>
+            <label>
+              Trainer / provider
+              <input v-model="trainingForm.trainer_name" type="text" maxlength="120" />
+            </label>
+            <label>
+              Score
+              <input v-model="trainingForm.score" type="number" min="0" max="100" step="0.1" />
+            </label>
+            <label class="training-form-wide">
+              Notes
+              <textarea v-model="trainingForm.notes" rows="2" maxlength="2000"></textarea>
+            </label>
+            <div class="training-form-actions">
+              <button :disabled="trainingSaving" @click="submitTraining(program)">
+                {{ trainingSaving ? 'Submitting…' : 'Submit for authorization' }}
+              </button>
+              <button class="secondary" :disabled="trainingSaving" @click="cancelTrainingEdit">
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <div v-else class="training-card-actions">
+            <button class="secondary" @click="startTrainingEdit(program)">
+              {{ program.status === 'not_started' ? 'Add my record' : 'Update my record' }}
+            </button>
+            <button
+              v-if="!program.is_mandatory"
+              class="secondary danger"
+              :disabled="trainingSaving"
+              @click="requestTrainingRemoval(program)"
+            >
+              Request removal
+            </button>
+          </div>
         </article>
 
         <div v-if="trainingPrograms.length === 0" class="empty-state">
@@ -561,6 +621,18 @@ const complianceFields = ref([])
 const trainingPrograms = ref([])
 const trainingSummary = ref({})
 const trainingError = ref('')
+const trainingNotice = ref('')
+const trainingSaving = ref(false)
+const trainingEditId = ref(null)
+const today = new Date().toISOString().slice(0, 10)
+const trainingForm = reactive({
+  status: 'in_progress',
+  started_date: '',
+  completed_date: '',
+  trainer_name: '',
+  score: '',
+  notes: ''
+})
 const complianceDocuments = ref([])
 const complianceDraft = reactive({})
 const complianceSaving = ref(false)
@@ -593,6 +665,76 @@ const loadTraining = async () => {
     trainingSummary.value = payload.summary || {}
   } catch (err) {
     trainingError.value = err.message
+  }
+}
+
+const startTrainingEdit = (program) => {
+  trainingNotice.value = ''
+  trainingError.value = ''
+  trainingEditId.value = program.program_id
+  trainingForm.status = program.status === 'not_started' ? 'in_progress' : program.status
+  trainingForm.started_date = program.started_date || ''
+  trainingForm.completed_date = program.completed_date || ''
+  trainingForm.trainer_name = ''
+  trainingForm.score = ''
+  trainingForm.notes = ''
+}
+
+const cancelTrainingEdit = () => {
+  trainingEditId.value = null
+}
+
+const submitTraining = async (program) => {
+  trainingError.value = ''
+  trainingNotice.value = ''
+  if (trainingForm.status === 'completed' && !trainingForm.completed_date) {
+    trainingError.value = 'Enter the date you completed this training.'
+    return
+  }
+  trainingSaving.value = true
+  try {
+    const payload = await requestJson('/api/chauffeur/me/training', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        program_id: program.program_id,
+        status: trainingForm.status,
+        started_date: trainingForm.started_date || null,
+        completed_date: trainingForm.completed_date || null,
+        trainer_name: trainingForm.trainer_name || null,
+        score: trainingForm.score === '' ? null : Number(trainingForm.score),
+        notes: trainingForm.notes || null
+      })
+    })
+    trainingNotice.value = payload.message
+    trainingEditId.value = null
+    await loadTraining()
+  } catch (err) {
+    trainingError.value = err.message
+  } finally {
+    trainingSaving.value = false
+  }
+}
+
+const requestTrainingRemoval = async (program) => {
+  const confirmed = window.confirm(
+    `Ask the office to remove "${program.program_name}" from your checklist?`
+  )
+  if (!confirmed) return
+  trainingError.value = ''
+  trainingNotice.value = ''
+  trainingSaving.value = true
+  try {
+    const payload = await requestJson(
+      `/api/chauffeur/me/training/${program.program_id}`,
+      { method: 'DELETE' }
+    )
+    trainingNotice.value = payload.message
+    await loadTraining()
+  } catch (err) {
+    trainingError.value = err.message
+  } finally {
+    trainingSaving.value = false
   }
 }
 
@@ -964,6 +1106,30 @@ th, td { border-bottom: 1px solid #e2e8f0; padding: .7rem; text-align: left; whi
 .training-dates { display: flex; flex-wrap: wrap; gap: 1rem; color: #4b5563; font-size: 0.85rem; margin-top: 0.5rem; }
 .training-items { margin: 0.6rem 0 0; padding-left: 1rem; color: #374151; font-size: 0.85rem; }
 .training-items li { margin-bottom: 0.2rem; list-style: none; }
+.training-pending {
+  margin: 0.6rem 0 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  background: #fef3c7;
+  color: #78350f;
+  font-size: 0.85rem;
+}
+.training-card-actions { display: flex; gap: 0.5rem; margin-top: 0.7rem; flex-wrap: wrap; }
+.training-card-actions .danger { color: #b91c1c; border-color: #fca5a5; }
+.training-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.7rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid #e5e7eb;
+}
+.training-form label { display: flex; flex-direction: column; font-size: 0.8rem; color: #374151; gap: 0.2rem; }
+.training-form-wide { grid-column: 1 / -1; }
+.training-form-actions { grid-column: 1 / -1; display: flex; gap: 0.5rem; }
+@media (max-width: 720px) {
+  .training-form { grid-template-columns: 1fr; }
+}
 @media (max-width: 720px) {
   .form-grid, .inline-form { grid-template-columns: 1fr; }
   .wide, .actions { grid-column: auto; }
