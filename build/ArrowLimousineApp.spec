@@ -25,6 +25,8 @@ a = Analysis(
         'db_connection',
         'employee_change_approvals',
         'driver_run_confirmations',
+        'driver_training_checklist',
+        'driver_training_overview',
         'enhanced_banking_manager',
         'enhanced_receipts_manager',
         'nsf_pair_manager_widget',

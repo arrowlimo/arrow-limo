@@ -122,6 +122,7 @@ class EmployeeDetailDialog(QDialog):
         tabs.addTab(self.create_personal_tab(), "👤 Personal Info")
         tabs.addTab(self.create_employment_tab(), "💼 Employment")
         tabs.addTab(self.create_training_tab(), "🎓 Training & Qualifications")
+        tabs.addTab(self.create_training_checklist_tab(), "✅ Training Checklist")
         tabs.addTab(self.create_documents_tab(), "📄 Documents & Forms")
         tabs.addTab(self.create_pay_tab(), "💰 Pay & Advances")
         tabs.addTab(self.create_deductions_tab(), "🧾 Deductions & Tax")
@@ -143,6 +144,33 @@ class EmployeeDetailDialog(QDialog):
 
         if employee_id:
             self.load_employee_data()
+
+    def create_training_checklist_tab(self) -> QWidget:
+        """Step-by-step training/onboarding checklist for this employee."""
+        widget = QWidget()
+        layout = QVBoxLayout()
+
+        if not self.employee_id:
+            layout.addWidget(
+                QLabel(
+                    "Save this employee first. The step-by-step training "
+                    "checklist becomes available once the record exists."
+                )
+            )
+        else:
+            try:
+                from driver_training_checklist import DriverTrainingChecklistWidget
+
+                self.training_checklist_widget = DriverTrainingChecklistWidget(
+                    self.db, employee_id=self.employee_id, parent=widget
+                )
+                layout.addWidget(self.training_checklist_widget)
+            except Exception as exc:
+                logger.exception("Failed to build training checklist tab")
+                layout.addWidget(QLabel(f"Training checklist unavailable: {exc}"))
+
+        widget.setLayout(layout)
+        return widget
 
     def create_change_approvals_tab(self) -> QWidget:
         """Driver-portal record changes awaiting authorization for this employee."""

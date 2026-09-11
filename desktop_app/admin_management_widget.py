@@ -167,6 +167,7 @@ class AdminManagementWidget(QWidget):
             "📊 Overview": self._create_overview_tab,
             "👥 Users": self._create_users_tab,
             "🔐 Driver Change Requests": self._create_change_requests_tab,
+            "✅ Training Checklists": self._create_training_overview_tab,
             "⚙️ Settings": self._create_settings_tab,
             "🏃 Run Types": self._create_run_types_tab,
             "🛣️ Route Events": self._create_route_event_types_tab,
@@ -570,6 +571,20 @@ class AdminManagementWidget(QWidget):
             widget = QWidget()
             layout = QVBoxLayout()
             layout.addWidget(QLabel(f"Driver change requests unavailable: {exc}"))
+            widget.setLayout(layout)
+            return widget
+
+    def _create_training_overview_tab(self) -> object:
+        """Company-wide training checklist status and bulk assignment."""
+        try:
+            from driver_training_overview import TrainingOverviewWidget
+
+            return TrainingOverviewWidget(self.db)
+        except Exception as exc:
+            logger.exception("Failed to build training overview")
+            widget = QWidget()
+            layout = QVBoxLayout()
+            layout.addWidget(QLabel(f"Training checklists unavailable: {exc}"))
             widget.setLayout(layout)
             return widget
 
