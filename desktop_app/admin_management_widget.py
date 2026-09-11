@@ -420,9 +420,16 @@ class AdminManagementWidget(QWidget):
         update_btn.clicked.connect(self.update_user)
         delete_btn = QPushButton("🗑️ Delete")
         delete_btn.clicked.connect(self.delete_user)
+        refresh_btn = QPushButton("🔄 Refresh")
+        refresh_btn.setToolTip(
+            "Reload users from the cloud database to pick up driver logins "
+            "created on the web portal."
+        )
+        refresh_btn.clicked.connect(self.load_users)
         button_layout.addWidget(add_btn)
         button_layout.addWidget(update_btn)
         button_layout.addWidget(delete_btn)
+        button_layout.addWidget(refresh_btn)
         button_layout.addStretch()
 
         form_layout.addRow("Username*", self.user_username)
