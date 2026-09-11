@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -196,6 +197,12 @@ class DriverTrainingChecklistWidget(QWidget):
         self._build_ui()
         self.reload()
 
+    def set_employee(self, employee_id) -> None:
+        """Point this checklist at a different employee and refresh it."""
+        self.employee_id = employee_id
+        self.items_list.clear()
+        self.reload()
+
     # ------------------------------------------------------------------ UI
     def _build_ui(self) -> None:
         layout = QVBoxLayout()
@@ -214,9 +221,22 @@ class DriverTrainingChecklistWidget(QWidget):
         assign_btn.clicked.connect(self._assign_mandatory)
         controls.addWidget(assign_btn)
 
+        add_btn = QPushButton("➕ Add Program")
+        add_btn.setToolTip("Assign one specific program to this driver.")
+        add_btn.clicked.connect(self._add_program)
+        controls.addWidget(add_btn)
+
         edit_btn = QPushButton("✏️ Record / Update Selected")
         edit_btn.clicked.connect(self._edit_selected)
         controls.addWidget(edit_btn)
+
+        remove_btn = QPushButton("🗑️ Remove Selected")
+        remove_btn.setToolTip(
+            "Remove this program from the driver's checklist. Completion "
+            "history is kept."
+        )
+        remove_btn.clicked.connect(self._remove_selected)
+        controls.addWidget(remove_btn)
 
         refresh_btn = QPushButton("🔄 Refresh")
         refresh_btn.clicked.connect(self.reload)
@@ -449,6 +469,143 @@ class DriverTrainingChecklistWidget(QWidget):
             f"Added {added} mandatory program(s).\n\n"
             "Existing progress was left untouched.",
         )
+        self.reload()
+        self.progress_changed.emit()
+
+    def _add_program(self) -> None:
+        """Assign one specific program to this driver."""
+        if not self.employee_id:
+            return
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT p.program_id, p.program_name, p.category
+                      FROM training_programs p
+                     WHERE p.is_active IS NOT FALSE
+                       AND NOT EXISTS (
+                           SELECT 1 FROM employee_training_records r
+                            WHERE r.employee_id = %s
+                              AND r.program_id = p.program_id)
+                     ORDER BY p.sort_order, p.program_name
+                    """,
+                    (self.employee_id,),
+                )
+                available = cur.fetchall() or []
+        except Exception as exc:
+            logger.exception("Failed to list assignable programs")
+            QMessageBox.critical(self, "Load Failed", str(exc))
+            return
+
+        if not available:
+            QMessageBox.information(
+                self,
+                "Nothing To Add",
+                "This driver is already assigned every active program.",
+            )
+            return
+
+        labels = [f"{name}  ({category})" for _pid, name, category in available]
+        choice, ok = QInputDialog.getItem(
+            self, "Add Program", "Assign which program?", labels, 0, False
+        )
+        if not ok:
+            return
+        program_id = available[labels.index(choice)][0]
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO employee_training_records
+                        (employee_id, program_id, status)
+                    VALUES (%s, %s, 'not_started')
+                    ON CONFLICT (employee_id, program_id) DO NOTHING
+                    """,
+                    (self.employee_id, program_id),
+                )
+        except Exception as exc:
+            logger.exception("Failed to add training program")
+            QMessageBox.critical(self, "Add Failed", str(exc))
+            return
+
+        self.reload()
+        self.progress_changed.emit()
+
+    def _remove_selected(self) -> None:
+        """Take a program off this driver's checklist, keeping its history."""
+        selected = self._selected_program()
+        if not selected:
+            QMessageBox.information(
+                self, "No Selection", "Select a program row first."
+            )
+            return
+        program_id, program_name = selected[9], selected[2]
+
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT COUNT(*) FROM employee_training_records
+                     WHERE employee_id = %s AND program_id = %s
+                    """,
+                    (self.employee_id, program_id),
+                )
+                assigned = cur.fetchone()[0]
+                cur.execute(
+                    """
+                    SELECT COUNT(*) FROM employee_training_history
+                     WHERE employee_id = %s AND program_id = %s
+                    """,
+                    (self.employee_id, program_id),
+                )
+                history = cur.fetchone()[0]
+        except Exception as exc:
+            logger.exception("Failed to check training record")
+            QMessageBox.critical(self, "Load Failed", str(exc))
+            return
+
+        if not assigned:
+            QMessageBox.information(
+                self,
+                "Not Assigned",
+                f"'{program_name}' is not on this driver's checklist.",
+            )
+            return
+
+        message = (
+            f"Remove '{program_name}' from this driver's checklist?\n\n"
+            "Their current status, dates and score for it are deleted."
+        )
+        if history:
+            message += (
+                f"\n\nThe {history} past completion(s) recorded for this "
+                "driver are KEPT as proof of training."
+            )
+        confirm = QMessageBox.question(
+            self,
+            "Remove Program",
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    DELETE FROM employee_training_records
+                     WHERE employee_id = %s AND program_id = %s
+                    """,
+                    (self.employee_id, program_id),
+                )
+        except Exception as exc:
+            logger.exception("Failed to remove training record")
+            QMessageBox.critical(self, "Remove Failed", str(exc))
+            return
+
         self.reload()
         self.progress_changed.emit()
 

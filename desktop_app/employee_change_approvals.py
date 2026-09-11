@@ -6,6 +6,7 @@ widget shows the administrator the current value beside the requested value so
 nothing (for example a licence class upgrade) goes live without authorization.
 """
 
+import json
 import logging
 
 from db_error_handling import DatabaseContext
@@ -60,6 +61,37 @@ DATE_FIELDS = {
     "drivers_abstract_date",
     "vulnerable_sector_check_date",
 }
+
+# Training requests arrive as "training:<program_id>" with a JSON payload
+# rather than a plain employees column, because they change a row in
+# employee_training_records instead of a single profile field.
+TRAINING_PREFIX = "training:"
+
+
+def _parse_training_value(raw):
+    try:
+        value = json.loads(raw or "")
+    except (TypeError, ValueError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _summarise_training(record) -> str:
+    if not record:
+        return ""
+    if record.get("_removed"):
+        return "Remove from checklist"
+    parts = [str(record.get("status") or "not_started").replace("_", " ")]
+    if record.get("started_date"):
+        parts.append(f"started {record['started_date']}")
+    if record.get("completed_date"):
+        parts.append(f"completed {record['completed_date']}")
+    if record.get("trainer_name"):
+        parts.append(f"trainer {record['trainer_name']}")
+    if record.get("score") is not None:
+        parts.append(f"score {record['score']}")
+    return ", ".join(parts)
+
 
 COL_SELECT = 0
 COL_DRIVER = 1
@@ -250,7 +282,7 @@ class EmployeeChangeApprovalsWidget(QWidget):
             (
                 _request_id,
                 _employee_id,
-                _field_key,
+                field_key,
                 field_label,
                 old_value,
                 new_value,
@@ -258,7 +290,8 @@ class EmployeeChangeApprovalsWidget(QWidget):
                 submitted_by,
                 driver_name,
             ) = row
-
+            if str(field_key or "").startswith(TRAINING_PREFIX):
+                new_value = _summarise_training(_parse_training_value(new_value))
             checkbox_item = QTableWidgetItem()
             checkbox_item.setFlags(
                 Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled
@@ -453,10 +486,13 @@ class EmployeeChangeApprovalsWidget(QWidget):
             submitted_by,
             driver_name,
         ) = request
+        shown_new = new_value
+        if str(field_key or "").startswith(TRAINING_PREFIX):
+            shown_new = _summarise_training(_parse_training_value(new_value))
         return (
             f"{submitted_by or driver_name} changed "
             f"{field_label or field_key} from '{old_value or '(blank)'}' "
-            f"to '{new_value or '(cleared)'}'"
+            f"to '{shown_new or '(cleared)'}'"
         )
 
     # ------------------------------------------------------------- actions
@@ -494,6 +530,86 @@ class EmployeeChangeApprovalsWidget(QWidget):
             return
         self._process(selected, approve=False, note=reason.strip() or None)
 
+    def _apply_training(self, cur, employee_id, field_key, new_value) -> bool:
+        """Write an approved training request to the driver's checklist.
+
+        Returns False when the request cannot be applied, so the caller
+        reports it as skipped rather than silently marking it approved.
+        """
+        try:
+            program_id = int(str(field_key).split(":", 1)[1])
+        except (IndexError, ValueError):
+            return False
+
+        record = _parse_training_value(new_value)
+        if record is None:
+            return False
+
+        if record.get("_removed"):
+            cur.execute(
+                """
+                DELETE FROM employee_training_records
+                 WHERE employee_id = %s AND program_id = %s
+                """,
+                (employee_id, program_id),
+            )
+            return True
+
+        status = record.get("status") or "not_started"
+        if status == "completed" and not record.get("completed_date"):
+            return False
+
+        cur.execute(
+            """
+            INSERT INTO employee_training_records
+                (employee_id, program_id, status, started_date, completed_date,
+                 trainer_name, score, notes, verified_at)
+            VALUES (%s, %s, %s, %s::date, %s::date, %s, %s, %s, NOW())
+            ON CONFLICT (employee_id, program_id) DO UPDATE SET
+                status         = EXCLUDED.status,
+                started_date   = EXCLUDED.started_date,
+                completed_date = EXCLUDED.completed_date,
+                trainer_name   = EXCLUDED.trainer_name,
+                score          = EXCLUDED.score,
+                notes          = EXCLUDED.notes,
+                verified_at    = NOW()
+            RETURNING expiry_date
+            """,
+            (
+                employee_id,
+                program_id,
+                status,
+                record.get("started_date"),
+                record.get("completed_date"),
+                record.get("trainer_name"),
+                record.get("score"),
+                record.get("notes"),
+            ),
+        )
+        expiry = cur.fetchone()
+
+        # A completion is permanent proof of training, so it is also appended
+        # to the history table that survives catalogue edits.
+        if status == "completed":
+            cur.execute(
+                """
+                INSERT INTO employee_training_history
+                    (employee_id, program_id, completed_date, expiry_date,
+                     trainer_name, score, notes)
+                VALUES (%s, %s, %s::date, %s, %s, %s, %s)
+                """,
+                (
+                    employee_id,
+                    program_id,
+                    record.get("completed_date"),
+                    expiry[0] if expiry else None,
+                    record.get("trainer_name"),
+                    record.get("score"),
+                    record.get("notes"),
+                ),
+            )
+        return True
+
     def _process(self, requests, approve: bool, note=None) -> None:
         action_word = "authorize" if approve else "reject"
         lines = "\n".join(f"  • {self._describe(r)}" for r in requests[:15])
@@ -528,21 +644,26 @@ class EmployeeChangeApprovalsWidget(QWidget):
                     ) = request
 
                     if approve:
-                        if field_key not in APPROVABLE_FIELDS:
+                        if str(field_key or "").startswith(TRAINING_PREFIX):
+                            if not self._apply_training(
+                                cur, employee_id, field_key, new_value
+                            ):
+                                skipped.append(field_label or field_key)
+                                continue
+                        elif field_key not in APPROVABLE_FIELDS:
                             skipped.append(field_label or field_key)
                             continue
-                        stored_value = new_value or None
-                        if field_key in DATE_FIELDS:
+                        elif field_key in DATE_FIELDS:
                             cur.execute(
                                 f"UPDATE employees SET {field_key} = %s::date "  # nosec
                                 "WHERE employee_id = %s",
-                                (stored_value, employee_id),
+                                (new_value or None, employee_id),
                             )
                         else:
                             cur.execute(
                                 f"UPDATE employees SET {field_key} = %s "  # nosec
                                 "WHERE employee_id = %s",
-                                (stored_value, employee_id),
+                                (new_value or None, employee_id),
                             )
 
                     cur.execute(

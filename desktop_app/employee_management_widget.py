@@ -10,6 +10,11 @@ import re
 from common_widgets import StandardDateEdit
 from db_error_handling import DatabaseContext
 from employee_drill_down import EmployeeDetailDialog
+from employee_work_items import (
+    EmployeeWorkItemsDialog,
+    ensure_employee_work_items_table,
+    get_work_item_summary,
+)
 from PyQt6.QtCore import QDate, Qt, QTimer
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -74,37 +79,154 @@ class EmployeeManagementWidget(QWidget):
     def __init__(self, db) -> None:
         super().__init__()
         self.db = db
+        ensure_employee_work_items_table(self.db)
         self.current_employee_id = None
+        self._employees_column_cache = {}
         self.init_ui()
         self.load_employees()
+
+    def _ensure_employee_extra_tax_columns(self) -> None:
+        """Create optional extra-tax columns when an older DB schema is in use."""
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    ALTER TABLE employees
+                    ADD COLUMN IF NOT EXISTS extra_tax_type TEXT DEFAULT '$'
+                    """
+                )
+                cur.execute(
+                    """
+                    ALTER TABLE employees
+                    ADD COLUMN IF NOT EXISTS extra_tax_annual NUMERIC(10,2) DEFAULT 0
+                    """
+                )
+                cur.execute(
+                    """
+                    ALTER TABLE employees
+                    ADD COLUMN IF NOT EXISTS extra_tax_pct NUMERIC(6,2) DEFAULT 0
+                    """
+                )
+            self._employees_column_cache.clear()
+        except Exception as e:
+            logger.warning("Could not auto-migrate employees extra-tax columns: %s", e)
+
+    def _employee_column_exists(self, column_name: str) -> bool:
+        """Return True when a column exists on employees (cached)."""
+        cache_key = column_name.strip().lower()
+        if cache_key in self._employees_column_cache:
+            return bool(self._employees_column_cache[cache_key])
+
+        exists = False
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_schema = 'public'
+                          AND table_name = 'employees'
+                          AND column_name = %s
+                    )
+                    """,
+                    (cache_key,),
+                )
+                exists = bool(cur.fetchone()[0])
+        except Exception as e:
+            logger.warning("Employee column check failed for %s: %s", column_name, e)
+            exists = False
+
+        self._employees_column_cache[cache_key] = exists
+        return exists
+
+    def _supports_extra_tax_fields(self) -> bool:
+        """True when extra tax columns are present in employees schema."""
+        return all(
+            self._employee_column_exists(col)
+            for col in ("extra_tax_type", "extra_tax_annual", "extra_tax_pct")
+        )
+
+    def _supports_structured_name_fields(self) -> bool:
+        """True when first/last name columns are available."""
+        return all(
+            self._employee_column_exists(col)
+            for col in ("first_name", "last_name")
+        )
+
+    def _supports_middle_name_field(self) -> bool:
+        return self._employee_column_exists("middle_name")
+
+    @staticmethod
+    def _parse_name_parts(raw_name: str) -> tuple[str, str, str]:
+        """Parse user-entered names, supporting 'Last, First Middle'."""
+        text = (raw_name or "").strip()
+        if not text:
+            return "", "", ""
+
+        if "," in text:
+            last, remainder = text.split(",", 1)
+            tokens = [t for t in remainder.strip().split() if t]
+            first = tokens[0] if tokens else ""
+            middle = " ".join(tokens[1:]) if len(tokens) > 1 else ""
+            return first.strip(), middle.strip(), last.strip()
+
+        tokens = [t for t in text.split() if t]
+        if len(tokens) == 1:
+            return tokens[0], "", ""
+        if len(tokens) == 2:
+            return tokens[0], "", tokens[1]
+        return tokens[0], " ".join(tokens[1:-1]), tokens[-1]
+
+    @staticmethod
+    def _compose_display_name(first: str, middle: str, last: str, fallback: str = "") -> str:
+        first = (first or "").strip()
+        middle = (middle or "").strip()
+        last = (last or "").strip()
+        if last and first:
+            return f"{last}, {first}{(' ' + middle) if middle else ''}"
+        combined = " ".join(part for part in (first, middle, last) if part).strip()
+        return combined or (fallback or "")
+
+    def _set_name_fields(self, first: str, middle: str, last: str) -> None:
+        self.first_name_input.setText((first or "").strip())
+        self.middle_name_input.setText((middle or "").strip())
+        self.last_name_input.setText((last or "").strip())
 
     def init_ui(self) -> None:
         """Build the employee management interface"""
         layout = QVBoxLayout()
+        layout.setContentsMargins(8, 6, 8, 6)
+        layout.setSpacing(6)
 
-        # Breadcrumb navigation
-        breadcrumb_layout = QHBoxLayout()
-        back_btn = QPushButton("⬅ Back to Navigator")
-        back_btn.setMaximumWidth(150)
+        # Breadcrumb, title and actions share one compact row so the list and
+        # form get the vertical space instead of three stacked banners.
+        header_row = QHBoxLayout()
+        header_row.setSpacing(6)
+        back_btn = QPushButton("⬅ Back")
+        back_btn.setMaximumWidth(90)
         back_btn.clicked.connect(self.go_back)
-        breadcrumb_layout.addWidget(back_btn)
-        breadcrumb_layout.addWidget(
-            QLabel("📍 Core Operations › Employee Management")
-        )
-        breadcrumb_layout.addStretch()
-        layout.addLayout(breadcrumb_layout)
+        header_row.addWidget(back_btn)
 
-        # Header
-        header = QLabel("<h2>👥 Employee Management</h2>")
-        header.setStyleSheet("color: #2c3e50; padding: 10px;")
-        layout.addWidget(header)
+        header = QLabel("👥 Employee Operations")
+        header.setStyleSheet(
+            "color: #2c3e50; font-size: 15px; font-weight: bold;"
+        )
+        header_row.addWidget(header)
+
+        crumb = QLabel("📍 Core Operations › Employee Operations")
+        crumb.setStyleSheet("color: #7f8c8d; font-size: 11px;")
+        header_row.addWidget(crumb)
+        header_row.addStretch()
+        layout.addLayout(header_row)
 
         # Action buttons at TOP
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(6)
         self.new_btn = QPushButton("➕ New Employee")
         self.new_btn.clicked.connect(self.new_employee)
         self.new_btn.setStyleSheet(
-            "background-color: #27ae60; color: white; padding: 8px;"
+            "background-color: #27ae60; color: white; padding: 4px 8px;"
         )
         btn_layout.addWidget(self.new_btn)
 
@@ -116,7 +238,7 @@ class EmployeeManagementWidget(QWidget):
         self.delete_btn = QPushButton("🗑️ Delete")
         self.delete_btn.clicked.connect(self.delete_employee)
         self.delete_btn.setStyleSheet(
-            "background-color: #e74c3c; color: white; padding: 8px;"
+            "background-color: #e74c3c; color: white; padding: 4px 8px;"
         )
         self.delete_btn.setEnabled(False)
         btn_layout.addWidget(self.delete_btn)
@@ -127,7 +249,7 @@ class EmployeeManagementWidget(QWidget):
             "Set employment_status='inactive' for all chauffeurs/drivers"
         )
         self.bulk_inactivate_btn.setStyleSheet(
-            "background-color: #f39c12; color: white; padding: 8px;"
+            "background-color: #f39c12; color: white; padding: 4px 8px;"
         )
         self.bulk_inactivate_btn.clicked.connect(
             self.bulk_mark_all_drivers_inactive
@@ -139,7 +261,7 @@ class EmployeeManagementWidget(QWidget):
             "Set employment_status='active' for selected rows in the table"
         )
         self.bulk_activate_selected_btn.setStyleSheet(
-            "background-color: #2ecc71; color: white; padding: 8px;"
+            "background-color: #2ecc71; color: white; padding: 4px 8px;"
         )
         self.bulk_activate_selected_btn.clicked.connect(
             self.bulk_activate_selected
@@ -171,7 +293,7 @@ class EmployeeManagementWidget(QWidget):
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 2)
 
-        layout.addWidget(splitter)
+        layout.addWidget(splitter, stretch=1)
         self.setLayout(layout)
 
     def _create_stats_section(self) -> object:
@@ -191,9 +313,9 @@ class EmployeeManagementWidget(QWidget):
         ]:
             lbl.setStyleSheet("""
                 background-color: #ecf0f1;
-                padding: 15px;
-                border-radius: 5px;
-                font-size: 14px;
+                padding: 4px 10px;
+                border-radius: 4px;
+                font-size: 12px;
                 font-weight: bold;
             """)
             stats.addWidget(lbl)
@@ -261,6 +383,38 @@ class EmployeeManagementWidget(QWidget):
         if parent and hasattr(parent, "tabs"):
             parent.tabs.setCurrentIndex(0)  # Navigator is tab 0
 
+    def _create_training_tab(self) -> object:
+        """Training checklist for the employee selected in the list."""
+        try:
+            from driver_training_checklist import DriverTrainingChecklistWidget
+
+            return DriverTrainingChecklistWidget(self.db, employee_id=None)
+        except Exception as exc:
+            logger.exception("Failed to build training tab")
+            return QLabel(f"Training unavailable: {exc}")
+
+    def _create_documents_tab(self) -> object:
+        """Licences, certifications and documents for the selected employee."""
+        try:
+            from employee_documents_widget import EmployeeDocumentsWidget
+
+            return EmployeeDocumentsWidget(self.db, employee_id=None)
+        except Exception as exc:
+            logger.exception("Failed to build documents tab")
+            return QLabel(f"Documents unavailable: {exc}")
+
+    def _sync_record_tabs(self, employee_id) -> None:
+        """Point the training and document tabs at the selected employee."""
+        for widget in (
+            getattr(self, "training_widget", None),
+            getattr(self, "documents_widget", None),
+        ):
+            if widget is not None and hasattr(widget, "set_employee"):
+                try:
+                    widget.set_employee(employee_id)
+                except Exception:
+                    logger.exception("Failed to refresh record tab")
+
     def _create_form_panel(self) -> object:
         """Create right panel with tabbed forms"""
         panel = QFrame()
@@ -283,6 +437,14 @@ class EmployeeManagementWidget(QWidget):
         # Tab 4: Payroll
         payroll_tab = self._create_payroll_tab()
         self.form_tabs.addTab(payroll_tab, "💰 Payroll")
+
+        # Tab 5: Training checklist for the selected employee
+        self.training_widget = self._create_training_tab()
+        self.form_tabs.addTab(self.training_widget, "🎓 Training")
+
+        # Tab 6: Licences, certifications and documents
+        self.documents_widget = self._create_documents_tab()
+        self.form_tabs.addTab(self.documents_widget, "📄 Qualifications & Documents")
 
         layout.addWidget(self.form_tabs)
 
@@ -339,7 +501,12 @@ class EmployeeManagementWidget(QWidget):
         self.employee_number_input = QLineEdit()
         self.employee_number_input.setPlaceholderText("e.g., DR100, H04, OF5")
 
-        self.name_input = QLineEdit()
+        self.first_name_input = QLineEdit()
+        self.first_name_input.setPlaceholderText("First")
+        self.middle_name_input = QLineEdit()
+        self.middle_name_input.setPlaceholderText("Middle")
+        self.last_name_input = QLineEdit()
+        self.last_name_input.setPlaceholderText("Last")
         self.position_input = QLineEdit()
         self.department_input = QComboBox()
         self.department_input.addItems(
@@ -363,13 +530,27 @@ class EmployeeManagementWidget(QWidget):
 
         self._pair(form, "Employee ID:", self.employee_id_display,
                    "Employee #:", self.employee_number_input)
-        form.addRow("Full Name:", self.name_input)
+
+        name_row = QHBoxLayout()
+        name_row.addWidget(QLabel("First:"))
+        self.first_name_input.setMaximumWidth(180)
+        name_row.addWidget(self.first_name_input)
+        name_row.addWidget(QLabel("Middle:"))
+        self.middle_name_input.setMaximumWidth(180)
+        name_row.addWidget(self.middle_name_input)
+        name_row.addWidget(QLabel("Last:"))
+        self.last_name_input.setMaximumWidth(180)
+        name_row.addWidget(self.last_name_input)
+        name_row.addStretch()
+        form.addRow("Name:", name_row)
+
         self._pair(form, "Position:", self.position_input,
                    "Department:", self.department_input)
         self._pair(form, "Phone:", self.phone_input,
                    "Email:", self.email_input)
         self._pair(form, "Hire Date:", self.hire_date_input,
                    "Status:", self.status_input)
+
         checks = QHBoxLayout()
         checks.addWidget(self.is_driver_checkbox)
         checks.addSpacing(20)
@@ -545,16 +726,27 @@ class EmployeeManagementWidget(QWidget):
         self.ytd_gross_label = QLabel("YTD Gross: $0")
         self.ytd_net_label = QLabel("YTD Net: $0")
         self.last_pay_label = QLabel("Last Pay Date: -")
+        self.non_charter_label = QLabel("Non-Charter Work (period): $0")
+        self.reimburse_label = QLabel("Reimbursements (period): $0")
+        self.advances_label = QLabel("Advances/Floats/Loans Outstanding: $0")
+        self.manage_work_items_btn = QPushButton("Work / Advances")
+        self.manage_work_items_btn.clicked.connect(
+            self._open_work_items_from_employee_tab
+        )
 
         for lbl in [
             self.ytd_gross_label,
             self.ytd_net_label,
             self.last_pay_label,
+            self.non_charter_label,
+            self.reimburse_label,
+            self.advances_label,
         ]:
             lbl.setStyleSheet(
                 "background-color: #e8f5e9; padding: 10px; border-radius: 5px;"
             )
             stats_layout.addWidget(lbl)
+        stats_layout.addWidget(self.manage_work_items_btn)
 
         layout.addLayout(stats_layout)
 
@@ -564,6 +756,9 @@ class EmployeeManagementWidget(QWidget):
         self.payroll_table.setColumnCount(6)
         self.payroll_table.setHorizontalHeaderLabels(
             ["Pay Date", "Period", "Gross", "Deductions", "Net", "Status"]
+        )
+        self.payroll_table.cellDoubleClicked.connect(
+            self._open_payroll_period_analysis
         )
         layout.addWidget(self.payroll_table)
 
@@ -587,9 +782,10 @@ class EmployeeManagementWidget(QWidget):
     def new_employee(self) -> None:
         """Clear form for new employee"""
         self.current_employee_id = None
+        self._sync_record_tabs(None)
         self.employee_id_display.clear()
         self.employee_number_input.clear()
-        self.name_input.clear()
+        self._set_name_fields("", "", "")
         self.position_input.clear()
         self.phone_input.clear()
         self.email_input.clear()
@@ -604,7 +800,7 @@ class EmployeeManagementWidget(QWidget):
         self.extra_tax_annual_input.setValue(0.0)
         self.extra_tax_pct_input.setValue(0.0)
         self.delete_btn.setEnabled(False)
-        self.name_input.setFocus()
+        self.first_name_input.setFocus()
         self.form_tabs.setCurrentIndex(0)
 
     def load_selected_employee(self, row, column=None) -> None:
@@ -621,16 +817,23 @@ class EmployeeManagementWidget(QWidget):
             if not emp_id:
                 return
 
+            supports_extra_tax = self._supports_extra_tax_fields()
+            extra_tax_select = (
+                "COALESCE(extra_tax_type, '$') AS extra_tax_type, "
+                "COALESCE(extra_tax_annual, 0) AS extra_tax_annual, "
+                "COALESCE(extra_tax_pct, 0) AS extra_tax_pct"
+                if supports_extra_tax
+                else "'$' AS extra_tax_type, 0::numeric AS extra_tax_annual, 0::numeric AS extra_tax_pct"
+            )
+
             with DatabaseContext(self.db, auto_commit=False) as cur:
                 cur.execute(
-                    """
+                    f"""
                     SELECT employee_id, employee_number, full_name, position,
                            cell_phone, email, employee_category, phone,
                            hire_date, employment_status, is_chauffeur,
                            hourly_rate, hourly_pay_rate,
-                           COALESCE(extra_tax_type, '$') AS extra_tax_type,
-                           COALESCE(extra_tax_annual, 0) AS extra_tax_annual,
-                           COALESCE(extra_tax_pct, 0)    AS extra_tax_pct
+                           {extra_tax_select}
                     FROM employees
                     WHERE employee_id = %s
                     LIMIT 1
@@ -641,9 +844,40 @@ class EmployeeManagementWidget(QWidget):
                 result = cur.fetchone()
             if result:
                 self.current_employee_id = result[0]
+                self._sync_record_tabs(result[0])
                 self.employee_id_display.setText(str(result[0]))
                 self.employee_number_input.setText(result[1] or "")
-                self.name_input.setText(result[2] or "")
+                display_name = result[2] or ""
+                first_name, middle_name, last_name = self._parse_name_parts(
+                    display_name
+                )
+                if self._supports_structured_name_fields():
+                    middle_expr = (
+                        "COALESCE(middle_name, '')"
+                        if self._supports_middle_name_field()
+                        else "''"
+                    )
+                    with DatabaseContext(self.db, auto_commit=False) as ncur:
+                        ncur.execute(
+                            f"""
+                            SELECT COALESCE(first_name, ''), {middle_expr}, COALESCE(last_name, '')
+                            FROM employees
+                            WHERE employee_id = %s
+                            LIMIT 1
+                            """,
+                            (self.current_employee_id,),
+                        )
+                        nrow = ncur.fetchone()
+                    if nrow:
+                        first_name, middle_name, last_name = (
+                            nrow[0] or "",
+                            nrow[1] or "",
+                            nrow[2] or "",
+                        )
+                        display_name = self._compose_display_name(
+                            first_name, middle_name, last_name, fallback=display_name
+                        )
+                self._set_name_fields(first_name, middle_name, last_name)
                 self.position_input.setText(result[3] or "")
                 self.phone_input.setText(result[4] or "")
                 self.email_input.setText(result[5] or "")
@@ -943,29 +1177,69 @@ class EmployeeManagementWidget(QWidget):
                 # non_charter_payroll
                 cur.execute(
                     """
-                    SELECT epm.created_at::date,
-                           pp.period_start_date || ' to '
-                               || pp.period_end_date as period,
-                           epm.gross_pay, epm.total_deductions,
-                           epm.net_pay, 'paid' as status
-                    FROM employee_pay_master epm
-                    JOIN pay_periods pp ON epm.pay_period_id = pp.pay_period_id
-                    WHERE epm.employee_id = %s
-                    ORDER BY epm.created_at DESC
+                    SELECT latest.pay_date,
+                           latest.period,
+                           latest.gross_pay,
+                           latest.total_deductions,
+                           latest.net_pay,
+                           latest.status,
+                           latest.pay_period_id,
+                           latest.fiscal_year
+                    FROM (
+                        SELECT DISTINCT ON (epm.pay_period_id)
+                               pp.pay_date AS pay_date,
+                               pp.period_start_date || ' to '
+                                   || pp.period_end_date AS period,
+                               epm.gross_pay,
+                               epm.total_deductions,
+                               epm.net_pay,
+                               'paid' AS status,
+                               epm.pay_period_id,
+                               pp.fiscal_year
+                        FROM employee_pay_master epm
+                        JOIN pay_periods pp
+                          ON epm.pay_period_id = pp.pay_period_id
+                        WHERE epm.employee_id = %s
+                        ORDER BY epm.pay_period_id, epm.created_at DESC
+                    ) latest
+                    ORDER BY latest.pay_date DESC NULLS LAST
                     LIMIT 10
                 """,
                     (self.current_employee_id,),
                 )
 
                 rows = cur.fetchall()
+
+            # Show current employee period-level non-charter and cash movement
+            # items so payroll is not charter-only.
+            pay_period_id = int(rows[0][6]) if rows else None
+            fiscal_year = int(rows[0][7]) if rows and rows[0][7] else None
+            summary = get_work_item_summary(
+                self.db,
+                int(self.current_employee_id),
+                pay_period_id=pay_period_id,
+                fiscal_year=fiscal_year,
+            )
+            self.non_charter_label.setText(
+                f"Non-Charter Work (period): ${summary.payable_income:,.2f}"
+            )
+            self.reimburse_label.setText(
+                f"Reimbursements (period): ${summary.reimbursements:,.2f}"
+            )
+            self.advances_label.setText(
+                "Advances/Floats/Loans Outstanding: "
+                f"${summary.advances_outstanding + summary.float_outstanding + summary.loan_outstanding:,.2f}"
+            )
+
             self.payroll_table.setRowCount(len(rows))
             for i, r in enumerate(rows):
-                self.payroll_table.setItem(
-                    i, 0, QTableWidgetItem(str(r[0] or ""))
-                )
-                self.payroll_table.setItem(
-                    i, 1, QTableWidgetItem(str(r[1] or ""))
-                )
+                pay_date_item = QTableWidgetItem(str(r[0] or ""))
+                period_item = QTableWidgetItem(str(r[1] or ""))
+                period_item.setData(Qt.ItemDataRole.UserRole, r[6])
+                period_item.setData(Qt.ItemDataRole.UserRole + 1, r[7])
+
+                self.payroll_table.setItem(i, 0, pay_date_item)
+                self.payroll_table.setItem(i, 1, period_item)
                 self.payroll_table.setItem(
                     i, 2, QTableWidgetItem(f"${float(r[2] or 0):,.2f}")
                 )
@@ -982,15 +1256,116 @@ class EmployeeManagementWidget(QWidget):
         except Exception as e:
             logger.error("Payroll load error: %s", e)
 
+    def _open_work_items_from_employee_tab(self) -> None:
+        if not self.current_employee_id:
+            QMessageBox.information(
+                self,
+                "Work Items",
+                "Select an employee first.",
+            )
+            return
+
+        fiscal_year = None
+        pay_period_id = None
+        row = self.payroll_table.currentRow()
+        if row >= 0:
+            period_item = self.payroll_table.item(row, 1)
+            if period_item:
+                pay_period_id = period_item.data(Qt.ItemDataRole.UserRole)
+                fiscal_year = period_item.data(Qt.ItemDataRole.UserRole + 1)
+
+        dialog = EmployeeWorkItemsDialog(
+            self.db,
+            int(self.current_employee_id),
+            int(fiscal_year) if fiscal_year else None,
+            int(pay_period_id) if pay_period_id else None,
+            parent=self,
+        )
+        dialog.exec()
+        self.load_employee_payroll()
+
+    def _open_payroll_period_analysis(self, row, _column=None) -> None:
+        """Drill from employee payroll summary into Payroll Entry analysis view."""
+        if not self.current_employee_id:
+            return
+
+        period_item = self.payroll_table.item(row, 1)
+        if not period_item:
+            return
+
+        pay_period_id = period_item.data(Qt.ItemDataRole.UserRole)
+        fiscal_year = period_item.data(Qt.ItemDataRole.UserRole + 1)
+        if not pay_period_id:
+            QMessageBox.information(
+                self,
+                "Payroll",
+                "Missing pay period id for this row.",
+            )
+            return
+
+        win = self.window()
+        if not win or not hasattr(win, "navigate_to_accounting_subtab"):
+            QMessageBox.information(
+                self,
+                "Payroll",
+                "Payroll Entry navigation is not available in this view.",
+            )
+            return
+
+        if not win.navigate_to_accounting_subtab("💵 Payroll Entry"):
+            QMessageBox.information(
+                self,
+                "Payroll",
+                "Could not open Payroll Entry tab.",
+            )
+            return
+
+        payroll_widget = getattr(win, "payroll_entry_widget", None)
+        if not payroll_widget:
+            QMessageBox.information(
+                self,
+                "Payroll",
+                "Payroll Entry widget is not loaded yet.",
+            )
+            return
+
+        try:
+            if hasattr(payroll_widget, "focus_employee_id"):
+                payroll_widget.focus_employee_id(
+                    int(self.current_employee_id),
+                    int(fiscal_year) if fiscal_year else None,
+                )
+
+            if hasattr(payroll_widget, "pay_period_combo"):
+                target_ppid = int(pay_period_id)
+                for i in range(payroll_widget.pay_period_combo.count()):
+                    data = payroll_widget.pay_period_combo.itemData(i)
+                    if int(data or 0) == target_ppid:
+                        payroll_widget.pay_period_combo.setCurrentIndex(i)
+                        break
+        except Exception as exc:
+            logger.warning(
+                "Payroll drill-down failed for employee_id=%s pay_period_id=%s: %s",
+                self.current_employee_id,
+                pay_period_id,
+                exc,
+            )
+
     def save_employee(self) -> None:
         """Save or update employee"""
-        name = self.name_input.text().strip()
-        if not name:
+        first_name = self.first_name_input.text().strip()
+        middle_name = self.middle_name_input.text().strip()
+        last_name = self.last_name_input.text().strip()
+        if not any((first_name, middle_name, last_name)):
             QMessageBox.warning(
                 self, "Validation", "Employee name is required"
             )
-            self.name_input.setFocus()
+            self.first_name_input.setFocus()
             return
+
+        canonical_name = self._compose_display_name(
+            first_name, middle_name, last_name
+        )
 
         emp_number = self.employee_number_input.text().strip() or None
         position = self.position_input.text().strip() or None
@@ -1007,46 +1382,78 @@ class EmployeeManagementWidget(QWidget):
 
         try:
             with DatabaseContext(self.db, auto_commit=True) as cur:
+                supports_extra_tax = self._supports_extra_tax_fields()
+                target_emp_id = self.current_employee_id
                 if self.current_employee_id:
                     # Update - NOTE: department column doesn't exist in DB, use
                     # employee_category instead
                     extra_tax_type = self.extra_tax_type_input.currentData() or '$'
                     extra_tax_annual = self.extra_tax_annual_input.value()
                     extra_tax_pct = self.extra_tax_pct_input.value()
-                    cur.execute(
-                        """
-                        UPDATE employees
-                        SET employee_number = %s, full_name = %s,
-                        position = %s,
-                            employee_category = %s, cell_phone = %s,
-                            email = %s,
-                            hire_date = %s, employment_status = %s,
-                                                        is_chauffeur = %s,
-                                                        hourly_rate = %s,
-                                                        hourly_pay_rate = %s,
-                                                        extra_tax_type = %s,
-                                                        extra_tax_annual = %s,
-                                                        extra_tax_pct = %s
-                        WHERE employee_id = %s
-                    """,
-                        (
-                            emp_number,
-                            name,
-                            position,
-                            department,
-                            phone,
-                            email,
-                            hire_date,
-                            status,
-                            is_driver,
-                            hourly_rate,
-                            hourly_rate_2,
-                            extra_tax_type,
-                            extra_tax_annual,
-                            extra_tax_pct,
-                            self.current_employee_id,
-                        ),
-                    )
+                    if supports_extra_tax:
+                        cur.execute(
+                            """
+                            UPDATE employees
+                            SET employee_number = %s, full_name = %s,
+                            position = %s,
+                                employee_category = %s, cell_phone = %s,
+                                email = %s,
+                                hire_date = %s, employment_status = %s,
+                                is_chauffeur = %s,
+                                hourly_rate = %s,
+                                hourly_pay_rate = %s,
+                                extra_tax_type = %s,
+                                extra_tax_annual = %s,
+                                extra_tax_pct = %s
+                            WHERE employee_id = %s
+                        """,
+                            (
+                                emp_number,
+                                canonical_name,
+                                position,
+                                department,
+                                phone,
+                                email,
+                                hire_date,
+                                status,
+                                is_driver,
+                                hourly_rate,
+                                hourly_rate_2,
+                                extra_tax_type,
+                                extra_tax_annual,
+                                extra_tax_pct,
+                                self.current_employee_id,
+                            ),
+                        )
+                    else:
+                        cur.execute(
+                            """
+                            UPDATE employees
+                            SET employee_number = %s, full_name = %s,
+                                position = %s,
+                                employee_category = %s, cell_phone = %s,
+                                email = %s,
+                                hire_date = %s, employment_status = %s,
+                                is_chauffeur = %s,
+                                hourly_rate = %s,
+                                hourly_pay_rate = %s
+                            WHERE employee_id = %s
+                        """,
+                            (
+                                emp_number,
+                                canonical_name,
+                                position,
+                                department,
+                                phone,
+                                email,
+                                hire_date,
+                                status,
+                                is_driver,
+                                hourly_rate,
+                                hourly_rate_2,
+                                self.current_employee_id,
+                            ),
+                        )
 
                     # Update classification
                     cur.execute(
@@ -1094,7 +1501,7 @@ class EmployeeManagementWidget(QWidget):
                         ORDER BY employee_id
                         LIMIT 1
                     """,
-                        (emp_number, emp_number, name),
+                        (emp_number, emp_number, canonical_name),
                     )
                     existing = cur.fetchone()
 
@@ -1103,80 +1510,143 @@ class EmployeeManagementWidget(QWidget):
                         extra_tax_type = self.extra_tax_type_input.currentData() or '$'
                         extra_tax_annual = self.extra_tax_annual_input.value()
                         extra_tax_pct = self.extra_tax_pct_input.value()
-                        cur.execute(
-                            """
-                            UPDATE employees
-                            SET employee_number = COALESCE(%s,
-                            employee_number),
-                                full_name = %s,
-                                position = %s,
-                                employee_category = %s,
-                                cell_phone = %s,
-                                email = %s,
-                                hire_date = %s,
-                                employment_status = %s,
-                                is_chauffeur = %s,
-                                hourly_rate = %s,
-                                hourly_pay_rate = %s,
-                                extra_tax_type = %s,
-                                extra_tax_annual = %s,
-                                extra_tax_pct = %s
-                            WHERE employee_id = %s
-                        """,
-                            (
-                                emp_number,
-                                name,
-                                position,
-                                department,
-                                phone,
-                                email,
-                                hire_date,
-                                status,
-                                is_driver,
-                                hourly_rate,
-                                hourly_rate_2,
-                                extra_tax_type,
-                                extra_tax_annual,
-                                extra_tax_pct,
-                                emp_id,
-                            ),
-                        )
+                        if supports_extra_tax:
+                            cur.execute(
+                                """
+                                UPDATE employees
+                                SET employee_number = COALESCE(%s,
+                                employee_number),
+                                    full_name = %s,
+                                    position = %s,
+                                    employee_category = %s,
+                                    cell_phone = %s,
+                                    email = %s,
+                                    hire_date = %s,
+                                    employment_status = %s,
+                                    is_chauffeur = %s,
+                                    hourly_rate = %s,
+                                    hourly_pay_rate = %s,
+                                    extra_tax_type = %s,
+                                    extra_tax_annual = %s,
+                                    extra_tax_pct = %s
+                                WHERE employee_id = %s
+                            """,
+                                (
+                                    emp_number,
+                                    canonical_name,
+                                    position,
+                                    department,
+                                    phone,
+                                    email,
+                                    hire_date,
+                                    status,
+                                    is_driver,
+                                    hourly_rate,
+                                    hourly_rate_2,
+                                    extra_tax_type,
+                                    extra_tax_annual,
+                                    extra_tax_pct,
+                                    emp_id,
+                                ),
+                            )
+                        else:
+                            cur.execute(
+                                """
+                                UPDATE employees
+                                SET employee_number = COALESCE(%s,
+                                employee_number),
+                                    full_name = %s,
+                                    position = %s,
+                                    employee_category = %s,
+                                    cell_phone = %s,
+                                    email = %s,
+                                    hire_date = %s,
+                                    employment_status = %s,
+                                    is_chauffeur = %s,
+                                    hourly_rate = %s,
+                                    hourly_pay_rate = %s
+                                WHERE employee_id = %s
+                            """,
+                                (
+                                    emp_number,
+                                    canonical_name,
+                                    position,
+                                    department,
+                                    phone,
+                                    email,
+                                    hire_date,
+                                    status,
+                                    is_driver,
+                                    hourly_rate,
+                                    hourly_rate_2,
+                                    emp_id,
+                                ),
+                            )
                         self.current_employee_id = emp_id
                     else:
                         extra_tax_type = self.extra_tax_type_input.currentData() or '$'
                         extra_tax_annual = self.extra_tax_annual_input.value()
                         extra_tax_pct = self.extra_tax_pct_input.value()
-                        cur.execute(
-                            """
-                            INSERT INTO employees
-                            (employee_number, full_name, position,
-                            employee_category,
-                             cell_phone, email, hire_date, employment_status,
-                             is_chauffeur,
-                             hourly_rate, hourly_pay_rate,
-                             extra_tax_type, extra_tax_annual, extra_tax_pct)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                            RETURNING employee_id
-                        """,
-                            (
-                                emp_number,
-                                name,
-                                position,
-                                department,
-                                phone,
-                                email,
-                                hire_date,
-                                status,
-                                is_driver,
-                                hourly_rate,
-                                hourly_rate_2,
-                                extra_tax_type,
-                                extra_tax_annual,
-                                extra_tax_pct,
-                            ),
-                        )
+                        if supports_extra_tax:
+                            cur.execute(
+                                """
+                                INSERT INTO employees
+                                (employee_number, full_name, position,
+                                employee_category,
+                                 cell_phone, email, hire_date, employment_status,
+                                 is_chauffeur,
+                                 hourly_rate, hourly_pay_rate,
+                                 extra_tax_type, extra_tax_annual, extra_tax_pct)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                RETURNING employee_id
+                            """,
+                                (
+                                    emp_number,
+                                    canonical_name,
+                                    position,
+                                    department,
+                                    phone,
+                                    email,
+                                    hire_date,
+                                    status,
+                                    is_driver,
+                                    hourly_rate,
+                                    hourly_rate_2,
+                                    extra_tax_type,
+                                    extra_tax_annual,
+                                    extra_tax_pct,
+                                ),
+                            )
+                        else:
+                            cur.execute(
+                                """
+                                INSERT INTO employees
+                                (employee_number, full_name, position,
+                                employee_category,
+                                 cell_phone, email, hire_date, employment_status,
+                                 is_chauffeur,
+                                 hourly_rate, hourly_pay_rate)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                RETURNING employee_id
+                            """,
+                                (
+                                    emp_number,
+                                    canonical_name,
+                                    position,
+                                    department,
+                                    phone,
+                                    email,
+                                    hire_date,
+                                    status,
+                                    is_driver,
+                                    hourly_rate,
+                                    hourly_rate_2,
+                                ),
+                            )
                         emp_id = cur.fetchone()[0]
                         self.current_employee_id = emp_id
+
+                    target_emp_id = self.current_employee_id
 
                     # Add classification
                     cur.execute(
@@ -1208,6 +1678,30 @@ class EmployeeManagementWidget(QWidget):
                     else:
                         QMessageBox.information(
                             self, "Saved", f"Employee #{emp_id} created"
+                        )
+
+                # Keep CRA-critical structured name fields in sync when available.
+                if self._supports_structured_name_fields() and target_emp_id:
+                    if self._supports_middle_name_field():
+                        cur.execute(
+                            """
+                            UPDATE employees
+                            SET first_name = %s,
+                                middle_name = %s,
+                                last_name = %s
+                            WHERE employee_id = %s
+                            """,
+                            (first_name or None, middle_name or None, last_name or None, target_emp_id),
+                        )
+                    else:
+                        cur.execute(
+                            """
+                            UPDATE employees
+                            SET first_name = %s,
+                                last_name = %s
+                            WHERE employee_id = %s
+                            """,
+                            (first_name or None, last_name or None, target_emp_id),
                         )
 
             self.load_employees()

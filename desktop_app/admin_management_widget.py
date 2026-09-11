@@ -168,6 +168,7 @@ class AdminManagementWidget(QWidget):
             "👥 Users": self._create_users_tab,
             "🔐 Driver Change Requests": self._create_change_requests_tab,
             "✅ Training Checklists": self._create_training_overview_tab,
+            "📚 Training Programs": self._create_training_catalogue_tab,
             "⚙️ Settings": self._create_settings_tab,
             "🏃 Run Types": self._create_run_types_tab,
             "🛣️ Route Events": self._create_route_event_types_tab,
@@ -585,6 +586,20 @@ class AdminManagementWidget(QWidget):
             widget = QWidget()
             layout = QVBoxLayout()
             layout.addWidget(QLabel(f"Training checklists unavailable: {exc}"))
+            widget.setLayout(layout)
+            return widget
+
+    def _create_training_catalogue_tab(self) -> object:
+        """Review and maintain the training program catalogue."""
+        try:
+            from training_catalogue_editor import TrainingCatalogueWidget
+
+            return TrainingCatalogueWidget(self.db)
+        except Exception as exc:
+            logger.exception("Failed to build training catalogue editor")
+            widget = QWidget()
+            layout = QVBoxLayout()
+            layout.addWidget(QLabel(f"Training catalogue unavailable: {exc}"))
             widget.setLayout(layout)
             return widget
 

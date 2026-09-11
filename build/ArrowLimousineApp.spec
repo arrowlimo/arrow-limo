@@ -30,6 +30,8 @@ a = Analysis(
         'enhanced_banking_manager',
         'enhanced_receipts_manager',
         'nsf_pair_manager_widget',
+        'training_catalogue_editor',
+        'employee_documents_widget',
         'report_management_widget',
         'report_explorer_widget',
         'copilot_widget',
