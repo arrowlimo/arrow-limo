@@ -406,6 +406,7 @@ def _queue_training_request(cur, employee_id, user, program_id, proposed):
         """
         UPDATE employee_change_requests
         SET status = 'REJECTED',
+            reviewed_by_username = 'system (superseded)',
             reviewed_at = NOW(),
             review_notes = 'Superseded by a newer driver submission'
         WHERE employee_id = %s AND field_key = %s AND status = 'PENDING'
@@ -476,6 +477,15 @@ def submit_training_record(
             raise HTTPException(
                 status_code=400, detail=f"{label} cannot be in the future"
             )
+    if (
+        payload.started_date
+        and payload.completed_date
+        and payload.completed_date < payload.started_date
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Completion date cannot be before the start date",
+        )
 
     proposed = {
         "status": payload.status,
@@ -587,6 +597,7 @@ def submit_compliance_changes(
                     """
                     UPDATE employee_change_requests
                     SET status = 'REJECTED',
+                        reviewed_by_username = 'system (superseded)',
                         reviewed_at = NOW(),
                         review_notes = 'Superseded by a newer driver submission'
                     WHERE employee_id = %s AND field_key = %s AND status = 'PENDING'
