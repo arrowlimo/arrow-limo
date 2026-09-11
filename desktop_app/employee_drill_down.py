@@ -349,11 +349,19 @@ class EmployeeDetailDialog(QDialog):
                     """)
 
                 # Expiry alerts
+                #
+                # Both the uploaded documents and the licence/permit dates on
+                # the employee profile are counted. The profile dates matter
+                # because the 2025-07-26 bulk import left placeholder document
+                # rows carrying a far-future expiry for every driver, which
+                # would otherwise report "All Current" over a licence that has
+                # actually expired. Unverified placeholders are excluded.
                 cur.execute(
                     """
                     SELECT COUNT(*)
                     FROM driver_documents
                     WHERE employee_id = %s
+                    AND status <> 'pending'
                     AND expiry_date IS NOT NULL
                     AND expiry_date
                     BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'
@@ -367,12 +375,41 @@ class EmployeeDetailDialog(QDialog):
                     SELECT COUNT(*)
                     FROM driver_documents
                     WHERE employee_id = %s
+                    AND status <> 'pending'
                     AND expiry_date IS NOT NULL
                     AND expiry_date < CURRENT_DATE
                 """,
                     (self.employee_id,),
                 )
                 expired_count = cur.fetchone()[0] or 0
+
+                cur.execute(
+                    """
+                    SELECT
+                        COUNT(*) FILTER (
+                            WHERE expiry < CURRENT_DATE
+                        ) AS expired,
+                        COUNT(*) FILTER (
+                            WHERE expiry BETWEEN CURRENT_DATE
+                                  AND CURRENT_DATE + INTERVAL '30 days'
+                        ) AS expiring
+                    FROM (
+                        SELECT UNNEST(ARRAY[
+                            driver_license_expiry,
+                            chauffeur_permit_expiry,
+                            medical_fitness_expiry,
+                            proserve_expiry
+                        ]) AS expiry
+                        FROM employees
+                        WHERE employee_id = %s
+                    ) profile_dates
+                    WHERE expiry IS NOT NULL
+                """,
+                    (self.employee_id,),
+                )
+                profile_expired, profile_expiring = cur.fetchone() or (0, 0)
+                expired_count += profile_expired or 0
+                expiring_count += profile_expiring or 0
 
                 if expired_count > 0:
                     self.expiry_card.setText(
@@ -412,15 +449,27 @@ class EmployeeDetailDialog(QDialog):
                 )
 
                 # Floats outstanding
-                cur.execute(
-                    """
-                    SELECT COALESCE(SUM(amount_issued), 0)
-                    FROM driver_floats
-                    WHERE employee_id = %s AND status = 'Outstanding'
-                """,
-                    (self.employee_id,),
+                #
+                # The amount column differs between deployments, so resolve it
+                # the same way the Floats tab does. Getting this wrong used to
+                # raise and abort the remainder of the summary cards.
+                float_columns = self._driver_float_columns()
+                float_amount_col = (
+                    "issued_amount"
+                    if "issued_amount" in float_columns
+                    else "amount_issued"
                 )
-                float_total = cur.fetchone()[0] or 0
+                float_total = 0
+                if float_columns:
+                    cur.execute(
+                        f"""
+                        SELECT COALESCE(SUM({float_amount_col}), 0)
+                        FROM driver_floats
+                        WHERE employee_id = %s AND status = 'Outstanding'
+                    """,  # nosec
+                        (self.employee_id,),
+                    )
+                    float_total = cur.fetchone()[0] or 0
 
                 if float_total > 0:
                     self.financial_card.setText(
