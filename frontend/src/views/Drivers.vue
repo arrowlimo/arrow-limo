@@ -349,12 +349,102 @@
         </article>
         <div v-if="employmentYears.length === 0" class="empty-state">No employment-year history is available.</div>
       </section>
+
+      <section v-if="activeTab === 'records'" class="panel">
+        <div class="section-heading">
+          <h2>My Licences, Permits &amp; Certifications</h2>
+          <button class="secondary" @click="loadCompliance">Refresh</button>
+        </div>
+        <p class="records-note">
+          Changes you make here are <strong>not applied immediately</strong>. They are sent to the
+          office for authorization, and your record only updates once an administrator approves it.
+        </p>
+        <div v-if="complianceNotice" class="records-notice">{{ complianceNotice }}</div>
+        <div v-if="complianceError" class="records-error">{{ complianceError }}</div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Record</th><th>Current value</th><th>Change to</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr v-for="field in complianceFields" :key="field.field_key">
+                <td>{{ field.label }}</td>
+                <td>{{ field.current_value || '—' }}</td>
+                <td>
+                  <input
+                    v-model="complianceDraft[field.field_key]"
+                    :type="field.type === 'date' ? 'date' : 'text'"
+                  >
+                </td>
+                <td>
+                  <span v-if="field.awaiting_approval" class="pending-flag">
+                    Awaiting approval: {{ field.pending_value || '(cleared)' }}
+                  </span>
+                  <span v-else>—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="records-actions">
+          <button :disabled="complianceSaving" @click="submitCompliance">
+            {{ complianceSaving ? 'Submitting…' : 'Submit changes for approval' }}
+          </button>
+        </div>
+
+        <h3>Upload a Photo or PDF of a Document</h3>
+        <form class="record-upload" @submit.prevent="uploadDocument">
+          <label>
+            Document type
+            <select v-model="documentForm.document_type">
+              <option value="DRIVER_LICENCE">Driver Licence</option>
+              <option value="CHAUFFEUR_PERMIT">Driver-for-Hire / Chauffeur Permit</option>
+              <option value="PROSERVE">ProServe Certificate</option>
+              <option value="MEDICAL">Medical Certificate</option>
+              <option value="DRIVER_ABSTRACT">Driver Abstract</option>
+              <option value="VULNERABLE_SECTOR">Vulnerable Sector Check</option>
+              <option value="TRAINING">Training Certificate</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </label>
+          <label>
+            Document number
+            <input v-model="documentForm.document_number" type="text">
+          </label>
+          <label>
+            Expiry date
+            <input v-model="documentForm.expiry_date" type="date">
+          </label>
+          <label>
+            File (JPG, PNG or PDF, max 8 MB)
+            <input ref="documentInput" type="file" accept="image/*,application/pdf" @change="onDocumentSelected">
+          </label>
+          <button type="submit" :disabled="documentUploading">
+            {{ documentUploading ? 'Uploading…' : 'Upload document' }}
+          </button>
+        </form>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Document</th><th>Type</th><th>Expiry</th><th>Uploaded</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr v-for="doc in complianceDocuments" :key="doc.upload_id">
+                <td>{{ doc.document_name }}</td>
+                <td>{{ doc.document_type }}</td>
+                <td>{{ doc.expiry_date ? formatDate(doc.expiry_date) : '—' }}</td>
+                <td>{{ formatDate(doc.uploaded_at) }}</td>
+                <td>{{ doc.status }}</td>
+              </tr>
+              <tr v-if="complianceDocuments.length === 0"><td colspan="5">No documents uploaded yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </template>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { authFetch } from '@/utils/authFetch'
 
 const tabs = [
@@ -365,7 +455,8 @@ const tabs = [
   { id: 'receipts', label: 'Receipts' },
   { id: 'float', label: 'Float' },
   { id: 'statements', label: 'Pay Statements' },
-  { id: 't4s', label: 'T4 Records' }
+  { id: 't4s', label: 'T4 Records' },
+  { id: 'records', label: 'My Records' }
 ]
 const activeTab = ref('runs')
 const loading = ref(true)
@@ -408,6 +499,22 @@ const receiptForm = reactive({
   paid_from_float: false
 })
 const returnForm = reactive({ amount: null, charter_id: null, notes: '' })
+const complianceFields = ref([])
+const complianceDocuments = ref([])
+const complianceDraft = reactive({})
+const complianceSaving = ref(false)
+const documentUploading = ref(false)
+const complianceNotice = ref('')
+const complianceError = ref('')
+const documentInput = ref(null)
+const documentForm = reactive({
+  document_type: 'DRIVER_LICENCE',
+  document_number: '',
+  expiry_date: '',
+  file_base64: '',
+  file_name: '',
+  mime_type: ''
+})
 
 const requestJson = async (url, options) => {
   const response = await authFetch(url, options)
@@ -415,6 +522,98 @@ const requestJson = async (url, options) => {
   const payload = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(payload.detail || 'Request failed')
   return payload
+}
+
+const loadCompliance = async () => {
+  complianceError.value = ''
+  try {
+    const payload = await requestJson('/api/chauffeur/me/compliance')
+    complianceFields.value = payload.fields || []
+    complianceDocuments.value = payload.documents || []
+    complianceFields.value.forEach(field => {
+      complianceDraft[field.field_key] = field.pending_value ?? field.current_value ?? ''
+    })
+  } catch (err) {
+    complianceError.value = err.message
+  }
+}
+
+const submitCompliance = async () => {
+  complianceError.value = ''
+  complianceNotice.value = ''
+  const changes = complianceFields.value
+    .filter(field => (complianceDraft[field.field_key] ?? '') !== (field.pending_value ?? field.current_value ?? ''))
+    .map(field => ({ field_key: field.field_key, new_value: complianceDraft[field.field_key] || null }))
+
+  if (changes.length === 0) {
+    complianceNotice.value = 'Nothing has been changed yet.'
+    return
+  }
+
+  complianceSaving.value = true
+  try {
+    const payload = await requestJson('/api/chauffeur/me/compliance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ changes })
+    })
+    complianceNotice.value = payload.message || 'Submitted for approval.'
+    await loadCompliance()
+  } catch (err) {
+    complianceError.value = err.message
+  } finally {
+    complianceSaving.value = false
+  }
+}
+
+const onDocumentSelected = event => {
+  const file = event.target.files && event.target.files[0]
+  if (!file) {
+    documentForm.file_base64 = ''
+    return
+  }
+  documentForm.file_name = file.name
+  documentForm.mime_type = file.type || 'application/octet-stream'
+  const reader = new FileReader()
+  reader.onload = () => {
+    documentForm.file_base64 = String(reader.result).split(',')[1] || ''
+  }
+  reader.readAsDataURL(file)
+}
+
+const uploadDocument = async () => {
+  complianceError.value = ''
+  complianceNotice.value = ''
+  if (!documentForm.file_base64) {
+    complianceError.value = 'Choose a file to upload first.'
+    return
+  }
+  documentUploading.value = true
+  try {
+    const payload = await requestJson('/api/chauffeur/me/documents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        document_type: documentForm.document_type,
+        document_name: documentForm.file_name,
+        mime_type: documentForm.mime_type,
+        file_base64: documentForm.file_base64,
+        expiry_date: documentForm.expiry_date || null,
+        document_number: documentForm.document_number || null
+      })
+    })
+    complianceNotice.value = payload.message || 'Document uploaded.'
+    documentForm.file_base64 = ''
+    documentForm.file_name = ''
+    documentForm.document_number = ''
+    documentForm.expiry_date = ''
+    if (documentInput.value) documentInput.value.value = ''
+    await loadCompliance()
+  } catch (err) {
+    complianceError.value = err.message
+  } finally {
+    documentUploading.value = false
+  }
 }
 
 const loadPortal = async () => {
@@ -593,6 +792,12 @@ const monthName = value => value ? new Intl.DateTimeFormat('en-CA', { month: 'lo
 const t4ForYear = year => t4Records.value.find(record => Number(record.tax_year) === Number(year))
 const printReport = () => window.print()
 
+watch(activeTab, tab => {
+  if (tab === 'records' && complianceFields.value.length === 0) {
+    loadCompliance()
+  }
+})
+
 onMounted(loadPortal)
 </script>
 
@@ -646,6 +851,12 @@ th, td { border-bottom: 1px solid #e2e8f0; padding: .7rem; text-align: left; whi
 .message.error { background: #fef2f2; color: #991b1b; }
 .message.success { background: #f0fdf4; color: #166534; }
 .empty-state, .loading { padding: 2rem; text-align: center; color: #64748b; }
+.records-note { background: #fef9c3; border: 1px solid #fde047; border-radius: 8px; padding: 0.75rem; color: #713f12; }
+.records-notice { background: #dcfce7; border: 1px solid #86efac; border-radius: 8px; padding: 0.75rem; color: #14532d; margin-bottom: 0.75rem; }
+.records-error { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 0.75rem; color: #7f1d1d; margin-bottom: 0.75rem; }
+.pending-flag { color: #b45309; font-weight: 600; }
+.records-actions { margin: 1rem 0; }
+.record-upload { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; align-items: end; margin-bottom: 1rem; }
 @media (max-width: 720px) {
   .form-grid, .inline-form { grid-template-columns: 1fr; }
   .wide, .actions { grid-column: auto; }

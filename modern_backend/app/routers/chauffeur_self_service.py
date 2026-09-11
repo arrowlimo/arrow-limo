@@ -495,6 +495,12 @@ def update_my_trip(
                     assignments.append(
                         "completion_timestamp = COALESCE(completion_timestamp, NOW())"
                     )
+                # Driver-entered details are provisional: stamp the submission and
+                # clear any prior dispatcher sign-off so the changes must be
+                # re-confirmed before they are treated as live.
+                assignments.append("driver_details_submitted_at = NOW()")
+                assignments.append("dispatcher_confirmed_at = NULL")
+                assignments.append("dispatcher_confirmed_by = NULL")
                 assignments.append("updated_at = NOW()")
                 values.extend([charter_id, employee_id, employee_id])
                 cur.execute(
