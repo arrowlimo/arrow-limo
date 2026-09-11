@@ -26,7 +26,7 @@ from employee_pay_banking_linker import (
 )
 from payroll_t4_review import T4ManualOverrideDialog, build_t4_readiness_lines
 from PyQt6.QtCore import QDate, Qt, QTimer, QUrl, pyqtSlot
-from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtGui import QBrush, QColor, QDesktopServices
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QAbstractSpinBox,
@@ -475,9 +475,16 @@ class PayrollEntryWidget(QWidget):
         layout.addWidget(info)
 
         self.pay_printout_table = QTableWidget()
-        self.pay_printout_table.setColumnCount(5)
+        self.pay_printout_table.setColumnCount(6)
         self.pay_printout_table.setHorizontalHeaderLabels(
-            ["Charter Date", "Reserve #", "Hours 1", "Hours 2", "Gratuity"]
+            [
+                "Charter Date",
+                "Reserve #",
+                "Approved Hours",
+                "Other Hours",
+                "Approved Gratuity",
+                "Run Status",
+            ]
         )
         self.pay_printout_table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Stretch
@@ -3578,6 +3585,13 @@ class PayrollEntryWidget(QWidget):
                 self.approved_hours_2.setValue(total_hours_2)
                 changed = True
 
+        if should_sync(
+            self.gratuity_amount.value(), self._last_synced_gratuity
+        ):
+            self.gratuity_amount.setValue(total_gratuity)
+            self._last_synced_gratuity = total_gratuity
+            changed = True
+
         if changed:
             self.recalculate_totals()
 
@@ -3715,16 +3729,9 @@ class PayrollEntryWidget(QWidget):
         can_use_route_span = {"charter_id", "pickup_time", "dropoff_time"} <= route_cols
         hours_col = "driver_hours_worked" if "driver_hours_worked" in ccols else None
         approved_hours_col = "approved_hours" if "approved_hours" in ccols else None
-        gratuity_col = None
-        for candidate in (
-            "approved_gratuity",
-            "driver_gratuity_amount",
-            "driver_gratuity",
-            "extra_gratuity",
-        ):
-            if candidate in ccols:
-                gratuity_col = candidate
-                break
+        gratuity_col = (
+            "approved_gratuity" if "approved_gratuity" in ccols else None
+        )
 
         select_cols = self._pay_printout_select_cols(ccols, hours_col, approved_hours_col, gratuity_col)
         select_clause = ", ".join(select_cols)
@@ -3772,27 +3779,18 @@ class PayrollEntryWidget(QWidget):
     def _pay_printout_select_cols(
         self, ccols, hours_col, approved_hours_col, gratuity_col
     ) -> list[str]:
-        select_cols = ["charter_id", "charter_date", "reserve_number"]
+        select_cols = [
+            "charter_id",
+            "charter_date",
+            "reserve_number",
+            "status",
+        ]
         if hours_col:
             select_cols.append(hours_col)
         if approved_hours_col:
             select_cols.append(approved_hours_col)
         if gratuity_col:
             select_cols.append(gratuity_col)
-        # Fallback columns: hours when approved_hours is 0/NULL
-        for fallback in ("quoted_hours", "calculated_hours"):
-            if fallback in ccols and fallback not in select_cols:
-                select_cols.append(fallback)
-        # Billed driver_gratuity as fallback when approved_gratuity is primary
-        if (
-            gratuity_col == "approved_gratuity"
-            and "driver_gratuity" in ccols
-            and "driver_gratuity" not in select_cols
-        ):
-            select_cols.append("driver_gratuity")
-        # Always fetch extra_gratuity as an additive top-up when the column exists.
-        if "extra_gratuity" in ccols and "extra_gratuity" not in select_cols:
-            select_cols.append("extra_gratuity")
         return select_cols
 
     def _pay_printout_employee_identity(
@@ -3910,7 +3908,7 @@ class PayrollEntryWidget(QWidget):
 
         for r, row in enumerate(rows):
             data = dict(zip(select_cols, row, strict=False))
-            self._fill_pay_printout_row(
+            payable = self._fill_pay_printout_row(
                 cur,
                 r,
                 data,
@@ -3919,10 +3917,23 @@ class PayrollEntryWidget(QWidget):
                 gratuity_col,
                 can_use_route_span,
             )
-            total_hours_1_sum += float(self.pay_printout_table.item(r, 2).text() or 0)
-            total_hours_2_sum += float(self.pay_printout_table.item(r, 3).text() or 0)
-            total_hours_sum += float(self.pay_printout_table.item(r, 2).text() or 0) + float(self.pay_printout_table.item(r, 3).text() or 0)
-            total_gratuity += float(self.pay_printout_table.item(r, 4).text().replace("$", "").replace(",", "") or 0)
+            if payable:
+                total_hours_1_sum += float(
+                    self.pay_printout_table.item(r, 2).text() or 0
+                )
+                total_hours_2_sum += float(
+                    self.pay_printout_table.item(r, 3).text() or 0
+                )
+                total_hours_sum += float(
+                    self.pay_printout_table.item(r, 2).text() or 0
+                ) + float(self.pay_printout_table.item(r, 3).text() or 0)
+                total_gratuity += float(
+                    self.pay_printout_table.item(r, 4)
+                    .text()
+                    .replace("$", "")
+                    .replace(",", "")
+                    or 0
+                )
 
         self._finalize_pay_printout_totals(
             total_hours_sum,
@@ -3953,34 +3964,27 @@ class PayrollEntryWidget(QWidget):
         elif can_use_route_span:
             row_total_hours = self._route_span_hours_for_charter(cur, charter_id)
 
-        approved_hours = 0.0
-        if approved_hours_col and data.get(approved_hours_col) is not None:
-            approved_hours = float(data.get(approved_hours_col) or 0.0)
-        # When approved_hours is still 0 (NULL or never saved), cascade fallbacks
-        zero_eps = 0.005
-        if abs(approved_hours) <= zero_eps:
-            if row_total_hours > 0:
-                approved_hours = row_total_hours
-            elif data.get("quoted_hours"):
-                approved_hours = float(data.get("quoted_hours") or 0.0)
-            elif data.get("calculated_hours"):
-                approved_hours = float(data.get("calculated_hours") or 0.0)
-
-        approved_hours = max(0.0, approved_hours)
+        raw_approved_hours = (
+            data.get(approved_hours_col) if approved_hours_col else None
+        )
+        approved_hours = max(0.0, float(raw_approved_hours or 0.0))
         # hours_2 = any remaining hours beyond approved (only if driver_hours_worked > approved)
         hours_2 = max(0.0, row_total_hours - approved_hours)
 
-        # Gratuity: prefer approved_gratuity; fall back to billed driver_gratuity when NULL/0.
-        # Always add extra_gratuity (tip top-up) on top.
-        gratuity = 0.0
-        if gratuity_col:
-            gratuity = float(data.get(gratuity_col) or 0.0)
-            if abs(gratuity) <= zero_eps and gratuity_col == "approved_gratuity":
-                gratuity = float(data.get("driver_gratuity") or 0.0)
-        # Extra gratuity is an additive top-up; include it regardless of primary column.
-        extra_grat = float(data.get("extra_gratuity") or 0.0)
-        if extra_grat > 0.0:
-            gratuity = round(gratuity + extra_grat, 2)
+        raw_gratuity = data.get(gratuity_col) if gratuity_col else None
+        gratuity = max(0.0, float(raw_gratuity or 0.0))
+        run_status = str(data.get("status") or "").strip().lower()
+        is_closed = run_status == "closed"
+        approval_missing = raw_approved_hours is None or raw_gratuity is None
+        payable = is_closed and not approval_missing
+        if run_status == "cancelled":
+            status_text = "CANCELLED - excluded"
+        elif not is_closed:
+            status_text = "NOT CLOSED - excluded"
+        elif approval_missing:
+            status_text = "MISSING APPROVAL - excluded"
+        else:
+            status_text = "CLOSED - included"
 
         self.pay_printout_table.setItem(r, 0, QTableWidgetItem(str(c_date or "")))
         date_item = self.pay_printout_table.item(r, 0)
@@ -3993,6 +3997,16 @@ class PayrollEntryWidget(QWidget):
         self.pay_printout_table.setItem(r, 2, QTableWidgetItem(f"{approved_hours:.2f}"))
         self.pay_printout_table.setItem(r, 3, QTableWidgetItem(f"{hours_2:.2f}"))
         self.pay_printout_table.setItem(r, 4, QTableWidgetItem(f"${gratuity:,.2f}"))
+        status_item = QTableWidgetItem(status_text)
+        status_item.setFlags(status_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        self.pay_printout_table.setItem(r, 5, status_item)
+        if not payable:
+            warning_brush = QBrush(QColor("#b91c1c"))
+            for column in range(self.pay_printout_table.columnCount()):
+                item = self.pay_printout_table.item(r, column)
+                if item:
+                    item.setForeground(warning_brush)
+        return payable
 
     def _finalize_pay_printout_totals(
         self,
@@ -4528,6 +4542,7 @@ class PayrollEntryWidget(QWidget):
             # previous value).
             self._load_pay_printout()
             self._sync_pay_fields_from_printout(force=True)
+            self._apply_selected_work_items_to_payroll()
 
             # Step 2: auto-calculate CPP, EI, federal and provincial tax from
             # CRA brackets so the entry is complete on one click.
@@ -4538,11 +4553,28 @@ class PayrollEntryWidget(QWidget):
             )
 
             self._set_status(
-                "✅ Charter hours/gratuity loaded and deductions calculated."
+                "✅ Closed-run approved hours/gratuity and non-charter work"
+                " loaded from live data; deductions calculated."
                 " Review and Save."
             )
         except Exception as exc:
             self._set_status(f"Auto-fill failed: {exc}", error=True)
+
+    def _apply_selected_work_items_to_payroll(self) -> None:
+        """Include current-period non-charter work in a live payroll refresh."""
+        emp_id = self._selected_employee_id()
+        pay_period = self._selected_pay_period()
+        if not emp_id or not pay_period:
+            return
+        summary = get_work_item_summary(
+            self.db,
+            int(emp_id),
+            pay_period_id=int(pay_period[0]),
+            fiscal_year=int(self.year_combo.currentText()),
+        )
+        self.other_income.setValue(round(summary.payable_income, 2))
+        self.reimbursements.setValue(round(summary.reimbursements, 2))
+        self._refresh_work_item_summary()
 
     def _ensure_pay_events_table(self) -> None:
         with DatabaseContext(self.db, auto_commit=True) as cur:

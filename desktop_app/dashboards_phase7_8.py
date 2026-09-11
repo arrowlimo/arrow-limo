@@ -1029,6 +1029,16 @@ class CharterManagementDashboardWidget(BaseReportWidget):
         """Sync charter data to payroll: approved hours, gratuity, WCB,"
         "deductions."""
 
+        QMessageBox.information(
+            self,
+            "Use Payroll Entry",
+            "The dashboard sync is disabled because it cannot safely verify "
+            "individual run status and approval. Use Payroll Entry → Pull & "
+            "Calculate instead; it reloads live driver-matched charters and "
+            "includes only closed runs with approved hours and gratuity.",
+        )
+        return
+
         try:
             sync_count = 0
             error_charters = []
