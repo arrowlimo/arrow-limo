@@ -50,6 +50,31 @@ APP_VERSION = "1.1.0"
 APP_BUILD_DATE = "2026-05-26"
 
 
+def _resolve_dropbox_manifest_candidates() -> list[Path]:
+    """Return candidate Dropbox manifest paths in priority order."""
+    candidates: list[Path] = []
+
+    env_deploy = (os.getenv("ARROW_LIMO_DEPLOY_PATH") or "").strip()
+    if env_deploy:
+        candidates.append(Path(env_deploy) / "update_manifest.json")
+
+    # Per-user Dropbox path on each machine.
+    candidates.append(Path.home() / "Dropbox" / "limo_deploy" / "update_manifest.json")
+
+    # Legacy hard-coded path kept as fallback for historical installs.
+    candidates.append(Path(r"C:\Users\info\Dropbox\limo_deploy\update_manifest.json"))
+
+    unique: list[Path] = []
+    seen = set()
+    for candidate in candidates:
+        key = str(candidate).lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(candidate)
+    return unique
+
+
 def _get_build_info() -> dict:
     """Return version, install path, and last-install timestamp from manifest."""
     manifest = _APP_ROOT / "file_manifest.sha256"
@@ -71,16 +96,36 @@ def _get_build_info() -> dict:
             installed_version = vfile.read_text(errors="replace").strip() or APP_VERSION
     except Exception as _e:
         logger.debug('Suppressed: %s', _e)
-    # Check what version is available in Dropbox deploy folder
-    available_version = "— (Dropbox not reachable)"
-    try:
-        import json as _json
-        dropbox_manifest = Path(r"C:\Users\info\Dropbox\limo_deploy\update_manifest.json")
-        if dropbox_manifest.exists():
-            data = _json.loads(dropbox_manifest.read_text())
-            available_version = data.get("latest_version", "—")
-    except Exception as _e:
-        logger.debug('Suppressed: %s', _e)
+    # Check what version is available in Dropbox deploy folder.
+    available_version = "—"
+    version_check_status = "Dropbox manifest not found"
+    last_manifest_error = ""
+    saw_manifest = False
+    for manifest_path in _resolve_dropbox_manifest_candidates():
+        if not manifest_path.exists():
+            continue
+        saw_manifest = True
+        try:
+            raw = manifest_path.read_text(encoding="utf-8-sig").strip()
+            if not raw:
+                last_manifest_error = f"Manifest is empty at {manifest_path}"
+                continue
+            data = json.loads(raw)
+            available_version = str(data.get("latest_version", "—")).strip() or "—"
+            if available_version == "—":
+                version_check_status = f"Manifest missing latest_version at {manifest_path}"
+            else:
+                version_check_status = f"Loaded from {manifest_path}"
+            break
+        except Exception as _e:
+            last_manifest_error = f"{type(_e).__name__}: {_e}"
+
+    if available_version == "—":
+        if last_manifest_error:
+            version_check_status = f"Manifest read error: {last_manifest_error}"
+        elif saw_manifest:
+            version_check_status = "Manifest found but no usable latest_version"
+
     return {
         "version": installed_version,
         "build_date": APP_BUILD_DATE,
@@ -88,6 +133,7 @@ def _get_build_info() -> dict:
         "last_updated": last_updated,
         "file_count": file_count,
         "available_version": available_version,
+        "version_check_status": version_check_status,
     }
 
 
@@ -117,19 +163,69 @@ class AdminManagementWidget(QWidget):
 
         # Tab widget for different admin sections
         self.tabs = QTabWidget()
-        self.tabs.addTab(self._create_overview_tab(), "📊 Overview")
-        self.tabs.addTab(self._create_users_tab(), "👥 Users")
-        self.tabs.addTab(self._create_settings_tab(), "⚙️ Settings")
-        self.tabs.addTab(self._create_run_types_tab(), "🏃 Run Types")
-        self.tabs.addTab(self._create_route_event_types_tab(), "🛣️ Route Events")
-        self.tabs.addTab(self._create_vehicle_types_tab(), "🚌 Vehicle Types")
-        self.tabs.addTab(self._create_charge_defaults_tab(), "💵 Charge Defaults")
-        self.tabs.addTab(self._create_audit_tab(), "📋 Audit Log")
-        self.tabs.addTab(self._create_backup_tab(), "💾 Backup & Restore")
-        self.tabs.addTab(self._create_error_log_tab(), "🐛 Error Log")
+        self._admin_section_factories = {
+            "📊 Overview": self._create_overview_tab,
+            "👥 Users": self._create_users_tab,
+            "⚙️ Settings": self._create_settings_tab,
+            "🏃 Run Types": self._create_run_types_tab,
+            "🛣️ Route Events": self._create_route_event_types_tab,
+            "🚌 Vehicle Types": self._create_vehicle_types_tab,
+            "💵 Charge Defaults": self._create_charge_defaults_tab,
+            "📋 Audit Log": self._create_audit_tab,
+            "💾 Backup & Restore": self._create_backup_tab,
+            "🐛 Error Log": self._create_error_log_tab,
+        }
+        self._admin_sections_loaded = set()
+        self._admin_sections_in_progress = set()
+
+        for tab_name in self._admin_section_factories:
+            placeholder = QLabel(f"Loading {tab_name}...")
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.tabs.addTab(placeholder, tab_name)
+
+        self.tabs.currentChanged.connect(self._on_admin_section_changed)
+        # Also load when user clicks the currently-selected section.
+        self.tabs.tabBarClicked.connect(self._on_admin_section_changed)
+        # Load the first section once the widget is shown.
+        QTimer.singleShot(0, lambda: self._on_admin_section_changed(0))
 
         layout.addWidget(self.tabs)
         self.setLayout(layout)
+
+    def _on_admin_section_changed(self, index: int) -> None:
+        """Create admin sections on-demand to avoid heavy startup freezes."""
+        if index < 0:
+            return
+
+        tab_text = self.tabs.tabText(index)
+        if tab_text not in self._admin_section_factories:
+            return
+        if (
+            tab_text in self._admin_sections_loaded
+            or tab_text in self._admin_sections_in_progress
+        ):
+            return
+
+        self._admin_sections_in_progress.add(tab_text)
+        self.tabs.blockSignals(True)
+        try:
+            widget = self._admin_section_factories[tab_text]()
+            self.tabs.removeTab(index)
+            self.tabs.insertTab(index, widget, tab_text)
+            self.tabs.setCurrentIndex(index)
+            self._admin_sections_loaded.add(tab_text)
+        except Exception as e:
+            logger.exception("Failed to load Admin section %s", tab_text)
+            error_widget = QLabel(f"Error loading {tab_text}:\n{e!s}")
+            error_widget.setStyleSheet("color: red; padding: 20px;")
+            error_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.tabs.removeTab(index)
+            self.tabs.insertTab(index, error_widget, tab_text)
+            self.tabs.setCurrentIndex(index)
+            self._admin_sections_loaded.add(tab_text)
+        finally:
+            self.tabs.blockSignals(False)
+            self._admin_sections_in_progress.discard(tab_text)
 
     def _create_overview_tab(self) -> object:
         """Create the Overview tab"""
@@ -150,6 +246,12 @@ class AdminManagementWidget(QWidget):
         monthly_revenue.setReadOnly(True)
         active_vehicles = QLineEdit()
         active_vehicles.setReadOnly(True)
+
+        self._overview_bookings_field = total_bookings
+        self._overview_customers_field = total_customers
+        self._overview_employees_field = total_employees
+        self._overview_revenue_field = monthly_revenue
+        self._overview_vehicles_field = active_vehicles
 
         stats_layout.addRow("Total Bookings", total_bookings)
         stats_layout.addRow("Total Customers", total_customers)
@@ -191,9 +293,11 @@ class AdminManagementWidget(QWidget):
         build_group = QGroupBox("Build Information")
         build_layout = QFormLayout()
 
+        self._build_info_fields: dict[str, QLineEdit] = {}
         for label, value in [
             ("Installed Version", build_info["version"]),
             ("Available Version", build_info["available_version"]),
+            ("Version Check Status", build_info["version_check_status"]),
             ("Build Date",        build_info["build_date"]),
             ("Install Path",      build_info["install_path"]),
             ("Last Install Update", build_info["last_updated"]),
@@ -201,21 +305,73 @@ class AdminManagementWidget(QWidget):
         ]:
             field = QLineEdit(value)
             field.setReadOnly(True)
-            # Highlight if installed is behind available
-            if label == "Available Version" and value not in ("\u2014", "\u2014 (Dropbox not reachable)"):
-                inst = build_info["version"]
-                if value != inst:
-                    field.setStyleSheet("background: #fff3cd; color: #7b4f00; font-weight: bold;")
-                else:
-                    field.setStyleSheet("background: #d4edda; color: #155724; font-weight: bold;")
             build_layout.addRow(label, field)
+            self._build_info_fields[label] = field
+
+        self._style_available_version_field(
+            self._build_info_fields["Available Version"],
+            build_info["version"],
+            build_info["available_version"],
+        )
 
         build_group.setLayout(build_layout)
         layout.addWidget(build_group)
 
+        refresh_build_info_btn = QPushButton("🔄 Refresh Build Info")
+        refresh_build_info_btn.clicked.connect(self._refresh_overview_data)
+        layout.addWidget(refresh_build_info_btn)
+
         layout.addStretch()
         widget.setLayout(layout)
         return widget
+
+    def _style_available_version_field(
+        self,
+        field: QLineEdit,
+        installed_version: str,
+        available_version: str,
+    ) -> None:
+        """Apply visual status for available-version comparison."""
+        field.setStyleSheet("")
+        if available_version in ("", "—"):
+            return
+        if available_version != installed_version:
+            field.setStyleSheet("background: #fff3cd; color: #7b4f00; font-weight: bold;")
+            return
+        field.setStyleSheet("background: #d4edda; color: #155724; font-weight: bold;")
+
+    def _refresh_overview_data(self) -> None:
+        """Refresh overview stats and build info without restarting the app."""
+        self._load_overview_stats(
+            self._overview_bookings_field,
+            self._overview_customers_field,
+            self._overview_employees_field,
+            self._overview_revenue_field,
+            self._overview_vehicles_field,
+        )
+
+        build_info = _get_build_info()
+        values = {
+            "Installed Version": build_info["version"],
+            "Available Version": build_info["available_version"],
+            "Version Check Status": build_info["version_check_status"],
+            "Build Date": build_info["build_date"],
+            "Install Path": build_info["install_path"],
+            "Last Install Update": build_info["last_updated"],
+            "Manifest Files": build_info["file_count"],
+        }
+        for label, value in values.items():
+            field = self._build_info_fields.get(label)
+            if field is not None:
+                field.setText(value)
+
+        available_field = self._build_info_fields.get("Available Version")
+        if available_field is not None:
+            self._style_available_version_field(
+                available_field,
+                build_info["version"],
+                build_info["available_version"],
+            )
 
     def _create_users_tab(self) -> object:
         """Create the Users tab"""
@@ -235,7 +391,7 @@ class AdminManagementWidget(QWidget):
         layout.addWidget(self.users_table)
 
         # User form
-        form_group = QGroupBox("User Management")
+        form_group = QGroupBox("Users")
         form_layout = QFormLayout()
 
         self.user_username = QLineEdit()
@@ -784,9 +940,12 @@ class AdminManagementWidget(QWidget):
 
         except psycopg2.Error as e:
             if _is_users_email_unique_violation(e):
+                if self._drop_users_email_unique_constraint():
+                    self.add_user()
+                    return
                 error_msg = (
-                    "This database still enforces unique user emails. "
-                    "Apply "
+                    "This database still enforces unique user emails and the "
+                    "constraint could not be removed automatically. Apply "
                     "migrations/004_allow_duplicate_user_emails.sql "
                     "on the target database "
                     "to allow shared work email addresses."
@@ -986,9 +1145,12 @@ class AdminManagementWidget(QWidget):
 
         except psycopg2.Error as e:
             if _is_users_email_unique_violation(e):
+                if self._drop_users_email_unique_constraint():
+                    self.update_user()
+                    return
                 error_msg = (
-                    "This database still enforces unique user emails. "
-                    "Apply "
+                    "This database still enforces unique user emails and the "
+                    "constraint could not be removed automatically. Apply "
                     "migrations/004_allow_duplicate_user_emails.sql "
                     "on the target database "
                     "to allow shared work email addresses."
@@ -1243,6 +1405,30 @@ class AdminManagementWidget(QWidget):
         except Exception as e:
             logger.warning(f"Could not inspect users table columns: {e}")
             return set()
+
+    def _drop_users_email_unique_constraint(self) -> bool:
+        """Remove the legacy unique-email constraint so staff can share a mailbox.
+
+        Returns True only once per session so a persistent failure cannot loop.
+        """
+        if getattr(self, "_users_email_unique_dropped", False):
+            return False
+        self._users_email_unique_dropped = True
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    "ALTER TABLE users DROP CONSTRAINT IF EXISTS users_email_key"
+                )
+                cur.execute("DROP INDEX IF EXISTS users_email_key")
+                cur.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_users_email "
+                    "ON users USING btree (email)"
+                )
+            logger.info("Dropped legacy users_email_key unique constraint")
+            return True
+        except Exception as e:
+            logger.error(f"Could not drop users_email_key constraint: {e}")
+            return False
 
     def clear_audit_log(self) -> None:
         """Clear audit log"""
@@ -1599,7 +1785,7 @@ class AdminManagementWidget(QWidget):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        layout.addWidget(QLabel("<b>Manage Route Event Types</b>"))
+        layout.addWidget(QLabel("<b>Route Event Types</b>"))
         layout.addWidget(QLabel(
             "Define the event labels shown on run sheets and route tables. "
             "Event Code is the internal key used by routes."
@@ -1757,7 +1943,7 @@ class AdminManagementWidget(QWidget):
         layout = QVBoxLayout()
 
         # Title
-        layout.addWidget(QLabel("<b>Manage Charter Run Types</b>"))
+        layout.addWidget(QLabel("<b>Charter Run Types</b>"))
         layout.addWidget(
             QLabel("Edit run types for Charter and Route selection")
         )
@@ -2030,7 +2216,7 @@ class AdminManagementWidget(QWidget):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        layout.addWidget(QLabel("<b>Manage Vehicle Types & Pricing Defaults</b>"))
+        layout.addWidget(QLabel("<b>Vehicle Types & Pricing Defaults</b>"))
         layout.addWidget(
             QLabel("Add or remove vehicle types that appear in the Requested "
                    "Vehicle Type dropdown on the charter form.")
@@ -2042,7 +2228,7 @@ class AdminManagementWidget(QWidget):
             ["Vehicle Type", "Hourly Rate", "Package Rate", "Daily Rate",
              "Standby Rate"]
         )
-        self.vehicle_types_table.setMinimumHeight(460)
+        self.vehicle_types_table.setMinimumHeight(320)
         self.vehicle_types_table.setSelectionBehavior(
             QAbstractItemView.SelectionBehavior.SelectRows
         )
@@ -2507,7 +2693,7 @@ class AdminManagementWidget(QWidget):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        layout.addWidget(QLabel("<b>Manage Optional Charter Charge Defaults</b>"))
+        layout.addWidget(QLabel("<b>Optional Charter Charge Defaults</b>"))
         layout.addWidget(
             QLabel(
                 "This list powers Add Charge options. Auto-calculated lines "
