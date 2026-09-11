@@ -105,6 +105,20 @@ def _summarise_training(record) -> str:
     return ", ".join(parts)
 
 
+# The portal's upload vocabulary is uppercase and its own; driver_documents
+# has the vocabulary from migration 013. Approving a scan has to translate
+# between them or the office record ends up typed as "other".
+UPLOAD_TYPE_TO_DOCUMENT_TYPE = {
+    "DRIVER_LICENCE": "license",
+    "CHAUFFEUR_PERMIT": "chauffeur_permit",
+    "PROSERVE": "proserve",
+    "MEDICAL": "medical_certificate",
+    "DRIVER_ABSTRACT": "driver_abstract",
+    "VULNERABLE_SECTOR": "vulnerable_sector",
+    "TRAINING": "training_certificate",
+    "OTHER": "other",
+}
+
 COL_SELECT = 0
 COL_DRIVER = 1
 COL_FIELD = 2
@@ -639,6 +653,101 @@ class EmployeeChangeApprovalsWidget(QWidget):
             )
         return True
 
+    def _record_approved_document(self, cur, upload_id) -> None:
+        """Create the office qualification record for an approved upload.
+
+        The upload table holds the scan the driver submitted; driver_documents
+        is the record the qualifications tab and expiry warnings read from.
+        Approving a scan without this leaves the office record empty, so an
+        approved licence still shows as missing.
+        """
+        cur.execute(
+            """
+            SELECT employee_id, document_type, document_name, mime_type,
+                   file_size, issued_date, expiry_date, document_number, notes
+              FROM employee_document_uploads
+             WHERE upload_id = %s
+            """,
+            (upload_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return
+        (
+            employee_id,
+            upload_type,
+            document_name,
+            mime_type,
+            file_size,
+            issued_date,
+            expiry_date,
+            document_number,
+            notes,
+        ) = row
+
+        doc_type = UPLOAD_TYPE_TO_DOCUMENT_TYPE.get(
+            str(upload_type or "").strip().upper(), "other"
+        )
+
+        # Re-approving a replacement scan of the same document must update the
+        # office record rather than leave two rows disagreeing about expiry.
+        cur.execute(
+            """
+            SELECT id FROM driver_documents
+             WHERE employee_id = %s AND document_type = %s
+               AND COALESCE(document_name, '') = COALESCE(%s, '')
+             LIMIT 1
+            """,
+            (employee_id, doc_type, document_name),
+        )
+        existing = cur.fetchone()
+        params = (
+            document_number,
+            issued_date,
+            expiry_date,
+            mime_type,
+            file_size,
+            notes,
+        )
+        if existing:
+            cur.execute(
+                """
+                UPDATE driver_documents
+                   SET document_number = %s,
+                       issued_date = %s,
+                       expiry_date = %s,
+                       mime_type = %s,
+                       file_size = %s,
+                       notes = %s,
+                       status = 'active',
+                       updated_at = NOW()
+                 WHERE id = %s
+                """,
+                params + (existing[0],),
+            )
+            return
+
+        cur.execute(
+            """
+            INSERT INTO driver_documents
+                (employee_id, document_type, document_name, document_number,
+                 issued_date, expiry_date, mime_type, file_size, notes,
+                 status, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'active', NOW(), NOW())
+            """,
+            (
+                employee_id,
+                doc_type,
+                document_name,
+                document_number,
+                issued_date,
+                expiry_date,
+                mime_type,
+                file_size,
+                notes,
+            ),
+        )
+
     def _process(self, requests, approve: bool, note=None) -> None:
         action_word = "authorize" if approve else "reject"
         lines = "\n".join(f"  • {self._describe(r)}" for r in requests[:15])
@@ -810,6 +919,8 @@ class EmployeeChangeApprovalsWidget(QWidget):
                     """,
                     (status, self._reviewer, upload_id),
                 )
+                if status == "APPROVED" and cur.rowcount:
+                    self._record_approved_document(cur, upload_id)
         except Exception as exc:
             logger.exception("Failed to review document")
             QMessageBox.critical(self, "Review Failed", str(exc))
