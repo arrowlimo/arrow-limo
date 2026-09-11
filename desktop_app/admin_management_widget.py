@@ -166,6 +166,7 @@ class AdminManagementWidget(QWidget):
         self._admin_section_factories = {
             "📊 Overview": self._create_overview_tab,
             "👥 Users": self._create_users_tab,
+            "🔐 Driver Change Requests": self._create_change_requests_tab,
             "⚙️ Settings": self._create_settings_tab,
             "🏃 Run Types": self._create_run_types_tab,
             "🛣️ Route Events": self._create_route_event_types_tab,
@@ -553,6 +554,24 @@ class AdminManagementWidget(QWidget):
         layout.addStretch()
         widget.setLayout(layout)
         return widget
+
+    def _create_change_requests_tab(self) -> object:
+        """Company-wide queue of driver-portal record changes awaiting approval."""
+        try:
+            from employee_change_approvals import EmployeeChangeApprovalsWidget
+
+            return EmployeeChangeApprovalsWidget(
+                self.db,
+                employee_id=None,
+                auth_user={"username": self._current_username},
+            )
+        except Exception as exc:
+            logger.exception("Failed to build driver change request queue")
+            widget = QWidget()
+            layout = QVBoxLayout()
+            layout.addWidget(QLabel(f"Driver change requests unavailable: {exc}"))
+            widget.setLayout(layout)
+            return widget
 
     def _create_audit_tab(self) -> object:
         """Create the Audit Log tab"""

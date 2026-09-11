@@ -66,6 +66,8 @@ class EmployeeDetailDialog(QDialog):
         self.db = db
         self.employee_id = employee_id
         self.employee_data = None
+        self._employees_column_cache = {}
+        self._ensure_vehicle_qualifications_table()
 
         self.setWindowTitle(f"Employee Detail - {employee_id or 'New'}")
         self.setGeometry(50, 50, 1400, 900)
@@ -134,12 +136,134 @@ class EmployeeDetailDialog(QDialog):
         tabs.addTab(self.create_red_deer_bylaws_tab(), "🏛️ Red Deer Bylaws")
         tabs.addTab(self.create_hos_tab(), "⏱️ Hours of Service")
         tabs.addTab(self.create_performance_tab(), "⭐ Performance")
+        tabs.addTab(self.create_change_approvals_tab(), "🔐 Portal Change Requests")
 
         layout.addWidget(tabs)
         self.setLayout(layout)
 
         if employee_id:
             self.load_employee_data()
+
+    def create_change_approvals_tab(self) -> QWidget:
+        """Driver-portal record changes awaiting authorization for this employee."""
+        widget = QWidget()
+        layout = QVBoxLayout()
+
+        if not self.employee_id:
+            layout.addWidget(
+                QLabel(
+                    "Save this employee first. Portal change requests appear here "
+                    "once the driver submits edits from the web portal."
+                )
+            )
+        else:
+            try:
+                from employee_change_approvals import EmployeeChangeApprovalsWidget
+
+                self.change_approvals_widget = EmployeeChangeApprovalsWidget(
+                    self.db, employee_id=self.employee_id, parent=widget
+                )
+                self.change_approvals_widget.changes_applied.connect(
+                    self.load_employee_data
+                )
+                layout.addWidget(self.change_approvals_widget)
+            except Exception as exc:
+                logger.exception("Failed to build change approvals tab")
+                layout.addWidget(QLabel(f"Change approvals unavailable: {exc}"))
+
+        widget.setLayout(layout)
+        return widget
+
+    def _ensure_vehicle_qualifications_table(self) -> None:
+        """Ensure structured storage exists for vehicle qualifications."""
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS employee_vehicle_qualifications (
+                        qualification_id SERIAL PRIMARY KEY,
+                        employee_id INTEGER NOT NULL UNIQUE REFERENCES
+                        employees(employee_id) ON DELETE CASCADE,
+                        qual_sedan BOOLEAN NOT NULL DEFAULT FALSE,
+                        qual_suv BOOLEAN NOT NULL DEFAULT FALSE,
+                        qual_van BOOLEAN NOT NULL DEFAULT FALSE,
+                        qual_stretch BOOLEAN NOT NULL DEFAULT FALSE,
+                        qual_bus BOOLEAN NOT NULL DEFAULT FALSE,
+                        qual_specialty BOOLEAN NOT NULL DEFAULT FALSE,
+                        qual_wheelchair BOOLEAN NOT NULL DEFAULT FALSE,
+                        endorse_airbrake BOOLEAN NOT NULL DEFAULT FALSE,
+                        endorse_hazmat BOOLEAN NOT NULL DEFAULT FALSE,
+                        endorse_passenger BOOLEAN NOT NULL DEFAULT FALSE,
+                        notes TEXT,
+                        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+                    )
+                    """
+                )
+        except Exception as e:
+            logger.error(
+                "Failed to ensure employee vehicle qualifications table: %s",
+                e,
+            )
+
+    def _employee_column_exists(self, column_name: str) -> bool:
+        cache_key = (column_name or "").strip().lower()
+        if cache_key in self._employees_column_cache:
+            return bool(self._employees_column_cache[cache_key])
+        exists = False
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_schema = 'public'
+                          AND table_name = 'employees'
+                          AND column_name = %s
+                    )
+                    """,
+                    (cache_key,),
+                )
+                exists = bool(cur.fetchone()[0])
+        except Exception as e:
+            logger.warning("Employee column check failed for %s: %s", column_name, e)
+        self._employees_column_cache[cache_key] = exists
+        return exists
+
+    def _supports_structured_name_fields(self) -> bool:
+        return self._employee_column_exists("first_name") and self._employee_column_exists("last_name")
+
+    def _supports_middle_name_field(self) -> bool:
+        return self._employee_column_exists("middle_name")
+
+    @staticmethod
+    def _parse_name_parts(raw_name: str) -> tuple[str, str, str]:
+        text = (raw_name or "").strip()
+        if not text:
+            return "", "", ""
+        if "," in text:
+            last, remainder = text.split(",", 1)
+            tokens = [t for t in remainder.strip().split() if t]
+            first = tokens[0] if tokens else ""
+            middle = " ".join(tokens[1:]) if len(tokens) > 1 else ""
+            return first.strip(), middle.strip(), last.strip()
+        tokens = [t for t in text.split() if t]
+        if len(tokens) == 1:
+            return tokens[0], "", ""
+        if len(tokens) == 2:
+            return tokens[0], "", tokens[1]
+        return tokens[0], " ".join(tokens[1:-1]), tokens[-1]
+
+    @staticmethod
+    def _compose_display_name(first: str, middle: str, last: str, fallback: str = "") -> str:
+        first = (first or "").strip()
+        middle = (middle or "").strip()
+        last = (last or "").strip()
+        if last and first:
+            return f"{last}, {first}{(' ' + middle) if middle else ''}"
+        combined = " ".join(part for part in (first, middle, last) if part).strip()
+        return combined or (fallback or "")
 
     def _create_compliance_summary(self) -> object:
         """Create compliance status summary cards"""
@@ -967,25 +1091,56 @@ class EmployeeDetailDialog(QDialog):
             if self.endorse_passenger.isChecked():
                 endorsements.append("Passenger")
 
-            # Store as JSON in employee notes or create dedicated table
             with DatabaseContext(self.db, auto_commit=True) as cur:
-                # For now, store in notes field - TODO: create
-                # employee_vehicle_qualifications table
-                qual_text = (
-                    "\n\n--- VEHICLE QUALIFICATIONS ---\n"
-                    "Qualified Types: {', '.join(qualified_types)}\n"
-                    "Endorsements: {', '.join(endorsements)}\n"
-                    "Notes: {self.qual_notes.toPlainText()}\n"
-                    "Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-                )
-
                 cur.execute(
                     """
-                    UPDATE employees
-                    SET notes = COALESCE(notes, '') || %s
-                    WHERE employee_id = %s
+                    INSERT INTO employee_vehicle_qualifications (
+                        employee_id,
+                        qual_sedan,
+                        qual_suv,
+                        qual_van,
+                        qual_stretch,
+                        qual_bus,
+                        qual_specialty,
+                        qual_wheelchair,
+                        endorse_airbrake,
+                        endorse_hazmat,
+                        endorse_passenger,
+                        notes,
+                        updated_at
+                    )
+                    VALUES (
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
+                    )
+                    ON CONFLICT (employee_id)
+                    DO UPDATE SET
+                        qual_sedan = EXCLUDED.qual_sedan,
+                        qual_suv = EXCLUDED.qual_suv,
+                        qual_van = EXCLUDED.qual_van,
+                        qual_stretch = EXCLUDED.qual_stretch,
+                        qual_bus = EXCLUDED.qual_bus,
+                        qual_specialty = EXCLUDED.qual_specialty,
+                        qual_wheelchair = EXCLUDED.qual_wheelchair,
+                        endorse_airbrake = EXCLUDED.endorse_airbrake,
+                        endorse_hazmat = EXCLUDED.endorse_hazmat,
+                        endorse_passenger = EXCLUDED.endorse_passenger,
+                        notes = EXCLUDED.notes,
+                        updated_at = NOW()
                 """,
-                    (qual_text, self.employee_id),
+                    (
+                        self.employee_id,
+                        self.qual_sedan.isChecked(),
+                        self.qual_suv.isChecked(),
+                        self.qual_van.isChecked(),
+                        self.qual_stretch.isChecked(),
+                        self.qual_bus.isChecked(),
+                        self.qual_specialty.isChecked(),
+                        self.qual_wheelchair.isChecked(),
+                        self.endorse_airbrake.isChecked(),
+                        self.endorse_hazmat.isChecked(),
+                        self.endorse_passenger.isChecked(),
+                        self.qual_notes.toPlainText(),
+                    ),
                 )
 
             QMessageBox.information(
@@ -1063,7 +1218,7 @@ class EmployeeDetailDialog(QDialog):
 
         self.prov_first_aid = QCheckBox("First Aid Training (recommended)")
         self.prov_defensive_driving = QCheckBox("Defensive Driving Course")
-        self.prov_fatigue_mgmt = QCheckBox("Fatigue Management Training")
+        self.prov_fatigue_mgmt = QCheckBox("Fatigue Safety Training")
         self.prov_passenger_safety = QCheckBox("Passenger Safety Procedures")
 
         for cb in [
@@ -1415,7 +1570,7 @@ class EmployeeDetailDialog(QDialog):
             if self.prov_defensive_driving.isChecked():
                 compliance_items.append("Defensive Driving")
             if self.prov_fatigue_mgmt.isChecked():
-                compliance_items.append("Fatigue Management")
+                compliance_items.append("Fatigue Safety")
             if self.prov_passenger_safety.isChecked():
                 compliance_items.append("Passenger Safety")
             if self.prov_nsc.isChecked():
@@ -1633,7 +1788,7 @@ class EmployeeDetailDialog(QDialog):
         layout.addWidget(self.review_table)
 
         # Notes section
-        notes_label = QLabel("Manager Notes:")
+        notes_label = QLabel("Reviewer Notes:")
         layout.addWidget(notes_label)
 
         self.manager_notes = QTextEdit()
@@ -1706,7 +1861,28 @@ class EmployeeDetailDialog(QDialog):
 
                     self.emp_id.setText(str(emp_id or ""))
                     self.employee_number.setText(str(emp_number or ""))
-                    self.full_name.setText(str(name or ""))
+                    display_name = str(name or "")
+                    if self._supports_structured_name_fields():
+                        middle_expr = (
+                            "COALESCE(middle_name, '')"
+                            if self._supports_middle_name_field()
+                            else "''"
+                        )
+                        cur.execute(
+                            f"""
+                            SELECT COALESCE(first_name, ''), {middle_expr}, COALESCE(last_name, '')
+                            FROM employees
+                            WHERE employee_id = %s
+                            LIMIT 1
+                            """,
+                            (self.employee_id,),
+                        )
+                        nrow = cur.fetchone()
+                        if nrow:
+                            display_name = self._compose_display_name(
+                                nrow[0] or "", nrow[1] or "", nrow[2] or "", fallback=display_name
+                            )
+                    self.full_name.setText(display_name)
                     self.sin.setText(str(sin or ""))
                     if dob:
                         self.dob.setDate(
@@ -1758,10 +1934,10 @@ class EmployeeDetailDialog(QDialog):
                     WHERE employee_id = %s
                       AND COALESCE(is_reimbursable, FALSE) = TRUE
                       AND COALESCE(reimbursement_status, '') = 'reimbursed'
-                      AND COALESCE(description, '') ILIKE '%Paid via: Payroll%'
+                                            AND COALESCE(description, '') ILIKE %s
                     GROUP BY expense_date
                 """,
-                    (self.employee_id,),
+                                        (self.employee_id, '%Paid via: Payroll%'),
                 )
                 payroll_reimb_rows = cur.fetchall() or []
                 reimburse_by_date = {
@@ -1776,9 +1952,9 @@ class EmployeeDetailDialog(QDialog):
                     WHERE employee_id = %s
                       AND COALESCE(is_reimbursable, FALSE) = TRUE
                       AND COALESCE(reimbursement_status, '') = 'reimbursed'
-                      AND COALESCE(description, '') ILIKE '%Paid via: Cash%'
+                                            AND COALESCE(description, '') ILIKE %s
                 """,
-                    (self.employee_id,),
+                                        (self.employee_id, '%Paid via: Cash%'),
                 )
                 cash_reimb_total = float((cur.fetchone() or [0])[0] or 0)
 
@@ -1931,6 +2107,10 @@ class EmployeeDetailDialog(QDialog):
                         i, 6, QTableWidgetItem(str(notes or ""))
                     )
 
+            self._load_custom_deductions()
+            self._load_float_records()
+            self._load_vehicle_qualifications()
+
             # Update compliance summary cards
             self._update_compliance_cards()
         except Exception as e:
@@ -1939,10 +2119,90 @@ class EmployeeDetailDialog(QDialog):
                 self, "Error", f"Failed to load employee data: {e}"
             )
 
+    def _load_vehicle_qualifications(self) -> None:
+        """Load structured vehicle qualification flags and notes."""
+        if not self.employee_id:
+            return
+
+        # Reset to defaults before applying DB values.
+        self.qual_sedan.setChecked(False)
+        self.qual_suv.setChecked(False)
+        self.qual_van.setChecked(False)
+        self.qual_stretch.setChecked(False)
+        self.qual_bus.setChecked(False)
+        self.qual_specialty.setChecked(False)
+        self.qual_wheelchair.setChecked(False)
+        self.endorse_airbrake.setChecked(False)
+        self.endorse_hazmat.setChecked(False)
+        self.endorse_passenger.setChecked(False)
+        self.qual_notes.clear()
+
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        qual_sedan,
+                        qual_suv,
+                        qual_van,
+                        qual_stretch,
+                        qual_bus,
+                        qual_specialty,
+                        qual_wheelchair,
+                        endorse_airbrake,
+                        endorse_hazmat,
+                        endorse_passenger,
+                        COALESCE(notes, '')
+                    FROM employee_vehicle_qualifications
+                    WHERE employee_id = %s
+                    LIMIT 1
+                    """,
+                    (self.employee_id,),
+                )
+                row = cur.fetchone()
+
+            if not row:
+                return
+
+            (
+                qual_sedan,
+                qual_suv,
+                qual_van,
+                qual_stretch,
+                qual_bus,
+                qual_specialty,
+                qual_wheelchair,
+                endorse_airbrake,
+                endorse_hazmat,
+                endorse_passenger,
+                notes,
+            ) = row
+
+            self.qual_sedan.setChecked(bool(qual_sedan))
+            self.qual_suv.setChecked(bool(qual_suv))
+            self.qual_van.setChecked(bool(qual_van))
+            self.qual_stretch.setChecked(bool(qual_stretch))
+            self.qual_bus.setChecked(bool(qual_bus))
+            self.qual_specialty.setChecked(bool(qual_specialty))
+            self.qual_wheelchair.setChecked(bool(qual_wheelchair))
+            self.endorse_airbrake.setChecked(bool(endorse_airbrake))
+            self.endorse_hazmat.setChecked(bool(endorse_hazmat))
+            self.endorse_passenger.setChecked(bool(endorse_passenger))
+            self.qual_notes.setPlainText(str(notes or ""))
+        except Exception as e:
+            logger.error("Failed to load vehicle qualifications: %s", e)
+
     @pyqtSlot()
     def save_employee(self) -> None:
         """Save all employee changes"""
         try:
+            first_name, middle_name, last_name = self._parse_name_parts(self.full_name.text())
+            canonical_name = self._compose_display_name(
+                first_name,
+                middle_name,
+                last_name,
+                fallback=self.full_name.text(),
+            )
             with DatabaseContext(self.db, auto_commit=True) as cur:
                 cur.execute(
                     """
@@ -1965,7 +2225,7 @@ class EmployeeDetailDialog(QDialog):
                 """,
                     (
                         self.employee_number.text(),
-                        self.full_name.text(),
+                        canonical_name,
                         self.sin.text(),
                         self.address.text(),
                         self.city.text(),
@@ -1981,6 +2241,29 @@ class EmployeeDetailDialog(QDialog):
                         self.employee_id,
                     ),
                 )
+
+                if self._supports_structured_name_fields():
+                    if self._supports_middle_name_field():
+                        cur.execute(
+                            """
+                            UPDATE employees
+                            SET first_name = %s,
+                                middle_name = %s,
+                                last_name = %s
+                            WHERE employee_id = %s
+                            """,
+                            (first_name or None, middle_name or None, last_name or None, self.employee_id),
+                        )
+                    else:
+                        cur.execute(
+                            """
+                            UPDATE employees
+                            SET first_name = %s,
+                                last_name = %s
+                            WHERE employee_id = %s
+                            """,
+                            (first_name or None, last_name or None, self.employee_id),
+                        )
 
             QMessageBox.information(
                 self, "Success", "Employee saved successfully"
@@ -2155,10 +2438,13 @@ class EmployeeDetailDialog(QDialog):
                 "End of Contract",
                 "Retirement",
                 "Dismissal - Cause",
-                "Layo",
+                "Layoff",
                 "Other",
             ]
         )
+
+        generate_roe_checkbox = QCheckBox("Generate ROE now")
+        generate_roe_checkbox.setChecked(True)
 
         notes = QTextEdit()
         notes.setPlaceholderText("Enter termination details and notes...")
@@ -2166,6 +2452,7 @@ class EmployeeDetailDialog(QDialog):
 
         layout.addRow("Termination Date:", term_date)
         layout.addRow("Reason:", reason_combo)
+        layout.addRow("", generate_roe_checkbox)
         layout.addRow("Notes:", notes)
 
         btn_layout = QHBoxLayout()
@@ -2197,6 +2484,8 @@ class EmployeeDetailDialog(QDialog):
                     dialog, "Success", "Employee terminated"
                 )
                 dialog.accept()
+                if generate_roe_checkbox.isChecked():
+                    self.generate_form("ROE")
                 self.close()
             except Exception as e:
                 logger.error(f"Termination failed: {e}")
@@ -2728,8 +3017,16 @@ This is a preliminary T4A form.
                         (self.employee_id, self.employee_id),
                     )
                     hours_data = cur.fetchone()
-                    hours_data[0] if hours_data and hours_data[0] else 0
-                    hours_data[1] if hours_data and hours_data[1] else 0
+                    insurable_hours = (
+                        float(hours_data[0])
+                        if hours_data and hours_data[0] is not None
+                        else 0.0
+                    )
+                    total_earnings = (
+                        float(hours_data[1])
+                        if hours_data and hours_data[1] is not None
+                        else 0.0
+                    )
 
                     cur.execute(
                         """
@@ -2739,7 +3036,7 @@ This is a preliminary T4A form.
                         (self.employee_id,),
                     )
                     term_data = cur.fetchone()
-                    term_data[0] if term_data else "N/A"
+                    term_date = term_data[0] if term_data and term_data[0] else None
                     term_reason = (
                         term_data[1]
                         if term_data and term_data[1]
@@ -2752,11 +3049,13 @@ This is a preliminary T4A form.
                     "End of Contract": "A - Shortage of Work",
                     "Retirement": "E - Quit (Retirement)",
                     "Dismissal - Cause": "M - Dismissal",
+                    "Layoff": "A - Shortage of Work",
                     "Layo": "A - Shortage of Work",
                 }
-                roe_code_map.get(term_reason, "Other")
+                roe_code = roe_code_map.get(term_reason, "Other")
+                term_date_display = str(term_date) if term_date else "N/A"
 
-                form_content = """
+                form_content = f"""
 ═════════════════════════════════════════════════════════
         RECORD OF EMPLOYMENT (ROE)
         Service Canada Form
@@ -2776,18 +3075,18 @@ Address: {address}
 
 EMPLOYMENT PERIOD:
 First Day Worked: [From hire_date]
-Last Day Paid: {term_date}
+Last Day Paid: {term_date_display}
 
 REASON FOR ISSUING ROE:
 Code: {roe_code}
 Reason: {term_reason}
 
 INSURABLE HOURS AND EARNINGS:
-Total Insurable Hours (Last 52 weeks): {insurable_hours}
+Total Insurable Hours (Last 52 weeks): {insurable_hours:.2f}
 Total Insurable Earnings: ${total_earnings:.2f}
 
 PAY PERIOD TYPE: Weekly/Bi-weekly
-FINAL PAY PERIOD ENDING: {term_date}
+FINAL PAY PERIOD ENDING: {term_date_display}
 
 ═════════════════════════════════════════════════════════
 IMPORTANT: This is a preliminary ROE form.
@@ -2959,10 +3258,11 @@ Date: _______________             Date: _______________
                         """
                         INSERT INTO employee_expenses
                         (employee_id, expense_date, category,
-                         amount, description, status, created_at)
+                         amount, description, reimbursement_status,
+                         reimbursed_amount, created_at)
                         VALUES (
                             %s, %s, 'PAY_ADVANCE', %s, %s,
-                            'Outstanding', NOW())
+                            %s, %s, NOW())
                     """,
                         (
                             self.employee_id,
@@ -2970,6 +3270,8 @@ Date: _______________             Date: _______________
                             -abs(amount.value()),
                             # Negative for advance (owes company)
                             f"{reason.text()} - {notes.toPlainText()}",
+                            "outstanding",
+                            abs(amount.value()),
                         ),
                     )
 
@@ -2999,14 +3301,153 @@ Date: _______________             Date: _______________
     @pyqtSlot()
     def repay_advance(self) -> None:
         QMessageBox.information(
-            self, "Info", "Record advance repayment dialog (to be implemented)"
+            self,
+            "Info",
+            "Advance repayment is recorded through the payroll pay-advance deduction field.",
         )
 
     @pyqtSlot()
     def add_custom_deduction(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Add custom deduction dialog (to be implemented)"
+        if not self.employee_id:
+            QMessageBox.warning(
+                self, "No Employee", "Load an employee first."
+            )
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Add Custom Deduction")
+        layout = QFormLayout()
+
+        deduct_date = StandardDateEdit(prefer_month_text=True)
+        deduct_date.setDisplayFormat("MM/dd/yyyy")
+        deduct_date.setDate(QDate.currentDate())
+        deduct_date.setCalendarPopup(True)
+
+        deduction_type = QComboBox()
+        deduction_type.addItems(
+            [
+                "Uniform",
+                "Equipment",
+                "Advance Repayment",
+                "Parking Fine",
+                "Other",
+            ]
         )
+        deduction_type.setEditable(True)
+
+        amount = QDoubleSpinBox()
+        amount.setMaximum(10000.00)
+        amount.setDecimals(2)
+        amount.setPrefix("$")
+
+        frequency = QComboBox()
+        frequency.addItems(["One-time", "Weekly", "Biweekly", "Monthly"])
+
+        start_date = StandardDateEdit(prefer_month_text=True)
+        start_date.setDisplayFormat("MM/dd/yyyy")
+        start_date.setDate(QDate.currentDate())
+        start_date.setCalendarPopup(True)
+
+        end_date = StandardDateEdit(prefer_month_text=True)
+        end_date.setDisplayFormat("MM/dd/yyyy")
+        end_date.setDate(QDate.currentDate())
+        end_date.setCalendarPopup(True)
+
+        notes = QTextEdit()
+        notes.setMaximumHeight(80)
+
+        layout.addRow("Deduction Date:", deduct_date)
+        layout.addRow("Type:", deduction_type)
+        layout.addRow("Amount:", amount)
+        layout.addRow("Frequency:", frequency)
+        layout.addRow("Start Date:", start_date)
+        layout.addRow("End Date:", end_date)
+        layout.addRow("Notes:", notes)
+
+        btn_layout = QHBoxLayout()
+        save_btn = QPushButton("Save Deduction")
+        cancel_btn = QPushButton("Cancel")
+
+        def save_deduction() -> None:
+            if amount.value() <= 0:
+                QMessageBox.warning(
+                    dialog,
+                    "Invalid Amount",
+                    "Deduction amount must be greater than $0.00.",
+                )
+                return
+
+            detail = (
+                f"Custom deduction | Type: {deduction_type.currentText()}"
+                f" | Frequency: {frequency.currentText()}"
+                f" | Start: {start_date.date().toString('yyyy-MM-dd')}"
+                f" | End: {end_date.date().toString('yyyy-MM-dd')}"
+            )
+            extra_notes = notes.toPlainText().strip()
+            if extra_notes:
+                detail = f"{detail} | Notes: {extra_notes}"
+
+            try:
+                with DatabaseContext(self.db, auto_commit=True) as cur:
+                    # Store as negative employee expense so payroll and audit
+                    # views can pick it up consistently.
+                    cur.execute(
+                        """
+                        INSERT INTO employee_expenses (
+                            employee_id,
+                            expense_date,
+                            amount,
+                            category,
+                            subcategory,
+                            description,
+                            is_business_expense,
+                            business_percentage,
+                            is_reimbursable,
+                            reimbursement_status,
+                            reimbursed_amount,
+                            submitted_at,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (
+                            %s, %s, %s, %s, %s, %s,
+                            TRUE, 100.00, FALSE, 'not_applicable',
+                            NULL, NOW(), NOW(), NOW()
+                        )
+                        """,
+                        (
+                            self.employee_id,
+                            deduct_date.date().toPyDate(),
+                            -abs(amount.value()),
+                            "Custom Deduction",
+                            deduction_type.currentText(),
+                            detail,
+                        ),
+                    )
+
+                QMessageBox.information(
+                    dialog,
+                    "Success",
+                    "Custom deduction saved.",
+                )
+                dialog.accept()
+                self.load_employee_data()
+            except Exception as e:
+                logger.error(f"Failed to save custom deduction: {e}")
+                QMessageBox.critical(
+                    dialog, "Error", f"Failed to save deduction: {e}"
+                )
+
+        save_btn.clicked.connect(save_deduction)
+        cancel_btn.clicked.connect(dialog.reject)
+        btn_layout.addWidget(save_btn)
+        btn_layout.addWidget(cancel_btn)
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(layout)
+        main_layout.addLayout(btn_layout)
+        dialog.setLayout(main_layout)
+        dialog.exec()
 
     @pyqtSlot()
     def issue_float(self) -> None:
@@ -3090,17 +3531,431 @@ Date: _______________             Date: _______________
 
     @pyqtSlot()
     def return_float(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Return cash float dialog (to be implemented)"
+        if not self.employee_id:
+            QMessageBox.warning(
+                self, "No Employee", "Load an employee first."
+            )
+            return
+
+        row = self.float_table.currentRow()
+        if row < 0:
+            QMessageBox.warning(
+                self,
+                "No Selection",
+                "Select an active float to return.",
+            )
+            return
+
+        date_item = self.float_table.item(row, 0)
+        float_id = (
+            date_item.data(Qt.ItemDataRole.UserRole)
+            if date_item is not None
+            else None
         )
+        if not float_id:
+            QMessageBox.warning(
+                self,
+                "Unavailable",
+                "Selected float does not include a database ID.",
+            )
+            return
+
+        issued_item = self.float_table.item(row, 1)
+        issued_text = issued_item.text() if issued_item else "$0.00"
+        try:
+            issued_amount = float(
+                issued_text.replace("$", "").replace(",", "")
+            )
+        except Exception:
+            issued_amount = 0.0
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Return Cash Float")
+        layout = QFormLayout()
+
+        return_date = StandardDateEdit(prefer_month_text=True)
+        return_date.setDisplayFormat("MM/dd/yyyy")
+        return_date.setDate(QDate.currentDate())
+        return_date.setCalendarPopup(True)
+
+        returned_amount = QDoubleSpinBox()
+        returned_amount.setMaximum(10000.00)
+        returned_amount.setDecimals(2)
+        returned_amount.setPrefix("$")
+        returned_amount.setValue(max(0.0, issued_amount))
+
+        notes = QTextEdit()
+        notes.setMaximumHeight(80)
+
+        layout.addRow("Return Date:", return_date)
+        layout.addRow("Returned Amount:", returned_amount)
+        layout.addRow("Notes:", notes)
+
+        btn_layout = QHBoxLayout()
+        save_btn = QPushButton("Record Return")
+        cancel_btn = QPushButton("Cancel")
+
+        def save_return() -> None:
+            cols = self._driver_float_columns()
+            if not cols:
+                QMessageBox.critical(
+                    dialog,
+                    "Schema Error",
+                    "Could not inspect driver_floats columns.",
+                )
+                return
+
+            set_parts = []
+            params = []
+
+            if "returned_date" in cols:
+                set_parts.append("returned_date = %s")
+                params.append(return_date.date().toPyDate())
+
+            if "returned_amount" in cols:
+                set_parts.append("returned_amount = %s")
+                params.append(returned_amount.value())
+
+            if "spent_amount" in cols:
+                spent = max(0.0, issued_amount - returned_amount.value())
+                set_parts.append("spent_amount = %s")
+                params.append(spent)
+
+            if "outstanding_balance" in cols:
+                outstanding = max(0.0, issued_amount - returned_amount.value())
+                set_parts.append("outstanding_balance = %s")
+                params.append(outstanding)
+
+            if "status" in cols:
+                set_parts.append("status = %s")
+                set_parts_value = "returned"
+                params.append(set_parts_value)
+
+            if "notes" in cols:
+                set_parts.append("notes = COALESCE(notes, '') || %s")
+                note_text = notes.toPlainText().strip()
+                append_note = (
+                    f"\n[Float Return {datetime.now():%Y-%m-%d %H:%M}]"
+                    f" Returned ${returned_amount.value():,.2f}"
+                    + (f" | {note_text}" if note_text else "")
+                )
+                params.append(append_note)
+
+            if "updated_at" in cols:
+                set_parts.append("updated_at = NOW()")
+
+            if not set_parts:
+                QMessageBox.critical(
+                    dialog,
+                    "Schema Error",
+                    "No updatable columns found for float return.",
+                )
+                return
+
+            query = (
+                "UPDATE driver_floats SET "
+                + ", ".join(set_parts)
+                + " WHERE float_id = %s"
+            )
+            params.append(int(float_id))
+
+            try:
+                with DatabaseContext(self.db, auto_commit=True) as cur:
+                    cur.execute(query, tuple(params))
+                QMessageBox.information(
+                    dialog,
+                    "Success",
+                    "Float return recorded.",
+                )
+                dialog.accept()
+                self.load_employee_data()
+            except Exception as e:
+                logger.error(f"Failed to return float: {e}")
+                QMessageBox.critical(
+                    dialog, "Error", f"Failed to return float: {e}"
+                )
+
+        save_btn.clicked.connect(save_return)
+        cancel_btn.clicked.connect(dialog.reject)
+        btn_layout.addWidget(save_btn)
+        btn_layout.addWidget(cancel_btn)
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(layout)
+        main_layout.addLayout(btn_layout)
+        dialog.setLayout(main_layout)
+        dialog.exec()
 
     @pyqtSlot()
     def submit_receipts(self) -> None:
-        QMessageBox.information(
-            self,
-            "Info",
-            "Submit receipts for float dialog (to be implemented)",
+        if not self.employee_id:
+            QMessageBox.warning(
+                self, "No Employee", "Load an employee first."
+            )
+            return
+
+        row = self.float_table.currentRow()
+        if row < 0:
+            QMessageBox.warning(
+                self,
+                "No Selection",
+                "Select a float record first.",
+            )
+            return
+
+        date_item = self.float_table.item(row, 0)
+        float_id = (
+            date_item.data(Qt.ItemDataRole.UserRole)
+            if date_item is not None
+            else None
         )
+        if not float_id:
+            QMessageBox.warning(
+                self,
+                "Unavailable",
+                "Selected float does not include a database ID.",
+            )
+            return
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Float Receipt",
+            "",
+            "Images/PDF (*.jpg *.jpeg *.png *.pdf);;All Files (*)",
+        )
+        if not file_path:
+            return
+
+        cols = self._driver_float_columns()
+        if not cols:
+            QMessageBox.critical(
+                self,
+                "Schema Error",
+                "Could not inspect driver_floats columns.",
+            )
+            return
+
+        set_parts = []
+        params = []
+
+        if "notes" in cols:
+            set_parts.append("notes = COALESCE(notes, '') || %s")
+            params.append(
+                f"\n[Receipt {datetime.now():%Y-%m-%d %H:%M}] {file_path}"
+            )
+
+        if "status" in cols:
+            set_parts.append("status = %s")
+            params.append("reconciled")
+
+        if "updated_at" in cols:
+            set_parts.append("updated_at = NOW()")
+
+        if not set_parts:
+            QMessageBox.critical(
+                self,
+                "Schema Error",
+                "No compatible columns available to store receipt submission.",
+            )
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    "UPDATE driver_floats SET "
+                    + ", ".join(set_parts)
+                    + " WHERE float_id = %s",
+                    tuple(params + [int(float_id)]),
+                )
+            QMessageBox.information(
+                self,
+                "Receipt Submitted",
+                "Receipt reference saved to float record.",
+            )
+            self.load_employee_data()
+        except Exception as e:
+            logger.error(f"Failed to submit float receipt: {e}")
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to submit receipt: {e}",
+            )
+
+    def _driver_float_columns(self) -> set[str]:
+        """Return available columns for driver_floats table."""
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = 'driver_floats'
+                    """
+                )
+                return {str(r[0]) for r in (cur.fetchall() or []) if r}
+        except Exception as e:
+            logger.error("Failed to inspect driver_floats columns: %s", e)
+            return set()
+
+    def _load_float_records(self) -> None:
+        """Load float history into the floats table using available schema."""
+        self.float_table.setRowCount(0)
+        if not self.employee_id:
+            return
+
+        cols = self._driver_float_columns()
+        if not cols:
+            return
+
+        issued_date_col = (
+            "issued_date" if "issued_date" in cols else "float_date"
+        )
+        issued_amount_col = (
+            "issued_amount" if "issued_amount" in cols else "amount_issued"
+        )
+
+        select_parts = ["float_id", issued_date_col, issued_amount_col]
+        select_parts.append(
+            "COALESCE(purpose, '') AS purpose"
+            if "purpose" in cols
+            else "'' AS purpose"
+        )
+        select_parts.append(
+            "returned_date" if "returned_date" in cols else "NULL AS returned_date"
+        )
+        select_parts.append(
+            "returned_amount" if "returned_amount" in cols else "NULL AS returned_amount"
+        )
+        select_parts.append(
+            "outstanding_balance"
+            if "outstanding_balance" in cols
+            else "NULL AS outstanding_balance"
+        )
+        select_parts.append(
+            "COALESCE(status, '') AS status"
+            if "status" in cols
+            else "'' AS status"
+        )
+        select_parts.append(
+            "COALESCE(notes, '') AS notes"
+            if "notes" in cols
+            else "'' AS notes"
+        )
+
+        query = (
+            "SELECT "
+            + ", ".join(select_parts)
+            + " FROM driver_floats WHERE employee_id = %s "
+            + f"ORDER BY {issued_date_col} DESC, float_id DESC"
+        )
+
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(query, (self.employee_id,))
+                rows = cur.fetchall() or []
+
+            self.float_table.setRowCount(len(rows))
+            for i, (
+                float_id,
+                issued_date,
+                issued_amount,
+                purpose,
+                returned_date,
+                returned_amount,
+                outstanding_balance,
+                status,
+                notes,
+            ) in enumerate(rows):
+                date_item = QTableWidgetItem(
+                    str(issued_date) if issued_date else ""
+                )
+                date_item.setData(Qt.ItemDataRole.UserRole, int(float_id))
+                self.float_table.setItem(i, 0, date_item)
+                self.float_table.setItem(
+                    i,
+                    1,
+                    QTableWidgetItem(f"${float(issued_amount or 0):,.2f}"),
+                )
+                self.float_table.setItem(
+                    i, 2, QTableWidgetItem(str(purpose or ""))
+                )
+                self.float_table.setItem(
+                    i,
+                    3,
+                    QTableWidgetItem(str(returned_date) if returned_date else ""),
+                )
+
+                receipts_flag = "Yes" if "[Receipt" in str(notes or "") else "No"
+                self.float_table.setItem(i, 4, QTableWidgetItem(receipts_flag))
+
+                variance = 0.0
+                if returned_amount is not None:
+                    variance = float(issued_amount or 0) - float(returned_amount or 0)
+                elif outstanding_balance is not None:
+                    variance = float(outstanding_balance or 0)
+                self.float_table.setItem(i, 5, QTableWidgetItem(f"${variance:,.2f}"))
+                self.float_table.setItem(i, 6, QTableWidgetItem(str(status or "")))
+        except Exception as e:
+            logger.error(f"Failed to load float records: {e}")
+
+    def _load_custom_deductions(self) -> None:
+        """Load custom deductions table from employee_expenses records."""
+        self.custom_deduct_table.setRowCount(0)
+        if not self.employee_id:
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        COALESCE(subcategory, ''),
+                        ABS(COALESCE(amount, 0)),
+                        COALESCE(description, ''),
+                        expense_date
+                    FROM employee_expenses
+                    WHERE employee_id = %s
+                      AND (
+                        COALESCE(category, '') ILIKE 'Custom Deduction'
+                        OR COALESCE(category, '') ILIKE 'Deduction'
+                        OR COALESCE(description, '') ILIKE 'Custom deduction%'
+                      )
+                    ORDER BY expense_date DESC, expense_id DESC
+                    LIMIT 100
+                    """,
+                    (self.employee_id,),
+                )
+                rows = cur.fetchall() or []
+
+            self.custom_deduct_table.setRowCount(len(rows))
+            for i, (ded_type, amount, description, start_date) in enumerate(rows):
+                freq = "One-time"
+                end_date = ""
+                desc_text = str(description or "")
+                for token in ["Weekly", "Biweekly", "Monthly", "One-time"]:
+                    if f"Frequency: {token}" in desc_text:
+                        freq = token
+                        break
+                marker = "| End: "
+                if marker in desc_text:
+                    end_date = desc_text.split(marker, 1)[1].split("|", 1)[0].strip()
+
+                self.custom_deduct_table.setItem(
+                    i, 0, QTableWidgetItem(str(ded_type or "Custom"))
+                )
+                self.custom_deduct_table.setItem(
+                    i, 1, QTableWidgetItem(f"${float(amount or 0):,.2f}")
+                )
+                self.custom_deduct_table.setItem(i, 2, QTableWidgetItem(freq))
+                self.custom_deduct_table.setItem(
+                    i,
+                    3,
+                    QTableWidgetItem(str(start_date) if start_date else ""),
+                )
+                self.custom_deduct_table.setItem(i, 4, QTableWidgetItem(end_date))
+        except Exception as e:
+            logger.error(f"Failed to load custom deductions: {e}")
 
     @pyqtSlot()
     def add_expense(self) -> None:
