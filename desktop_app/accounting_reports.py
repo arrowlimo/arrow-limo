@@ -5,6 +5,7 @@ Vehicle Performance, Driver Cost, Fleet Maintenance, P&L Summary.
 """
 
 import logging
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from common_widgets import StandardDateEdit
@@ -12,20 +13,34 @@ from db_error_handling import DatabaseContext
 from multi_date_filter_builder import MultiDateFilterBuilder
 from PyQt6.QtCore import QDate
 from PyQt6.QtWidgets import (
+    QButtonGroup,
     QCheckBox,
     QComboBox,
+    QDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QRadioButton,
+    QTabWidget,
     QTableWidget,
     QTableWidgetItem,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 from reporting_base import BaseReportWidget
+import accounting_report_helpers
+
+try:
+    import plotly.express as px
+
+    PLOTLY_AVAILABLE = True
+except Exception:
+    px = None
+    PLOTLY_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 _normalized_gl_view_initialized = False
@@ -357,7 +372,7 @@ class IncomeExpenseGroupedWidget(BaseReportWidget, _DateRangeMixin):
         start, end = self._date_range()
 
         with DatabaseContext(self.db, auto_commit=False) as cur:
-            if not _ensure_normalized_general_ledger_view(cur):
+            if not accounting_report_helpers._ensure_normalized_general_ledger_view(cur):
                 return []
 
             cur.execute(
@@ -453,13 +468,13 @@ class PersonalExpenseWidget(BaseReportWidget, _DateRangeMixin):
 
 
 class DavidLoanAccountingWidget(BaseReportWidget, _DateRangeMixin):
-    """David loan in/out ledger from categorized e-transfers."""
+    """RPL / related-party advance ledger from categorized e-transfers."""
 
     def __init__(self, db) -> None:
         self.detail_columns = [
             {"header": "Date", "key": "transaction_date"},
             {"header": "Direction", "key": "direction"},
-            {"header": "Flow", "key": "david_loan_flow"},
+            {"header": "RPL Flow", "key": "david_loan_flow"},
             {"header": "Amount", "key": "amount",
                 "format": lambda v: f"${v:,.2f}"},
             {"header": "Signed", "key": "signed_amount",
@@ -485,7 +500,7 @@ class DavidLoanAccountingWidget(BaseReportWidget, _DateRangeMixin):
         BaseReportWidget.__init__(
             self,
             db,
-            "David Loan Accounting",
+            "RPL / Related Party Reconciliation",
             self.detail_columns,
         )
         layout: QVBoxLayout = self.layout()
@@ -517,41 +532,75 @@ class DavidLoanAccountingWidget(BaseReportWidget, _DateRangeMixin):
         if self.columns != columns:
             self.set_columns(columns)
 
-    def _has_required_columns(self, cur) -> bool:
+    def _get_etransfer_columns(self, cur) -> set[str]:
         cur.execute(
             """
             SELECT column_name
             FROM information_schema.columns
             WHERE table_schema = 'public'
               AND table_name = 'etransfer_transactions'
-              AND column_name IN (
-                  'david_loan_flow', 'gl_account_code', 'category')
             """
         )
-        cols = {row[0] for row in cur.fetchall()}
-        return {"david_loan_flow", "gl_account_code",
-                "category"}.issubset(cols)
+        return {row[0] for row in cur.fetchall()}
 
-    def _fetch_detail_rows(self, cur, start, end) -> list[dict[str, Any]]:
+    def _has_required_columns(self, et_cols: set[str]) -> bool:
+        base = {"transaction_date", "direction", "amount"}
+        has_scope = "gl_account_code" in et_cols or "category" in et_cols
+        return base.issubset(et_cols) and has_scope
+
+    def _fetch_detail_rows(
+        self, cur, start, end, et_cols: set[str]
+    ) -> list[dict[str, Any]]:
+        has_gl_code = "gl_account_code" in et_cols
+        has_flow = "david_loan_flow" in et_cols
+        has_category = "category" in et_cols
+
+        gl_expr = (
+            "COALESCE(et.gl_account_code, '')"
+            if has_gl_code
+            else "'2550'"
+        )
+        flow_expr = (
+            "CASE "
+            "WHEN COALESCE(NULLIF(et.david_loan_flow, ''), '') IN "
+            "('DAVID_LOAN_IN', 'POOL_REPAYMENT_IN') "
+            "THEN 'RPL_REPAYMENT_IN' "
+            "WHEN COALESCE(NULLIF(et.david_loan_flow, ''), '') IN "
+            "('DAVID_LOAN_OUT', 'POOL_ADVANCE_OUT') "
+            "THEN 'RPL_ADVANCE_OUT' "
+            "WHEN UPPER(COALESCE(et.direction, '')) = 'IN' "
+            "THEN 'RPL_REPAYMENT_IN' ELSE 'RPL_ADVANCE_OUT' END"
+            if has_flow
+            else "CASE WHEN UPPER(COALESCE(et.direction, '')) = 'IN' "
+            "THEN 'RPL_REPAYMENT_IN' ELSE 'RPL_ADVANCE_OUT' END"
+        )
+
+        where_clauses = ["et.transaction_date BETWEEN %s AND %s"]
+        params: list[object] = [start, end]
+        if has_gl_code and has_category:
+            where_clauses.append("(et.gl_account_code = '2550' OR et.category = 'loan_payment')")
+        elif has_gl_code:
+            where_clauses.append("et.gl_account_code = '2550'")
+        else:
+            where_clauses.append("et.category = 'loan_payment'")
+        where_sql = " AND ".join(where_clauses)
+
         cur.execute(
-            """
+            f"""
             SELECT et.etransfer_id,
                    et.transaction_date,
                    et.direction,
-                   et.david_loan_flow,
+                   {flow_expr} AS david_loan_flow,
                    COALESCE(et.amount, 0) AS amount,
-                   COALESCE(et.gl_account_code, '') AS gl_account_code,
+                   {gl_expr} AS gl_account_code,
                    COALESCE(bt.description, '') AS description
             FROM etransfer_transactions et
-            JOIN banking_transactions bt
+            LEFT JOIN banking_transactions bt
             ON bt.transaction_id = et.banking_transaction_id
-            WHERE et.transaction_date BETWEEN %s AND %s
-              AND et.category = 'loan_payment'
-              AND et.gl_account_code = '2550'
-              AND et.david_loan_flow IN ('DAVID_LOAN_IN', 'DAVID_LOAN_OUT')
+            WHERE {where_sql}
             ORDER BY et.transaction_date ASC, et.etransfer_id ASC
             """,
-            (start, end),
+            tuple(params),
         )
         rows = cur.fetchall()
 
@@ -559,13 +608,14 @@ class DavidLoanAccountingWidget(BaseReportWidget, _DateRangeMixin):
         output: list[dict[str, Any]] = []
         for row in rows:
             amount = float(row[4] or 0)
-            signed = amount if row[2] == "IN" else -amount
+            direction = str(row[2] or "OUT").upper()
+            signed = amount if direction == "IN" else -amount
             running_balance += signed
             output.append(
                 {
                     "etransfer_id": row[0],
                     "transaction_date": str(row[1]),
-                    "direction": row[2],
+                    "direction": direction,
                     "david_loan_flow": row[3],
                     "amount": amount,
                     "signed_amount": round(signed, 2),
@@ -578,28 +628,40 @@ class DavidLoanAccountingWidget(BaseReportWidget, _DateRangeMixin):
         output.reverse()
         return output
 
-    def _fetch_monthly_rows(self, cur, start, end) -> list[dict[str, Any]]:
+    def _fetch_monthly_rows(
+        self, cur, start, end, et_cols: set[str]
+    ) -> list[dict[str, Any]]:
+        has_gl_code = "gl_account_code" in et_cols
+        has_category = "category" in et_cols
+
+        where_clauses = ["et.transaction_date BETWEEN %s AND %s"]
+        params: list[object] = [start, end]
+        if has_gl_code and has_category:
+            where_clauses.append("(et.gl_account_code = '2550' OR et.category = 'loan_payment')")
+        elif has_gl_code:
+            where_clauses.append("et.gl_account_code = '2550'")
+        else:
+            where_clauses.append("et.category = 'loan_payment'")
+        where_sql = " AND ".join(where_clauses)
+
         cur.execute(
-            """
+            f"""
             SELECT DATE_TRUNC('month', et.transaction_date) AS period,
                    COUNT(*) AS txn_count,
                    COALESCE(SUM(
-                       CASE WHEN et.direction = 'IN'
+                       CASE WHEN UPPER(COALESCE(et.direction, '')) = 'IN'
                            THEN et.amount ELSE 0
                        END), 0) AS in_total,
                    COALESCE(SUM(
-                       CASE WHEN et.direction = 'OUT'
+                       CASE WHEN UPPER(COALESCE(et.direction, '')) = 'OUT'
                            THEN et.amount ELSE 0
                        END), 0) AS out_total
             FROM etransfer_transactions et
-            WHERE et.transaction_date BETWEEN %s AND %s
-              AND et.category = 'loan_payment'
-              AND et.gl_account_code = '2550'
-              AND et.david_loan_flow IN ('DAVID_LOAN_IN', 'DAVID_LOAN_OUT')
+            WHERE {where_sql}
             GROUP BY period
             ORDER BY period ASC
             """,
-            (start, end),
+            tuple(params),
         )
         rows = cur.fetchall()
 
@@ -631,12 +693,13 @@ class DavidLoanAccountingWidget(BaseReportWidget, _DateRangeMixin):
     def fetch_rows(self) -> list[dict[str, Any]]:
         start, end = self._date_range()
         with DatabaseContext(self.db, auto_commit=False) as cur:
-            if not self._has_required_columns(cur):
+            et_cols = self._get_etransfer_columns(cur)
+            if not self._has_required_columns(et_cols):
                 return []
 
             if self._is_monthly_mode():
-                return self._fetch_monthly_rows(cur, start, end)
-            return self._fetch_detail_rows(cur, start, end)
+                return self._fetch_monthly_rows(cur, start, end, et_cols)
+            return self._fetch_detail_rows(cur, start, end, et_cols)
 
 
 class ReconciliationStatusWidget(BaseReportWidget, _DateRangeMixin):
@@ -1233,7 +1296,7 @@ class GeneralLedgerWidget(BaseReportWidget, _DateRangeMixin):
         gl_codes = self._parse_gl_filter()
 
         with DatabaseContext(self.db, auto_commit=False) as cur:
-            if not _ensure_normalized_general_ledger_view(cur):
+            if not accounting_report_helpers._ensure_normalized_general_ledger_view(cur):
                 return []
 
             gl_params: list = [start, end]
@@ -1323,7 +1386,7 @@ class TrialBalanceWidget(BaseReportWidget, _DateRangeMixin):
         _, end = self._date_range()
 
         with DatabaseContext(self.db, auto_commit=False) as cur:
-            if not _ensure_normalized_general_ledger_view(cur):
+            if not accounting_report_helpers._ensure_normalized_general_ledger_view(cur):
                 return []
 
             cur.execute(
@@ -1381,7 +1444,7 @@ class BalanceSheetWidget(BaseReportWidget, _DateRangeMixin):
         _, end = self._date_range()
 
         with DatabaseContext(self.db, auto_commit=False) as cur:
-            if not _ensure_normalized_general_ledger_view(cur):
+            if not accounting_report_helpers._ensure_normalized_general_ledger_view(cur):
                 return []
 
             cur.execute(
@@ -1579,7 +1642,7 @@ class YearEndCloseWidget(BaseReportWidget, _DateRangeMixin):
         start, end = self._date_range()
 
         with DatabaseContext(self.db, auto_commit=False) as cur:
-            if not _ensure_normalized_general_ledger_view(cur):
+            if not accounting_report_helpers._ensure_normalized_general_ledger_view(cur):
                 return {
                     "start": start,
                     "end": end,
@@ -2314,7 +2377,7 @@ class LedgerIntegrityWidget(BaseReportWidget, _DateRangeMixin):
         _, end = self._date_range()
 
         with DatabaseContext(self.db, auto_commit=False) as cur:
-            if not _ensure_normalized_general_ledger_view(cur):
+            if not accounting_report_helpers._ensure_normalized_general_ledger_view(cur):
                 return []
 
             cur.execute(
@@ -2532,7 +2595,7 @@ class JournalExplorerWidget(BaseReportWidget, _DateRangeMixin):
     def fetch_rows(self) -> list[dict[str, Any]]:
         start, end = self._date_range()
         with DatabaseContext(self.db, auto_commit=False) as cur:
-            if not _ensure_normalized_general_ledger_view(cur):
+            if not accounting_report_helpers._ensure_normalized_general_ledger_view(cur):
                 return [{
                     "date": "N/A",
                     "transaction_type": "Info",
@@ -2660,7 +2723,7 @@ class PLSummaryWidget(BaseReportWidget, _DateRangeMixin):
         start, end = self._date_range()
 
         with DatabaseContext(self.db, auto_commit=False) as cur:
-            if not _ensure_normalized_general_ledger_view(cur):
+            if not accounting_report_helpers._ensure_normalized_general_ledger_view(cur):
                 return []
 
             cur.execute(
@@ -2716,7 +2779,7 @@ class PLCategoryWidget(BaseReportWidget, _DateRangeMixin):
         start, end = self._date_range()
 
         with DatabaseContext(self.db, auto_commit=False) as cur:
-            if not _ensure_normalized_general_ledger_view(cur):
+            if not accounting_report_helpers._ensure_normalized_general_ledger_view(cur):
                 return []
 
             cur.execute(
@@ -2826,11 +2889,11 @@ class VehiclePerformanceWidget(BaseReportWidget, _DateRangeMixin):
                 SELECT vehicle_id,
                        COALESCE(SUM(gross_amount), 0) AS expense,
                        COALESCE(SUM(
-                           CASE WHEN description ILIKE '%maint%'
+                           CASE WHEN description ILIKE '%%maint%%'
                            THEN gross_amount ELSE 0
                            END), 0) AS maintenance,
                        COALESCE(SUM(
-                           CASE WHEN description ILIKE '%insur%'
+                           CASE WHEN description ILIKE '%%insur%%'
                            THEN gross_amount ELSE 0
                            END), 0) AS insurance
                 FROM receipts
@@ -2940,16 +3003,18 @@ class DriverRevenueVsPayWidget(BaseReportWidget, _DateRangeMixin):
         start, end = self._date_range()
 
         with DatabaseContext(self.db, auto_commit=False) as cur:
-            # Revenue from charters
+            # Revenue from income ledger linked back to charters.
             cur.execute(
                 """
-                SELECT assigned_driver_id,
-                       COALESCE(SUM(total_amount_due), 0) AS revenue,
-                       COUNT(*) AS trips
-                FROM charters
-                WHERE charter_date BETWEEN %s AND %s
-                  AND assigned_driver_id IS NOT NULL
-                GROUP BY assigned_driver_id
+                SELECT COALESCE(c.assigned_driver_id, c.employee_id) AS driver_id,
+                       COALESCE(SUM(il.gross_amount), 0) AS revenue,
+                       COUNT(DISTINCT il.charter_id) AS trips
+                FROM income_ledger il
+                JOIN charters c ON c.charter_id = il.charter_id
+                WHERE il.transaction_date BETWEEN %s AND %s
+                  AND il.source_system = 'charter_payments'
+                  AND COALESCE(c.assigned_driver_id, c.employee_id) IS NOT NULL
+                GROUP BY COALESCE(c.assigned_driver_id, c.employee_id)
                 """,
                 (start, end),)
             rev_map = {int(r[0] or 0): {"revenue": float(r[1] or 0),
@@ -3035,20 +3100,20 @@ class FleetMaintenanceWidget(BaseReportWidget, _DateRangeMixin):
                 """
                 SELECT vehicle_id,
                        COALESCE(SUM(
-                           CASE WHEN description ILIKE '%maint%'
+                           CASE WHEN description ILIKE '%%maint%%'
                            THEN gross_amount ELSE 0
                            END), 0) AS maintenance,
                        COALESCE(SUM(
-                           CASE WHEN description ILIKE '%repair%'
+                           CASE WHEN description ILIKE '%%repair%%'
                            THEN gross_amount ELSE 0
                            END), 0) AS repairs,
                        COALESCE(SUM(
-                           CASE WHEN description ILIKE '%insur%'
+                           CASE WHEN description ILIKE '%%insur%%'
                            THEN gross_amount ELSE 0
                            END), 0) AS insurance,
                        COALESCE(SUM(
-                           CASE WHEN description ILIKE '%damage%'
-                           OR description ILIKE '%claim%'
+                           CASE WHEN description ILIKE '%%damage%%'
+                           OR description ILIKE '%%claim%%'
                            THEN gross_amount ELSE 0
                            END), 0) AS damage,
                        COALESCE(SUM(gross_amount), 0) AS total_expense
@@ -3185,10 +3250,10 @@ class VehicleDamageWidget(BaseReportWidget, _DateRangeMixin):
                        COALESCE(SUM(gross_amount), 0) AS damage_total
                 FROM receipts
                 WHERE receipt_date BETWEEN %s AND %s
-                  AND (description ILIKE '%damage%'
-                       OR description ILIKE '%claim%'
-                       OR description ILIKE '%collision%'
-                       OR description ILIKE '%accident%')
+                  AND (description ILIKE '%%damage%%'
+                       OR description ILIKE '%%claim%%'
+                       OR description ILIKE '%%collision%%'
+                       OR description ILIKE '%%accident%%')
                 GROUP BY vehicle_id
                 ORDER BY damage_total DESC
                 """,
@@ -3249,6 +3314,494 @@ class DriverMonthlyCostWidget(BaseReportWidget, _DateRangeMixin):
                             r[5] or 0), } for r in rows]
 
 
+class WeeklyOperatingDashboardWidget(BaseReportWidget):
+    """Year/month/week drill-down for charter revenue versus operating cost."""
+
+    def __init__(self, db) -> None:
+        self.db = db
+        self._selected_year = QDate.currentDate().year()
+        self._granularity = "weekly"
+        columns = self._columns_for_mode(self._granularity)
+        BaseReportWidget.__init__(self, db, "Weekly Operating Breakdown", columns)
+        controls = self._build_controls()
+        self.layout().insertLayout(1, controls)
+        self.refresh()
+
+    def _build_controls(self) -> QHBoxLayout:
+        row = QHBoxLayout()
+        row.addWidget(QLabel("View:"))
+        self.granularity_combo = QComboBox()
+        self.granularity_combo.addItem("Yearly", "yearly")
+        self.granularity_combo.addItem("Monthly", "monthly")
+        self.granularity_combo.addItem("Weekly", "weekly")
+        weekly_idx = self.granularity_combo.findData("weekly")
+        self.granularity_combo.setCurrentIndex(weekly_idx if weekly_idx >= 0 else 0)
+        self.granularity_combo.currentIndexChanged.connect(self._on_controls_changed)
+        row.addWidget(self.granularity_combo)
+
+        row.addWidget(QLabel("Year:"))
+        self.year_combo = QComboBox()
+        for year in self._available_years():
+            self.year_combo.addItem(str(year), year)
+        year_idx = self.year_combo.findData(self._selected_year)
+        if year_idx >= 0:
+            self.year_combo.setCurrentIndex(year_idx)
+        self.year_combo.currentIndexChanged.connect(self._on_controls_changed)
+        row.addWidget(self.year_combo)
+
+        apply_btn = QPushButton("Apply")
+        apply_btn.clicked.connect(self.refresh)
+        row.addWidget(apply_btn)
+
+        chart_btn = QPushButton("📈 View Charts")
+        chart_btn.clicked.connect(self.show_chart_preview)
+        row.addWidget(chart_btn)
+        row.addStretch()
+        return row
+
+    def _available_years(self) -> list[int]:
+        years: list[int] = []
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT DISTINCT EXTRACT(YEAR FROM payment_date)::int
+                    FROM charter_payments
+                    WHERE payment_date IS NOT NULL
+                    ORDER BY 1
+                    """
+                )
+                years = [row[0] for row in cur.fetchall() if row[0] is not None]
+        except Exception:
+            years = []
+        return years or [QDate.currentDate().year()]
+
+    def _on_controls_changed(self) -> None:
+        if hasattr(self, "year_combo"):
+            self._selected_year = int(self.year_combo.currentData() or self._selected_year)
+        if hasattr(self, "granularity_combo"):
+            self._granularity = str(self.granularity_combo.currentData() or self._granularity)
+        self.set_columns(self._columns_for_mode(self._granularity))
+        self.refresh()
+
+    def _columns_for_mode(self, mode: str) -> list[dict[str, Any]]:
+        period_header = {
+            "yearly": "Year",
+            "monthly": "Month",
+            "weekly": "Week",
+        }.get(mode, "Period")
+        money = lambda value: f"${float(value or 0):,.2f}"
+        return [
+            {"header": period_header, "key": "period"},
+            {"header": "Revenue", "key": "revenue", "format": money},
+            {"header": "Driver Gross", "key": "driver_gross", "format": money},
+            {"header": "Driver Net", "key": "driver_net", "format": money},
+            {"header": "Insurance", "key": "insurance", "format": money},
+            {"header": "Lease", "key": "lease_vehicle", "format": money},
+            {"header": "Financing", "key": "financing_liability", "format": money},
+            {"header": "Fuel/Oil", "key": "fuel_oil", "format": money},
+            {"header": "Maintenance", "key": "maintenance", "format": money},
+            {"header": "Beverages", "key": "client_beverages", "format": money},
+            {"header": "Bank Fees", "key": "bank_fees_interest", "format": money},
+            {"header": "NSF Net", "key": "nsf_net_effect", "format": money},
+            {"header": "Operating Cash", "key": "op_cash_ex_financing", "format": money},
+            {"header": "Operating Gross", "key": "op_gross_ex_financing", "format": money},
+            {"header": "Margin Cash", "key": "margin_cash_ex_financing", "format": money},
+            {"header": "Margin Gross", "key": "margin_gross_ex_financing", "format": money},
+        ]
+
+    def _fetch_weekly_engine_rows(self, year: int) -> list[Any]:
+        from scripts.generate_weekly_operating_breakdown import _fetch_weekly_rows
+
+        return _fetch_weekly_rows(year)
+
+    def _row_to_dict(self, label: str, row: Any) -> dict[str, Any]:
+        return {
+            "period": label,
+            "revenue": float(row.charter_revenue),
+            "driver_gross": float(row.driver_pay_gross),
+            "driver_net": float(row.driver_pay_net),
+            "insurance": float(row.insurance),
+            "lease_vehicle": float(row.lease_vehicle),
+            "financing_liability": float(row.financing_liability),
+            "fuel_oil": float(row.fuel_oil),
+            "maintenance": float(row.maintenance),
+            "client_beverages": float(row.client_beverages),
+            "bank_fees_interest": float(row.bank_fees_interest),
+            "nsf_net_effect": float(row.nsf_net_effect),
+            "op_cash_ex_financing": float(row.total_operating_cash_ex_financing),
+            "op_gross_ex_financing": float(row.total_operating_gross_ex_financing),
+            "margin_cash_ex_financing": float(row.margin_after_cash_ex_financing),
+            "margin_gross_ex_financing": float(row.margin_after_gross_ex_financing),
+        }
+
+    def _aggregate_rows(self, yearly_rows: list[Any], mode: str) -> list[dict[str, Any]]:
+        if mode == "weekly":
+            return [
+                self._row_to_dict(
+                    f"{row.week_start.isoformat()} to {row.week_end.isoformat()}", row
+                )
+                for row in yearly_rows
+            ]
+
+        buckets: dict[str, dict[str, Decimal]] = defaultdict(
+            lambda: defaultdict(lambda: Decimal("0"))
+        )
+        for row in yearly_rows:
+            if mode == "monthly":
+                label = row.week_start.strftime("%Y-%m")
+            else:
+                label = row.week_start.strftime("%Y")
+            bucket = buckets[label]
+            bucket["revenue"] += row.charter_revenue
+            bucket["driver_gross"] += row.driver_pay_gross
+            bucket["driver_net"] += row.driver_pay_net
+            bucket["insurance"] += row.insurance
+            bucket["lease_vehicle"] += row.lease_vehicle
+            bucket["financing_liability"] += row.financing_liability
+            bucket["fuel_oil"] += row.fuel_oil
+            bucket["maintenance"] += row.maintenance
+            bucket["client_beverages"] += row.client_beverages
+            bucket["bank_fees_interest"] += row.bank_fees_interest
+            bucket["nsf_net_effect"] += row.nsf_net_effect
+            bucket["op_cash_ex_financing"] += row.total_operating_cash_ex_financing
+            bucket["op_gross_ex_financing"] += row.total_operating_gross_ex_financing
+            bucket["margin_cash_ex_financing"] += row.margin_after_cash_ex_financing
+            bucket["margin_gross_ex_financing"] += row.margin_after_gross_ex_financing
+
+        ordered = []
+        for label in sorted(buckets.keys()):
+            row = {"period": label}
+            row.update({key: float(value) for key, value in buckets[label].items()})
+            ordered.append(row)
+        return ordered
+
+    def fetch_rows(self) -> list[dict[str, Any]]:
+        try:
+            mode = getattr(self, "_granularity", "weekly")
+            if mode == "yearly":
+                rows: list[dict[str, Any]] = []
+                for year in self._available_years():
+                    weekly_rows = self._fetch_weekly_engine_rows(year)
+                    rows.extend(self._aggregate_rows(weekly_rows, "yearly"))
+                return rows
+            weekly_rows = self._fetch_weekly_engine_rows(self._selected_year)
+            return self._aggregate_rows(weekly_rows, mode)
+        except Exception:
+            logger.exception("Failed loading weekly operating dashboard")
+            return []
+
+    def _visible_rows(self) -> list[dict[str, Any]]:
+        visible: list[dict[str, Any]] = []
+        for row_idx, row_data in enumerate(self.rows):
+            if row_idx < self.table.rowCount() and not self.table.isRowHidden(row_idx):
+                visible.append(row_data)
+        return visible or self.rows
+
+    def show_chart_preview(self) -> None:
+        if not PLOTLY_AVAILABLE:
+            QMessageBox.warning(
+                self,
+                "Missing Dependency",
+                "Plotly not installed. Chart preview not available.",
+            )
+            return
+        rows = self._visible_rows()
+        if not rows:
+            QMessageBox.warning(self, "No Data", "No rows available for charting")
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Chart Type Selection")
+        dialog.setGeometry(400, 300, 420, 260)
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("Select chart type:"))
+
+        btn_group = QButtonGroup(dialog)
+        compare_radio = QRadioButton("📊 Revenue vs Cost Overview")
+        compare_radio.setChecked(True)
+        pie_radio = QRadioButton("🥧 Cost Mix Pie Chart")
+        btn_group.addButton(compare_radio, 0)
+        btn_group.addButton(pie_radio, 1)
+        layout.addWidget(compare_radio)
+        layout.addWidget(pie_radio)
+        layout.addStretch()
+
+        btn_row = QHBoxLayout()
+        ok_btn = QPushButton("Generate Chart")
+        ok_btn.clicked.connect(dialog.accept)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        btn_row.addWidget(ok_btn)
+        btn_row.addWidget(cancel_btn)
+        layout.addLayout(btn_row)
+        dialog.setLayout(layout)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        chart_type = btn_group.checkedId()
+        try:
+            if chart_type == 0:
+                self._show_revenue_vs_cost_chart(rows)
+            else:
+                self._show_cost_mix_pie(rows)
+        except Exception as exc:
+            QMessageBox.critical(self, "Chart Error", f"Could not build chart:\n{exc}")
+
+    def _show_revenue_vs_cost_chart(self, rows: list[dict[str, Any]]) -> None:
+        labels = [str(row.get("period", "")) for row in rows]
+        fig = px.bar(
+            x=labels,
+            y=[
+                [float(row.get("revenue", 0) or 0) for row in rows],
+                [float(row.get("op_cash_ex_financing", 0) or 0) for row in rows],
+                [float(row.get("op_gross_ex_financing", 0) or 0) for row in rows],
+            ],
+            barmode="group",
+            labels={"x": "Period", "value": "Amount", "variable": "Series"},
+        )
+        fig.data[0].name = "Revenue"
+        fig.data[1].name = "Op Cost Cash"
+        fig.data[2].name = "Op Cost Gross"
+        fig.update_layout(title=f"Operating Overview - {self._selected_year}")
+        fig.show()
+
+    def _show_cost_mix_pie(self, rows: list[dict[str, Any]]) -> None:
+        totals = {
+            "Insurance": sum(float(row.get("insurance", 0) or 0) for row in rows),
+            "Lease": sum(float(row.get("lease_vehicle", 0) or 0) for row in rows),
+            "Financing": sum(float(row.get("financing_liability", 0) or 0) for row in rows),
+            "Fuel/Oil": sum(float(row.get("fuel_oil", 0) or 0) for row in rows),
+            "Maintenance": sum(float(row.get("maintenance", 0) or 0) for row in rows),
+            "Beverages": sum(float(row.get("client_beverages", 0) or 0) for row in rows),
+            "Bank Fees": sum(float(row.get("bank_fees_interest", 0) or 0) for row in rows),
+            "NSF Net": sum(float(row.get("nsf_net_effect", 0) or 0) for row in rows),
+        }
+        totals = {key: value for key, value in totals.items() if abs(value) > 0.005}
+        if not totals:
+            QMessageBox.information(self, "No Cost Mix", "No cost totals available for the selected view")
+            return
+        fig = px.pie(
+            names=list(totals.keys()),
+            values=list(totals.values()),
+            title=f"Cost Mix - {self._selected_year}",
+        )
+        fig.show()
+
+    def open_drill_down_dialog(self, index) -> None:
+        row = index.row()
+        if row < 0 or row >= len(self.rows):
+            return
+        row_data = self.rows[row]
+        period = str(row_data.get("period", ""))
+        try:
+            start_date, end_date = self._period_bounds(period)
+        except Exception as exc:
+            QMessageBox.warning(self, "Drill-Down", f"Could not resolve period:\n{exc}")
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Operating Breakdown Detail - {period}")
+        dialog.resize(1100, 700)
+        layout = QVBoxLayout(dialog)
+
+        summary = QTextEdit()
+        summary.setReadOnly(True)
+        summary.setMaximumHeight(120)
+        summary.setPlainText(
+            "\n".join(
+                [
+                    f"Period: {period}",
+                    f"Revenue: ${float(row_data.get('revenue', 0) or 0):,.2f}",
+                    f"Operating Cash ex Financing: ${float(row_data.get('op_cash_ex_financing', 0) or 0):,.2f}",
+                    f"Operating Gross ex Financing: ${float(row_data.get('op_gross_ex_financing', 0) or 0):,.2f}",
+                    f"Margin Cash ex Financing: ${float(row_data.get('margin_cash_ex_financing', 0) or 0):,.2f}",
+                    f"Margin Gross ex Financing: ${float(row_data.get('margin_gross_ex_financing', 0) or 0):,.2f}",
+                ]
+            )
+        )
+        layout.addWidget(summary)
+
+        tabs = QTabWidget()
+        layout.addWidget(tabs)
+        tabs.addTab(
+            self._detail_table(
+                ["Date", "Client", "Amount", "Method"],
+                self._fetch_charter_payment_details(start_date, end_date),
+            ),
+            "Revenue",
+        )
+        tabs.addTab(
+            self._detail_table(
+                ["Date", "Vendor", "Amount", "GL", "Method"],
+                self._fetch_receipt_details(start_date, end_date),
+            ),
+            "Receipts",
+        )
+        tabs.addTab(
+            self._detail_table(
+                ["Date", "Employee", "Gross", "Net", "WCB"],
+                self._fetch_payroll_details(start_date, end_date),
+            ),
+            "Driver Pay",
+        )
+        tabs.addTab(
+            self._detail_table(
+                ["Date", "Description", "Debit", "Credit", "Kind"],
+                self._fetch_bank_only_details(start_date, end_date),
+            ),
+            "Banking",
+        )
+
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        layout.addWidget(close_btn)
+        dialog.exec()
+
+    def _period_bounds(self, period: str) -> tuple[date, date]:
+        mode = getattr(self, "_granularity", "weekly")
+        if mode == "yearly":
+            year = int(period[:4])
+            return date(year, 1, 1), date(year + 1, 1, 1)
+        if mode == "monthly":
+            year, month = period.split("-")[:2]
+            year_i = int(year)
+            month_i = int(month)
+            if month_i == 12:
+                return date(year_i, month_i, 1), date(year_i + 1, 1, 1)
+            return date(year_i, month_i, 1), date(year_i, month_i + 1, 1)
+        start_text, end_text = [part.strip() for part in period.split("to")]
+        start_date = datetime.fromisoformat(start_text).date()
+        end_date = datetime.fromisoformat(end_text).date() + timedelta(days=1)
+        return start_date, end_date
+
+    def _detail_table(self, headers: list[str], rows: list[list[str]]) -> QWidget:
+        table = QTableWidget()
+        table.setColumnCount(len(headers))
+        table.setHorizontalHeaderLabels(headers)
+        table.setRowCount(len(rows))
+        for row_idx, row in enumerate(rows):
+            for col_idx, value in enumerate(row):
+                table.setItem(row_idx, col_idx, QTableWidgetItem(str(value)))
+        table.resizeColumnsToContents()
+        return table
+
+    def _fetch_charter_payment_details(self, start_date: date, end_date: date) -> list[list[str]]:
+        rows: list[list[str]] = []
+        with DatabaseContext(self.db, auto_commit=False) as cur:
+            cur.execute(
+                """
+                SELECT payment_date, COALESCE(client_name, ''), COALESCE(amount, 0), COALESCE(payment_method, '')
+                FROM charter_payments
+                WHERE payment_date >= %s AND payment_date < %s
+                ORDER BY payment_date, id
+                """,
+                (start_date, end_date),
+            )
+            for payment_date, client_name, amount, payment_method in cur.fetchall():
+                rows.append([
+                    str(payment_date),
+                    client_name,
+                    f"${float(amount or 0):,.2f}",
+                    payment_method,
+                ])
+        return rows
+
+    def _fetch_receipt_details(self, start_date: date, end_date: date) -> list[list[str]]:
+        rows: list[list[str]] = []
+        with DatabaseContext(self.db, auto_commit=False) as cur:
+            cur.execute(
+                """
+                SELECT receipt_date, COALESCE(vendor_name, ''), COALESCE(gross_amount, 0),
+                       COALESCE(gl_account_code, ''), COALESCE(payment_method, '')
+                FROM receipts
+                WHERE receipt_date >= %s AND receipt_date < %s
+                  AND COALESCE(gross_amount, 0) > 0
+                  AND COALESCE(is_voided, FALSE) = FALSE
+                  AND COALESCE(exclude_from_reports, FALSE) = FALSE
+                ORDER BY receipt_date, receipt_id
+                """,
+                (start_date, end_date),
+            )
+            for receipt_date, vendor_name, amount, gl_code, payment_method in cur.fetchall():
+                rows.append([
+                    str(receipt_date),
+                    vendor_name,
+                    f"${float(amount or 0):,.2f}",
+                    gl_code,
+                    payment_method,
+                ])
+        return rows
+
+    def _fetch_payroll_details(self, start_date: date, end_date: date) -> list[list[str]]:
+        rows: list[list[str]] = []
+        with DatabaseContext(self.db, auto_commit=False) as cur:
+            cur.execute(
+                """
+                SELECT dp.pay_date, COALESCE(e.full_name, ''), COALESCE(dp.gross_pay, 0),
+                       COALESCE(dp.net_pay, 0), COALESCE(dp.wcb_payment, 0)
+                FROM driver_payroll dp
+                LEFT JOIN employees e ON e.employee_id = dp.employee_id
+                WHERE dp.pay_date >= %s AND dp.pay_date < %s
+                ORDER BY dp.pay_date, dp.id
+                """,
+                (start_date, end_date),
+            )
+            for pay_date, employee_name, gross_pay, net_pay, wcb_payment in cur.fetchall():
+                rows.append([
+                    str(pay_date),
+                    employee_name,
+                    f"${float(gross_pay or 0):,.2f}",
+                    f"${float(net_pay or 0):,.2f}",
+                    f"${float(wcb_payment or 0):,.2f}",
+                ])
+        return rows
+
+    def _fetch_bank_only_details(self, start_date: date, end_date: date) -> list[list[str]]:
+        rows: list[list[str]] = []
+        with DatabaseContext(self.db, auto_commit=False) as cur:
+            cur.execute(
+                """
+                SELECT bt.transaction_date,
+                       COALESCE(bt.description, ''),
+                       COALESCE(bt.debit_amount, 0),
+                       COALESCE(bt.credit_amount, 0),
+                       CASE
+                           WHEN COALESCE(bt.is_nsf_charge, FALSE) = TRUE
+                                OR COALESCE(bt.description, '') ILIKE '%%nsf%%'
+                               THEN 'NSF'
+                           ELSE 'Fee/Interest'
+                       END AS kind
+                FROM banking_transactions bt
+                WHERE bt.transaction_date >= %s AND bt.transaction_date < %s
+                  AND (
+                        COALESCE(bt.description, '') ILIKE '%%fee%%'
+                     OR COALESCE(bt.description, '') ILIKE '%%service charge%%'
+                     OR COALESCE(bt.description, '') ILIKE '%%interest%%'
+                     OR COALESCE(bt.description, '') ILIKE '%%nsf%%'
+                     OR COALESCE(bt.is_nsf_charge, FALSE) = TRUE
+                  )
+                  AND COALESCE(bt.receipt_id, 0) = 0
+                  AND COALESCE(bt.reconciled_receipt_id, 0) = 0
+                  AND NOT EXISTS (
+                        SELECT 1 FROM receipt_banking_links rbl WHERE rbl.transaction_id = bt.transaction_id
+                  )
+                ORDER BY bt.transaction_date, bt.transaction_id
+                """,
+                (start_date, end_date),
+            )
+            for tx_date, description, debit_amount, credit_amount, kind in cur.fetchall():
+                rows.append([
+                    str(tx_date),
+                    description,
+                    f"${float(debit_amount or 0):,.2f}",
+                    f"${float(credit_amount or 0):,.2f}",
+                    kind,
+                ])
+        return rows
+
+
 class GIFIMappingWidget(QWidget):
     """
     Manage GL->GIFI code mappings used by T2 auto-fill.
@@ -3297,7 +3850,7 @@ class GIFIMappingWidget(QWidget):
         hdr.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         hdr.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.setMinimumHeight(450)
+        self.table.setMinimumHeight(320)
         layout.addWidget(self.table)
 
         btn_row = QHBoxLayout()

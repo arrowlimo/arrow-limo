@@ -5,6 +5,7 @@ assignments, costs
 """
 
 import logging
+import os
 
 from common_widgets import StandardDateEdit
 from db_error_handling import DatabaseContext
@@ -1127,6 +1128,10 @@ class VehicleDetailDialog(QDialog):
 
             # Load maintenance records
             self.load_maintenance_data()
+            self.load_fuel_data()
+            self.load_claims_data()
+            self.load_accident_data()
+            self.load_inspection_data()
 
             # Load compliance data
             self.load_compliance_data()
@@ -1251,8 +1256,8 @@ class VehicleDetailDialog(QDialog):
                     mr.activity_type_id = mat.activity_type_id
                     WHERE mr.vehicle_id = %s
                     AND (
-                        mat.activity_name ILIKE '%oil%'
-                        OR mr.notes ILIKE '%oil%'
+                        mat.activity_name ILIKE '%%oil%%'
+                        OR mr.notes ILIKE '%%oil%%'
                     )
                     AND mr.status = 'completed'
                     ORDER BY mr.service_date DESC
@@ -1554,14 +1559,93 @@ class VehicleDetailDialog(QDialog):
 
     # ===== STUB METHODS =====
     def retire_vehicle(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Retire vehicle process (to be implemented)"
+        if not self.vehicle_id:
+            QMessageBox.warning(
+                self, "Warning", "Please save the vehicle first."
+            )
+            return
+
+        vehicle_label = self.vehicle_num.text().strip() or str(self.vehicle_id)
+        reply = QMessageBox.question(
+            self,
+            "Confirm Retire",
+            f"Retire vehicle {vehicle_label}? This will mark it as decommissioned and inactive.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    UPDATE vehicles
+                    SET operational_status = 'retired',
+                        is_active = FALSE,
+                        lifecycle_status = 'decommissioned',
+                        decommission_date = COALESCE(decommission_date, CURRENT_DATE)
+                    WHERE vehicle_id = %s
+                """,
+                    (self.vehicle_id,),
+                )
+
+            self.operational_status.setCurrentText("retired")
+            self.is_active.setChecked(False)
+            if not self.decommission_date.date().isValid():
+                self.decommission_date.setDate(QDate.currentDate())
+            QMessageBox.information(self, "Success", "Vehicle retired successfully.")
+            self.load_vehicle_data()
+        except Exception as e:
+            logger.error(f"Failed to retire vehicle: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to retire vehicle: {e}")
 
     def sell_vehicle(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Sell vehicle process (to be implemented)"
+        if not self.vehicle_id:
+            QMessageBox.warning(
+                self, "Warning", "Please save the vehicle first."
+            )
+            return
+
+        sale_dt = (
+            self.sale_date.date().toPyDate()
+            if self.sale_date.date().isValid()
+            else QDate.currentDate().toPyDate()
         )
+        sale_amount = self.sale_price.value() if self.sale_price.value() > 0 else None
+        vehicle_label = self.vehicle_num.text().strip() or str(self.vehicle_id)
+
+        reply = QMessageBox.question(
+            self,
+            "Confirm Sale",
+            f"Mark vehicle {vehicle_label} as sold?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    UPDATE vehicles
+                    SET operational_status = 'sold',
+                        is_active = FALSE,
+                        lifecycle_status = 'sold',
+                        sale_date = %s,
+                        sale_price = %s
+                    WHERE vehicle_id = %s
+                """,
+                    (sale_dt, sale_amount, self.vehicle_id),
+                )
+
+            self.operational_status.setCurrentText("sold")
+            self.is_active.setChecked(False)
+            self.sale_date.setDate(QDate(sale_dt.year, sale_dt.month, sale_dt.day))
+            QMessageBox.information(self, "Success", "Vehicle marked as sold.")
+            self.load_vehicle_data()
+        except Exception as e:
+            logger.error(f"Failed to mark vehicle sold: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to mark vehicle sold: {e}")
 
     def add_maintenance(self) -> None:
         """Add a new maintenance record"""
@@ -1657,25 +1741,605 @@ class VehicleDetailDialog(QDialog):
         except Exception:
             logger.exception("Failed to load maintenance data")
 
+    def _ensure_vehicle_drilldown_tables(self) -> None:
+        """Create local drill-down tables used by claims/accidents/inspections."""
+        with DatabaseContext(self.db, auto_commit=True) as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS vehicle_drilldown_claims (
+                    claim_id SERIAL PRIMARY KEY,
+                    vehicle_id INTEGER NOT NULL,
+                    claim_date DATE NOT NULL,
+                    claim_number VARCHAR(100),
+                    claim_type VARCHAR(100),
+                    amount NUMERIC(12,2),
+                    status VARCHAR(40),
+                    notes TEXT,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS vehicle_drilldown_accidents (
+                    accident_id SERIAL PRIMARY KEY,
+                    vehicle_id INTEGER NOT NULL,
+                    accident_date DATE NOT NULL,
+                    driver_name VARCHAR(200),
+                    accident_type VARCHAR(100),
+                    severity VARCHAR(40),
+                    fault_status VARCHAR(40),
+                    repair_cost NUMERIC(12,2),
+                    status VARCHAR(40),
+                    notes TEXT,
+                    photo_path TEXT,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS vehicle_drilldown_inspections (
+                    inspection_id SERIAL PRIMARY KEY,
+                    vehicle_id INTEGER NOT NULL,
+                    inspection_date DATE NOT NULL,
+                    inspection_type VARCHAR(100),
+                    result VARCHAR(40),
+                    inspector VARCHAR(200),
+                    next_due_date DATE,
+                    certificate_number VARCHAR(120),
+                    notes TEXT,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """
+            )
+
+    def _vehicle_fuel_columns(self) -> set[str]:
+        if not self.vehicle_id:
+            return set()
+        with DatabaseContext(self.db, auto_commit=False) as cur:
+            cur.execute(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'vehicle_fuel_log'
+            """
+            )
+            return {str(name) for (name,) in cur.fetchall()}
+
+    def load_fuel_data(self) -> None:
+        if not self.vehicle_id:
+            return
+
+        self.fuel_table.setRowCount(0)
+        self.avg_efficiency.setText("Avg: 0.0 L/100km")
+        self.total_fuel_cost.setText("Total Cost: $0.00")
+        self.last_fillup.setText("Last Fill: Never")
+
+        try:
+            columns = self._vehicle_fuel_columns()
+            if not columns:
+                return
+
+            date_expr = "DATE(recorded_at)" if "recorded_at" in columns else "CURRENT_DATE"
+            odo_expr = "odometer_reading" if "odometer_reading" in columns else "NULL"
+            liters_expr = "liters" if "liters" in columns else "NULL"
+            amount_expr = "amount" if "amount" in columns else "NULL"
+            driver_expr = "recorded_by" if "recorded_by" in columns else "NULL"
+            order_expr = (
+                "recorded_at DESC"
+                if "recorded_at" in columns
+                else "COALESCE(log_id, id) DESC"
+            )
+
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    f"""
+                    SELECT {date_expr} AS logged_date,
+                           {odo_expr} AS odometer_reading,
+                           {liters_expr} AS liters,
+                           {amount_expr} AS amount,
+                           {driver_expr} AS recorded_by
+                    FROM vehicle_fuel_log
+                    WHERE vehicle_id = %s
+                    ORDER BY {order_expr}
+                    LIMIT 200
+                """,
+                    (self.vehicle_id,),
+                )
+                rows = cur.fetchall()
+
+            self.fuel_table.setRowCount(len(rows))
+            total_cost = 0.0
+            total_liters = 0.0
+            for row_idx, (logged_date, odo, liters, amount, driver) in enumerate(rows):
+                liters_val = float(liters or 0)
+                amount_val = float(amount or 0)
+                total_cost += amount_val
+                total_liters += liters_val
+                per_liter = amount_val / liters_val if liters_val > 0 else 0.0
+
+                self.fuel_table.setItem(
+                    row_idx, 0, QTableWidgetItem(str(logged_date or ""))
+                )
+                self.fuel_table.setItem(
+                    row_idx, 1, QTableWidgetItem(str(odo or ""))
+                )
+                self.fuel_table.setItem(
+                    row_idx, 2, QTableWidgetItem(f"{liters_val:,.2f}" if liters_val else "")
+                )
+                self.fuel_table.setItem(
+                    row_idx, 3, QTableWidgetItem(f"${amount_val:,.2f}" if amount_val else "")
+                )
+                self.fuel_table.setItem(
+                    row_idx, 4, QTableWidgetItem(f"${per_liter:,.3f}" if per_liter else "")
+                )
+                self.fuel_table.setItem(row_idx, 5, QTableWidgetItem(""))
+                self.fuel_table.setItem(
+                    row_idx, 6, QTableWidgetItem(str(driver or ""))
+                )
+                self.fuel_table.setItem(row_idx, 7, QTableWidgetItem(""))
+
+            self.total_fuel_cost.setText(f"Total Cost: ${total_cost:,.2f}")
+            if rows:
+                self.last_fillup.setText(f"Last Fill: {rows[0][0]}")
+            if total_liters > 0:
+                self.avg_efficiency.setText("Avg: Recorded")
+
+        except Exception:
+            logger.exception("Failed to load fuel data")
+
+    def load_claims_data(self) -> None:
+        if not self.vehicle_id:
+            return
+
+        self.claims_table.setRowCount(0)
+        try:
+            self._ensure_vehicle_drilldown_tables()
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT claim_date, claim_number, claim_type,
+                           amount, status, notes
+                    FROM vehicle_drilldown_claims
+                    WHERE vehicle_id = %s
+                    ORDER BY claim_date DESC, claim_id DESC
+                """,
+                    (self.vehicle_id,),
+                )
+                rows = cur.fetchall()
+
+            self.claims_table.setRowCount(len(rows))
+            for row_idx, (claim_date, claim_no, claim_type, amount, status, notes) in enumerate(rows):
+                self.claims_table.setItem(row_idx, 0, QTableWidgetItem(str(claim_date or "")))
+                self.claims_table.setItem(row_idx, 1, QTableWidgetItem(str(claim_no or "")))
+                self.claims_table.setItem(row_idx, 2, QTableWidgetItem(str(claim_type or "")))
+                self.claims_table.setItem(row_idx, 3, QTableWidgetItem(f"${float(amount or 0):,.2f}"))
+                self.claims_table.setItem(row_idx, 4, QTableWidgetItem(str(status or "")))
+                self.claims_table.setItem(row_idx, 5, QTableWidgetItem(str(notes or "")))
+        except Exception:
+            logger.exception("Failed to load insurance claims")
+
+    def load_accident_data(self) -> None:
+        if not self.vehicle_id:
+            return
+
+        self.accident_table.setRowCount(0)
+        self._accident_photo_paths = {}
+        try:
+            self._ensure_vehicle_drilldown_tables()
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT accident_id, accident_date, driver_name,
+                           accident_type, severity, fault_status,
+                           repair_cost, status, photo_path
+                    FROM vehicle_drilldown_accidents
+                    WHERE vehicle_id = %s
+                    ORDER BY accident_date DESC, accident_id DESC
+                """,
+                    (self.vehicle_id,),
+                )
+                rows = cur.fetchall()
+
+            self.accident_table.setRowCount(len(rows))
+            for row_idx, (
+                accident_id,
+                accident_date,
+                driver,
+                accident_type,
+                severity,
+                fault_status,
+                repair_cost,
+                status,
+                photo_path,
+            ) in enumerate(rows):
+                self.accident_table.setItem(row_idx, 0, QTableWidgetItem(str(accident_date or "")))
+                self.accident_table.setItem(row_idx, 1, QTableWidgetItem(str(driver or "")))
+                self.accident_table.setItem(row_idx, 2, QTableWidgetItem(str(accident_type or "")))
+                self.accident_table.setItem(row_idx, 3, QTableWidgetItem(str(severity or "")))
+                self.accident_table.setItem(row_idx, 4, QTableWidgetItem(str(fault_status or "")))
+                self.accident_table.setItem(row_idx, 5, QTableWidgetItem(f"${float(repair_cost or 0):,.2f}"))
+                self.accident_table.setItem(row_idx, 6, QTableWidgetItem(str(status or "")))
+                if photo_path:
+                    self._accident_photo_paths[row_idx] = str(photo_path)
+        except Exception:
+            logger.exception("Failed to load accident data")
+
+    def load_inspection_data(self) -> None:
+        if not self.vehicle_id:
+            return
+
+        self.inspect_table.setRowCount(0)
+        try:
+            self._ensure_vehicle_drilldown_tables()
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT inspection_date, inspection_type, result,
+                           inspector, next_due_date, certificate_number
+                    FROM vehicle_drilldown_inspections
+                    WHERE vehicle_id = %s
+                    ORDER BY inspection_date DESC, inspection_id DESC
+                """,
+                    (self.vehicle_id,),
+                )
+                rows = cur.fetchall()
+
+            self.inspect_table.setRowCount(len(rows))
+            for row_idx, (
+                inspection_date,
+                inspection_type,
+                result,
+                inspector,
+                next_due_date,
+                cert_number,
+            ) in enumerate(rows):
+                self.inspect_table.setItem(row_idx, 0, QTableWidgetItem(str(inspection_date or "")))
+                self.inspect_table.setItem(row_idx, 1, QTableWidgetItem(str(inspection_type or "")))
+                self.inspect_table.setItem(row_idx, 2, QTableWidgetItem(str(result or "")))
+                self.inspect_table.setItem(row_idx, 3, QTableWidgetItem(str(inspector or "")))
+                self.inspect_table.setItem(row_idx, 4, QTableWidgetItem(str(next_due_date or "")))
+                self.inspect_table.setItem(row_idx, 5, QTableWidgetItem(str(cert_number or "")))
+        except Exception:
+            logger.exception("Failed to load inspection data")
+
     def add_fuel(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Add fuel entry (to be implemented)"
-        )
+        if not self.vehicle_id:
+            QMessageBox.warning(
+                self, "Warning", "Please save the vehicle first."
+            )
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Add Fuel Entry")
+        form = QFormLayout(dialog)
+
+        fuel_date = StandardDateEdit(prefer_month_text=True)
+        fuel_date.setCalendarPopup(True)
+        fuel_date.setDate(QDate.currentDate())
+        form.addRow("Date:", fuel_date)
+
+        odometer = QSpinBox()
+        odometer.setMaximum(9_999_999)
+        odometer.setSuffix(" km")
+        odometer.setValue(self.current_odometer.value())
+        form.addRow("Odometer:", odometer)
+
+        liters = QDoubleSpinBox()
+        liters.setMaximum(9999)
+        liters.setDecimals(2)
+        form.addRow("Liters:", liters)
+
+        cost = QDoubleSpinBox()
+        cost.setMaximum(999999)
+        cost.setDecimals(2)
+        cost.setPrefix("$")
+        form.addRow("Total Cost:", cost)
+
+        driver = QLineEdit()
+        form.addRow("Driver:", driver)
+
+        buttons = QHBoxLayout()
+        save_btn = QPushButton("Save")
+        save_btn.clicked.connect(dialog.accept)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        buttons.addStretch()
+        buttons.addWidget(save_btn)
+        buttons.addWidget(cancel_btn)
+        form.addRow(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        liters_val = float(liters.value())
+        cost_val = float(cost.value())
+        if liters_val <= 0 and cost_val <= 0:
+            QMessageBox.warning(
+                self,
+                "Warning",
+                "Enter at least liters or total cost before saving.",
+            )
+            return
+
+        try:
+            columns = self._vehicle_fuel_columns()
+            if not columns:
+                QMessageBox.warning(
+                    self,
+                    "Fuel Log Unavailable",
+                    "vehicle_fuel_log table is not available in this database.",
+                )
+                return
+
+            insert_cols = ["vehicle_id"]
+            insert_vals = [self.vehicle_id]
+
+            if "amount" in columns:
+                insert_cols.append("amount")
+                insert_vals.append(cost_val if cost_val > 0 else None)
+            if "liters" in columns:
+                insert_cols.append("liters")
+                insert_vals.append(liters_val if liters_val > 0 else None)
+            if "odometer_reading" in columns:
+                insert_cols.append("odometer_reading")
+                insert_vals.append(int(odometer.value()) if odometer.value() > 0 else None)
+            if "recorded_at" in columns:
+                insert_cols.append("recorded_at")
+                insert_vals.append(fuel_date.date().toPyDate())
+            if "recorded_by" in columns:
+                insert_cols.append("recorded_by")
+                insert_vals.append(driver.text().strip() or None)
+
+            placeholders = ", ".join(["%s"] * len(insert_cols))
+            col_sql = ", ".join(insert_cols)
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    f"INSERT INTO vehicle_fuel_log ({col_sql}) VALUES ({placeholders})",
+                    tuple(insert_vals),
+                )
+
+            self.current_odometer.setValue(odometer.value())
+            self.load_fuel_data()
+            QMessageBox.information(self, "Success", "Fuel entry saved.")
+        except Exception as e:
+            logger.error(f"Failed to add fuel entry: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to add fuel entry: {e}")
 
     def add_claim(self) -> None:
-        QMessageBox.information(
-            self, "Info", "File insurance claim (to be implemented)"
-        )
+        if not self.vehicle_id:
+            QMessageBox.warning(
+                self, "Warning", "Please save the vehicle first."
+            )
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("File Insurance Claim")
+        form = QFormLayout(dialog)
+
+        claim_date = StandardDateEdit(prefer_month_text=True)
+        claim_date.setCalendarPopup(True)
+        claim_date.setDate(QDate.currentDate())
+        form.addRow("Claim Date:", claim_date)
+
+        claim_number = QLineEdit()
+        form.addRow("Claim #:", claim_number)
+
+        claim_type = QComboBox()
+        claim_type.addItems(["collision", "comprehensive", "liability", "other"])
+        form.addRow("Type:", claim_type)
+
+        amount = QDoubleSpinBox()
+        amount.setMaximum(9_999_999)
+        amount.setDecimals(2)
+        amount.setPrefix("$")
+        form.addRow("Amount:", amount)
+
+        status = QComboBox()
+        status.addItems(["open", "pending", "closed", "paid"])
+        form.addRow("Status:", status)
+
+        notes = QTextEdit()
+        notes.setMaximumHeight(100)
+        form.addRow("Notes:", notes)
+
+        buttons = QHBoxLayout()
+        save_btn = QPushButton("Save")
+        save_btn.clicked.connect(dialog.accept)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        buttons.addStretch()
+        buttons.addWidget(save_btn)
+        buttons.addWidget(cancel_btn)
+        form.addRow(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        try:
+            self._ensure_vehicle_drilldown_tables()
+            amount_val = float(amount.value()) if amount.value() > 0 else None
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO vehicle_drilldown_claims
+                    (vehicle_id, claim_date, claim_number, claim_type,
+                     amount, status, notes)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                    (
+                        self.vehicle_id,
+                        claim_date.date().toPyDate(),
+                        claim_number.text().strip() or None,
+                        claim_type.currentText(),
+                        amount_val,
+                        status.currentText(),
+                        notes.toPlainText().strip() or None,
+                    ),
+                )
+                cur.execute(
+                    """
+                    UPDATE vehicle_insurance
+                    SET has_claims = TRUE,
+                        claims_count = COALESCE(claims_count, 0) + 1,
+                        total_claims_amount = COALESCE(total_claims_amount, 0) + %s,
+                        last_claim_date = %s,
+                        updated_at = NOW()
+                    WHERE vehicle_id = %s
+                """,
+                    (
+                        amount_val or 0,
+                        claim_date.date().toPyDate(),
+                        self.vehicle_id,
+                    ),
+                )
+
+            self.load_claims_data()
+            QMessageBox.information(self, "Success", "Insurance claim saved.")
+        except Exception as e:
+            logger.error(f"Failed to save insurance claim: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to save insurance claim: {e}")
 
     def add_accident(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Report accident (to be implemented)"
-        )
+        if not self.vehicle_id:
+            QMessageBox.warning(
+                self, "Warning", "Please save the vehicle first."
+            )
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Report Accident")
+        form = QFormLayout(dialog)
+
+        accident_date = StandardDateEdit(prefer_month_text=True)
+        accident_date.setCalendarPopup(True)
+        accident_date.setDate(QDate.currentDate())
+        form.addRow("Date:", accident_date)
+
+        driver_name = QLineEdit()
+        form.addRow("Driver:", driver_name)
+
+        accident_type = QComboBox()
+        accident_type.addItems(["collision", "backing", "glass", "weather", "other"])
+        form.addRow("Type:", accident_type)
+
+        severity = QComboBox()
+        severity.addItems(["minor", "moderate", "major", "total_loss"])
+        form.addRow("Severity:", severity)
+
+        fault = QComboBox()
+        fault.addItems(["at_fault", "not_at_fault", "unknown"])
+        form.addRow("Fault:", fault)
+
+        repair_cost = QDoubleSpinBox()
+        repair_cost.setMaximum(9_999_999)
+        repair_cost.setDecimals(2)
+        repair_cost.setPrefix("$")
+        form.addRow("Repair Cost:", repair_cost)
+
+        status = QComboBox()
+        status.addItems(["reported", "in_repair", "closed"])
+        form.addRow("Status:", status)
+
+        notes = QTextEdit()
+        notes.setMaximumHeight(100)
+        form.addRow("Notes:", notes)
+
+        photo_path = QLineEdit()
+        photo_btn = QPushButton("Browse Photo")
+
+        def _browse_photo() -> None:
+            path, _ = QFileDialog.getOpenFileName(
+                self,
+                "Select Accident Photo",
+                "",
+                "Images (*.png *.jpg *.jpeg *.bmp *.webp);;All Files (*)",
+            )
+            if path:
+                photo_path.setText(path)
+
+        photo_btn.clicked.connect(_browse_photo)
+        photo_row = QHBoxLayout()
+        photo_row.addWidget(photo_path)
+        photo_row.addWidget(photo_btn)
+        form.addRow("Photo:", photo_row)
+
+        buttons = QHBoxLayout()
+        save_btn = QPushButton("Save")
+        save_btn.clicked.connect(dialog.accept)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        buttons.addStretch()
+        buttons.addWidget(save_btn)
+        buttons.addWidget(cancel_btn)
+        form.addRow(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        try:
+            self._ensure_vehicle_drilldown_tables()
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO vehicle_drilldown_accidents
+                    (vehicle_id, accident_date, driver_name, accident_type,
+                     severity, fault_status, repair_cost, status, notes, photo_path)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                    (
+                        self.vehicle_id,
+                        accident_date.date().toPyDate(),
+                        driver_name.text().strip() or None,
+                        accident_type.currentText(),
+                        severity.currentText(),
+                        fault.currentText(),
+                        float(repair_cost.value()) if repair_cost.value() > 0 else None,
+                        status.currentText(),
+                        notes.toPlainText().strip() or None,
+                        photo_path.text().strip() or None,
+                    ),
+                )
+
+            self.load_accident_data()
+            QMessageBox.information(self, "Success", "Accident report saved.")
+        except Exception as e:
+            logger.error(f"Failed to save accident report: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to save accident report: {e}")
 
     def view_accident_photos(self) -> None:
-        QMessageBox.information(
-            self, "Info", "View accident photos (to be implemented)"
-        )
+        row = self.accident_table.currentRow()
+        if row < 0:
+            QMessageBox.warning(
+                self,
+                "No Selection",
+                "Select an accident record first.",
+            )
+            return
+
+        photo_paths = getattr(self, "_accident_photo_paths", {})
+        photo_path = photo_paths.get(row)
+        if not photo_path:
+            QMessageBox.information(
+                self,
+                "No Photo",
+                "No photo is attached to the selected accident.",
+            )
+            return
+
+        if not os.path.exists(photo_path):
+            QMessageBox.warning(
+                self,
+                "Missing File",
+                f"Photo file not found:\n{photo_path}",
+            )
+            return
+
+        try:
+            os.startfile(photo_path)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Unable to open photo: {e}")
 
     def upload_vehicle_doc(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(self, "Select Document")
@@ -1698,6 +2362,106 @@ class VehicleDetailDialog(QDialog):
         self.view_vehicle_doc()
 
     def add_inspection(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Add inspection record (to be implemented)"
-        )
+        if not self.vehicle_id:
+            QMessageBox.warning(
+                self, "Warning", "Please save the vehicle first."
+            )
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Add Inspection")
+        form = QFormLayout(dialog)
+
+        inspection_date = StandardDateEdit(prefer_month_text=True)
+        inspection_date.setCalendarPopup(True)
+        inspection_date.setDate(QDate.currentDate())
+        form.addRow("Date:", inspection_date)
+
+        inspection_type = QComboBox()
+        inspection_type.addItems(["CVIP", "Safety", "Annual", "Pre-trip", "Other"])
+        form.addRow("Type:", inspection_type)
+
+        result = QComboBox()
+        result.addItems(["pass", "fail", "conditional"])
+        form.addRow("Result:", result)
+
+        inspector = QLineEdit()
+        form.addRow("Inspector:", inspector)
+
+        next_due = StandardDateEdit(prefer_month_text=True)
+        next_due.setCalendarPopup(True)
+        next_due.setDate(QDate.currentDate().addYears(1))
+        form.addRow("Next Due:", next_due)
+
+        cert_number = QLineEdit()
+        form.addRow("Certificate #:", cert_number)
+
+        notes = QTextEdit()
+        notes.setMaximumHeight(100)
+        form.addRow("Notes:", notes)
+
+        buttons = QHBoxLayout()
+        save_btn = QPushButton("Save")
+        save_btn.clicked.connect(dialog.accept)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        buttons.addStretch()
+        buttons.addWidget(save_btn)
+        buttons.addWidget(cancel_btn)
+        form.addRow(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        try:
+            self._ensure_vehicle_drilldown_tables()
+            inspection_dt = inspection_date.date().toPyDate()
+            next_due_dt = next_due.date().toPyDate() if next_due.date().isValid() else None
+            inspection_type_val = inspection_type.currentText()
+            result_val = result.currentText()
+
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO vehicle_drilldown_inspections
+                    (vehicle_id, inspection_date, inspection_type, result,
+                     inspector, next_due_date, certificate_number, notes)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                    (
+                        self.vehicle_id,
+                        inspection_dt,
+                        inspection_type_val,
+                        result_val,
+                        inspector.text().strip() or None,
+                        next_due_dt,
+                        cert_number.text().strip() or None,
+                        notes.toPlainText().strip() or None,
+                    ),
+                )
+
+                if inspection_type_val.upper() == "CVIP":
+                    cur.execute(
+                        """
+                        UPDATE vehicles
+                        SET last_cvip_date = %s,
+                            cvip_expiry_date = %s,
+                            cvip_inspection_number = %s,
+                            cvip_compliance_status = %s
+                        WHERE vehicle_id = %s
+                    """,
+                        (
+                            inspection_dt,
+                            next_due_dt,
+                            cert_number.text().strip() or None,
+                            "current" if result_val == "pass" else "attention_required",
+                            self.vehicle_id,
+                        ),
+                    )
+
+            self.load_inspection_data()
+            self.load_compliance_data()
+            QMessageBox.information(self, "Success", "Inspection record saved.")
+        except Exception as e:
+            logger.error(f"Failed to save inspection record: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to save inspection record: {e}")

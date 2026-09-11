@@ -3968,7 +3968,7 @@ Date: _______________             Date: _______________
                       AND (
                         COALESCE(category, '') ILIKE 'Custom Deduction'
                         OR COALESCE(category, '') ILIKE 'Deduction'
-                        OR COALESCE(description, '') ILIKE 'Custom deduction%'
+                        OR COALESCE(description, '') ILIKE 'Custom deduction%%'
                       )
                     ORDER BY expense_date DESC, expense_id DESC
                     LIMIT 100

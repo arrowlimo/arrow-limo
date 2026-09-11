@@ -12,7 +12,7 @@ import re
 import shutil
 import sys
 import webbrowser
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from PyQt6.QtCore import QDate, Qt
@@ -1249,10 +1249,69 @@ class VehicleManagementWidget(QWidget):
             )
 
     def _needs_repairs(self, vehicle_id: int) -> bool:
-        """Check if vehicle has pending repairs or maintenance due"
-        "(placeholder)"""
+        """Check if vehicle has pending repairs or maintenance due.
 
-        # TODO: Query maintenance table or service history
+        The list view uses existing vehicle maintenance dates/status instead
+        of a separate repair table.
+        """
+
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                has_next_service_due = self._column_exists(
+                    "vehicles", "next_service_due"
+                )
+                has_next_maintenance_date = self._column_exists(
+                    "vehicles", "next_maintenance_date"
+                )
+
+                select_parts = [
+                    "operational_status",
+                    "next_cvip_due",
+                    "last_service_date",
+                ]
+                if has_next_service_due:
+                    select_parts.append("next_service_due")
+                if has_next_maintenance_date:
+                    select_parts.append("next_maintenance_date")
+
+                cur.execute(
+                    f"""
+                    SELECT {', '.join(select_parts)}
+                    FROM vehicles
+                    WHERE vehicle_id = %s
+                    LIMIT 1
+                    """,
+                    (vehicle_id,),
+                )
+                row = cur.fetchone()
+
+            if not row:
+                return False
+
+            values = dict(zip(select_parts, row))
+            status = str(values.get("operational_status") or "").lower()
+            if "maintenance" in status:
+                return True
+
+            today = date.today()
+            warning_window = today + timedelta(days=30)
+
+            for field in ("next_cvip_due", "next_service_due", "next_maintenance_date"):
+                due_date = values.get(field)
+                if due_date and hasattr(due_date, "date"):
+                    due_date = due_date.date()
+                if due_date and due_date <= warning_window:
+                    return True
+
+            last_service = values.get("last_service_date")
+            if last_service and hasattr(last_service, "date"):
+                last_service = last_service.date()
+            if last_service and (today - last_service).days >= 180:
+                return True
+
+        except Exception as e:
+            logger.debug("Maintenance check failed for vehicle %s: %s", vehicle_id, e)
+
         return False
 
     def save_vehicle(self) -> None:
@@ -1469,19 +1528,58 @@ class VehicleManagementWidget(QWidget):
                 )
 
     def load_vehicle_documents(self) -> None:
-        """Load documents for current vehicle (placeholder for future"
-        "implementation)"""
+        """Load documents for current vehicle."""
 
         self.documents_list.clear()
-        if self.current_vehicle_id:
-            # TODO: Implement document storage/retrieval
-            # For now, show placeholder
-            item = QListWidgetItem("📄 Document management coming soon...")
-            item.setForeground(QColor("#999"))
-            self.documents_list.addItem(item)
+        if not self.current_vehicle_id:
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT lease_doc_id, doc_type, original_file_name,
+                    file_path, is_verified
+                    FROM vehicle_lease_documents
+                    WHERE vehicle_id = %s
+                    ORDER BY uploaded_at DESC, lease_doc_id DESC
+                    """,
+                    (self.current_vehicle_id,),
+                )
+                rows = cur.fetchall()
+
+            if not rows:
+                item = QListWidgetItem("No documents uploaded yet.")
+                item.setForeground(QColor("#999"))
+                self.documents_list.addItem(item)
+                return
+
+            for doc_id, doc_type, original_name, file_path, is_verified in rows:
+                label = (
+                    f"[{doc_type or 'document'}]"
+                    f" {original_name or os.path.basename(file_path or '')}"
+                )
+                if is_verified:
+                    label = f"✅ {label}"
+                item = QListWidgetItem(label)
+                item.setData(
+                    Qt.ItemDataRole.UserRole,
+                    {
+                        "lease_doc_id": doc_id,
+                        "file_path": file_path,
+                    },
+                )
+                self.documents_list.addItem(item)
+        except Exception as e:
+            logger.error(f"Failed loading vehicle documents: {e}")
+            QMessageBox.warning(
+                self,
+                "Load Error",
+                f"Failed to load vehicle documents: {e}",
+            )
 
     def upload_documents(self) -> None:
-        """Upload documents for vehicle (placeholder)"""
+        """Upload documents for vehicle."""
         if not self.current_vehicle_id:
             QMessageBox.warning(
                 self,
@@ -1498,30 +1596,163 @@ class VehicleManagementWidget(QWidget):
         )
 
         if files:
-            QMessageBox.information(
-                self,
-                "Upload",
-                f"Selected {len(files)} file(s). Document storage will be"
-                f"implemented in future update.",
-
+            vehicle_folder = self.lease_docs_root / str(
+                self.vehicle_number_input.text().strip()
+                or self.current_vehicle_id
             )
-            # TODO: Implement document storage
+            vehicle_folder.mkdir(parents=True, exist_ok=True)
+
+            try:
+                with DatabaseContext(self.db, auto_commit=True) as cur:
+                    for src in files:
+                        src_path = Path(src)
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        dst_name = f"{timestamp}_{src_path.name}"
+                        dst_path = vehicle_folder / dst_name
+                        shutil.copy2(src_path, dst_path)
+
+                        lower_name = src_path.name.lower()
+                        if "insurance" in lower_name:
+                            doc_type = "insurance_proof"
+                        elif "registration" in lower_name:
+                            doc_type = "registration"
+                        elif "photo" in lower_name or "image" in lower_name:
+                            doc_type = "vehicle_photo"
+                        else:
+                            doc_type = "vehicle_document"
+
+                        cur.execute(
+                            """
+                            INSERT INTO vehicle_lease_documents (
+                                vehicle_id,
+                                lease_id,
+                                doc_type,
+                                original_file_name,
+                                file_path,
+                                is_required,
+                                is_verified
+                            )
+                            VALUES (
+                                %s,
+                                (SELECT lease_id FROM vehicle_lease_profiles
+                                WHERE vehicle_id = %s),
+                                %s,
+                                %s,
+                                %s,
+                                %s,
+                                %s
+                            )
+                            """,
+                            (
+                                self.current_vehicle_id,
+                                self.current_vehicle_id,
+                                doc_type,
+                                src_path.name,
+                                str(dst_path),
+                                False,
+                                False,
+                            ),
+                        )
+
+                QMessageBox.information(
+                    self,
+                    "Upload Complete",
+                    f"Uploaded {len(files)} document(s).",
+                )
+                self.load_vehicle_documents()
+            except Exception as e:
+                logger.error(f"Failed to upload vehicle documents: {e}")
+                QMessageBox.critical(
+                    self,
+                    "Upload Error",
+                    f"Failed to upload vehicle documents: {e}",
+                )
 
     def view_document(self) -> None:
-        """View selected document (placeholder)"""
-        QMessageBox.information(
-            self,
-            "View Document",
-            "Document viewing will be implemented in future update.",
-        )
+        """Open selected document using the OS default handler."""
+        item = self.documents_list.currentItem()
+        if not item:
+            QMessageBox.warning(
+                self, "No Selection", "Select a document to open."
+            )
+            return
+
+        data = item.data(Qt.ItemDataRole.UserRole) or {}
+        file_path = data.get("file_path") if isinstance(data, dict) else None
+        if not file_path:
+            QMessageBox.warning(
+                self, "Unavailable", "Selected row does not contain a file."
+            )
+            return
+        if not os.path.exists(file_path):
+            QMessageBox.warning(
+                self, "Missing File", f"File not found:\n{file_path}"
+            )
+            return
+
+        try:
+            os.startfile(file_path)
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Open Error", f"Could not open file:\n{e}"
+            )
 
     def delete_document(self) -> None:
-        """Delete selected document (placeholder)"""
-        QMessageBox.information(
+        """Delete selected document record and local file."""
+        item = self.documents_list.currentItem()
+        if not item:
+            QMessageBox.warning(
+                self, "No Selection", "Select a document to remove."
+            )
+            return
+
+        data = item.data(Qt.ItemDataRole.UserRole) or {}
+        if not isinstance(data, dict):
+            QMessageBox.warning(
+                self,
+                "Unavailable",
+                "Selected row does not contain a removable document.",
+            )
+            return
+
+        lease_doc_id = data.get("lease_doc_id")
+        file_path = data.get("file_path")
+        if not lease_doc_id:
+            QMessageBox.warning(
+                self,
+                "Unavailable",
+                "Selected row does not contain a removable document.",
+            )
+            return
+
+        reply = QMessageBox.question(
             self,
-            "Delete Document",
-            "Document deletion will be implemented in future update.",
+            "Confirm Delete",
+            "Delete selected document?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    "DELETE FROM vehicle_lease_documents WHERE lease_doc_id = %s",
+                    (lease_doc_id,),
+                )
+
+            if file_path and os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception as _e:
+                    logger.debug("Suppressed: %s", _e)
+
+            self.load_vehicle_documents()
+        except Exception as e:
+            logger.error(f"Failed deleting document: {e}")
+            QMessageBox.critical(
+                self, "Delete Error", f"Failed to remove document: {e}"
+            )
 
     def _clear_lease_fields(self) -> None:
         self.lease_status_input.setCurrentText("active")
@@ -4471,11 +4702,11 @@ style="color:{'#e74c3c' if missing_gst_count else '#27ae60'}">
                     FROM receipts r
                     WHERE r.vendor_account_id IN (
                         SELECT account_id FROM vendor_accounts 
-                        WHERE canonical_vendor ILIKE '%lease%'
-                           OR canonical_vendor ILIKE '%rent%'
+                        WHERE canonical_vendor ILIKE '%%lease%%'
+                           OR canonical_vendor ILIKE '%%rent%%'
                     )
-                    AND r.receipt_date >= COALESCE(%s, '2010-01-01')
-                    AND r.receipt_date <= COALESCE(%s, NOW())
+                    AND r.receipt_date >= COALESCE(%s::date, '2010-01-01'::date)
+                    AND r.receipt_date <= COALESCE(%s::date, NOW()::date)
                     AND (
                         r.banking_transaction_id IS NOT NULL
                         OR r.is_paper_verified = TRUE

@@ -20,6 +20,7 @@ Usage:
 """
 
 import os
+import logging
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
@@ -32,6 +33,8 @@ from psycopg2.extras import RealDictCursor
 
 _env_path = Path(__file__).resolve().parents[1] / ".env"
 load_dotenv(dotenv_path=_env_path, override=False)
+
+logger = logging.getLogger(__name__)
 
 
 class AIFunctionRegistry:
@@ -199,8 +202,8 @@ class AIFunctionRegistry:
         """
         Generate monthly financial summary for revenue, expenses, and GST.
 
-        Revenue is cash received from charter_payments for the month, net of
-        refunds/negative rows. Do not use charters.total_amount_due for this.
+        Revenue is sourced from income_ledger rows linked to charter_payments.
+        Do not use charters.total_amount_due or raw banking credits for this.
 
         Args:
             year: Year (e.g., 2024)
@@ -220,17 +223,18 @@ class AIFunctionRegistry:
         try:
             cur = self._get_cursor()
 
-            # Revenue must come from actual collected charter payments, net of
-            # refunds.
+            # Revenue must come from the canonical income ledger, not charters
+            # or raw banking credits.
             cur.execute(
                 """
                 SELECT
                     COUNT(DISTINCT charter_id) as charter_count,
                     COUNT(*) as payment_count,
-                    COALESCE(SUM(amount), 0) as total_revenue
-                FROM charter_payments
-                WHERE EXTRACT(YEAR FROM payment_date) = %s
-                    AND EXTRACT(MONTH FROM payment_date) = %s
+                    COALESCE(SUM(gross_amount), 0) as total_revenue
+                FROM income_ledger
+                WHERE EXTRACT(YEAR FROM transaction_date) = %s
+                    AND EXTRACT(MONTH FROM transaction_date) = %s
+                    AND source_system = 'charter_payments'
             """,
                 (year, month),
             )
@@ -276,12 +280,12 @@ class AIFunctionRegistry:
                 "charter_count": charter_count,
                 "payment_count": payment_count,
                 "receipt_count": receipt_count,
-                "revenue_basis": "charter_payments net cash received",
+                "revenue_basis": "income_ledger charter_payments",
                 "notes": [
-                    "Revenue is sourced from charter_payments, not"
-                    "charters.total_amount_due.",
-                    "Refunds and reversals reduce revenue through negative"
-                    "payment rows.",
+                    "Revenue is sourced from income_ledger, not"
+                    "charters.total_amount_due or banking credits.",
+                    "Income ledger rows already carry reversal and refund"
+                    "adjustments.",
                 ],
             }
 
@@ -347,11 +351,11 @@ class AIFunctionRegistry:
             try:
                 cur.execute(
                     """
-                    SELECT COALESCE(SUM(amount), 0) as wcb_paid
+                    SELECT COALESCE(SUM(gross_amount), 0) as wcb_paid
                     FROM receipts
                     WHERE EXTRACT(YEAR FROM receipt_date) = EXTRACT(YEAR FROM
                     %s::date)
-                        AND vendor_name ILIKE '%WCB%'
+                        AND vendor_name ILIKE '%%WCB%%'
                 """,
                     (start_date,),
                 )
