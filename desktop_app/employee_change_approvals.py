@@ -67,6 +67,18 @@ DATE_FIELDS = {
 # employee_training_records instead of a single profile field.
 TRAINING_PREFIX = "training:"
 
+# Mirrors employee_training_records_status_check. Anything outside this set
+# is refused before it reaches the database, because an approval batch runs
+# in one transaction and a CHECK violation would abort every other change
+# the administrator authorized alongside it.
+TRAINING_STATUSES = {
+    "not_started",
+    "in_progress",
+    "completed",
+    "expired",
+    "waived",
+}
+
 
 def _parse_training_value(raw):
     try:
@@ -556,7 +568,13 @@ class EmployeeChangeApprovalsWidget(QWidget):
             return True
 
         status = record.get("status") or "not_started"
+        if status not in TRAINING_STATUSES:
+            return False
         if status == "completed" and not record.get("completed_date"):
+            return False
+        started = record.get("started_date")
+        completed = record.get("completed_date")
+        if started and completed and completed < started:
             return False
 
         cur.execute(
@@ -589,14 +607,24 @@ class EmployeeChangeApprovalsWidget(QWidget):
         expiry = cur.fetchone()
 
         # A completion is permanent proof of training, so it is also appended
-        # to the history table that survives catalogue edits.
+        # to the history table that survives catalogue edits. Re-approving the
+        # same completion must not duplicate that proof, so the completion
+        # date keys the row; a genuine annual renewal has a different date and
+        # is still recorded separately.
         if status == "completed":
             cur.execute(
                 """
                 INSERT INTO employee_training_history
                     (employee_id, program_id, completed_date, expiry_date,
-                     trainer_name, score, notes)
-                VALUES (%s, %s, %s::date, %s, %s, %s, %s)
+                     trainer_name, score, notes, recorded_by_username)
+                VALUES (%s, %s, %s::date, %s, %s, %s, %s, %s)
+                ON CONFLICT (employee_id, program_id, completed_date)
+                DO UPDATE SET
+                    expiry_date          = EXCLUDED.expiry_date,
+                    trainer_name         = EXCLUDED.trainer_name,
+                    score                = EXCLUDED.score,
+                    notes                = EXCLUDED.notes,
+                    recorded_by_username = EXCLUDED.recorded_by_username
                 """,
                 (
                     employee_id,
@@ -606,6 +634,7 @@ class EmployeeChangeApprovalsWidget(QWidget):
                     record.get("trainer_name"),
                     record.get("score"),
                     record.get("notes"),
+                    self._reviewer,
                 ),
             )
         return True
