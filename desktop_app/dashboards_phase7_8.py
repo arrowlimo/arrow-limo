@@ -1040,9 +1040,9 @@ class CharterManagementDashboardWidget(BaseReportWidget):
                         c.charter_id, c.reserve_number, c.employee_id,
                         c.charter_date, c.total_amount_due,
                         COALESCE(c.driver_hours_worked, 0) as charter_hours,
-                        COALESCE(c.driver_gratuity_amount,
-                        0) as charter_gratuity
+                        COALESCE(e.hourly_rate, 0) as employee_hourly_rate
                     FROM charters c
+                    JOIN employees e ON e.employee_id = c.employee_id
                     WHERE c.employee_id IS NOT NULL
                     AND c.charter_date >= CURRENT_DATE - INTERVAL '90 days'
                     ORDER BY c.charter_date DESC
@@ -1057,7 +1057,7 @@ class CharterManagementDashboardWidget(BaseReportWidget):
                     charter_date,
                     total_due,
                     hours,
-                    gratuity,
+                    employee_hourly_rate,
                 ) = charter
 
                 if not emp_id:
@@ -1117,14 +1117,13 @@ class CharterManagementDashboardWidget(BaseReportWidget):
                             ) = pay_row
                             # Don't reduce hours
                             new_hours = max(existing_hours or 0, hours)
-                            new_gratuity = (
-                                existing_gratuity or 0
-                            ) + gratuity  # Accumulate
+                            # Charter gratuity is a client charge, not
+                            # automatically approved employee income. Preserve
+                            # only an amount explicitly entered in payroll.
+                            new_gratuity = existing_gratuity or 0
 
                             # Recalculate pay and deductions
-                            hourly_rate = rate or (
-                                total_due / max(hours, 1) if hours > 0 else 0
-                            )
+                            hourly_rate = rate or employee_hourly_rate
                             new_gross = new_hours * hourly_rate + new_gratuity
 
                             # Calculate deductions
@@ -1194,11 +1193,9 @@ class CharterManagementDashboardWidget(BaseReportWidget):
                             sync_count += 1
                         else:
                             # Create new record
-                            hourly_rate = (
-                                total_due / max(hours, 1) if hours > 0 else 0
-                            )
+                            hourly_rate = employee_hourly_rate
                             base_pay = hours * hourly_rate
-                            gross_pay = base_pay + gratuity
+                            gross_pay = base_pay
 
                             cpp_employee = min(gross_pay * 0.0595, 3867.50)
                             ei_employee = min(gross_pay * 0.0166, 1049.12)
@@ -1241,7 +1238,7 @@ class CharterManagementDashboardWidget(BaseReportWidget):
                                     hours,
                                     hourly_rate,
                                     base_pay,
-                                    gratuity,
+                                    0,
                                     gross_pay,
                                     cpp_employee,
                                     ei_employee,

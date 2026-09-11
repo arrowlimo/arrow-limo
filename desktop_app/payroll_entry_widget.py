@@ -7,20 +7,24 @@ and saving back with transaction safety.
 """
 
 import logging
+import getpass
 import re
 import sys
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
-from employee_pay_ledger_widget import EmployeePayLedgerWidget
-
-_APP_ROOT = (
-    Path(sys.executable).parent
-    if getattr(sys, "frozen", False)
-    else Path(__file__).resolve().parent.parent
-)
-
 from db_error_handling import DatabaseContext
+from employee_pay_ledger_widget import EmployeePayLedgerWidget
+from employee_work_items import (
+    EmployeeWorkItemsDialog,
+    ensure_employee_work_items_table,
+    get_work_item_summary,
+    get_work_items,
+)
+from employee_pay_banking_linker import (
+    auto_link_pending_employee_pay_transactions,
+)
+from payroll_t4_review import T4ManualOverrideDialog, build_t4_readiness_lines
 from PyQt6.QtCore import QDate, Qt, QTimer, QUrl, pyqtSlot
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
@@ -28,7 +32,10 @@ from PyQt6.QtWidgets import (
     QAbstractSpinBox,
     QComboBox,
     QDateEdit,
+    QDialog,
+    QDialogButtonBox,
     QDoubleSpinBox,
+    QFormLayout,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -46,6 +53,12 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+_APP_ROOT = (
+    Path(sys.executable).parent
+    if getattr(sys, "frozen", False)
+    else Path(__file__).resolve().parent.parent
+)
+
 logger = logging.getLogger(__name__)
 
 PAY2_NOTE_PATTERN = re.compile(
@@ -59,6 +72,19 @@ EXTRA_TAX_NOTE_PATTERN = re.compile(
 )
 
 EI_EXEMPT_EMPLOYEE_NUMBERS = {"dr09", "dr100"}
+
+PAY_PRINTOUT_TOTAL_HOURS_DEFAULT = "Total Hours: 0.00"
+PAY_PRINTOUT_TOTAL_GRATUITY_DEFAULT = "Total Gratuity: $0.00"
+TITLE_MISSING_SELECTION = "Missing Selection"
+TITLE_VERIFICATION_ONLY = "Verification Only"
+TITLE_MISSING_DEPENDENCY = "Missing Dependency"
+MSG_SELECT_EMPLOYEE_AND_PERIOD = "Select an employee and pay period first."
+MSG_SELECT_EMPLOYEE = "Select an employee first."
+LABEL_CPP_EMPLOYEE = "CPP Employee"
+LABEL_EI_EMPLOYEE = "EI Employee"
+LABEL_TOTAL_DEDUCTIONS = "Total Deductions"
+LABEL_NET_PAY = "Net Pay"
+MAX_REASONABLE_DEDUCTION_RATIO = 0.50
 
 
 class SelectAllDoubleSpinBox(QDoubleSpinBox):
@@ -81,6 +107,7 @@ class PayrollEntryWidget(QWidget):
     def __init__(self, db, parent=None) -> None:
         super().__init__(parent)
         self.db = db
+        ensure_employee_work_items_table(self.db)
         self._employee_search_typing = False
         self._loading_entry = False
         self._saving_entry = False
@@ -100,6 +127,7 @@ class PayrollEntryWidget(QWidget):
         self._last_synced_approved_hours = None
         self._last_synced_gratuity = None
         self._updating_printout_table = False
+        self._warned_cra_fallback_years: set[int] = set()
         self.current_charter_row = -1  # Track current charter being edited
         self._build_ui()
         self._connect_auto_persist_signals()
@@ -140,6 +168,14 @@ class PayrollEntryWidget(QWidget):
         self.status_label = QLabel("")
         self.status_label.setStyleSheet("color: #2563eb; font-weight: bold;")
         layout.addWidget(self.status_label)
+
+        self.t4_override_status_label = QLabel(
+            "T4 override status: select employee and year."
+        )
+        self.t4_override_status_label.setStyleSheet(
+            "color: #6b7280; font-weight: bold;"
+        )
+        layout.addWidget(self.t4_override_status_label)
 
         layout.addWidget(self._build_hours_group())
         layout.addWidget(self._build_pay_group())
@@ -214,6 +250,9 @@ class PayrollEntryWidget(QWidget):
         self.pay_period_combo.currentIndexChanged.connect(
             self._load_ytd_totals
         )
+        self.pay_period_combo.currentIndexChanged.connect(
+            self._refresh_work_item_summary
+        )
         row.addWidget(QLabel("Pay Period:"))
         row.addWidget(self.pay_period_combo, stretch=2)
 
@@ -232,7 +271,7 @@ class PayrollEntryWidget(QWidget):
 
         recalc_btn = QPushButton("Recalculate")
         recalc_btn.setToolTip(
-            "Recalculate base pay from hours × rates (rates will NOT change)"
+            "Recalculate base pay from hours x rates (rates will NOT change)"
         )
         recalc_btn.clicked.connect(
             lambda: self.recalculate_totals(force_base_pay=True)
@@ -243,6 +282,17 @@ class PayrollEntryWidget(QWidget):
         print_t4_btn.setStyleSheet("background-color: #059669; color: white;")
         print_t4_btn.clicked.connect(self.print_official_t4)
         row.addWidget(print_t4_btn)
+
+        manual_t4_btn = QPushButton("T4 Manual Override")
+        manual_t4_btn.setStyleSheet(
+            "background-color: #92400e; color: white;"
+        )
+        manual_t4_btn.setToolTip(
+            "Enter or adjust T4 box values for the selected employee/year."
+            " Official T4 print will prefer these saved values."
+        )
+        manual_t4_btn.clicked.connect(self.open_t4_manual_override_dialog)
+        row.addWidget(manual_t4_btn)
 
         t4_readiness_btn = QPushButton("T4 Readiness")
         t4_readiness_btn.setStyleSheet(
@@ -262,6 +312,17 @@ class PayrollEntryWidget(QWidget):
         )
         print_statement_btn.clicked.connect(self.print_pay_statement)
         row.addWidget(print_statement_btn)
+
+        print_register_btn = QPushButton("Print Payroll Register")
+        print_register_btn.setStyleSheet(
+            "background-color: #1d4ed8; color: white;"
+        )
+        print_register_btn.setToolTip(
+            "Print combined charter rows, non-charter work items, and"
+            " payroll deduction/contribution breakdown for this period."
+        )
+        print_register_btn.clicked.connect(self.print_payroll_register)
+        row.addWidget(print_register_btn)
 
         open_ledger_btn = QPushButton("Open Payment Ledger")
         open_ledger_btn.setStyleSheet(
@@ -300,7 +361,9 @@ class PayrollEntryWidget(QWidget):
         self._load_pay_printout()
         self._load_ytd_totals()
         self._refresh_pay_ledger()
+        self._refresh_work_item_summary()
         self._auto_load_entry_for_selection()
+        self._refresh_t4_override_status()
 
     def _on_employee_editing_finished(self) -> None:
         """End typing mode so selecting an item can trigger normal loading."""
@@ -466,8 +529,8 @@ class PayrollEntryWidget(QWidget):
         self.current_charter_row = -1
 
         totals_row = QHBoxLayout()
-        self.pay_printout_total_hours = QLabel("Total Hours: 0.00")
-        self.pay_printout_total_gratuity = QLabel("Total Gratuity: $0.00")
+        self.pay_printout_total_hours = QLabel(PAY_PRINTOUT_TOTAL_HOURS_DEFAULT)
+        self.pay_printout_total_gratuity = QLabel(PAY_PRINTOUT_TOTAL_GRATUITY_DEFAULT)
         self.pay_printout_wcb = QLabel("WCB (month): $0.00")
         self.pay_printout_total_hours.setStyleSheet("font-weight: bold;")
         self.pay_printout_total_gratuity.setStyleSheet("font-weight: bold;")
@@ -537,6 +600,8 @@ class PayrollEntryWidget(QWidget):
         self.pd7a_refresh_btn.clicked.connect(
             self._load_monthly_remittance_summary
         )
+        self.pd7a_print_btn = QPushButton("🖨️ Print PD7A Summary")
+        self.pd7a_print_btn.clicked.connect(self.print_pd7a_summary)
 
         # Row 0 - Month header
         grid.addWidget(QLabel("<b>Month:</b>"), 0, 0)
@@ -582,6 +647,7 @@ class PayrollEntryWidget(QWidget):
 
         # Row 5 - Button
         grid.addWidget(self.pd7a_refresh_btn, 5, 0, 1, 2)
+        grid.addWidget(self.pd7a_print_btn, 5, 2, 1, 2)
 
         grid.setColumnStretch(6, 1)
 
@@ -872,6 +938,11 @@ class PayrollEntryWidget(QWidget):
         self.ytd_gross_pay = self._money_spin(read_only=True)
         self.ytd_ei_insurable = self._money_spin(read_only=True)
         self.ytd_cpp_pensionable = self._money_spin(read_only=True)
+        self.work_items_income_label = QLabel("Non-Charter Work: $0.00")
+        self.work_items_reimburse_label = QLabel("Reimbursements Tracked: $0.00")
+        self.work_items_advances_label = QLabel("Advances/Floats/Loans Outstanding: $0.00")
+        self.manage_work_items_btn = QPushButton("Work / Advances")
+        self.manage_work_items_btn.clicked.connect(self._open_work_items_dialog)
 
         # Connect auto-calculation for T4 boxes 24 and 26
         # These update when gross_pay changes (via recalculate_totals)
@@ -947,6 +1018,14 @@ class PayrollEntryWidget(QWidget):
         grid.addWidget(ytd_cpp_label, 3, 4)
         grid.addWidget(self.ytd_cpp_pensionable, 3, 5)
 
+        self.work_items_income_label.setStyleSheet("color: #0f766e; font-weight: bold;")
+        self.work_items_reimburse_label.setStyleSheet("color: #0f766e; font-weight: bold;")
+        self.work_items_advances_label.setStyleSheet("color: #b45309; font-weight: bold;")
+        grid.addWidget(self.work_items_income_label, 4, 0, 1, 2)
+        grid.addWidget(self.work_items_reimburse_label, 4, 2, 1, 2)
+        grid.addWidget(self.work_items_advances_label, 4, 4)
+        grid.addWidget(self.manage_work_items_btn, 4, 5)
+
         grid.setColumnStretch(6, 1)  # Stretch last column to fill space
 
         return group
@@ -975,6 +1054,7 @@ class PayrollEntryWidget(QWidget):
             read_only=True
         )  # CRA: 1.4x employee
         self.union_dues = self._money_spin()
+        self.pay_advance_deduction = self._money_spin()
         self.total_deductions = self._money_spin(read_only=True)
         self.net_pay = self._money_spin(read_only=True)
         self.ytd_income_tax = self._money_spin(read_only=True)
@@ -982,6 +1062,38 @@ class PayrollEntryWidget(QWidget):
         self.ytd_ei_employee = self._money_spin(read_only=True)
         self.ytd_total_deductions = self._money_spin(read_only=True)
         self.ytd_net_pay = self._money_spin(read_only=True)
+
+        self._manual_deduction_override_style = (
+            "QDoubleSpinBox { border: 1px solid #dc2626; "
+            "background-color: #fef2f2; }"
+        )
+        self._manual_deduction_calc_labels: dict[str, QLabel] = {}
+        self._manual_deduction_flags: dict[str, QLabel] = {}
+        for key in ("cpp", "ei", "federal", "provincial"):
+            calc_label = QLabel("Calc: $0.00")
+            calc_label.setStyleSheet("color: #0f766e; font-size: 9pt;")
+            calc_label.setToolTip(
+                "CRA-based calculated deduction for this field."
+            )
+
+            flag_label = QLabel("")
+            flag_label.setStyleSheet(
+                "color: #dc2626; font-weight: bold; font-size: 9pt;"
+            )
+            flag_label.setToolTip(
+                "Shows MANUAL when entered value differs from CRA-calculated"
+                " value."
+            )
+
+            self._manual_deduction_calc_labels[key] = calc_label
+            self._manual_deduction_flags[key] = flag_label
+
+        self._manual_deduction_widgets: dict[str, QDoubleSpinBox] = {
+            "cpp": self.cpp_employee,
+            "ei": self.ei_employee,
+            "federal": self.federal_tax,
+            "provincial": self.provincial_tax,
+        }
 
     def _connect_deduction_signals(self) -> None:
         # Connect auto-calculation for total income tax (T4-22)
@@ -1003,6 +1115,7 @@ class PayrollEntryWidget(QWidget):
             self.cpp_employer,
             self.ei_employer,
             self.union_dues,
+            self.pay_advance_deduction,
             self.total_deductions,
             self.net_pay,
             self.ytd_income_tax,
@@ -1014,12 +1127,51 @@ class PayrollEntryWidget(QWidget):
             widget.setMinimumWidth(120)
             widget.setMaximumWidth(150)
 
+        for calc_label in self._manual_deduction_calc_labels.values():
+            calc_label.setMinimumWidth(92)
+            calc_label.setMaximumWidth(92)
+        for flag_label in self._manual_deduction_flags.values():
+            flag_label.setMinimumWidth(58)
+            flag_label.setMaximumWidth(58)
+
+    def _build_deduction_input_widget(
+        self,
+        amount_widget: QDoubleSpinBox,
+        calc_label: QLabel,
+        flag_label: QLabel,
+    ) -> QWidget:
+        container = QWidget()
+        row = QHBoxLayout(container)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(6)
+        row.addWidget(amount_widget)
+        row.addWidget(calc_label)
+        row.addWidget(flag_label)
+        row.addStretch(1)
+        return container
+
     def _populate_deductions_layout(self, grid: QGridLayout) -> None:
         # Row 0 - Employee deductions
         grid.addWidget(QLabel("CPP Employee (T4-16):"), 0, 0)
-        grid.addWidget(self.cpp_employee, 0, 1)
+        grid.addWidget(
+            self._build_deduction_input_widget(
+                self.cpp_employee,
+                self._manual_deduction_calc_labels["cpp"],
+                self._manual_deduction_flags["cpp"],
+            ),
+            0,
+            1,
+        )
         grid.addWidget(QLabel("EI Employee (T4-18):"), 0, 2)
-        grid.addWidget(self.ei_employee, 0, 3)
+        grid.addWidget(
+            self._build_deduction_input_widget(
+                self.ei_employee,
+                self._manual_deduction_calc_labels["ei"],
+                self._manual_deduction_flags["ei"],
+            ),
+            0,
+            3,
+        )
         self.michael_ei_exempt_btn = QPushButton("Apply EI Exempt")
         self.michael_ei_exempt_btn.setToolTip(
             "Set EI employee/employer to $0.00 for configured EI-exempt"
@@ -1052,9 +1204,25 @@ class PayrollEntryWidget(QWidget):
 
         # Row 2 - Tax fields
         grid.addWidget(QLabel("Federal Tax:"), 2, 0)
-        grid.addWidget(self.federal_tax, 2, 1)
+        grid.addWidget(
+            self._build_deduction_input_widget(
+                self.federal_tax,
+                self._manual_deduction_calc_labels["federal"],
+                self._manual_deduction_flags["federal"],
+            ),
+            2,
+            1,
+        )
         grid.addWidget(QLabel("Provincial Tax:"), 2, 2)
-        grid.addWidget(self.provincial_tax, 2, 3)
+        grid.addWidget(
+            self._build_deduction_input_widget(
+                self.provincial_tax,
+                self._manual_deduction_calc_labels["provincial"],
+                self._manual_deduction_flags["provincial"],
+            ),
+            2,
+            3,
+        )
 
         total_tax_label = QLabel("<b>Total Income Tax (T4-22):</b>")
         total_tax_label.setStyleSheet("color: #1e40af;")
@@ -1071,6 +1239,11 @@ class PayrollEntryWidget(QWidget):
         net_label.setStyleSheet("color: #059669; font-size: 11pt;")
         grid.addWidget(net_label, 3, 2)
         grid.addWidget(self.net_pay, 3, 3)
+
+        pay_adv_label = QLabel("<b>Pay Advances:</b>")
+        pay_adv_label.setStyleSheet("color: #7c2d12; font-size: 11pt;")
+        grid.addWidget(pay_adv_label, 3, 4)
+        grid.addWidget(self.pay_advance_deduction, 3, 5)
 
         # Row 4 - YTD deduction summary for T4 boxes and payroll totals
         ytd_tax_label = QLabel("<b>YTD Income Tax (T4-22):</b>")
@@ -1271,6 +1444,7 @@ class PayrollEntryWidget(QWidget):
         # Reload employees for the selected year
         self.load_employees()
         self._load_ytd_totals()
+        self._refresh_t4_override_status()
 
     def _on_filter_changed(self) -> None:
         """Reload employees when filter changes"""
@@ -1385,7 +1559,7 @@ class PayrollEntryWidget(QWidget):
                 )
 
         except Exception as exc:
-            logger.error(f"Failed to load employees: {exc}")
+            logger.exception("Failed to load employees")
             self._set_status(f"Failed to load employees: {exc}", error=True)
 
     def load_pay_periods(self, fiscal_year: int) -> None:
@@ -1453,7 +1627,7 @@ class PayrollEntryWidget(QWidget):
             if self.pay_period_combo.count() > 0:
                 self.pay_period_combo.setCurrentIndex(0)
         except Exception as exc:
-            logger.error(f"Failed to load pay periods: {exc}")
+            logger.exception("Failed to load pay periods")
             self._set_status(f"Failed to load pay periods: {exc}", error=True)
 
     def _refresh_pay_ledger(self) -> None:
@@ -1467,6 +1641,23 @@ class PayrollEntryWidget(QWidget):
         if not emp_id or not pay_period:
             self.pay_ledger.refresh(None, None, None, 0)
             return
+
+        try:
+            linked_count = auto_link_pending_employee_pay_transactions(
+                self.db,
+                employee_id=int(emp_id),
+                pay_period_id=int(pay_period[0]) if pay_period[0] else None,
+                fiscal_year=int(pay_period[1]) if pay_period[1] else None,
+                max_rows=150,
+            )
+            if linked_count > 0:
+                logger.info(
+                    "Employee-pay auto-link matched %s pending transaction(s)",
+                    linked_count,
+                )
+        except Exception as exc:
+            logger.warning("Employee-pay auto-link skipped: %s", exc)
+
         net = self.net_pay.value() if hasattr(self, "net_pay") else 0.0
         self.pay_ledger.refresh(emp_id, pay_period[1], pay_period[0], net)
 
@@ -1620,9 +1811,9 @@ class PayrollEntryWidget(QWidget):
             if pay2 <= 0:
                 pay2 = default_pay2
             return pay1, pay2
-        except Exception as exc:
-            logger.error(
-                f"Failed to load employee master rates for {emp_id}: {exc}"
+        except Exception:
+            logger.exception(
+                "Failed to load employee master rates for %s", emp_id
             )
             return default_pay1, default_pay2
 
@@ -1758,6 +1949,7 @@ class PayrollEntryWidget(QWidget):
         self._set_status(
             "Form cleared. Load an employee + pay period to edit."
         )
+        self._refresh_t4_override_status()
 
     @pyqtSlot()
     def load_entry(self) -> None:
@@ -1779,7 +1971,7 @@ class PayrollEntryWidget(QWidget):
                     return
                 self._apply_loaded_pay_entry(row, emp_id, pay_period)
         except Exception as exc:
-            logger.error(f"Failed to load: {exc}")
+            logger.exception("Failed to load payroll entry")
             self._set_status(f"Failed to load: {exc}", error=True)
         finally:
             self._loading_entry = False
@@ -1797,12 +1989,13 @@ class PayrollEntryWidget(QWidget):
         )
         QMessageBox.warning(
             self,
-            "Missing Selection",
-            "Select an employee and pay period first.",
+            TITLE_MISSING_SELECTION,
+            MSG_SELECT_EMPLOYEE_AND_PERIOD,
         )
         return None
 
     def _pay_master_column_flags(self, cur) -> dict[str, bool]:
+        self._ensure_pay_advance_column()
         flags = {}
         for column_name in (
             "total_income_tax",
@@ -1811,6 +2004,7 @@ class PayrollEntryWidget(QWidget):
             "float_draw",
             "cpp_employer",
             "ei_employer",
+            "pay_advance_deduction",
         ):
             cur.execute(
                 """
@@ -1866,7 +2060,8 @@ class PayrollEntryWidget(QWidget):
                    manual_hours_adjustment, total_hours_worked,
                    hourly_rate, rate_source,
                       base_pay, gratuity_percent, gratuity_amount,
-                      {float_draw_expr}, reimbursements,
+                             {float_draw_expr}, reimbursements,
+                         pay_advance_deduction,
                    other_income, gross_pay, federal_tax,
                    provincial_tax, {total_income_tax_expr},
                       cpp_employee, ei_employee, {cpp_employer_expr},
@@ -1927,13 +2122,14 @@ class PayrollEntryWidget(QWidget):
             overtime_hours,
             manual_hours_adjustment,
             total_hours_worked,
-            hourly_rate,
-            rate_source,
+            _hourly_rate,
+            _rate_source,
             base_pay,
-            gratuity_percent,
+            _gratuity_percent,
             gratuity_amount,
             float_draw,
             reimbursements,
+            pay_advance_deduction,
             other_income,
             gross_pay,
             federal_tax,
@@ -1977,6 +2173,9 @@ class PayrollEntryWidget(QWidget):
         if hasattr(self, "float_draw"):
             self.float_draw.setValue(float(float_draw or 0))
         self.reimbursements.setValue(float(reimbursements or 0))
+        if pay_advance_deduction is None:
+            pay_advance_deduction = self._get_employee_pay_advance_balance(emp_id)
+        self.pay_advance_deduction.setValue(float(pay_advance_deduction or 0))
         self.other_income.setValue(float(other_income or 0))
         self.gross_pay.setValue(float(gross_pay or 0))
         self.ei_insurable.setValue(float(ei_insurable or 0))
@@ -2013,12 +2212,14 @@ class PayrollEntryWidget(QWidget):
         self.recalculate_totals()
         self._load_ytd_totals()
         self._load_pay_printout()
+        self._refresh_work_item_summary()
         self.pay_ledger.refresh(
             emp_id,
             pay_period[1],
             pay_period[0],
             self.net_pay.value(),
         )
+        self._refresh_t4_override_status()
 
     @pyqtSlot()
     def save_entry(
@@ -2042,14 +2243,18 @@ class PayrollEntryWidget(QWidget):
         # fields are still zero (e.g. new entry not yet processed via the
         # "Update Record From Calculated" button).
         if recalc_before_save and self.gross_pay.value() > 0:
+            zero_eps = 0.005
             all_deductions_zero = (
-                self.federal_tax.value() == 0.0
-                and self.provincial_tax.value() == 0.0
-                and self.cpp_employee.value() == 0.0
-                and self.ei_employee.value() == 0.0
+                abs(self.federal_tax.value()) <= zero_eps
+                and abs(self.provincial_tax.value()) <= zero_eps
+                and abs(self.cpp_employee.value()) <= zero_eps
+                and abs(self.ei_employee.value()) <= zero_eps
             )
             if all_deductions_zero:
                 self._apply_calculated_deductions_to_pay()
+
+        if recalc_before_save:
+            self._auto_correct_deduction_outlier(reason="save", silent=silent)
 
         fiscal_year = pay_period[1]
         values = self._gather_values()
@@ -2090,7 +2295,7 @@ class PayrollEntryWidget(QWidget):
             )
             saved_ok = True
         except Exception as exc:
-            logger.error(f"Failed to save: {exc}")
+            logger.exception("Failed to save payroll entry")
             if not silent:
                 self._set_status(f"Failed to save: {exc}", error=True)
         finally:
@@ -2154,6 +2359,7 @@ class PayrollEntryWidget(QWidget):
             "gratuity_amount",
             "float_draw",
             "reimbursements",
+            "pay_advance_deduction",
             "other_income",
             "gross_pay",
             "federal_tax",
@@ -2195,10 +2401,11 @@ class PayrollEntryWidget(QWidget):
             for col in update_columns
             if col != "created_by"
         ]
+        update_assignments.append("updated_at = NOW()")
         if "created_by" in update_columns:
             update_assignments.append("created_by = EXCLUDED.created_by")
 
-        sql = f"""  # nosec
+        sql = f"""
             INSERT INTO employee_pay_master
                 ({', '.join(insert_columns)})
             VALUES ({', '.join(insert_values_sql)})
@@ -2320,38 +2527,174 @@ class PayrollEntryWidget(QWidget):
             + self.provincial_tax.value()
             + self.cpp_employee.value()
             + self.ei_employee.value()
+            + self.pay_advance_deduction.value()
         )
         # Union dues removed - not applicable
         # + self.union_dues.value())
         self.total_deductions.setValue(round(total_deductions, 2))
 
-        # Reimbursements are paid out but should not increase T4 income.
-        net = taxable_gross + self.reimbursements.value() - total_deductions
+        # Reimbursements are paid out; pay advances reduce the payout.
+        net = (
+            taxable_gross
+            + self.reimbursements.value()
+            - self.pay_advance_deduction.value()
+            - total_deductions
+        )
         self.net_pay.setValue(round(net, 2))
 
         # Update total income tax (T4-22)
         self._update_total_income_tax()
         self._update_calculated_deduction_comparison()
 
+    def _refresh_work_item_summary(self) -> None:
+        emp_id = self._selected_employee_id()
+        pay_period = self._selected_pay_period()
+        fiscal_year = int(self.year_combo.currentText() or 0) if self.year_combo.currentText() else None
+        if not emp_id:
+            self.work_items_income_label.setText("Non-Charter Work: $0.00")
+            self.work_items_reimburse_label.setText("Reimbursements Tracked: $0.00")
+            self.work_items_advances_label.setText("Advances/Floats/Loans Outstanding: $0.00")
+            return
+
+        pay_period_id = int(pay_period[0]) if pay_period else None
+        summary = get_work_item_summary(
+            self.db,
+            int(emp_id),
+            pay_period_id=pay_period_id,
+            fiscal_year=fiscal_year,
+        )
+        self.work_items_income_label.setText(
+            f"Non-Charter Work: ${summary.payable_income:,.2f}"
+        )
+        self.work_items_reimburse_label.setText(
+            f"Reimbursements Tracked: ${summary.reimbursements:,.2f}"
+        )
+        self.work_items_advances_label.setText(
+            "Advances/Floats/Loans Outstanding: "
+            f"${summary.advances_outstanding + summary.float_outstanding + summary.loan_outstanding:,.2f}"
+        )
+
+    def _open_work_items_dialog(self) -> None:
+        emp_id = self._selected_employee_id()
+        if not emp_id:
+            QMessageBox.information(
+                self,
+                "Work Items",
+                "Select an employee first.",
+            )
+            return
+
+        pay_period = self._selected_pay_period()
+        pay_period_id = int(pay_period[0]) if pay_period else None
+        fiscal_year = int(self.year_combo.currentText() or 0) if self.year_combo.currentText() else None
+
+        dlg = EmployeeWorkItemsDialog(
+            self.db,
+            int(emp_id),
+            fiscal_year=fiscal_year,
+            pay_period_id=pay_period_id,
+            parent=self,
+        )
+        dlg.exec()
+
+        summary = get_work_item_summary(
+            self.db,
+            int(emp_id),
+            pay_period_id=pay_period_id,
+            fiscal_year=fiscal_year,
+        )
+
+        # Apply tracked items into payroll fields so T4 boxes include
+        # non-charter compensated work and reconciled reimbursements.
+        if summary.payable_income > 0:
+            self.other_income.setValue(round(summary.payable_income, 2))
+        if summary.reimbursements > 0:
+            self.reimbursements.setValue(round(summary.reimbursements, 2))
+        outstanding = max(
+            0.0,
+            summary.advances_outstanding
+            + summary.float_outstanding
+            + summary.loan_outstanding,
+        )
+        if outstanding > 0:
+            self.pay_advance_deduction.setValue(round(outstanding, 2))
+
+        self._refresh_work_item_summary()
+        self.recalculate_totals(force_base_pay=False)
+
     def _period_count(self) -> int:
         count = len(self.pay_periods) if self.pay_periods else 12
         return max(count, 1)
 
+    def _selected_tax_year(self) -> int:
+        try:
+            return int(self.year_combo.currentText())
+        except (ValueError, AttributeError):
+            return QDate.currentDate().year()
+
+    def _warn_cra_fallback_once(self, year: int) -> None:
+        if year in self._warned_cra_fallback_years:
+            return
+        self._warned_cra_fallback_years.add(year)
+        self._set_status(
+            f"⚠ CRA rates/brackets not configured for {year}; using fallback values.",
+            error=False,
+        )
+        logger.warning(
+            "CRA rates/brackets not configured for %s; using fallback values.",
+            year,
+        )
+
     def _current_cra_rates(self) -> dict[str, float]:
+        year = self._selected_tax_year()
+
+        # Prefer DB-backed yearly rates so values persist across releases.
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        cpp_contribution_rate_employee,
+                        cpp_max_employee_contribution,
+                        cpp_basic_exemption,
+                        ei_rate,
+                        ei_max_employee_contribution
+                    FROM tax_year_reference
+                    WHERE year = %s
+                    LIMIT 1
+                    """,
+                    (year,),
+                )
+                row = cur.fetchone()
+            if row and all(v is not None for v in row):
+                return {
+                    "cpp_rate": float(row[0]),
+                    "cpp_max": float(row[1]),
+                    "cpp_exempt": float(row[2]),
+                    "ei_rate": float(row[3]),
+                    "ei_max": float(row[4]),
+                }
+        except Exception as exc:
+            logger.warning(
+                "Could not load payroll rates from tax_year_reference for %s: %s",
+                year,
+                exc,
+            )
+
         rates_by_year = {
             2026: {
                 "cpp_rate": 0.0595,
-                "cpp_max": 4034.10,
+                "cpp_max": 4230.45,
                 "cpp_exempt": 3500,
-                "ei_rate": 0.01666,
-                "ei_max": 1095.21,
+                "ei_rate": 0.0163,
+                "ei_max": 1123.07,
             },
             2025: {
                 "cpp_rate": 0.0595,
-                "cpp_max": 3867.50,
+                "cpp_max": 4034.10,
                 "cpp_exempt": 3500,
-                "ei_rate": 0.01666,
-                "ei_max": 1049.12,
+                "ei_rate": 0.0164,
+                "ei_max": 1077.48,
             },
             2024: {
                 "cpp_rate": 0.0595,
@@ -2367,6 +2710,83 @@ class PayrollEntryWidget(QWidget):
                 "ei_rate": 0.0163,
                 "ei_max": 1002.45,
             },
+            2022: {
+                "cpp_rate": 0.057,
+                "cpp_max": 3499.80,
+                "cpp_exempt": 3500,
+                "ei_rate": 0.0158,
+                "ei_max": 952.74,
+            },
+            2021: {
+                "cpp_rate": 0.0545,
+                "cpp_max": 3166.45,
+                "cpp_exempt": 3500,
+                "ei_rate": 0.0158,
+                "ei_max": 889.54,
+            },
+            2020: {
+                "cpp_rate": 0.0525,
+                "cpp_max": 2898.00,
+                "cpp_exempt": 3500,
+                "ei_rate": 0.0158,
+                "ei_max": 856.36,
+            },
+            2019: {
+                "cpp_rate": 0.051,
+                "cpp_max": 2748.90,
+                "cpp_exempt": 3500,
+                "ei_rate": 0.0162,
+                "ei_max": 860.22,
+            },
+            2018: {
+                "cpp_rate": 0.0495,
+                "cpp_max": 2593.80,
+                "cpp_exempt": 3500,
+                "ei_rate": 0.0166,
+                "ei_max": 858.22,
+            },
+            2017: {
+                "cpp_rate": 0.0495,
+                "cpp_max": 2564.10,
+                "cpp_exempt": 3500,
+                "ei_rate": 0.0163,
+                "ei_max": 836.19,
+            },
+            2016: {
+                "cpp_rate": 0.0495,
+                "cpp_max": 2544.30,
+                "cpp_exempt": 3500,
+                "ei_rate": 0.0188,
+                "ei_max": 955.04,
+            },
+            2015: {
+                "cpp_rate": 0.0495,
+                "cpp_max": 2479.95,
+                "cpp_exempt": 3500,
+                "ei_rate": 0.0188,
+                "ei_max": 930.60,
+            },
+            2014: {
+                "cpp_rate": 0.0495,
+                "cpp_max": 2425.50,
+                "cpp_exempt": 3500,
+                "ei_rate": 0.0188,
+                "ei_max": 913.68,
+            },
+            2013: {
+                "cpp_rate": 0.0495,
+                "cpp_max": 2356.20,
+                "cpp_exempt": 3500,
+                "ei_rate": 0.0188,
+                "ei_max": 891.12,
+            },
+            2012: {
+                "cpp_rate": 0.0495,
+                "cpp_max": 2306.70,
+                "cpp_exempt": 3500,
+                "ei_rate": 0.0183,
+                "ei_max": 839.97,
+            },
         }
         fallback = {
             "cpp_rate": 0.0495,
@@ -2375,12 +2795,11 @@ class PayrollEntryWidget(QWidget):
             "ei_rate": 0.0188,
             "ei_max": 891.12,
         }
-
-        try:
-            year = int(self.year_combo.currentText())
-        except (ValueError, AttributeError):
-            year = 0
-        return rates_by_year.get(year, fallback)
+        rates = rates_by_year.get(year)
+        if rates is None:
+            self._warn_cra_fallback_once(year)
+            return fallback
+        return rates
 
     def _compute_bracket_tax(self, annual_income: float, year: int) -> tuple[float, float]:
         """Compute federal and Alberta provincial income tax from CRA brackets.
@@ -2470,20 +2889,21 @@ class PayrollEntryWidget(QWidget):
                 prev = threshold
             return tax
 
-        fed_cfg = (
-            _load_from_db("federal_tax_brackets")
-            or hardcoded_federal.get(year, hardcoded_federal[2026])
-        )
-        prov_cfg = (
-            _load_from_db("alberta_tax_brackets")
-            or hardcoded_alberta.get(year, hardcoded_alberta[2026])
-        )
+        fed_from_db = _load_from_db("federal_tax_brackets")
+        prov_from_db = _load_from_db("alberta_tax_brackets")
+        fed_cfg = fed_from_db or hardcoded_federal.get(year, hardcoded_federal[2026])
+        prov_cfg = prov_from_db or hardcoded_alberta.get(year, hardcoded_alberta[2026])
+        if year not in hardcoded_federal or year not in hardcoded_alberta:
+            if fed_from_db is None or prov_from_db is None:
+                self._warn_cra_fallback_once(year)
 
         fed_annual = _bracket_tax(annual_income, fed_cfg["bpa"], fed_cfg["brackets"])
         prov_annual = _bracket_tax(annual_income, prov_cfg["bpa"], prov_cfg["brackets"])
         return round(fed_annual, 2), round(prov_annual, 2)
 
-    def _compute_calculated_deduction_values(self) -> dict[str, float]:
+    def _compute_calculated_deduction_values(
+        self, preserve_existing_tax: bool = True
+    ) -> dict[str, float]:
         comparison_income = max(
             0.0, self.gross_pay.value() - self.reimbursements.value()
         )
@@ -2512,7 +2932,7 @@ class PayrollEntryWidget(QWidget):
         current_prov = self.provincial_tax.value()
         current_total_tax = current_fed + current_prov
 
-        if current_total_tax > 0:
+        if preserve_existing_tax and current_total_tax > 0:
             # User has existing values — preserve their effective rate
             effective_tax_pct = (
                 (current_total_tax / comparison_income) * 100
@@ -2563,6 +2983,61 @@ class PayrollEntryWidget(QWidget):
             "extra_period": extra_period,
         }
 
+    def _deduction_ratio_snapshot(self) -> dict[str, float]:
+        gross = max(0.0, self.gross_pay.value())
+        income_tax = self.federal_tax.value() + self.provincial_tax.value()
+        total_ded = self.total_deductions.value()
+        if gross <= 0:
+            return {
+                "gross": 0.0,
+                "income_tax": income_tax,
+                "total_ded": total_ded,
+                "income_tax_ratio": 0.0,
+                "total_ded_ratio": 0.0,
+            }
+        return {
+            "gross": gross,
+            "income_tax": income_tax,
+            "total_ded": total_ded,
+            "income_tax_ratio": income_tax / gross,
+            "total_ded_ratio": total_ded / gross,
+        }
+
+    def _auto_correct_deduction_outlier(
+        self, reason: str, silent: bool = False
+    ) -> bool:
+        snapshot = self._deduction_ratio_snapshot()
+        if (
+            snapshot["gross"] <= 0
+            or snapshot["total_ded_ratio"] <= MAX_REASONABLE_DEDUCTION_RATIO
+        ):
+            return False
+
+        values = self._compute_calculated_deduction_values(
+            preserve_existing_tax=False
+        )
+        self.cpp_employee.setValue(values["cpp_amount"])
+        self.ei_employee.setValue(values["ei_amount"])
+        self.federal_tax.setValue(values["fed_tax_amount"])
+        self.provincial_tax.setValue(values["prov_tax_amount"])
+        self.recalculate_totals(force_base_pay=False)
+
+        if not silent:
+            self._set_status(
+                "Deduction outlier corrected using CRA-based tax/CPP/EI "
+                f"values before {reason}."
+            )
+        logger.warning(
+            "Corrected payroll deduction outlier before %s: gross=%.2f "
+            "income_tax=%.2f total_ded=%.2f total_ded_ratio=%.2f%%",
+            reason,
+            snapshot["gross"],
+            snapshot["income_tax"],
+            snapshot["total_ded"],
+            snapshot["total_ded_ratio"] * 100.0,
+        )
+        return True
+
     def _update_calculated_deduction_comparison(self) -> None:
         values = self._compute_calculated_deduction_values()
         self.calc_taxable_income.setValue(values["comparison_income"])
@@ -2573,9 +3048,48 @@ class PayrollEntryWidget(QWidget):
         self.calc_ei_percent.setValue(values["ei_pct"])
         self.calc_tax_percent.setValue(values["tax_pct"])
         self.extra_period_contribution.setValue(values["extra_period"])
+        self._refresh_manual_deduction_indicators()
 
-    def _apply_calculated_deductions_to_pay(self) -> None:
-        values = self._compute_calculated_deduction_values()
+    def _refresh_manual_deduction_indicators(self) -> None:
+        """Show CRA-calculated deduction amounts and mark manual overrides."""
+
+        calc_values = self._compute_calculated_deduction_values(
+            preserve_existing_tax=False
+        )
+        expected_amounts = {
+            "cpp": calc_values["cpp_amount"],
+            "ei": calc_values["ei_amount"],
+            "federal": calc_values["fed_tax_amount"],
+            "provincial": calc_values["prov_tax_amount"],
+        }
+        entered_amounts = {
+            "cpp": self.cpp_employee.value(),
+            "ei": self.ei_employee.value(),
+            "federal": self.federal_tax.value(),
+            "provincial": self.provincial_tax.value(),
+        }
+        tolerance = 0.01
+
+        for key, expected in expected_amounts.items():
+            self._manual_deduction_calc_labels[key].setText(
+                f"Calc: ${expected:.2f}"
+            )
+            is_manual = abs(entered_amounts[key] - expected) > tolerance
+
+            field_widget = self._manual_deduction_widgets[key]
+            if is_manual:
+                self._manual_deduction_flags[key].setText("MANUAL")
+                field_widget.setStyleSheet(self._manual_deduction_override_style)
+            else:
+                self._manual_deduction_flags[key].setText("")
+                field_widget.setStyleSheet("")
+
+    def _apply_calculated_deductions_to_pay(
+        self, preserve_existing_tax: bool = False
+    ) -> None:
+        values = self._compute_calculated_deduction_values(
+            preserve_existing_tax=preserve_existing_tax
+        )
         self.cpp_employee.setValue(values["cpp_amount"])
         self.ei_employee.setValue(values["ei_amount"])
 
@@ -2602,7 +3116,7 @@ class PayrollEntryWidget(QWidget):
         self.cpp_employer.setValue(self.cpp_employee.value())
 
     def _update_employer_ei(self) -> None:
-        """Auto-calculate EI employer portion (1.4× employee - CRA"
+        """Auto-calculate EI employer portion (1.4x employee - CRA"
         "requirement)"""
 
         self.ei_employer.setValue(round(self.ei_employee.value() * 1.4, 2))
@@ -2660,6 +3174,7 @@ class PayrollEntryWidget(QWidget):
                 self.float_draw.value() if hasattr(self, "float_draw") else 0.0
             ),
             "reimbursements": self.reimbursements.value(),
+            "pay_advance_deduction": self.pay_advance_deduction.value(),
             "other_income": self.other_income.value(),
             "gross_pay": self.gross_pay.value(),
             "federal_tax": self.federal_tax.value(),
@@ -2773,7 +3288,45 @@ class PayrollEntryWidget(QWidget):
                 table_name,
                 exc,
             )
-            return set()
+
+        return set()
+
+    def _ensure_pay_advance_column(self) -> None:
+        """Add the payroll pay-advance column when the table is missing it."""
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    ALTER TABLE employee_pay_master
+                    ADD COLUMN IF NOT EXISTS pay_advance_deduction NUMERIC NOT NULL DEFAULT 0
+                    """
+                )
+        except Exception as exc:
+            logger.warning("Could not ensure pay advance column: %s", exc)
+
+    def _get_employee_pay_advance_balance(self, emp_id) -> float:
+        """Return the outstanding pay advance balance for an employee."""
+
+        if not emp_id:
+            return 0.0
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT COALESCE(SUM(ABS(COALESCE(amount, 0))), 0)
+                    FROM employee_expenses
+                    WHERE employee_id = %s
+                      AND category = 'PAY_ADVANCE'
+                      AND COALESCE(reimbursement_status, '') <> 'reimbursed'
+                    """,
+                    (emp_id,),
+                )
+                row = cur.fetchone()
+            return float(row[0] or 0) if row else 0.0
+        except Exception as exc:
+            logger.warning("Failed to load pay advance balance for %s: %s", emp_id, exc)
+            return 0.0
 
     def _reset_ytd_totals(self) -> None:
         ytd_widgets = [
@@ -2913,8 +3466,8 @@ class PayrollEntryWidget(QWidget):
                 )
                 row = cur.fetchone() or (0, 0, 0, 0, 0, 0, 0, 0)
             self._apply_ytd_row(row)
-        except Exception as exc:
-            logger.error(f"Failed to load YTD totals: {exc}")
+        except Exception:
+            logger.exception("Failed to load YTD totals")
 
     def _extract_pay2_from_notes(self, notes_text) -> tuple[str, float, float]:
         """Extract PAY2 metadata from notes while keeping user-facing notes"
@@ -2958,7 +3511,6 @@ class PayrollEntryWidget(QWidget):
             else 10.0
         )
         extra_annual = max(0.0, self.extra_annual_contribution.value())
-
         tags = []
 
         if pay2_hours >= 0.005 or abs(pay2_rate - 10.0) >= 0.005:
@@ -2966,7 +3518,6 @@ class PayrollEntryWidget(QWidget):
 
         if extra_annual >= 0.005:
             tags.append(f"[EXTRA_TAX annual={extra_annual:.2f}]")
-
         if not tags:
             return cleaned
 
@@ -3026,13 +3577,6 @@ class PayrollEntryWidget(QWidget):
             if should_sync(self.approved_hours_2.value(), None):
                 self.approved_hours_2.setValue(total_hours_2)
                 changed = True
-
-        if total_gratuity > 0 and should_sync(
-            self.gratuity_amount.value(), self._last_synced_gratuity
-        ):
-            self.gratuity_amount.setValue(total_gratuity)
-            self._last_synced_gratuity = total_gratuity
-            changed = True
 
         if changed:
             self.recalculate_totals()
@@ -3115,7 +3659,7 @@ class PayrollEntryWidget(QWidget):
         if not emp_id or not pay_period:
             return
 
-        pp_id, _, _, start, end, _ = pay_period
+        _pp_id, _, _, start, end, _ = pay_period
         try:
             ccols = self._get_columns("charters")
             ecols = self._get_columns("employees")
@@ -3130,7 +3674,7 @@ class PayrollEntryWidget(QWidget):
                 self._apply_pay_printout_payload(cur, payload, emp_id, end, ecols)
         except Exception as exc:
             self._updating_printout_table = False
-            logger.error(f"Failed to load pay printout: {exc}")
+            logger.exception("Failed to load pay printout")
             self._set_status(f"Failed to load pay printout: {exc}", error=True)
 
     def _charter_driver_column(self, ccols: set[str]) -> str | None:
@@ -3145,8 +3689,8 @@ class PayrollEntryWidget(QWidget):
         required = {"reserve_number", "charter_date"}
         if not required.issubset(ccols):
             self.pay_printout_table.setRowCount(0)
-            self.pay_printout_total_hours.setText("Total Hours: 0.00")
-            self.pay_printout_total_gratuity.setText("Total Gratuity: $0.00")
+            self.pay_printout_total_hours.setText(PAY_PRINTOUT_TOTAL_HOURS_DEFAULT)
+            self.pay_printout_total_gratuity.setText(PAY_PRINTOUT_TOTAL_GRATUITY_DEFAULT)
             self._set_status(
                 f"⚠️  Missing columns in charters table: {required - ccols}",
                 error=False,
@@ -3154,8 +3698,8 @@ class PayrollEntryWidget(QWidget):
             return False
         if not driver_col:
             self.pay_printout_table.setRowCount(0)
-            self.pay_printout_total_hours.setText("Total Hours: 0.00")
-            self.pay_printout_total_gratuity.setText("Total Gratuity: $0.00")
+            self.pay_printout_total_hours.setText(PAY_PRINTOUT_TOTAL_HOURS_DEFAULT)
+            self.pay_printout_total_gratuity.setText(PAY_PRINTOUT_TOTAL_GRATUITY_DEFAULT)
             self._set_status(
                 "⚠️  No driver ID column found in charters (need"
                 "employee_id, assigned_driver_id, or driver_id)",
@@ -3365,8 +3909,16 @@ class PayrollEntryWidget(QWidget):
         total_gratuity = 0.0
 
         for r, row in enumerate(rows):
-            data = dict(zip(select_cols, row))
-            self._fill_pay_printout_row(cur, r, data, hours_col, approved_hours_col, gratuity_col, can_use_route_span)
+            data = dict(zip(select_cols, row, strict=False))
+            self._fill_pay_printout_row(
+                cur,
+                r,
+                data,
+                hours_col,
+                approved_hours_col,
+                gratuity_col,
+                can_use_route_span,
+            )
             total_hours_1_sum += float(self.pay_printout_table.item(r, 2).text() or 0)
             total_hours_2_sum += float(self.pay_printout_table.item(r, 3).text() or 0)
             total_hours_sum += float(self.pay_printout_table.item(r, 2).text() or 0) + float(self.pay_printout_table.item(r, 3).text() or 0)
@@ -3405,7 +3957,8 @@ class PayrollEntryWidget(QWidget):
         if approved_hours_col and data.get(approved_hours_col) is not None:
             approved_hours = float(data.get(approved_hours_col) or 0.0)
         # When approved_hours is still 0 (NULL or never saved), cascade fallbacks
-        if approved_hours == 0.0:
+        zero_eps = 0.005
+        if abs(approved_hours) <= zero_eps:
             if row_total_hours > 0:
                 approved_hours = row_total_hours
             elif data.get("quoted_hours"):
@@ -3422,7 +3975,7 @@ class PayrollEntryWidget(QWidget):
         gratuity = 0.0
         if gratuity_col:
             gratuity = float(data.get(gratuity_col) or 0.0)
-            if gratuity == 0.0 and gratuity_col == "approved_gratuity":
+            if abs(gratuity) <= zero_eps and gratuity_col == "approved_gratuity":
                 gratuity = float(data.get("driver_gratuity") or 0.0)
         # Extra gratuity is an additive top-up; include it regardless of primary column.
         extra_grat = float(data.get("extra_gratuity") or 0.0)
@@ -3593,7 +4146,7 @@ class PayrollEntryWidget(QWidget):
         if self._printout_verification_only:
             QMessageBox.information(
                 self,
-                "Verification Only",
+                TITLE_VERIFICATION_ONLY,
                 "These rows are loaded from driver payroll history for"
                 "verification only."
 
@@ -3627,7 +4180,7 @@ class PayrollEntryWidget(QWidget):
         if self._printout_verification_only:
             QMessageBox.information(
                 self,
-                "Verification Only",
+                TITLE_VERIFICATION_ONLY,
                 "These rows are verification-only and cannot be edited.",
             )
             return
@@ -3644,7 +4197,7 @@ class PayrollEntryWidget(QWidget):
         try:
             self._persist_pay_printout_row(row, update_form=False)
         except Exception as exc:
-            logger.error(f"Failed to persist charter row {row}: {exc}")
+            logger.exception("Failed to persist charter row %s", row)
             self._set_status(
                 f"Updated row in payroll view but failed DB save: {exc}",
                 error=True,
@@ -3659,7 +4212,7 @@ class PayrollEntryWidget(QWidget):
         if self._printout_verification_only:
             QMessageBox.information(
                 self,
-                "Verification Only",
+                TITLE_VERIFICATION_ONLY,
                 "These rows are verification-only and cannot be deleted.",
             )
             return
@@ -3833,9 +4386,125 @@ class PayrollEntryWidget(QWidget):
                     if wcb_row and wcb_row[0] is not None:
                         self.pd7a_wcb.setText(f"${float(wcb_row[0]):,.2f}")
         except Exception as exc:
-            logger.error(f"Failed to load monthly remittance: {exc}")
+            logger.exception("Failed to load monthly remittance")
             self._set_status(
                 f"Failed to load monthly remittance: {exc}", error=True
+            )
+
+    @pyqtSlot()
+    def print_pd7a_summary(self) -> None:
+        """Generate a printable PD7A-style monthly remittance summary."""
+
+        import os
+
+        try:
+            from reportlab.lib.pagesizes import letter
+            from reportlab.lib.units import inch
+            from reportlab.pdfgen import canvas
+        except Exception:
+            QMessageBox.critical(
+                self,
+                TITLE_MISSING_DEPENDENCY,
+                "reportlab is required to print the PD7A summary.",
+            )
+            return
+
+        selection = self._get_save_selection(silent=False)
+        if not selection:
+            return
+        _, pay_period = selection
+
+        pay_date = pay_period[5]
+        if not pay_date:
+            QMessageBox.warning(
+                self,
+                "Missing Pay Date",
+                "The selected pay period has no pay date.",
+            )
+            return
+
+        # Refresh labels from DB before printing to avoid stale totals.
+        self._load_monthly_remittance_summary()
+
+        month = int(pay_date.month)
+        year = int(pay_date.year)
+        output_filename = f"PD7A_Summary_{year}_{month:02d}.pdf"
+        output_path = _APP_ROOT / output_filename
+
+        summary_lines = [
+            ("Total Gross (T4-14)", self.pd7a_gross.text()),
+            ("Federal Tax (T4-22)", self.pd7a_federal.text()),
+            ("Provincial Tax (T4-22)", self.pd7a_provincial.text()),
+            ("CPP Employee (T4-16)", self.pd7a_cpp_employee.text()),
+            ("CPP Employer (1:1)", self.pd7a_cpp_employer.text()),
+            ("EI Employee (T4-18)", self.pd7a_ei_employee.text()),
+            ("EI Employer (140%)", self.pd7a_ei_employer.text()),
+            (LABEL_TOTAL_DEDUCTIONS, self.pd7a_total_deductions.text()),
+            (LABEL_NET_PAY, self.pd7a_net.text()),
+            ("WCB (Month)", self.pd7a_wcb.text()),
+        ]
+
+        try:
+            c = canvas.Canvas(str(output_path), pagesize=letter)
+            width, height = letter
+            left = 0.75 * inch
+            right = width - 0.75 * inch
+            y = height - 0.8 * inch
+
+            c.setFont("Helvetica-Bold", 16)
+            c.drawString(left, y, "PD7A Monthly Remittance Summary")
+            y -= 0.32 * inch
+
+            c.setFont("Helvetica", 10)
+            c.drawString(left, y, f"Month: {year}-{month:02d}")
+            y -= 0.2 * inch
+            c.drawString(
+                left,
+                y,
+                f"Selected Pay Date: {pay_date.isoformat()}",
+            )
+            y -= 0.2 * inch
+            c.drawString(left, y, f"Generated: {date.today().isoformat()}")
+            y -= 0.3 * inch
+
+            c.setLineWidth(0.8)
+            c.line(left, y, right, y)
+            y -= 0.22 * inch
+
+            label_x = left
+            value_x = right
+            c.setFont("Helvetica", 10)
+            for label, value in summary_lines:
+                if y < 1.0 * inch:
+                    c.showPage()
+                    y = height - 0.8 * inch
+                    c.setFont("Helvetica", 10)
+                c.drawString(label_x, y, label)
+                c.drawRightString(value_x, y, value)
+                y -= 0.22 * inch
+
+            y -= 0.14 * inch
+            c.setFont("Helvetica-Oblique", 8)
+            c.drawString(
+                left,
+                y,
+                "This is a payroll remittance summary view to support monthly filing review.",
+            )
+            y -= 0.14 * inch
+            c.drawString(
+                left,
+                y,
+                "Review source payroll rows before submitting any statutory remittance.",
+            )
+            c.save()
+
+            self._set_status(f"PD7A summary generated: {output_filename}")
+            if os.path.exists(output_path):
+                self._open_generated_file(output_path)
+        except Exception as exc:
+            logger.exception("PD7A summary generation error")
+            self._set_status(
+                f"PD7A summary generation error: {exc}", error=True
             )
 
     def _autofill_from_charters(self) -> None:
@@ -3848,8 +4517,8 @@ class PayrollEntryWidget(QWidget):
         if not emp_id or not pay_period:
             QMessageBox.warning(
                 self,
-                "Missing Selection",
-                "Select an employee and pay period first.",
+                TITLE_MISSING_SELECTION,
+                MSG_SELECT_EMPLOYEE_AND_PERIOD,
             )
             return
 
@@ -3862,7 +4531,11 @@ class PayrollEntryWidget(QWidget):
 
             # Step 2: auto-calculate CPP, EI, federal and provincial tax from
             # CRA brackets so the entry is complete on one click.
-            self._apply_calculated_deductions_to_pay()
+            # Force fresh tax computation for the currently selected employee
+            # to avoid carrying over prior employee tax amounts.
+            self._apply_calculated_deductions_to_pay(
+                preserve_existing_tax=False
+            )
 
             self._set_status(
                 "✅ Charter hours/gratuity loaded and deductions calculated."
@@ -3892,7 +4565,7 @@ class PayrollEntryWidget(QWidget):
         pay_period = self._selected_pay_period()
         if not emp_id:
             QMessageBox.warning(
-                self, "Missing Selection", "Select an employee first."
+                self, TITLE_MISSING_SELECTION, MSG_SELECT_EMPLOYEE
             )
             return
 
@@ -3922,7 +4595,7 @@ class PayrollEntryWidget(QWidget):
                 )
                 self._set_status("Pay event saved.")
         except Exception as exc:
-            logger.error(f"Failed to save pay event: {exc}")
+            logger.exception("Failed to save pay event")
             self._set_status(f"Failed to save pay event: {exc}", error=True)
 
     @pyqtSlot()
@@ -3930,7 +4603,7 @@ class PayrollEntryWidget(QWidget):
         emp_id = self._selected_employee_id()
         if not emp_id:
             QMessageBox.warning(
-                self, "Missing Selection", "Select an employee first."
+                self, TITLE_MISSING_SELECTION, MSG_SELECT_EMPLOYEE
             )
             return
 
@@ -3973,7 +4646,7 @@ class PayrollEntryWidget(QWidget):
                 )
                 self._set_status("Hiring info saved to employee record.")
         except Exception as exc:
-            logger.error(f"Failed to save hiring info: {exc}")
+            logger.exception("Failed to save hiring info")
             self._set_status(f"Failed to save hiring info: {exc}", error=True)
 
     @pyqtSlot()
@@ -3996,7 +4669,7 @@ class PayrollEntryWidget(QWidget):
 
         emp_id = self._selected_employee_id()
         if not emp_id:
-            QMessageBox.warning(self, "Missing Selection", "Select an employee first.")
+            QMessageBox.warning(self, TITLE_MISSING_SELECTION, MSG_SELECT_EMPLOYEE)
             return
 
         try:
@@ -4039,8 +4712,12 @@ class PayrollEntryWidget(QWidget):
                 t4_row = self._load_t4_official_summary(cur, emp_id, tax_year, pay_master_columns)
                 payroll_rows = int(t4_row[7] or 0)
                 period_count = int(t4_row[8] or 0)
+                manual_override = self._load_t4_manual_override(
+                    cur, emp_id, tax_year
+                )
+                has_manual_override = manual_override is not None
 
-                if payroll_rows == 0:
+                if payroll_rows == 0 and not has_manual_override:
                     QMessageBox.warning(
                         self,
                         "No Payroll Data",
@@ -4048,7 +4725,7 @@ class PayrollEntryWidget(QWidget):
                     )
                     return
 
-                if period_count <= 1:
+                if period_count <= 1 and not has_manual_override:
                     reply = QMessageBox.warning(
                         self,
                         "Limited Year Coverage Detected",
@@ -4072,6 +4749,11 @@ class PayrollEntryWidget(QWidget):
                     "box44": float(t4_row[6]),  # Union Dues
                     "box52": 0.0,  # Pension Adjustment (not tracked)
                 }
+                if has_manual_override:
+                    t4_data.update(manual_override)
+                    self._set_status(
+                        "Using saved manual T4 override for official print."
+                    )
 
             self._generate_official_t4_pdf(
                 T4OfficialFormFiller,
@@ -4081,7 +4763,7 @@ class PayrollEntryWidget(QWidget):
             )
 
         except Exception as exc:
-            logger.error(f"T4 generation error: {exc}")
+            logger.exception("T4 generation error")
             self._set_status(f"T4 generation error: {exc}", error=True)
             import traceback
 
@@ -4294,6 +4976,680 @@ class PayrollEntryWidget(QWidget):
         )
         return cur.fetchone()
 
+    def _t4_value_keys(self) -> tuple[str, ...]:
+        return (
+            "box14",
+            "box16",
+            "box18",
+            "box22",
+            "box24",
+            "box26",
+            "box44",
+            "box46",
+            "box52",
+        )
+
+    def _is_value_match(self, left: float, right: float) -> bool:
+        return abs(float(left) - float(right)) < 0.005
+
+    def _format_money_value(self, value: float) -> str:
+        return f"${float(value):,.2f}"
+
+    def _refresh_t4_override_status(self) -> None:
+        if not hasattr(self, "t4_override_status_label"):
+            return
+
+        emp_id = self._selected_employee_id()
+        if not emp_id:
+            self.t4_override_status_label.setText(
+                "T4 override status: select employee and year."
+            )
+            self.t4_override_status_label.setStyleSheet(
+                "color: #6b7280; font-weight: bold;"
+            )
+            return
+
+        try:
+            tax_year = int(self.year_combo.currentText())
+        except (ValueError, AttributeError):
+            self.t4_override_status_label.setText(
+                "T4 override status: missing year selection."
+            )
+            self.t4_override_status_label.setStyleSheet(
+                "color: #b45309; font-weight: bold;"
+            )
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                pay_master_columns = self._get_columns("employee_pay_master")
+                t4_row = self._load_t4_official_summary(
+                    cur, emp_id, tax_year, pay_master_columns
+                )
+                actual_values = {
+                    "box14": float(t4_row[0] or 0),
+                    "box16": float(t4_row[1] or 0),
+                    "box18": float(t4_row[2] or 0),
+                    "box22": float(t4_row[3] or 0),
+                    "box24": float(t4_row[4] or 0),
+                    "box26": float(t4_row[5] or 0),
+                    "box44": float(t4_row[6] or 0),
+                    "box46": 0.0,
+                    "box52": 0.0,
+                }
+                manual_override = self._load_t4_manual_override(
+                    cur, emp_id, tax_year
+                )
+
+            if not manual_override:
+                self.t4_override_status_label.setText(
+                    f"T4 override status ({tax_year}): no manual override"
+                    " saved."
+                )
+                self.t4_override_status_label.setStyleSheet(
+                    "color: #1f2937; font-weight: bold;"
+                )
+                return
+
+            confirmed = bool(manual_override.get("source_of_truth_confirmed"))
+            confirmed_by = manual_override.get("source_of_truth_confirmed_by", "")
+            confirmed_at = manual_override.get("source_of_truth_confirmed_at")
+
+            mismatched_boxes = []
+            for key in self._t4_value_keys():
+                manual_value = float(manual_override.get(key, 0) or 0)
+                actual_value = float(actual_values.get(key, 0) or 0)
+                if not self._is_value_match(manual_value, actual_value):
+                    mismatched_boxes.append(key.replace("box", "Box "))
+
+            if not mismatched_boxes:
+                msg = f"T4 override status ({tax_year}): active and matches payroll data."
+                if confirmed:
+                    msg += " Confirmed as source of truth."
+                if confirmed_by:
+                    msg += f" By {confirmed_by}."
+                if confirmed_at:
+                    msg += f" At {confirmed_at}."
+                self.t4_override_status_label.setText(msg)
+                self.t4_override_status_label.setStyleSheet(
+                    "color: #065f46; font-weight: bold;"
+                )
+            else:
+                msg = (
+                    f"T4 override status ({tax_year}): active and differs"
+                    f" from payroll data in {', '.join(mismatched_boxes)}."
+                )
+                if confirmed:
+                    msg += " Confirmed source of truth needs fix."
+                self.t4_override_status_label.setText(msg)
+                self.t4_override_status_label.setStyleSheet(
+                    "color: #b91c1c; font-weight: bold;"
+                )
+
+        except Exception as exc:
+            logger.warning("T4 override status refresh failed: %s", exc)
+            self.t4_override_status_label.setText(
+                "T4 override status: unavailable."
+            )
+            self.t4_override_status_label.setStyleSheet(
+                "color: #b45309; font-weight: bold;"
+            )
+
+    def _table_exists(self, cur, table_name: str) -> bool:
+        cur.execute(
+            """
+            SELECT EXISTS(
+                SELECT 1
+                FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = %s
+            )
+            """,
+            (table_name,),
+        )
+        return bool(cur.fetchone()[0])
+
+    def _ensure_legacy_t4_table(self, cur) -> None:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS t4_entries (
+                correction_id SERIAL PRIMARY KEY,
+                employee_id INT NOT NULL,
+                tax_year INT NOT NULL,
+                t4_box_14 NUMERIC(12, 2) DEFAULT 0,
+                t4_box_16 NUMERIC(12, 2) DEFAULT 0,
+                t4_box_18 NUMERIC(12, 2) DEFAULT 0,
+                t4_box_22 NUMERIC(12, 2) DEFAULT 0,
+                t4_box_24 NUMERIC(12, 2) DEFAULT 0,
+                t4_box_26 NUMERIC(12, 2) DEFAULT 0,
+                t4_box_44 NUMERIC(12, 2) DEFAULT 0,
+                t4_box_46 NUMERIC(12, 2) DEFAULT 0,
+                t4_box_52 NUMERIC(12, 2) DEFAULT 0,
+                notes TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(employee_id, tax_year)
+            )
+            """
+        )
+
+    def _ensure_t4_review_columns(self, cur) -> None:
+        for table_name in ("t4_entries", "employee_t4_records"):
+            if not self._table_exists(cur, table_name):
+                continue
+            cur.execute(
+                f"""
+                ALTER TABLE {table_name}
+                ADD COLUMN IF NOT EXISTS source_of_truth_confirmed BOOLEAN DEFAULT FALSE
+                """
+            )
+            cur.execute(
+                f"""
+                ALTER TABLE {table_name}
+                ADD COLUMN IF NOT EXISTS source_of_truth_confirmed_at TIMESTAMPTZ
+                """
+            )
+            cur.execute(
+                f"""
+                ALTER TABLE {table_name}
+                ADD COLUMN IF NOT EXISTS source_of_truth_confirmed_by TEXT
+                """
+            )
+            cur.execute(
+                f"""
+                ALTER TABLE {table_name}
+                ADD COLUMN IF NOT EXISTS source_of_truth_variance_note TEXT
+                """
+            )
+
+    def _load_t4_manual_override(
+        self, cur, emp_id: int, tax_year: int
+    ) -> dict[str, float] | None:
+        self._ensure_t4_review_columns(cur)
+        if self._table_exists(cur, "t4_entries"):
+            cur.execute(
+                """
+                SELECT
+                    COALESCE(t4_box_14, 0),
+                    COALESCE(t4_box_16, 0),
+                    COALESCE(t4_box_18, 0),
+                    COALESCE(t4_box_22, 0),
+                    COALESCE(t4_box_24, 0),
+                    COALESCE(t4_box_26, 0),
+                    COALESCE(t4_box_44, 0),
+                    COALESCE(t4_box_46, 0),
+                    COALESCE(t4_box_52, 0),
+                    COALESCE(notes, ''),
+                    COALESCE(source_of_truth_confirmed, FALSE),
+                    source_of_truth_confirmed_at,
+                    COALESCE(source_of_truth_confirmed_by, ''),
+                    COALESCE(source_of_truth_variance_note, '')
+                FROM t4_entries
+                WHERE employee_id = %s AND tax_year = %s
+                """,
+                (emp_id, tax_year),
+            )
+            row = cur.fetchone()
+            if row:
+                return {
+                    "box14": float(row[0] or 0),
+                    "box16": float(row[1] or 0),
+                    "box18": float(row[2] or 0),
+                    "box22": float(row[3] or 0),
+                    "box24": float(row[4] or 0),
+                    "box26": float(row[5] or 0),
+                    "box44": float(row[6] or 0),
+                    "box46": float(row[7] or 0),
+                    "box52": float(row[8] or 0),
+                    "notes": row[9] or "",
+                    "source_of_truth_confirmed": bool(row[10]),
+                    "source_of_truth_confirmed_at": row[11],
+                    "source_of_truth_confirmed_by": row[12] or "",
+                    "source_of_truth_variance_note": row[13] or "",
+                }
+
+        if self._table_exists(cur, "employee_t4_records"):
+            cur.execute(
+                """
+                SELECT
+                    COALESCE(box_14_employment_income, 0),
+                    COALESCE(box_16_cpp_contributions, 0),
+                    COALESCE(box_18_ei_premiums, 0),
+                    COALESCE(box_22_income_tax, 0),
+                    COALESCE(box_24_ei_insurable_earnings, 0),
+                    COALESCE(box_26_cpp_pensionable_earnings, 0),
+                    COALESCE(box_44_union_dues, 0),
+                    COALESCE(box_46_charitable_donations, 0),
+                    COALESCE(box_52_pension_adjustment, 0),
+                    COALESCE(notes, ''),
+                    COALESCE(source_of_truth_confirmed, FALSE),
+                    source_of_truth_confirmed_at,
+                    COALESCE(source_of_truth_confirmed_by, ''),
+                    COALESCE(source_of_truth_variance_note, '')
+                FROM employee_t4_records
+                WHERE employee_id = %s AND tax_year = %s
+                """,
+                (emp_id, tax_year),
+            )
+            row = cur.fetchone()
+            if row:
+                return {
+                    "box14": float(row[0] or 0),
+                    "box16": float(row[1] or 0),
+                    "box18": float(row[2] or 0),
+                    "box22": float(row[3] or 0),
+                    "box24": float(row[4] or 0),
+                    "box26": float(row[5] or 0),
+                    "box44": float(row[6] or 0),
+                    "box46": float(row[7] or 0),
+                    "box52": float(row[8] or 0),
+                    "notes": row[9] or "",
+                    "source_of_truth_confirmed": bool(row[10]),
+                    "source_of_truth_confirmed_at": row[11],
+                    "source_of_truth_confirmed_by": row[12] or "",
+                    "source_of_truth_variance_note": row[13] or "",
+                }
+
+        return None
+
+    def _upsert_t4_manual_override(
+        self,
+        cur,
+        emp_id: int,
+        tax_year: int,
+        values: dict[str, float],
+        notes: str,
+        confirmed: bool = False,
+        confirmed_by: str | None = None,
+        variance_note: str = "",
+    ) -> None:
+        self._ensure_t4_review_columns(cur)
+        if self._table_exists(cur, "t4_entries"):
+            cur.execute(
+                """
+                INSERT INTO t4_entries (
+                    employee_id,
+                    tax_year,
+                    t4_box_14,
+                    t4_box_16,
+                    t4_box_18,
+                    t4_box_22,
+                    t4_box_24,
+                    t4_box_26,
+                    t4_box_44,
+                    t4_box_46,
+                    t4_box_52,
+                    notes,
+                    source_of_truth_confirmed,
+                    source_of_truth_confirmed_at,
+                    source_of_truth_confirmed_by,
+                    source_of_truth_variance_note,
+                    created_at,
+                    updated_at
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, NOW(), NOW()
+                )
+                ON CONFLICT (employee_id, tax_year)
+                DO UPDATE SET
+                    t4_box_14 = EXCLUDED.t4_box_14,
+                    t4_box_16 = EXCLUDED.t4_box_16,
+                    t4_box_18 = EXCLUDED.t4_box_18,
+                    t4_box_22 = EXCLUDED.t4_box_22,
+                    t4_box_24 = EXCLUDED.t4_box_24,
+                    t4_box_26 = EXCLUDED.t4_box_26,
+                    t4_box_44 = EXCLUDED.t4_box_44,
+                    t4_box_46 = EXCLUDED.t4_box_46,
+                    t4_box_52 = EXCLUDED.t4_box_52,
+                    notes = EXCLUDED.notes,
+                    source_of_truth_confirmed = EXCLUDED.source_of_truth_confirmed,
+                    source_of_truth_confirmed_at = EXCLUDED.source_of_truth_confirmed_at,
+                    source_of_truth_confirmed_by = EXCLUDED.source_of_truth_confirmed_by,
+                    source_of_truth_variance_note = EXCLUDED.source_of_truth_variance_note,
+                    updated_at = NOW()
+                """,
+                (
+                    emp_id,
+                    tax_year,
+                    values["box14"],
+                    values["box16"],
+                    values["box18"],
+                    values["box22"],
+                    values["box24"],
+                    values["box26"],
+                    values["box44"],
+                    values["box46"],
+                    values["box52"],
+                    notes,
+                    confirmed,
+                    datetime.now() if confirmed else None,
+                    confirmed_by,
+                    variance_note,
+                ),
+            )
+            return
+
+        if self._table_exists(cur, "employee_t4_records"):
+            cur.execute(
+                """
+                INSERT INTO employee_t4_records (
+                    employee_id,
+                    tax_year,
+                    box_14_employment_income,
+                    box_16_cpp_contributions,
+                    box_18_ei_premiums,
+                    box_22_income_tax,
+                    box_24_ei_insurable_earnings,
+                    box_26_cpp_pensionable_earnings,
+                    box_44_union_dues,
+                    box_46_charitable_donations,
+                    box_52_pension_adjustment,
+                    notes,
+                    source_of_truth_confirmed,
+                    source_of_truth_confirmed_at,
+                    source_of_truth_confirmed_by,
+                    source_of_truth_variance_note,
+                    created_at,
+                    updated_at
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, NOW(), NOW()
+                )
+                ON CONFLICT (employee_id, tax_year)
+                DO UPDATE SET
+                    box_14_employment_income = EXCLUDED.box_14_employment_income,
+                    box_16_cpp_contributions = EXCLUDED.box_16_cpp_contributions,
+                    box_18_ei_premiums = EXCLUDED.box_18_ei_premiums,
+                    box_22_income_tax = EXCLUDED.box_22_income_tax,
+                    box_24_ei_insurable_earnings = EXCLUDED.box_24_ei_insurable_earnings,
+                    box_26_cpp_pensionable_earnings = EXCLUDED.box_26_cpp_pensionable_earnings,
+                    box_44_union_dues = EXCLUDED.box_44_union_dues,
+                    box_46_charitable_donations = EXCLUDED.box_46_charitable_donations,
+                    box_52_pension_adjustment = EXCLUDED.box_52_pension_adjustment,
+                    notes = EXCLUDED.notes,
+                    source_of_truth_confirmed = EXCLUDED.source_of_truth_confirmed,
+                    source_of_truth_confirmed_at = EXCLUDED.source_of_truth_confirmed_at,
+                    source_of_truth_confirmed_by = EXCLUDED.source_of_truth_confirmed_by,
+                    source_of_truth_variance_note = EXCLUDED.source_of_truth_variance_note,
+                    updated_at = NOW()
+                """,
+                (
+                    emp_id,
+                    tax_year,
+                    values["box14"],
+                    values["box16"],
+                    values["box18"],
+                    values["box22"],
+                    values["box24"],
+                    values["box26"],
+                    values["box44"],
+                    values["box46"],
+                    values["box52"],
+                    notes,
+                    confirmed,
+                    datetime.now() if confirmed else None,
+                    confirmed_by,
+                    variance_note,
+                ),
+            )
+            return
+
+        self._ensure_legacy_t4_table(cur)
+        self._upsert_t4_manual_override(cur, emp_id, tax_year, values, notes)
+
+    @pyqtSlot()
+    def open_t4_manual_override_dialog(self) -> None:
+        emp_id = self._selected_employee_id()
+        if not emp_id:
+            QMessageBox.warning(
+                self, TITLE_MISSING_SELECTION, MSG_SELECT_EMPLOYEE
+            )
+            return
+
+        try:
+            tax_year = int(self.year_combo.currentText())
+        except (ValueError, AttributeError):
+            QMessageBox.warning(
+                self, "Missing Year", "Select a valid tax year first."
+            )
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                employee_data = self._load_t4_official_employee(
+                    cur, emp_id, self._get_columns("employees")
+                )
+                pay_master_columns = self._get_columns("employee_pay_master")
+                t4_row = self._load_t4_official_summary(
+                    cur, emp_id, tax_year, pay_master_columns
+                )
+                actual_values = {
+                    "box14": float(t4_row[0] or 0),
+                    "box16": float(t4_row[1] or 0),
+                    "box18": float(t4_row[2] or 0),
+                    "box22": float(t4_row[3] or 0),
+                    "box24": float(t4_row[4] or 0),
+                    "box26": float(t4_row[5] or 0),
+                    "box44": float(t4_row[6] or 0),
+                    "box46": 0.0,
+                    "box52": 0.0,
+                }
+                default_values = {
+                    "box14": float(t4_row[0] or 0),
+                    "box16": float(t4_row[1] or 0),
+                    "box18": float(t4_row[2] or 0),
+                    "box22": float(t4_row[3] or 0),
+                    "box24": float(t4_row[4] or 0),
+                    "box26": float(t4_row[5] or 0),
+                    "box44": float(t4_row[6] or 0),
+                    "box46": 0.0,
+                    "box52": 0.0,
+                    "notes": "",
+                }
+                existing_override = self._load_t4_manual_override(
+                    cur, emp_id, tax_year
+                )
+
+            if existing_override:
+                default_values.update(existing_override)
+
+            display_name = (
+                employee_data["full_name"]
+                if employee_data
+                else f"Employee {emp_id}"
+            )
+            dialog = T4ManualOverrideDialog(
+                self,
+                emp_id=emp_id,
+                tax_year=tax_year,
+                display_name=display_name,
+                default_values=default_values,
+                actual_values=actual_values,
+            )
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+
+            values = dialog.values()
+            notes = dialog.notes()
+            confirmed = dialog.confirmed
+            variance_bits = []
+            if confirmed:
+                for key, entered_value in values.items():
+                    actual_value = float(actual_values.get(key, 0.0) or 0.0)
+                    if not self._is_value_match(entered_value, actual_value):
+                        variance_bits.append(
+                            f"{key.upper()}: entered {entered_value:,.2f} vs actual {actual_value:,.2f}"
+                        )
+
+            variance_note = "; ".join(variance_bits)
+            with DatabaseContext(self.db, auto_commit=True) as save_cur:
+                self._upsert_t4_manual_override(
+                    save_cur,
+                    emp_id=emp_id,
+                    tax_year=tax_year,
+                    values=values,
+                    notes=notes,
+                    confirmed=confirmed,
+                    confirmed_by=getpass.getuser(),
+                    variance_note=variance_note,
+                )
+            status_suffix = " and confirmed source of truth" if confirmed else ""
+            self._set_status(
+                f"Saved manual T4 override for {display_name} ({tax_year}){status_suffix}."
+            )
+            self._refresh_t4_override_status()
+        except Exception as exc:
+            logger.exception("Failed to open T4 manual override dialog")
+            self._set_status(f"T4 manual override error: {exc}", error=True)
+
+    def _show_t4_manual_override_dialog(
+        self,
+        emp_id: int,
+        tax_year: int,
+        display_name: str,
+        default_values: dict[str, float],
+        actual_values: dict[str, float],
+    ) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"T4 Manual Override - {tax_year}")
+        dialog.setMinimumWidth(560)
+
+        layout = QVBoxLayout(dialog)
+        header = QLabel(
+            f"Employee: {display_name} (ID {emp_id})\n"
+            "Manual values saved here override payroll-calculated"
+            " totals when printing Official T4."
+        )
+        header.setWordWrap(True)
+        header.setStyleSheet("color: #1f2937;")
+        layout.addWidget(header)
+
+        form = QFormLayout()
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+
+        fields: dict[str, QDoubleSpinBox] = {}
+        compare_labels: dict[str, QLabel] = {}
+        for key, label in (
+            ("box14", "Box 14 - Employment Income"),
+            ("box16", "Box 16 - CPP Employee"),
+            ("box18", "Box 18 - EI Employee"),
+            ("box22", "Box 22 - Income Tax"),
+            ("box24", "Box 24 - EI Insurable"),
+            ("box26", "Box 26 - CPP Pensionable"),
+            ("box44", "Box 44 - Union Dues"),
+            ("box46", "Box 46 - Other Remuneration"),
+            ("box52", "Box 52 - Pension Adjustment"),
+        ):
+            field = self._money_spin()
+            field.setMaximum(99_999_999.99)
+            field.setValue(float(default_values.get(key, 0.0) or 0.0))
+            fields[key] = field
+
+            actual_label = QLabel(
+                f"Actual: {self._format_money_value(actual_values.get(key, 0.0))}"
+            )
+            actual_label.setStyleSheet("color: #1f2937; font-weight: bold;")
+
+            compare_label = QLabel("")
+            compare_labels[key] = compare_label
+
+            row_widget = QWidget()
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(8)
+            row_layout.addWidget(field)
+            row_layout.addWidget(actual_label)
+            row_layout.addWidget(compare_label)
+            row_layout.addStretch(1)
+
+            form.addRow(f"{label}:", row_widget)
+
+        notes_edit = QTextEdit()
+        notes_edit.setPlaceholderText(
+            "Reason for adjustment (example: Paul 2013 T4 manual correction)."
+        )
+        notes_edit.setMaximumHeight(100)
+        notes_edit.setPlainText(str(default_values.get("notes", "") or ""))
+        form.addRow("Notes:", notes_edit)
+
+        layout.addLayout(form)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        confirm_btn = QPushButton("Save & Confirm as Source of Truth")
+        confirm_btn.setStyleSheet("background-color: #065f46; color: white;")
+        buttons.addButton(confirm_btn, QDialogButtonBox.ButtonRole.AcceptRole)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        save_mode = {"confirmed": False}
+        confirm_btn.clicked.connect(lambda: save_mode.__setitem__("confirmed", True))
+
+        def refresh_compare_label(box_key: str) -> None:
+            entered_value = float(fields[box_key].value())
+            actual_value = float(actual_values.get(box_key, 0.0) or 0.0)
+            delta = entered_value - actual_value
+            match = self._is_value_match(entered_value, actual_value)
+            if match:
+                compare_labels[box_key].setText("MATCH")
+                compare_labels[box_key].setStyleSheet(
+                    "color: #065f46; font-weight: bold;"
+                )
+            else:
+                compare_labels[box_key].setText(f"DIFF {delta:+,.2f}")
+                compare_labels[box_key].setStyleSheet(
+                    "color: #b91c1c; font-weight: bold;"
+                )
+
+        for key, field in fields.items():
+            field.valueChanged.connect(
+                lambda _value, k=key: refresh_compare_label(k)
+            )
+            refresh_compare_label(key)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        values = {
+            key: float(widget.value()) for key, widget in fields.items()
+        }
+        notes = notes_edit.toPlainText().strip()
+        confirmed = bool(save_mode["confirmed"])
+        variance_bits = []
+        if confirmed:
+            for key, entered_value in values.items():
+                actual_value = float(actual_values.get(key, 0.0) or 0.0)
+                if not self._is_value_match(entered_value, actual_value):
+                    variance_bits.append(
+                        f"{key.upper()}: entered {entered_value:,.2f} vs actual {actual_value:,.2f}"
+                    )
+        variance_note = "; ".join(variance_bits)
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                self._upsert_t4_manual_override(
+                    cur,
+                    emp_id=emp_id,
+                    tax_year=tax_year,
+                    values=values,
+                    notes=notes,
+                    confirmed=confirmed,
+                    confirmed_by=getpass.getuser(),
+                    variance_note=variance_note,
+                )
+            status_suffix = " and confirmed source of truth" if confirmed else ""
+            self._set_status(
+                f"Saved manual T4 override for {display_name} ({tax_year}){status_suffix}."
+            )
+            self._refresh_t4_override_status()
+        except Exception as exc:
+            logger.exception("Failed to save manual T4 override")
+            self._set_status(
+                f"Failed to save T4 manual override: {exc}", error=True
+            )
+
     @pyqtSlot()
     def show_t4_readiness(self) -> None:
         """Show a pre-print readiness report for the selected employee and"
@@ -4302,7 +5658,7 @@ class PayrollEntryWidget(QWidget):
         emp_id = self._selected_employee_id()
         if not emp_id:
             QMessageBox.warning(
-                self, "Missing Selection", "Select an employee first."
+                self, TITLE_MISSING_SELECTION, MSG_SELECT_EMPLOYEE
             )
             return
 
@@ -4324,7 +5680,7 @@ class PayrollEntryWidget(QWidget):
                 )
                 return
 
-            readiness_lines = self._build_t4_readiness_lines(payload, emp_id)
+            readiness_lines = build_t4_readiness_lines(payload, emp_id)
             sin_ok = payload["sin_ok"]
             address_ok = payload["address_ok"]
             payroll_rows = payload["payroll_rows"]
@@ -4346,7 +5702,7 @@ class PayrollEntryWidget(QWidget):
                 QMessageBox.warning(self, title, "\n".join(readiness_lines))
 
         except Exception as exc:
-            logger.error(f"Failed to build T4 readiness report: {exc}")
+            logger.exception("Failed to build T4 readiness report")
             self._set_status(f"T4 readiness error: {exc}", error=True)
 
     def _employee_readiness_field_exprs(
@@ -4452,29 +5808,7 @@ class PayrollEntryWidget(QWidget):
     def _build_t4_readiness_lines(
         self, payload: dict, emp_id: int
     ) -> list[str]:
-        readiness_lines = [
-            f"Employee: {payload['full_name'] or emp_id}",
-            f"Tax Year: {payload['tax_year']}",
-            "",
-            f"SIN: {'OK' if payload['sin_ok'] else 'MISSING/INVALID'}",
-            f"Address: {'OK' if payload['address_ok'] else 'INCOMPLETE'}",
-            f"Payroll rows in year: {payload['payroll_rows']}",
-            f"Distinct pay periods loaded: {payload['period_count']}",
-            "Year gross currently loaded (T4 Box 14): "
-            f"${payload['gross_sum']:,.2f}",
-        ]
-
-        if payload["payroll_rows"] == 0:
-            readiness_lines.append("")
-            readiness_lines.append("No payroll rows found for this year.")
-        elif payload["period_count"] <= 1:
-            readiness_lines.append("")
-            readiness_lines.append(
-                "Only one pay period is loaded; T4 may look like"
-                "January-only totals."
-            )
-
-        return readiness_lines
+        return build_t4_readiness_lines(payload, emp_id)
 
     @pyqtSlot()
     def print_pay_statement(self) -> None:
@@ -4490,7 +5824,7 @@ class PayrollEntryWidget(QWidget):
         except Exception:
             QMessageBox.critical(
                 self,
-                "Missing Dependency",
+                TITLE_MISSING_DEPENDENCY,
                 "reportlab is required to print pay statements.",
             )
             return
@@ -4500,12 +5834,33 @@ class PayrollEntryWidget(QWidget):
             return
         emp_id, pay_period = selection
 
+        self._auto_correct_deduction_outlier(reason="print", silent=True)
+
         _, fiscal_year, period_number, period_start, period_end, pay_date = (
             pay_period
         )
 
+        # Keep charter detail page aligned with current DB data.
+        self._load_pay_printout()
+
         employee_name, employee_number = self._load_employee_identity(emp_id)
         lines = self._pay_statement_lines()
+        charter_rows = []
+        for row in range(self.pay_printout_table.rowCount()):
+            date_item = self.pay_printout_table.item(row, 0)
+            reserve_item = self.pay_printout_table.item(row, 1)
+            h1_item = self.pay_printout_table.item(row, 2)
+            h2_item = self.pay_printout_table.item(row, 3)
+            gratuity_item = self.pay_printout_table.item(row, 4)
+            charter_rows.append(
+                (
+                    (date_item.text() if date_item else "").strip(),
+                    (reserve_item.text() if reserve_item else "").strip(),
+                    (h1_item.text() if h1_item else "0").strip(),
+                    (h2_item.text() if h2_item else "0").strip(),
+                    (gratuity_item.text() if gratuity_item else "$0.00").strip(),
+                )
+            )
 
         safe_name = "".join(
             ch if ch.isalnum() or ch in "-_" else "_" for ch in employee_name
@@ -4526,14 +5881,290 @@ class PayrollEntryWidget(QWidget):
                 period_end,
                 pay_date,
                 lines,
+                charter_rows,
             )
             self._set_status(f"Pay statement generated: {output_filename}")
             if os.path.exists(output_path):
                 self._open_generated_file(output_path)
         except Exception as exc:
-            logger.error(f"Pay statement generation error: {exc}")
+            logger.exception("Pay statement generation error")
             self._set_status(
                 f"Pay statement generation error: {exc}", error=True
+            )
+
+    @pyqtSlot()
+    def print_payroll_register(self) -> None:
+        """Generate a combined payroll register PDF for the selected period."""
+
+        import os
+
+        try:
+            from reportlab.lib.pagesizes import letter
+            from reportlab.lib.units import inch
+            from reportlab.pdfgen import canvas
+        except Exception:
+            QMessageBox.critical(
+                self,
+                TITLE_MISSING_DEPENDENCY,
+                "reportlab is required to print payroll register PDFs.",
+            )
+            return
+
+        selection = self._get_save_selection(silent=False)
+        if not selection:
+            return
+        emp_id, pay_period = selection
+
+        (
+            pay_period_id,
+            fiscal_year,
+            period_number,
+            period_start,
+            period_end,
+            pay_date,
+        ) = pay_period
+
+        # Keep report content aligned with current DB data.
+        self._load_pay_printout()
+        self._refresh_work_item_summary()
+        self._load_monthly_remittance_summary()
+
+        employee_name, employee_number = self._load_employee_identity(emp_id)
+        company_name, company_address, payroll_account = self._load_company_identity(
+            fiscal_year
+        )
+        safe_name = "".join(
+            ch if ch.isalnum() or ch in "-_" else "_"
+            for ch in employee_name
+        )
+        output_filename = (
+            f"PayrollRegister_{fiscal_year}_P{period_number:02d}_{safe_name}.pdf"
+        )
+        output_path = _APP_ROOT / output_filename
+
+        work_summary = get_work_item_summary(
+            self.db,
+            int(emp_id),
+            pay_period_id=int(pay_period_id) if pay_period_id else None,
+            fiscal_year=int(fiscal_year) if fiscal_year else None,
+        )
+        work_items = get_work_items(
+            self.db,
+            int(emp_id),
+            int(pay_period_id) if pay_period_id else None,
+            int(fiscal_year) if fiscal_year else None,
+        )
+
+        charter_rows = []
+        for row in range(self.pay_printout_table.rowCount()):
+            date_item = self.pay_printout_table.item(row, 0)
+            reserve_item = self.pay_printout_table.item(row, 1)
+            h1_item = self.pay_printout_table.item(row, 2)
+            h2_item = self.pay_printout_table.item(row, 3)
+            gratuity_item = self.pay_printout_table.item(row, 4)
+            charter_rows.append(
+                (
+                    (date_item.text() if date_item else "").strip(),
+                    (reserve_item.text() if reserve_item else "").strip(),
+                    (h1_item.text() if h1_item else "0").strip(),
+                    (h2_item.text() if h2_item else "0").strip(),
+                    (gratuity_item.text() if gratuity_item else "$0.00").strip(),
+                )
+            )
+
+        def _draw_section_title(c, y_pos, title):
+            c.setFont("Helvetica-Bold", 11)
+            c.drawString(left, y_pos, title)
+            y_pos -= 0.14 * inch
+            c.setLineWidth(0.6)
+            c.line(left, y_pos, right, y_pos)
+            return y_pos - 0.16 * inch
+
+        def _ensure_space(c, y_pos, min_height=0.8 * inch):
+            if y_pos < min_height:
+                c.showPage()
+                return height - 0.8 * inch
+            return y_pos
+
+        try:
+            c = canvas.Canvas(str(output_path), pagesize=letter)
+            width, height = letter
+            left = 0.65 * inch
+            right = width - 0.65 * inch
+            y = height - 0.8 * inch
+
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(left, y, company_name)
+            c.setFont("Helvetica-Bold", 15)
+            c.drawRightString(right, y, "Payroll Register")
+            y -= 0.24 * inch
+
+            c.setFont("Helvetica", 9)
+            if company_address:
+                c.drawString(left, y, company_address[:90])
+                y -= 0.18 * inch
+            if payroll_account:
+                c.drawString(left, y, f"CRA Payroll Account: {payroll_account}")
+                y -= 0.2 * inch
+
+            c.setFont("Helvetica", 10)
+            c.drawString(left, y, f"Employee: {employee_name}")
+            if employee_number:
+                c.drawRightString(right, y, f"Employee #: {employee_number}")
+            y -= 0.2 * inch
+            c.drawString(
+                left,
+                y,
+                f"Period: P{period_number:02d}  {period_start} to {period_end}",
+            )
+            if pay_date:
+                c.drawRightString(right, y, f"Pay Date: {pay_date}")
+            y -= 0.2 * inch
+            c.drawString(left, y, f"Generated: {date.today().isoformat()}")
+            y -= 0.24 * inch
+            c.line(left, y, right, y)
+            y -= 0.24 * inch
+
+            # Charter rows section
+            y = _draw_section_title(c, y, "Charter Hours / Gratuity Detail")
+            c.setFont("Helvetica-Bold", 9)
+            c.drawString(left, y, "Date")
+            c.drawString(left + 1.15 * inch, y, "Reserve")
+            c.drawString(left + 3.1 * inch, y, "Hours 1")
+            c.drawString(left + 4.0 * inch, y, "Hours 2")
+            c.drawRightString(right, y, "Gratuity")
+            y -= 0.14 * inch
+            c.line(left, y, right, y)
+            y -= 0.16 * inch
+            c.setFont("Helvetica", 9)
+
+            if not charter_rows:
+                c.drawString(left, y, "No charter rows found for the selected period.")
+                y -= 0.2 * inch
+            else:
+                for c_date, reserve, h1, h2, grat in charter_rows:
+                    y = _ensure_space(c, y)
+                    c.drawString(left, y, c_date[:16])
+                    c.drawString(left + 1.15 * inch, y, reserve[:28])
+                    c.drawRightString(left + 3.75 * inch, y, h1)
+                    c.drawRightString(left + 4.65 * inch, y, h2)
+                    c.drawRightString(right, y, grat)
+                    y -= 0.18 * inch
+
+            y -= 0.04 * inch
+            c.setFont("Helvetica-Bold", 9)
+            c.drawString(left, y, self.pay_printout_total_hours.text())
+            c.drawString(left + 2.5 * inch, y, self.pay_printout_total_gratuity.text())
+            c.drawRightString(right, y, self.pay_printout_wcb.text())
+            y -= 0.28 * inch
+
+            # Non-charter section
+            y = _ensure_space(c, y)
+            y = _draw_section_title(c, y, "Non-Charter Work Items / Cash Movement")
+            c.setFont("Helvetica", 9)
+            c.drawString(left, y, f"Payable Non-Charter Income: ${work_summary.payable_income:,.2f}")
+            y -= 0.16 * inch
+            c.drawString(left, y, f"Reimbursements: ${work_summary.reimbursements:,.2f}")
+            y -= 0.16 * inch
+            c.drawString(
+                left,
+                y,
+                "Advances/Floats/Loans Outstanding: "
+                f"${work_summary.advances_outstanding + work_summary.float_outstanding + work_summary.loan_outstanding:,.2f}",
+            )
+            y -= 0.22 * inch
+
+            c.setFont("Helvetica-Bold", 9)
+            c.drawString(left, y, "Date")
+            c.drawString(left + 1.0 * inch, y, "Type")
+            c.drawString(left + 2.25 * inch, y, "Description")
+            c.drawRightString(right - 0.95 * inch, y, "Amount")
+            c.drawRightString(right, y, "Status")
+            y -= 0.14 * inch
+            c.line(left, y, right, y)
+            y -= 0.16 * inch
+            c.setFont("Helvetica", 8)
+
+            if not work_items:
+                c.drawString(left, y, "No work items found for selected scope.")
+                y -= 0.2 * inch
+            else:
+                for _wid, w_date, item_type, desc, _hrs, _rate, amount, _ref, status in work_items:
+                    y = _ensure_space(c, y)
+                    c.drawString(left, y, str(w_date or ""))
+                    c.drawString(left + 1.0 * inch, y, str(item_type or "")[:18])
+                    c.drawString(left + 2.25 * inch, y, str(desc or "")[:45])
+                    c.drawRightString(right - 0.95 * inch, y, f"${float(amount or 0):,.2f}")
+                    c.drawRightString(right, y, str(status or ""))
+                    y -= 0.16 * inch
+
+            # Payroll summary section
+            y -= 0.1 * inch
+            y = _ensure_space(c, y)
+            y = _draw_section_title(c, y, "Payroll Deductions / Contributions Summary")
+            c.setFont("Helvetica", 9)
+            summary_pairs = [
+                ("Gross Pay", f"${self.gross_pay.value():,.2f}"),
+                ("Other Income (Non-Charter)", f"${self.other_income.value():,.2f}"),
+                ("Reimbursements", f"${self.reimbursements.value():,.2f}"),
+                ("Pay Advance Deduction", f"${self.pay_advance_deduction.value():,.2f}"),
+                ("Federal Tax", f"${self.federal_tax.value():,.2f}"),
+                ("Provincial Tax", f"${self.provincial_tax.value():,.2f}"),
+                (LABEL_CPP_EMPLOYEE, f"${self.cpp_employee.value():,.2f}"),
+                ("CPP Employer", f"${self.cpp_employer.value():,.2f}"),
+                (LABEL_EI_EMPLOYEE, f"${self.ei_employee.value():,.2f}"),
+                ("EI Employer", f"${self.ei_employer.value():,.2f}"),
+                (LABEL_TOTAL_DEDUCTIONS, f"${self.total_deductions.value():,.2f}"),
+                (LABEL_NET_PAY, f"${self.net_pay.value():,.2f}"),
+            ]
+            for label, value in summary_pairs:
+                y = _ensure_space(c, y)
+                c.drawString(left, y, label)
+                c.drawRightString(right, y, value)
+                y -= 0.17 * inch
+
+            y -= 0.08 * inch
+            y = _ensure_space(c, y)
+            c.setFont("Helvetica-Bold", 9)
+            c.drawString(left, y, "Monthly PD7A Snapshot")
+            y -= 0.16 * inch
+            c.setFont("Helvetica", 9)
+            pd7a_pairs = [
+                ("Month", self.pd7a_month_label.text()),
+                ("Gross", self.pd7a_gross.text()),
+                (LABEL_CPP_EMPLOYEE, self.pd7a_cpp_employee.text()),
+                ("CPP Employer", self.pd7a_cpp_employer.text()),
+                (LABEL_EI_EMPLOYEE, self.pd7a_ei_employee.text()),
+                ("EI Employer", self.pd7a_ei_employer.text()),
+                ("Federal", self.pd7a_federal.text()),
+                ("Provincial", self.pd7a_provincial.text()),
+                (LABEL_TOTAL_DEDUCTIONS, self.pd7a_total_deductions.text()),
+                ("Net", self.pd7a_net.text()),
+                ("WCB", self.pd7a_wcb.text()),
+            ]
+            for label, value in pd7a_pairs:
+                y = _ensure_space(c, y)
+                c.drawString(left, y, label)
+                c.drawRightString(right, y, value)
+                y -= 0.16 * inch
+
+            y -= 0.16 * inch
+            y = _ensure_space(c, y, min_height=0.9 * inch)
+            c.setFont("Helvetica-Oblique", 8)
+            c.drawString(
+                left,
+                y,
+                "Prepared for electronic distribution (email). No signature lines required.",
+            )
+
+            c.save()
+            self._set_status(f"Payroll register generated: {output_filename}")
+            if os.path.exists(output_path):
+                self._open_generated_file(output_path)
+        except Exception as exc:
+            logger.exception("Payroll register generation error")
+            self._set_status(
+                f"Payroll register generation error: {exc}", error=True
             )
 
     def _load_employee_identity(self, emp_id: int) -> tuple[str, str]:
@@ -4571,30 +6202,90 @@ class PayrollEntryWidget(QWidget):
             )
         return employee_name, employee_number
 
+    def _load_company_identity(self, fiscal_year: int | None = None) -> tuple[str, str, str]:
+        """Load company display identity from company_info with safe fallbacks."""
+
+        company_name = "Arrow Limo"
+        company_address = ""
+        payroll_account = ""
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                if fiscal_year is None:
+                    cur.execute(
+                        "SELECT field_name, field_value FROM company_info"
+                    )
+                else:
+                    cur.execute(
+                        """
+                        SELECT field_name, field_value
+                        FROM company_info
+                        WHERE last_verified_year IS NULL
+                           OR last_verified_year <= %s
+                        ORDER BY COALESCE(last_verified_year, 0) DESC, field_name
+                        """,
+                        (fiscal_year,),
+                    )
+                info = {
+                    str(k or "").strip().lower(): str(v or "").strip()
+                    for k, v in cur.fetchall()
+                }
+
+            company_name = (
+                info.get("legal_name")
+                or info.get("company_name")
+                or info.get("name")
+                or company_name
+            )
+            addr_parts = [
+                info.get("address_line1", ""),
+                info.get("address_city", ""),
+                info.get("address_province", ""),
+                info.get("address_postal", ""),
+            ]
+            company_address = ", ".join(part for part in addr_parts if part).strip(", ")
+            if not company_address:
+                company_address = info.get("address", "")
+            payroll_account = (
+                info.get("cra_payroll_account")
+                or info.get("payroll_account")
+                or info.get("payroll_account_number")
+                or ""
+            )
+        except Exception as exc:
+            logger.warning(
+                "Could not load company info for payroll register: %s", exc
+            )
+        return company_name, company_address, payroll_account
+
     def _pay_statement_lines(self) -> list[tuple[str, float, float]]:
         return [
             ("Gross Pay", self.gross_pay.value(), self.ytd_gross_pay.value()),
             (
-                "Income Tax",
-                self.total_income_tax.value(),
-                self.ytd_income_tax.value(),
+                "  Federal Income Tax (CRA)",
+                self.federal_tax.value(),
+                self.ytd_federal_tax.value() if hasattr(self, "ytd_federal_tax") else 0.0,
             ),
             (
-                "CPP Employee",
+                "  Provincial Income Tax (CRA)",
+                self.provincial_tax.value(),
+                self.ytd_provincial_tax.value() if hasattr(self, "ytd_provincial_tax") else 0.0,
+            ),
+            (
+                "  CPP Employee (5.95% CRA Rate)",
                 self.cpp_employee.value(),
                 self.ytd_cpp_employee.value(),
             ),
             (
-                "EI Employee",
+                "  EI Employee (1.63% CRA Rate)",
                 self.ei_employee.value(),
                 self.ytd_ei_employee.value(),
             ),
             (
-                "Total Deductions",
+                LABEL_TOTAL_DEDUCTIONS,
                 self.total_deductions.value(),
                 self.ytd_total_deductions.value(),
             ),
-            ("Net Pay", self.net_pay.value(), self.ytd_net_pay.value()),
+            (LABEL_NET_PAY, self.net_pay.value(), self.ytd_net_pay.value()),
             (
                 "EI Insurable (T4-24)",
                 self.ei_insurable.value(),
@@ -4620,6 +6311,7 @@ class PayrollEntryWidget(QWidget):
         period_end,
         pay_date,
         lines,
+        charter_rows,
     ) -> None:
         c = canvas.Canvas(str(output_path), pagesize=letter)
         width, height = letter
@@ -4645,16 +6337,153 @@ class PayrollEntryWidget(QWidget):
         c.drawString(right - 2.0 * inch, y, f"Pay Date: {pay_date}")
         y -= 0.35 * inch
 
+        # ========== CHARTER RUNS SECTION ==========
+        charter_hours_1 = self.charter_hours_1.value()
+        charter_hours_2 = self.charter_hours_2.value()
+        hourly_rate_1 = self.hourly_rate.value()
+        hourly_rate_2 = self.hourly_rate_2.value()
+        
+        if charter_hours_1 > 0 or charter_hours_2 > 0:
+            c.setFont("Helvetica-Bold", 11)
+            c.drawString(left, y, "Charter Work")
+            y -= 0.22 * inch
+            
+            c.setFont("Helvetica", 9)
+            if charter_hours_1 > 0:
+                pay1_amount = round(charter_hours_1 * hourly_rate_1, 2)
+                c.drawString(left, y, f"Charter Hours (Pay 1): {charter_hours_1:.2f} hrs @ ${hourly_rate_1:,.2f}/hr")
+                c.drawRightString(right, y, f"${pay1_amount:,.2f}")
+                y -= 0.18 * inch
+            
+            if charter_hours_2 > 0:
+                pay2_amount = round(charter_hours_2 * hourly_rate_2, 2)
+                c.drawString(left, y, f"Charter Hours (Pay 2): {charter_hours_2:.2f} hrs @ ${hourly_rate_2:,.2f}/hr")
+                c.drawRightString(right, y, f"${pay2_amount:,.2f}")
+                y -= 0.18 * inch
+            
+            y -= 0.08 * inch
+
+        # ========== OTHER EARNINGS SECTION ==========
+        gratuity_amount = self.gratuity_amount.value()
+        other_income = self.other_income.value()
+        reimbursements = self.reimbursements.value()
+        
+        if gratuity_amount > 0 or other_income > 0:
+            c.setFont("Helvetica-Bold", 11)
+            c.drawString(left, y, "Other Earnings")
+            y -= 0.22 * inch
+            
+            c.setFont("Helvetica", 9)
+            if gratuity_amount > 0:
+                c.drawString(left, y, "Gratuity (Non-Taxable)")
+                c.drawRightString(right, y, f"${gratuity_amount:,.2f}")
+                y -= 0.18 * inch
+            
+            if other_income > 0:
+                c.drawString(left, y, "Other Income")
+                c.drawRightString(right, y, f"${other_income:,.2f}")
+                y -= 0.18 * inch
+            
+            y -= 0.08 * inch
+
+        # ========== DEDUCTIONS & CONTRIBUTIONS SECTION ==========
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(left, y, "Deductions & Contributions (CRA Calculated)")
+        y -= 0.22 * inch
+        
+        c.setFont("Helvetica", 9)
+        federal_tax = self.federal_tax.value()
+        provincial_tax = self.provincial_tax.value()
+        cpp_employee = self.cpp_employee.value()
+        ei_employee = self.ei_employee.value()
+        
+        c.drawString(left, y, "Federal Income Tax (CRA Rate)")
+        c.drawRightString(right, y, f"${federal_tax:,.2f}")
+        y -= 0.18 * inch
+        
+        c.drawString(left, y, "Provincial Income Tax (CRA Rate)")
+        c.drawRightString(right, y, f"${provincial_tax:,.2f}")
+        y -= 0.18 * inch
+        
+        c.drawString(left, y, "CPP Employee Contribution (5.95%)")
+        c.drawRightString(right, y, f"${cpp_employee:,.2f}")
+        y -= 0.18 * inch
+        
+        c.drawString(left, y, "EI Employee Premium (1.63%)")
+        c.drawRightString(right, y, f"${ei_employee:,.2f}")
+        y -= 0.18 * inch
+        
+        # WCB if present
+        try:
+            wcb_text = self.pay_printout_wcb.text()
+            if wcb_text and "$" in wcb_text:
+                wcb_amount = wcb_text.split("$")[1].strip()
+                c.drawString(left, y, "Workers' Compensation (WCB)")
+                c.drawRightString(right, y, f"${wcb_amount}")
+                y -= 0.18 * inch
+        except Exception:
+            pass
+        
+        y -= 0.08 * inch
+
+        # ========== REIMBURSEMENTS SECTION ==========
+        if reimbursements > 0:
+            c.setFont("Helvetica-Bold", 11)
+            c.drawString(left, y, "Reimbursements (Non-Taxable)")
+            y -= 0.22 * inch
+            c.setFont("Helvetica", 9)
+            c.drawString(left, y, "Expense Reimbursements")
+            c.drawRightString(right, y, f"${reimbursements:,.2f}")
+            y -= 0.18 * inch
+            y -= 0.08 * inch
+
+        y -= 0.1 * inch
         c.setLineWidth(0.8)
         c.line(left, y, right, y)
         y -= 0.22 * inch
 
+        # ========== PERCENTAGE CHECK SECTION ==========
+        gross_pay = max(0.0, self.gross_pay.value())
+        income_tax_total = self.federal_tax.value() + self.provincial_tax.value()
+        total_deductions = self.total_deductions.value()
+        if gross_pay > 0:
+            income_tax_pct = (income_tax_total / gross_pay) * 100.0
+            total_deduction_pct = (total_deductions / gross_pay) * 100.0
+        else:
+            income_tax_pct = 0.0
+            total_deduction_pct = 0.0
+
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(left, y, "Payroll Percentage Check")
+        y -= 0.22 * inch
+
+        c.setFont("Helvetica", 9)
+        c.drawString(left, y, "Income Tax % of Gross")
+        c.drawRightString(right, y, f"{income_tax_pct:,.2f}%")
+        y -= 0.18 * inch
+
+        c.drawString(left, y, "Total Deductions % of Gross")
+        c.drawRightString(right, y, f"{total_deduction_pct:,.2f}%")
+        y -= 0.18 * inch
+
+        if total_deduction_pct > (MAX_REASONABLE_DEDUCTION_RATIO * 100.0):
+            c.setFont("Helvetica-Bold", 9)
+            c.drawString(
+                left,
+                y,
+                "WARNING: Total deductions exceeded 50% of gross before auto-correction check.",
+            )
+            y -= 0.18 * inch
+
+        y -= 0.08 * inch
+
+        # ========== SUMMARY TABLE ==========
         col_item = left
         col_period = left + 3.0 * inch
         col_ytd = left + 4.7 * inch
 
         c.setFont("Helvetica-Bold", 10)
-        c.drawString(col_item, y, "Item")
+        c.drawString(col_item, y, "Summary")
         c.drawString(col_period, y, "This Period")
         c.drawString(col_ytd, y, "Year-to-Date")
         y -= 0.14 * inch
@@ -4685,7 +6514,113 @@ class PayrollEntryWidget(QWidget):
             y,
             f"Generated by ALMS Payroll Entry on {date.today().isoformat()}",
         )
+        y -= 0.12 * inch
+        c.drawString(
+            left,
+            y,
+            "CRA deductions calculated per current tax year rates. Verify calculations with CRA records.",
+        )
+
+        self._render_pay_statement_charter_page(
+            c,
+            letter,
+            inch,
+            employee_name,
+            employee_number,
+            period_number,
+            period_start,
+            period_end,
+            charter_rows,
+        )
         c.save()
+
+    def _render_pay_statement_charter_page(
+        self,
+        canvas_obj,
+        letter,
+        inch,
+        employee_name,
+        employee_number,
+        period_number,
+        period_start,
+        period_end,
+        charter_rows,
+    ) -> None:
+        """Append charter-row detail page to the pay statement PDF."""
+        canvas_obj.showPage()
+        width, height = letter
+        left = 0.75 * inch
+        right = width - 0.75 * inch
+
+        def _draw_page_header() -> float:
+            y_pos = height - 0.8 * inch
+            canvas_obj.setFont("Helvetica-Bold", 14)
+            canvas_obj.drawString(left, y_pos, "Pay Statement Charter Detail")
+            y_pos -= 0.28 * inch
+            canvas_obj.setFont("Helvetica", 10)
+            canvas_obj.drawString(left, y_pos, f"Employee: {employee_name}")
+            if employee_number:
+                canvas_obj.drawString(
+                    right - 2.0 * inch,
+                    y_pos,
+                    f"Employee #: {employee_number}",
+                )
+            y_pos -= 0.2 * inch
+            canvas_obj.drawString(
+                left,
+                y_pos,
+                f"Period: P{period_number:02d}  {period_start} to {period_end}",
+            )
+            y_pos -= 0.24 * inch
+            canvas_obj.setFont("Helvetica-Bold", 9)
+            canvas_obj.drawString(left, y_pos, "Charter Date")
+            canvas_obj.drawString(left + 1.3 * inch, y_pos, "Reserve #")
+            canvas_obj.drawRightString(left + 4.2 * inch, y_pos, "Hours 1")
+            canvas_obj.drawRightString(left + 5.0 * inch, y_pos, "Hours 2")
+            canvas_obj.drawRightString(right, y_pos, "Gratuity")
+            y_pos -= 0.14 * inch
+            canvas_obj.line(left, y_pos, right, y_pos)
+            return y_pos - 0.16 * inch
+
+        y = _draw_page_header()
+        canvas_obj.setFont("Helvetica", 9)
+
+        if not charter_rows:
+            canvas_obj.drawString(
+                left,
+                y,
+                "No charter rows found for this pay period.",
+            )
+            y -= 0.2 * inch
+        else:
+            for c_date, reserve, h1, h2, grat in charter_rows:
+                if y < 1.0 * inch:
+                    canvas_obj.showPage()
+                    y = _draw_page_header()
+                    canvas_obj.setFont("Helvetica", 9)
+                canvas_obj.drawString(left, y, c_date[:16])
+                canvas_obj.drawString(left + 1.3 * inch, y, reserve[:26])
+                canvas_obj.drawRightString(left + 4.2 * inch, y, h1)
+                canvas_obj.drawRightString(left + 5.0 * inch, y, h2)
+                canvas_obj.drawRightString(right, y, grat)
+                y -= 0.18 * inch
+
+        y -= 0.08 * inch
+        canvas_obj.setFont("Helvetica-Bold", 9)
+        canvas_obj.drawString(left, y, self.pay_printout_total_hours.text())
+        canvas_obj.drawString(
+            left + 2.7 * inch,
+            y,
+            self.pay_printout_total_gratuity.text(),
+        )
+        canvas_obj.drawRightString(right, y, self.pay_printout_wcb.text())
+        y -= 0.2 * inch
+        canvas_obj.setFont("Helvetica-Oblique", 8)
+        canvas_obj.drawString(
+            left,
+            y,
+            f"Generated on {date.today().isoformat()}",
+        )
 
     @pyqtSlot()
     def open_payment_ledger(self) -> None:
