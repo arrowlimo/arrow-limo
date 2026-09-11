@@ -216,6 +216,84 @@ def get_my_compliance_records(current_user: dict = Depends(get_current_user)):
         return_connection(conn)
 
 
+@router.get("/me/training")
+def get_my_training_checklist(current_user: dict = Depends(get_current_user)):
+    """Read-only view of this driver's training checklist progress.
+
+    Deliberately read-only: training completion is a verification performed by
+    the company, so a driver must not be able to mark their own courses
+    complete. Recording and sign-off happen in the PC app.
+    """
+    employee_id = _employee_id_from_user(current_user)
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT step_number, category, program_name, is_mandatory,
+                       effective_status, started_date, completed_date,
+                       expiry_date, days_until_expiry, program_id
+                FROM v_employee_training_status
+                WHERE employee_id = %s
+                ORDER BY step_number
+                """,
+                (employee_id,),
+            )
+            program_rows = cur.fetchall()
+
+            cur.execute(
+                """
+                SELECT i.program_id, i.item_name, i.is_required,
+                       COALESCE(p.completed, FALSE), p.completed_date
+                FROM training_checklist_items i
+                LEFT JOIN employee_checklist_progress p
+                       ON p.item_id = i.item_id
+                      AND p.employee_id = %s
+                ORDER BY i.program_id, i.sort_order, i.item_id
+                """,
+                (employee_id,),
+            )
+            item_rows = cur.fetchall()
+
+        items_by_program: dict[int, list] = {}
+        for program_id, name, required, completed, completed_date in item_rows:
+            items_by_program.setdefault(program_id, []).append(
+                {
+                    "item_name": name,
+                    "is_required": bool(required),
+                    "completed": bool(completed),
+                    "completed_date": (
+                        completed_date.isoformat() if completed_date else None
+                    ),
+                }
+            )
+
+        programs = []
+        counts = {"completed": 0, "in_progress": 0, "expired": 0, "not_started": 0}
+        for row in program_rows:
+            status = row[4] or "not_started"
+            if status in counts:
+                counts[status] += 1
+            programs.append(
+                {
+                    "step_number": row[0],
+                    "category": row[1],
+                    "program_name": row[2],
+                    "is_mandatory": bool(row[3]),
+                    "status": status,
+                    "started_date": row[5].isoformat() if row[5] else None,
+                    "completed_date": row[6].isoformat() if row[6] else None,
+                    "expiry_date": row[7].isoformat() if row[7] else None,
+                    "days_until_expiry": row[8],
+                    "items": items_by_program.get(row[9], []),
+                }
+            )
+
+        return {"programs": programs, "summary": counts}
+    finally:
+        return_connection(conn)
+
+
 @router.post("/me/compliance", status_code=201)
 def submit_compliance_changes(
     payload: ChangeRequestSubmission,

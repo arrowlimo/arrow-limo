@@ -439,6 +439,63 @@
           </table>
         </div>
       </section>
+
+      <section v-if="activeTab === 'training'" class="panel">
+        <div class="section-heading">
+          <h2>My Training Checklist</h2>
+          <button class="secondary" @click="loadTraining">Refresh</button>
+        </div>
+        <p class="records-note">
+          This is a <strong>read-only</strong> view. Training completion is verified and recorded by
+          the office &mdash; if something here looks wrong, contact dispatch.
+        </p>
+        <div v-if="trainingError" class="records-error">{{ trainingError }}</div>
+
+        <div class="training-summary">
+          <span class="training-chip done">{{ trainingSummary.completed || 0 }} complete</span>
+          <span class="training-chip progress">{{ trainingSummary.in_progress || 0 }} in progress</span>
+          <span class="training-chip todo">{{ trainingSummary.not_started || 0 }} not started</span>
+          <span v-if="trainingSummary.expired" class="training-chip expired">
+            {{ trainingSummary.expired }} expired
+          </span>
+        </div>
+
+        <article v-for="program in trainingPrograms" :key="program.step_number" class="training-card">
+          <header class="training-card-head">
+            <div>
+              <span class="training-step">Step {{ program.step_number }}</span>
+              <strong>{{ program.program_name }}</strong>
+              <span class="training-cat">{{ categoryLabel(program.category) }}</span>
+              <span v-if="!program.is_mandatory" class="training-cat">optional</span>
+            </div>
+            <span class="training-status" :class="program.status">
+              {{ statusLabel(program.status) }}
+            </span>
+          </header>
+          <div class="training-dates">
+            <span>Started: {{ program.started_date ? formatDate(program.started_date) : '—' }}</span>
+            <span>Completed: {{ program.completed_date ? formatDate(program.completed_date) : '—' }}</span>
+            <span>
+              Renews: {{ program.expiry_date ? formatDate(program.expiry_date) : '—' }}
+              <template v-if="program.days_until_expiry !== null && program.days_until_expiry !== undefined">
+                ({{ program.days_until_expiry }} days)
+              </template>
+            </span>
+          </div>
+          <ul v-if="program.items.length" class="training-items">
+            <li v-for="item in program.items" :key="item.item_name">
+              <span>{{ item.completed ? '☑' : '☐' }}</span>
+              {{ item.item_name }}
+              <em v-if="!item.is_required">(optional)</em>
+              <span v-if="item.completed_date"> &mdash; {{ formatDate(item.completed_date) }}</span>
+            </li>
+          </ul>
+        </article>
+
+        <div v-if="trainingPrograms.length === 0" class="empty-state">
+          No training checklist has been assigned to you yet.
+        </div>
+      </section>
     </template>
   </div>
 </template>
@@ -456,7 +513,8 @@ const tabs = [
   { id: 'float', label: 'Float' },
   { id: 'statements', label: 'Pay Statements' },
   { id: 't4s', label: 'T4 Records' },
-  { id: 'records', label: 'My Records' }
+  { id: 'records', label: 'My Records' },
+  { id: 'training', label: 'My Training' }
 ]
 const activeTab = ref('runs')
 const loading = ref(true)
@@ -500,6 +558,9 @@ const receiptForm = reactive({
 })
 const returnForm = reactive({ amount: null, charter_id: null, notes: '' })
 const complianceFields = ref([])
+const trainingPrograms = ref([])
+const trainingSummary = ref({})
+const trainingError = ref('')
 const complianceDocuments = ref([])
 const complianceDraft = reactive({})
 const complianceSaving = ref(false)
@@ -522,6 +583,17 @@ const requestJson = async (url, options) => {
   const payload = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(payload.detail || 'Request failed')
   return payload
+}
+
+const loadTraining = async () => {
+  trainingError.value = ''
+  try {
+    const payload = await requestJson('/api/chauffeur/me/training')
+    trainingPrograms.value = payload.programs || []
+    trainingSummary.value = payload.summary || {}
+  } catch (err) {
+    trainingError.value = err.message
+  }
 }
 
 const loadCompliance = async () => {
@@ -790,11 +862,29 @@ const toggleHosDay = day => {
 }
 const monthName = value => value ? new Intl.DateTimeFormat('en-CA', { month: 'long' }).format(new Date(2000, Number(value) - 1, 1)) : '—'
 const t4ForYear = year => t4Records.value.find(record => Number(record.tax_year) === Number(year))
+const categoryLabel = value => ({
+  municipal: 'Municipal / Bylaw',
+  provincial: 'Provincial',
+  federal: 'Federal',
+  company: 'Company'
+}[value] || value || '')
+
+const statusLabel = value => ({
+  completed: 'Completed',
+  in_progress: 'In progress',
+  expired: 'Expired',
+  waived: 'Waived',
+  not_started: 'Not started'
+}[value] || value || '')
+
 const printReport = () => window.print()
 
 watch(activeTab, tab => {
   if (tab === 'records' && complianceFields.value.length === 0) {
     loadCompliance()
+  }
+  if (tab === 'training' && trainingPrograms.value.length === 0) {
+    loadTraining()
   }
 })
 
@@ -857,6 +947,23 @@ th, td { border-bottom: 1px solid #e2e8f0; padding: .7rem; text-align: left; whi
 .pending-flag { color: #b45309; font-weight: 600; }
 .records-actions { margin: 1rem 0; }
 .record-upload { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; align-items: end; margin-bottom: 1rem; }
+.training-summary { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+.training-chip { border-radius: 999px; padding: 0.25rem 0.75rem; font-size: 0.85rem; font-weight: 600; }
+.training-chip.done { background: #dcfce7; color: #14532d; }
+.training-chip.progress { background: #fef9c3; color: #713f12; }
+.training-chip.todo { background: #e5e7eb; color: #374151; }
+.training-chip.expired { background: #fee2e2; color: #7f1d1d; }
+.training-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 0.85rem; margin-bottom: 0.75rem; background: #fff; }
+.training-card-head { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.training-step { background: #1f2937; color: #fff; border-radius: 6px; padding: 0.1rem 0.5rem; font-size: 0.75rem; margin-right: 0.5rem; }
+.training-cat { color: #6b7280; font-size: 0.8rem; margin-left: 0.5rem; }
+.training-status { border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.8rem; font-weight: 600; background: #e5e7eb; color: #374151; }
+.training-status.completed { background: #dcfce7; color: #14532d; }
+.training-status.in_progress { background: #fef9c3; color: #713f12; }
+.training-status.expired { background: #fee2e2; color: #7f1d1d; }
+.training-dates { display: flex; flex-wrap: wrap; gap: 1rem; color: #4b5563; font-size: 0.85rem; margin-top: 0.5rem; }
+.training-items { margin: 0.6rem 0 0; padding-left: 1rem; color: #374151; font-size: 0.85rem; }
+.training-items li { margin-bottom: 0.2rem; list-style: none; }
 @media (max-width: 720px) {
   .form-grid, .inline-form { grid-template-columns: 1fr; }
   .wide, .actions { grid-column: auto; }
