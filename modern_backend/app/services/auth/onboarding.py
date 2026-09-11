@@ -115,6 +115,10 @@ def ensure_auth_tables(conn) -> None:
                 )
                 """
             )
+            # Drivers frequently share a company mailbox, so email cannot be unique.
+            cur.execute("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_email_key")
+            cur.execute("DROP INDEX IF EXISTS users_email_key")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users USING btree (email)")
         conn.commit()
         _AUTH_TABLES_READY = True
 

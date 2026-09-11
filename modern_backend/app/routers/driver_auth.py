@@ -472,7 +472,7 @@ async def create_support_driver_account(
                     username,
                     employee[0] or f"{username}@driver.invalid",
                     hash_password(payload.temporary_password),
-                    '{"modules":["chauffeur_self_service"]}',
+                    '{"modules":["chauffeur_self_service"],"department":"operations"}',
                 ),
             )
             user_id = cur.fetchone()[0]
