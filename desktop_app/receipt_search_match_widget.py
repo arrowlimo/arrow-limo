@@ -4999,11 +4999,14 @@ class ReceiptSearchMatchWidget(QWidget):
             # The normal suggestion query deliberately excludes reconciled
             # entries, which otherwise makes a real grid link look broken.
             linked_transaction_id = None
+            selected_receipt_id = None
             selected_items = self.results_table.selectedItems()
             if selected_items:
-                banking_item = self.results_table.item(
-                    selected_items[0].row(), 5
-                )
+                selected_row = selected_items[0].row()
+                receipt_item = self.results_table.item(selected_row, 0)
+                if receipt_item and (receipt_item.text() or "").isdigit():
+                    selected_receipt_id = int(receipt_item.text())
+                banking_item = self.results_table.item(selected_row, 5)
                 if banking_item and (banking_item.text() or "").isdigit():
                     linked_transaction_id = int(banking_item.text())
 
@@ -5014,7 +5017,9 @@ class ReceiptSearchMatchWidget(QWidget):
                            COALESCE(credit_amount, 0) AS credit,
                            COALESCE(debit_amount, 0) AS debit,
                            COALESCE(credit_amount, 0)
-                               - COALESCE(debit_amount, 0) AS net_amount
+                               - COALESCE(debit_amount, 0) AS net_amount,
+                           COALESCE(receipt_id, reconciled_receipt_id)
+                               AS linked_receipt_id
                     FROM banking_transactions
                     WHERE transaction_id = %s
                     """,
@@ -5031,7 +5036,9 @@ class ReceiptSearchMatchWidget(QWidget):
                            COALESCE(credit_amount, 0) as credit,
                            COALESCE(debit_amount, 0) as debit,
                            COALESCE(credit_amount, 0)
-                               - COALESCE(debit_amount, 0) AS net_amount
+                               - COALESCE(debit_amount, 0) AS net_amount,
+                           COALESCE(receipt_id, reconciled_receipt_id)
+                               AS linked_receipt_id
                     FROM banking_transactions
                     WHERE (
                         ABS(COALESCE(credit_amount, 0) - %s)
@@ -5041,23 +5048,6 @@ class ReceiptSearchMatchWidget(QWidget):
                     )
                     AND transaction_date BETWEEN
                         %s - INTERVAL '7 days' AND %s + INTERVAL '7 days'
-                    AND (
-                        reconciliation_status IS NULL
-                        OR reconciliation_status IN ('unreconciled','ignored')
-                        OR (
-                            reconciliation_status = 'reconciled'
-                            AND receipt_id IS NULL
-                            AND (
-                                reconciled_receipt_id IS NULL
-                                OR NOT EXISTS (
-                                    SELECT 1
-                                    FROM receipts r_chk
-                                    WHERE r_chk.receipt_id =
-                                        banking_transactions.reconciled_receipt_id
-                                )
-                            )
-                        )
-                    )
                     ORDER BY ABS(transaction_date - %s),
                              LEAST(
                                  ABS(COALESCE(credit_amount,0) - %s),
@@ -5127,7 +5117,15 @@ class ReceiptSearchMatchWidget(QWidget):
                 if hasattr(self, "new_vendor")
                 else ""
             ).upper()
-            for tid, txn_date, desc, credit, debit, net_amt in rows:
+            for (
+                tid,
+                txn_date,
+                desc,
+                credit,
+                debit,
+                net_amt,
+                existing_receipt_id,
+            ) in rows:
                 txn_type = "DEPOSIT" if credit > debit else "WITHDRAWAL"
                 txn_amt = credit if credit > debit else debit
                 amount_display = (
@@ -5143,6 +5141,20 @@ class ReceiptSearchMatchWidget(QWidget):
                 item.setData(1000, tid)  # Store ID
                 item.setData(1001, credit)  # Store credit amount
                 item.setData(1002, debit)  # Store debit amount
+                if existing_receipt_id:
+                    if existing_receipt_id == selected_receipt_id:
+                        item.setText(item_text + "  ✓ ALREADY LINKED TO THIS RECEIPT")
+                    else:
+                        item.setText(
+                            item_text
+                            + f"  ⛔ ALREADY LINKED TO RECEIPT "
+                            f"#{existing_receipt_id}"
+                        )
+                    # An imported/reconciled bank transaction belongs to an
+                    # existing receipt. Show it as duplicate evidence but do
+                    # not let it be attached to a second receipt.
+                    item.setFlags(Qt.ItemFlag.ItemIsEnabled)
+                    item.setForeground(QColor(180, 40, 40))
                 # Warn visually if banking description doesn't contain receipt
                 # vendor keywords
                 desc_upper = (desc or "").upper()
