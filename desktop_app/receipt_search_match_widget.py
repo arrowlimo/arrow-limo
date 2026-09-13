@@ -5042,12 +5042,12 @@ class ReceiptSearchMatchWidget(QWidget):
                     FROM banking_transactions
                     WHERE (
                         ABS(COALESCE(credit_amount, 0) - %s)
-                            < 0.02  -- Deposit exact match
+                            < 0.005  -- Exact cents only
                         OR ABS(COALESCE(debit_amount, 0) - %s)
-                            < 0.02  -- Withdrawal exact match
+                            < 0.005  -- Exact cents only
                     )
                     AND transaction_date BETWEEN
-                        %s - INTERVAL '7 days' AND %s + INTERVAL '7 days'
+                        %s AND %s + INTERVAL '5 days'
                     ORDER BY ABS(transaction_date - %s),
                              LEAST(
                                  ABS(COALESCE(credit_amount,0) - %s),
