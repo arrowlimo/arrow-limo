@@ -411,6 +411,12 @@ class CheckBookManagementWidget(QWidget):
         edit_btn.clicked.connect(self._edit_selected_cheque)
         action_layout.addWidget(edit_btn)
 
+        self.delete_btn = QPushButton("Delete Selected Check")
+        self.delete_btn.setStyleSheet("color: #cc0000; font-weight: bold;")
+        self.delete_btn.setEnabled(False)
+        self.delete_btn.clicked.connect(self._delete_selected_cheque)
+        action_layout.addWidget(self.delete_btn)
+
         matches_btn = QPushButton("View Matches")
         matches_btn.clicked.connect(self._view_matches)
         action_layout.addWidget(matches_btn)
@@ -434,11 +440,6 @@ class CheckBookManagementWidget(QWidget):
             )
         )
         action_layout.addWidget(export_btn)
-
-        delete_btn = QPushButton("Delete Check")
-        delete_btn.setStyleSheet("color: #cc0000; font-weight: bold;")
-        delete_btn.clicked.connect(self._delete_selected_cheque)
-        action_layout.addWidget(delete_btn)
 
         layout.addLayout(action_layout)
 
@@ -467,6 +468,7 @@ class CheckBookManagementWidget(QWidget):
         self.table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
         )
+        self.table.itemSelectionChanged.connect(self._update_delete_button)
         self.table.setAlternatingRowColors(True)
         self.table.setSortingEnabled(True)
         self.table.horizontalHeader().sectionClicked.connect(
@@ -778,6 +780,11 @@ class CheckBookManagementWidget(QWidget):
             return None
         return item.data(Qt.ItemDataRole.UserRole)
 
+    def _update_delete_button(self) -> None:
+        self.delete_btn.setEnabled(
+            bool(self.table.selectionModel().selectedRows())
+        )
+
     def _bank_accounts_for_editor(self) -> list[str]:
         accounts: list[str] = []
         for idx in range(1, self.bank_filter.count()):
@@ -849,10 +856,12 @@ class CheckBookManagementWidget(QWidget):
 
         confirm = QMessageBox.question(
             self,
-            "Delete Check",
+            "Delete Selected Check",
             (
                 f"Permanently delete Check #{cheque_num}\n"
                 f"Payee: {payee_val}  Amount: ${amount_val}\n\n"
+                "This removes only this Check Book entry. Linked Banking "
+                "and Receipt records are retained.\n\n"
                 "This cannot be undone. Continue?"
             ),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -864,10 +873,30 @@ class CheckBookManagementWidget(QWidget):
         try:
             with DatabaseContext(self.conn, auto_commit=True) as cur:
                 cur.execute(
-                    "DELETE FROM cheque_register WHERE id = %s", (cheque_id,)
+                    """
+                    DELETE FROM cheque_register
+                    WHERE id = %s
+                    RETURNING id
+                    """,
+                    (cheque_id,),
+                )
+                deleted = cur.fetchone()
+            if deleted is None:
+                QMessageBox.warning(
+                    self,
+                    "Check Not Deleted",
+                    "The selected Check Book entry no longer exists. "
+                    "The list will be refreshed.",
                 )
             self._load_cheques()
-        except Exception as exc:
+            if deleted is not None:
+                QMessageBox.information(
+                    self,
+                    "Check Deleted",
+                    f"Check #{cheque_num} was deleted from the Check Book.",
+                )
+        except psycopg2.Error as exc:
+            logger.exception("Failed to delete cheque register row %s", cheque_id)
             QMessageBox.critical(
                 self, "Delete Error", f"Failed to delete check:\n{exc}"
             )
