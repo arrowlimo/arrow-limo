@@ -4993,52 +4993,81 @@ class ReceiptSearchMatchWidget(QWidget):
             return
         try:
             cur = self.conn.cursor()
-            # Search for deposits (credit_amount) or withdrawals (debit_amount)
-            # Tolerance: $0.02 exact-match only to prevent false vendor cross-
-            # matches
-            cur.execute(
-                """
-                SELECT transaction_id, transaction_date, description,
-                       COALESCE(credit_amount, 0) as credit,
-                       COALESCE(debit_amount, 0) as debit,
-                       COALESCE(credit_amount, 0)
-                           - COALESCE(debit_amount, 0) AS net_amount
-                FROM banking_transactions
-                WHERE (
-                    ABS(COALESCE(credit_amount, 0) - %s)
-                        < 0.02  -- Deposit exact match
-                    OR ABS(COALESCE(debit_amount, 0) - %s)
-                        < 0.02  -- Withdrawal exact match
+            # A receipt can already be linked to a reconciled bank
+            # transaction. It must remain visible from Find Banking even
+            # when the edit form still contains values from a different row.
+            # The normal suggestion query deliberately excludes reconciled
+            # entries, which otherwise makes a real grid link look broken.
+            linked_transaction_id = None
+            selected_items = self.results_table.selectedItems()
+            if selected_items:
+                banking_item = self.results_table.item(
+                    selected_items[0].row(), 5
                 )
-                AND transaction_date BETWEEN
-                    %s - INTERVAL '7 days' AND %s + INTERVAL '7 days'
-                AND (
-                    reconciliation_status IS NULL
-                    OR reconciliation_status IN ('unreconciled','ignored')
-                    OR (
-                        reconciliation_status = 'reconciled'
-                        AND receipt_id IS NULL
-                        AND (
-                            reconciled_receipt_id IS NULL
-                            OR NOT EXISTS (
-                                SELECT 1
-                                FROM receipts r_chk
-                                WHERE r_chk.receipt_id =
-                                    banking_transactions.reconciled_receipt_id
+                if banking_item and (banking_item.text() or "").isdigit():
+                    linked_transaction_id = int(banking_item.text())
+
+            if linked_transaction_id is not None:
+                cur.execute(
+                    """
+                    SELECT transaction_id, transaction_date, description,
+                           COALESCE(credit_amount, 0) AS credit,
+                           COALESCE(debit_amount, 0) AS debit,
+                           COALESCE(credit_amount, 0)
+                               - COALESCE(debit_amount, 0) AS net_amount
+                    FROM banking_transactions
+                    WHERE transaction_id = %s
+                    """,
+                    (linked_transaction_id,),
+                )
+                rows = cur.fetchall()
+            else:
+                # Search for deposits (credit_amount) or withdrawals
+                # (debit_amount). Tolerance: $0.02 exact-match only to
+                # prevent false vendor cross-matches.
+                cur.execute(
+                    """
+                    SELECT transaction_id, transaction_date, description,
+                           COALESCE(credit_amount, 0) as credit,
+                           COALESCE(debit_amount, 0) as debit,
+                           COALESCE(credit_amount, 0)
+                               - COALESCE(debit_amount, 0) AS net_amount
+                    FROM banking_transactions
+                    WHERE (
+                        ABS(COALESCE(credit_amount, 0) - %s)
+                            < 0.02  -- Deposit exact match
+                        OR ABS(COALESCE(debit_amount, 0) - %s)
+                            < 0.02  -- Withdrawal exact match
+                    )
+                    AND transaction_date BETWEEN
+                        %s - INTERVAL '7 days' AND %s + INTERVAL '7 days'
+                    AND (
+                        reconciliation_status IS NULL
+                        OR reconciliation_status IN ('unreconciled','ignored')
+                        OR (
+                            reconciliation_status = 'reconciled'
+                            AND receipt_id IS NULL
+                            AND (
+                                reconciled_receipt_id IS NULL
+                                OR NOT EXISTS (
+                                    SELECT 1
+                                    FROM receipts r_chk
+                                    WHERE r_chk.receipt_id =
+                                        banking_transactions.reconciled_receipt_id
+                                )
                             )
                         )
                     )
+                    ORDER BY ABS(transaction_date - %s),
+                             LEAST(
+                                 ABS(COALESCE(credit_amount,0) - %s),
+                                 ABS(COALESCE(debit_amount,0) - %s)
+                             )
+                    LIMIT 20
+                    """,
+                    (amt, amt, date, date, date, amt, amt),
                 )
-                ORDER BY ABS(transaction_date - %s),
-                         LEAST(
-                             ABS(COALESCE(credit_amount,0) - %s),
-                             ABS(COALESCE(debit_amount,0) - %s)
-                         )
-                LIMIT 20
-                """,
-                (amt, amt, date, date, date, amt, amt),
-            )
-            rows = cur.fetchall()
+                rows = cur.fetchall()
             cur.close()
             if not rows:
                 QMessageBox.information(
@@ -5056,10 +5085,13 @@ class ReceiptSearchMatchWidget(QWidget):
             v = QVBoxLayout(dlg)
 
             # Header
-            header = QLabel(
-                f"Found {len(rows)} banking transaction(s) matching "
+            header_text = (
+                "Linked banking transaction for the selected receipt:"
+                if linked_transaction_id is not None
+                else f"Found {len(rows)} banking transaction(s) matching "
                 f"${amt:,.2f} on {date}:"
             )
+            header = QLabel(header_text)
             header.setStyleSheet(
                 "font-weight: bold; font-size: 11pt; padding: 5px;"
             )
