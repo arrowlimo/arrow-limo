@@ -15,7 +15,12 @@ from decimal import Decimal
 import psycopg2
 
 logger = logging.getLogger(__name__)
-from common_widgets import StandardDateEdit
+from common_widgets import (
+    PAYMENT_METHOD_CHOICES,
+    StandardDateEdit,
+    display_payment_method,
+    normalize_payment_method,
+)
 from PyQt6.QtCore import QDate, QSize, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import (
     QColor,
@@ -62,8 +67,28 @@ GL_DISPLAY_NAME_OVERRIDES = {
     "5116": "Client Amenities - Food, Coffee, Supplies",
     "5300": "Administrative Expense",
 }
+DEFAULT_FUEL_PRICE_PER_LITER = 1.129
 
 DAVID_REIMBURSEMENT_GL_CODE = "2550"
+
+
+class SelectAllDoubleSpinBox(QDoubleSpinBox):
+    """A spin box whose numeric text is always replaced on click or focus."""
+
+    def _select_editor_text(self) -> None:
+        QTimer.singleShot(0, self.lineEdit().selectAll)
+
+    def focusInEvent(self, event) -> None:
+        super().focusInEvent(event)
+        self._select_editor_text()
+
+    def mousePressEvent(self, event) -> None:
+        super().mousePressEvent(event)
+        self._select_editor_text()
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        super().mouseDoubleClickEvent(event)
+        self._select_editor_text()
 
 
 class NumericSortItem(QTableWidgetItem):
@@ -555,9 +580,9 @@ class ReceiptSearchMatchWidget(QWidget):
         self.results_panel = self._build_results_panel()
         self.top_splitter.addWidget(self.results_panel)
 
-        # At 1920×1080 / 125 % scale (1536 logical px wide): sidebar ~280,
+        # At 1920×1080 / 125 % scale (1536 logical px wide): sidebar ~340,
         # table gets rest
-        self.top_splitter.setSizes([280, 1256])
+        self.top_splitter.setSizes([340, 1196])
         # sidebar: don't grow by default
         self.top_splitter.setStretchFactor(0, 0)
         self.top_splitter.setStretchFactor(1, 1)  # results: absorb spare width
@@ -568,12 +593,13 @@ class ReceiptSearchMatchWidget(QWidget):
         self.detail_panel = self._build_detail_panel()
         self.main_splitter.addWidget(self.detail_panel)
 
-        # At 1080 p with taskbar (~784 usable logical px): top ~310, form ~474
-        self.main_splitter.setSizes([310, 474])
-        self.main_splitter.setStretchFactor(0, 1)  # top grows proportionally
+        # Keep Search/Results readable by default; the detail form scrolls when
+        # its smaller share cannot show every field.
+        self.main_splitter.setSizes([360, 240])
+        self.main_splitter.setStretchFactor(0, 3)
         self.main_splitter.setStretchFactor(
             1, 2
-        )  # form gets more vertical room
+        )
 
         outer.addWidget(self.main_splitter)
 
@@ -581,12 +607,19 @@ class ReceiptSearchMatchWidget(QWidget):
         """Left panel: Quick load + search filters (improved vertical "
         "layout)"""
 
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        scroll.setMinimumWidth(200)
+        scroll.setMaximumWidth(420)
+
         panel = QWidget()
-        panel.setMinimumWidth(
-            200
-        )  # Splitter handles sizing; just enforce a usable minimum
-        # Allow user to drag it a bit wider if needed
-        panel.setMaximumWidth(420)
+        panel.setMinimumWidth(300)
         vbox = QVBoxLayout(panel)
         vbox.setContentsMargins(8, 8, 8, 8)
         vbox.setSpacing(10)
@@ -686,51 +719,21 @@ class ReceiptSearchMatchWidget(QWidget):
         # Amount (FIRST - receives focus) - Single line with +/- inline
         amount_row = QHBoxLayout()
         amount_row.setSpacing(5)
-        self.amount_filter = QDoubleSpinBox()
+        self.amount_filter = SelectAllDoubleSpinBox()
         self.amount_filter.setRange(-1_000_000_000, 1_000_000_000)
         self.amount_filter.setDecimals(2)
         self.amount_filter.setPrefix("$")
         self.amount_filter.setValue(0.00)
         self.amount_filter.setMaximumWidth(100)
-        # Select all text when focused for easy replacement
-        self.amount_filter.focusInEvent = lambda event: self._on_spinbox_focus(
-            self.amount_filter, event
-        )
-        # Select all on single click to prevent cursor-only edits
-        self.amount_filter.mousePressEvent = (
-            lambda event: (
-                QDoubleSpinBox.mousePressEvent(self.amount_filter, event)
-                or QTimer.singleShot(0, self.amount_filter.selectAll)
-            )
-            and None
-        )
-        # Also select on double-click
-        self.amount_filter.mouseDoubleClickEvent = (
-            lambda event: self.amount_filter.selectAll()
-        )
         amount_row.addWidget(self.amount_filter)
 
         amount_row.addWidget(QLabel("±"))
-        self.amount_range = QDoubleSpinBox()
+        self.amount_range = SelectAllDoubleSpinBox()
         self.amount_range.setRange(0, 10000)
         self.amount_range.setDecimals(2)
         self.amount_range.setPrefix("$")
         self.amount_range.setValue(0.00)
         self.amount_range.setMaximumWidth(90)
-        # Select all text when focused for easy replacement
-        self.amount_range.focusInEvent = lambda event: self._on_spinbox_focus(
-            self.amount_range, event
-        )
-        self.amount_range.mousePressEvent = (
-            lambda event: (
-                QDoubleSpinBox.mousePressEvent(self.amount_range, event)
-                or QTimer.singleShot(0, self.amount_range.selectAll)
-            )
-            and None
-        )
-        self.amount_range.mouseDoubleClickEvent = (
-            lambda event: self.amount_range.selectAll()
-        )
         amount_row.addWidget(self.amount_range)
         amount_row.addStretch()
         search_form.addRow("Amount:", amount_row)
@@ -776,17 +779,10 @@ class ReceiptSearchMatchWidget(QWidget):
 
         date_range_row = QHBoxLayout()
         date_range_row.addWidget(QLabel("±"))
-        self.date_range_days = QDoubleSpinBox()
+        self.date_range_days = SelectAllDoubleSpinBox()
         self.date_range_days.setRange(0, 365)
         self.date_range_days.setValue(0)
         self.date_range_days.setSuffix(" days")
-        # Select all text when focused for easy replacement
-        self.date_range_days.focusInEvent = (
-            lambda event: self._on_spinbox_focus(self.date_range_days, event)
-        )
-        self.date_range_days.mouseDoubleClickEvent = (
-            lambda event: self.date_range_days.selectAll()
-        )
         date_range_row.addWidget(self.date_range_days)
         date_range_row.addStretch()
         date_row.addLayout(date_range_row)
@@ -913,7 +909,9 @@ class ReceiptSearchMatchWidget(QWidget):
         vbox.addWidget(self.write_mode_label)
 
         vbox.addStretch()
-        return panel
+        panel.setMinimumHeight(vbox.sizeHint().height())
+        scroll.setWidget(panel)
+        return scroll
 
     def _search_banking_transactions(self) -> None:
         """Search for banking transactions with filters."""
@@ -1102,6 +1100,21 @@ class ReceiptSearchMatchWidget(QWidget):
         # Charter Lookup Row (for quick reserve_number linking)
         charter_box = QGroupBox("🔗 Charter Lookup")
         charter_form = QFormLayout(charter_box)
+        charter_mode_row = QHBoxLayout()
+        self.no_charter_radio = QRadioButton("No Charter")
+        self.no_charter_radio.setChecked(True)
+        self.charter_related_radio = QRadioButton("Charter")
+        self.no_charter_radio.toggled.connect(
+            lambda _checked: self._set_charter_controls_enabled()
+        )
+        self.charter_related_radio.toggled.connect(
+            lambda _checked: self._set_charter_controls_enabled()
+        )
+        charter_mode_row.addWidget(self.no_charter_radio)
+        charter_mode_row.addWidget(self.charter_related_radio)
+        charter_mode_row.addStretch()
+        charter_form.addRow("", charter_mode_row)
+
         charter_lookup_row = QHBoxLayout()
         self.charter_lookup_input = QLineEdit()
         self.charter_lookup_input.setPlaceholderText(
@@ -1119,11 +1132,35 @@ class ReceiptSearchMatchWidget(QWidget):
         self.charter_date_to_lookup.setMaximumWidth(120)
         charter_lookup_row.addWidget(QLabel("To"))
         charter_lookup_row.addWidget(self.charter_date_to_lookup)
-        charter_link_btn = QPushButton("🔍 Link Selected")
-        charter_link_btn.clicked.connect(self._link_selected_to_charter)
-        charter_lookup_row.addWidget(charter_link_btn)
+        self.charter_link_btn = QPushButton("🔍 Link Selected")
+        self.charter_link_btn.clicked.connect(self._link_selected_to_charter)
+        charter_lookup_row.addWidget(self.charter_link_btn)
         charter_lookup_row.addStretch()
         charter_form.addRow("", charter_lookup_row)
+
+        reverse_lookup_row = QHBoxLayout()
+        self.reverse_charter_date_lookup = StandardDateEdit()
+        self.reverse_charter_date_lookup.setDate(QDate.currentDate())
+        self.reverse_charter_date_lookup.setMaximumWidth(120)
+        reverse_lookup_row.addWidget(QLabel("Reverse: Date"))
+        reverse_lookup_row.addWidget(self.reverse_charter_date_lookup)
+        self.reverse_charter_vehicle_lookup = QLineEdit()
+        self.reverse_charter_vehicle_lookup.setPlaceholderText(
+            "Vehicle optional (e.g., L-9)"
+        )
+        self.reverse_charter_vehicle_lookup.setMaximumWidth(160)
+        reverse_lookup_row.addWidget(QLabel("Vehicle"))
+        reverse_lookup_row.addWidget(self.reverse_charter_vehicle_lookup)
+        self.reverse_lookup_btn = QPushButton("🔎 Find Charter")
+        self.reverse_lookup_btn.setToolTip(
+            "Find charters by date and optional vehicle. Searches the lookup "
+            "date plus the next day for day-prior fuel stops."
+        )
+        self.reverse_lookup_btn.clicked.connect(self._reverse_charter_lookup)
+        reverse_lookup_row.addWidget(self.reverse_lookup_btn)
+        reverse_lookup_row.addStretch()
+        charter_form.addRow("", reverse_lookup_row)
+        self._set_charter_controls_enabled()
         vbox.addWidget(charter_box)
 
         return panel
@@ -1136,16 +1173,16 @@ class ReceiptSearchMatchWidget(QWidget):
         vbox.setSpacing(8)
 
         # Comprehensive form layout matching screenshot
-        form_scroll = QScrollArea()
-        form_scroll.setWidgetResizable(True)
-        form_scroll.setHorizontalScrollBarPolicy(
+        self.form_scroll = QScrollArea()
+        self.form_scroll.setWidgetResizable(True)
+        self.form_scroll.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAsNeeded
         )
-        form_scroll.setVerticalScrollBarPolicy(
+        self.form_scroll.setVerticalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOn
         )
         # Always show at least ~6 rows of fields
-        form_scroll.setMinimumHeight(260)
+        self.form_scroll.setMinimumHeight(260)
         form_widget = QWidget()
         # MinimumExpanding: form widget expands to fill scroll area but never
         # collapses below its minimum hint, preventing field squish on resize
@@ -1157,11 +1194,12 @@ class ReceiptSearchMatchWidget(QWidget):
         form_main_layout.setSpacing(8)
 
         # Document Type selector at top with ALL ACTION BUTTONS inline
-        doc_type_group = QGroupBox("📄 Add New Receipt or Invoice")
-        # Do NOT cap height — at 125 % DPI the buttons need ~70–80 logical px
-        # and a hard cap of 62 causes them to overlap/clip
-        doc_type_group.setMinimumHeight(54)
+        doc_type_group = QWidget()
+        doc_type_group.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
         doc_type_layout = QHBoxLayout(doc_type_group)
+        doc_type_layout.setContentsMargins(0, 0, 0, 0)
         doc_type_layout.setSpacing(6)
         doc_type_layout.addWidget(QLabel("Document Type:"))
         self.doc_type_receipt = QRadioButton("Receipt (Paid Immediately)")
@@ -1311,6 +1349,7 @@ class ReceiptSearchMatchWidget(QWidget):
         doc_type_layout.addWidget(reconcile_btn)
 
         doc_type_layout.addStretch()
+        doc_type_group.setFixedHeight(doc_type_layout.sizeHint().height())
         form_main_layout.addWidget(doc_type_group, 0)  # 0 = no stretch
 
         # Main form fields
@@ -1397,6 +1436,8 @@ class ReceiptSearchMatchWidget(QWidget):
         self.new_date.setMinimumWidth(100)
         self.new_date.setMaximumWidth(130)
         self.new_date.setMinimumHeight(28)
+        if hasattr(self, "reverse_charter_date_lookup"):
+            self.reverse_charter_date_lookup.setDate(self.new_date.date())
         date_amount_vendor_row.addWidget(self.new_date)
         date_amount_vendor_row.addWidget(QLabel(" Amount:"))
         self.new_amount.setMinimumWidth(100)
@@ -1438,26 +1479,8 @@ class ReceiptSearchMatchWidget(QWidget):
         # Payment Method moved here next to Vendor
         date_amount_vendor_row.addWidget(QLabel(" Payment:"))
         self.payment_method = QComboBox()
-        self.payment_method.addItems(
-            [
-                "cash",
-                "check",
-                "credit_card",
-                "debit_card",
-                "bank_transfer",
-                "pre_authorized_debit",
-                "trade_of_services",
-                "reimbursement",
-                "loan",
-                "FAS Gas Rebate",
-                "Special Airline Charge",
-                "Charter Adjustment",
-                "Fuel Surcharge",
-                "unknown",
-            ]
-        )
-        # Set default to debit_card
-        debit_idx = self.payment_method.findText("debit_card")
+        self.payment_method.addItems(PAYMENT_METHOD_CHOICES)
+        debit_idx = self.payment_method.findText("Debit Card")
         if debit_idx >= 0:
             self.payment_method.setCurrentIndex(debit_idx)
         self.payment_method.setMinimumWidth(120)
@@ -1469,6 +1492,12 @@ class ReceiptSearchMatchWidget(QWidget):
         date_amount_vendor_row.addWidget(QLabel(" Personal:"))
         self.personal_chk = QCheckBox()
         date_amount_vendor_row.addWidget(self.personal_chk)
+
+        self.loan_account_label = QLabel()
+        self.loan_account_combo = QComboBox()
+        self._load_related_loan_accounts()
+        self.loan_account_label.setVisible(False)
+        self.loan_account_combo.setVisible(False)
 
         date_amount_vendor_row.addStretch()
         self.form_layout.addRow("Date:", date_amount_vendor_row)
@@ -1629,6 +1658,41 @@ class ReceiptSearchMatchWidget(QWidget):
         self.fuel_liters.setMinimumWidth(80)
         self.fuel_liters.setMaximumWidth(120)
 
+        self.fuel_calc_amount = QDoubleSpinBox()
+        self.fuel_calc_amount.setRange(0, 1000000)
+        self.fuel_calc_amount.setDecimals(2)
+        self.fuel_calc_amount.setPrefix("$")
+        self.fuel_calc_amount.setMinimumWidth(90)
+        self.fuel_calc_amount.setMaximumWidth(120)
+        self.fuel_calc_amount.setToolTip(
+            "Fuel dollar amount. Leave at zero to use the receipt amount."
+        )
+
+        self.fuel_calc_price_per_liter = QDoubleSpinBox()
+        self.fuel_calc_price_per_liter.setRange(0.001, 99.999)
+        self.fuel_calc_price_per_liter.setDecimals(3)
+        self.fuel_calc_price_per_liter.setSingleStep(0.001)
+        self.fuel_calc_price_per_liter.setValue(DEFAULT_FUEL_PRICE_PER_LITER)
+        self.fuel_calc_price_per_liter.setPrefix("$")
+        self.fuel_calc_price_per_liter.setSuffix("/L")
+        self.fuel_calc_price_per_liter.setMinimumWidth(100)
+        self.fuel_calc_price_per_liter.setMaximumWidth(130)
+
+        self.fuel_calc_source_label = QLabel()
+        self.fuel_calc_source_label.setMinimumWidth(90)
+        self.fuel_calc_source_label.setMaximumWidth(130)
+
+        self.fuel_calc_btn = QPushButton("Calc L")
+        self.fuel_calc_btn.setMinimumWidth(60)
+        self.fuel_calc_btn.setMaximumWidth(75)
+        self.fuel_calc_btn.setToolTip(
+            "Calculate liters as fuel amount divided by price per liter."
+        )
+        self.fuel_calc_btn.clicked.connect(self._auto_calculate_fuel_liters)
+        self._fuel_price_cache: dict[tuple[int, int], tuple[float, str]] = {}
+        self.new_date.textChanged.connect(self._load_monthly_fuel_price)
+        QTimer.singleShot(0, self._load_monthly_fuel_price)
+
         vehicle_row = QHBoxLayout()
         self.new_vehicle_combo = QComboBox()
         self.new_vehicle_combo.addItem("(Click to load vehicles...)", None)
@@ -1658,12 +1722,16 @@ class ReceiptSearchMatchWidget(QWidget):
         vehicle_row.addWidget(self.odometer_label)
         vehicle_row.addWidget(self.new_odometer)
 
-        # Driver Reimbursement row - Driver | Dvr Personal | Charter # |
-        # Vehicle | Fuel | Odometer
+        # Driver is stored for charter/float reconciliation. Reimbursement
+        # handling is controlled only by Payment Method = Reimbursement.
         driver_row = QHBoxLayout()
         self.new_driver_combo = QComboBox()
         self.new_driver_combo.setEditable(True)
         self.new_driver_combo.addItem("(Click to load drivers...)", None)
+        self.new_driver_combo.setToolTip(
+            "Driver for charter/cash-float reconciliation. This does not mark "
+            "the receipt as reimbursed unless Payment Method is Reimbursement."
+        )
         self.new_driver_combo.setMinimumWidth(200)
         self.new_driver_combo.setMaximumWidth(320)
         self.new_driver_combo.setMinimumHeight(24)
@@ -1681,10 +1749,32 @@ class ReceiptSearchMatchWidget(QWidget):
         # Charter # field moved here (right of Dvr Personal)
         driver_row.addWidget(QLabel(" Charter #:"))
         self.new_charter_input = QLineEdit()
-        self.new_charter_input.setPlaceholderText("e.g., 015234")
-        self.new_charter_input.setMinimumWidth(100)
-        self.new_charter_input.setMaximumWidth(140)
+        self.new_charter_input.setPlaceholderText(
+            "e.g., 015234 (fills vehicle/driver)"
+        )
+        self.new_charter_input.setMinimumWidth(220)
+        self.new_charter_input.setMaximumWidth(360)
+        self.new_charter_input.focusInEvent = (
+            lambda event: self._on_lineedit_focus(
+                self.new_charter_input, event
+            )
+        )
+        self.new_charter_input.mousePressEvent = (
+            lambda event: self._on_lineedit_click(
+                self.new_charter_input, event
+            )
+        )
         driver_row.addWidget(self.new_charter_input)
+        self.charter_details_label = QLabel()
+        self.charter_details_label.setMinimumWidth(180)
+        self.charter_details_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        driver_row.addWidget(self.charter_details_label)
+        self.new_charter_input.editingFinished.connect(
+            self._populate_charter_details
+        )
+        self._set_charter_controls_enabled()
 
         # Vehicle field moved here (right of Charter #)
         driver_row.addWidget(QLabel(" Vehicle:"))
@@ -1693,11 +1783,19 @@ class ReceiptSearchMatchWidget(QWidget):
         # Fuel and Odometer fields (conditionally visible)
         driver_row.addWidget(self.fuel_label)
         driver_row.addWidget(self.fuel_liters)
+        self.fuel_calc_amount_label = QLabel(" Amt:")
+        driver_row.addWidget(self.fuel_calc_amount_label)
+        driver_row.addWidget(self.fuel_calc_amount)
+        self.fuel_calc_price_label = QLabel(" Price/L:")
+        driver_row.addWidget(self.fuel_calc_price_label)
+        driver_row.addWidget(self.fuel_calc_price_per_liter)
+        driver_row.addWidget(self.fuel_calc_source_label)
+        driver_row.addWidget(self.fuel_calc_btn)
         driver_row.addWidget(self.odometer_label)
         driver_row.addWidget(self.new_odometer)
 
         driver_row.addStretch()
-        self.form_layout.addRow("Driver Reimburse:", driver_row)
+        self.form_layout.addRow("Driver / Charter:", driver_row)
 
         reimbursement_row = QHBoxLayout()
         reimbursement_row.addWidget(QLabel("Amount to Reimburse:"))
@@ -1736,10 +1834,6 @@ class ReceiptSearchMatchWidget(QWidget):
         reimbursement_row.addWidget(self.reimbursed_via_combo)
         reimbursement_row.addStretch()
         self.form_layout.addRow("Reimbursement:", reimbursement_row)
-
-        # Attach fuzzy lookup completer for charter field (deferred to prevent
-        # UI freeze)
-        QTimer.singleShot(100, self._attach_charter_completer)
 
         # Connect GL code change to toggle fuel and odometer visibility
         try:
@@ -1797,9 +1891,9 @@ class ReceiptSearchMatchWidget(QWidget):
         # This saves vertical space and allows more rows in the results table
 
         # Scroll area setup
-        form_scroll.setWidget(form_widget)
+        self.form_scroll.setWidget(form_widget)
         # Stretch factor 1 = takes all available space
-        vbox.addWidget(form_scroll, 1)
+        vbox.addWidget(self.form_scroll, 1)
 
         # Set initial visibility of conditional fields (fuel, odometer)
         self._toggle_conditional_fields()
@@ -1963,7 +2057,7 @@ class ReceiptSearchMatchWidget(QWidget):
         from PyQt6.QtWidgets import QDoubleSpinBox
 
         QDoubleSpinBox.focusInEvent(spinbox, event)
-        QTimer.singleShot(0, spinbox.selectAll)
+        QTimer.singleShot(0, spinbox.lineEdit().selectAll)
 
     def _on_lineedit_focus(self, lineedit, event) -> None:
         """Handle focus in QLineEdit - select all text for easy replacement."""
@@ -1971,6 +2065,13 @@ class ReceiptSearchMatchWidget(QWidget):
 
         QLineEdit.focusInEvent(lineedit, event)
         lineedit.selectAll()
+
+    def _on_lineedit_click(self, lineedit, event) -> None:
+        """Select the complete value even when the field already has focus."""
+        from PyQt6.QtWidgets import QLineEdit
+
+        QLineEdit.mousePressEvent(lineedit, event)
+        QTimer.singleShot(0, lineedit.selectAll)
 
     def _on_amount_enter(self) -> None:
         """Called when Enter is pressed in amount field - triggers search."""
@@ -1990,14 +2091,14 @@ class ReceiptSearchMatchWidget(QWidget):
             "    ELSE COALESCE(r.gl_account_code, "
             "r.mapped_expense_account_id::text, r.category, '')",
             "END AS gl_name,",
-            "COALESCE(r.banking_transaction_id, bt_link.transaction_id) AS "
+            "COALESCE(bt_link.transaction_id, r.banking_transaction_id) AS "
             "banking_transaction_id,",
             "CASE",
             "    WHEN COALESCE(NULLIF(bt_id.check_number, ''), "
             "NULLIF(bt_link.check_number, '')) IS NOT NULL THEN 'Cheque'",
-            "    WHEN COALESCE(bt_id.credit_amount, bt_link.credit_amount, 0) "
+            "    WHEN COALESCE(bt_link.credit_amount, bt_id.credit_amount, 0) "
             "> 0 THEN 'Credit'",
-            "    WHEN COALESCE(bt_id.debit_amount, bt_link.debit_amount, 0) > "
+            "    WHEN COALESCE(bt_link.debit_amount, bt_id.debit_amount, 0) > "
             "0 THEN 'Debit'",
             "    ELSE ''",
             "END AS banking_type,",
@@ -2144,8 +2245,8 @@ class ReceiptSearchMatchWidget(QWidget):
                     )
                 END AS gl_name,
                 COALESCE(
-                    r.banking_transaction_id,
-                    bt_link.transaction_id
+                    bt_link.transaction_id,
+                    r.banking_transaction_id
                 ) AS banking_transaction_id,
                 CASE
                     WHEN COALESCE(
@@ -2153,10 +2254,10 @@ class ReceiptSearchMatchWidget(QWidget):
                         NULLIF(bt_link.check_number, '')
                     ) IS NOT NULL THEN 'Cheque'
                     WHEN COALESCE(
-                        bt_id.credit_amount, bt_link.credit_amount, 0
+                        bt_link.credit_amount, bt_id.credit_amount, 0
                     )
                         > 0 THEN 'Credit'
-                    WHEN COALESCE(bt_id.debit_amount, bt_link.debit_amount, 0)
+                    WHEN COALESCE(bt_link.debit_amount, bt_id.debit_amount, 0)
                         > 0 THEN 'Debit'
                     ELSE ''
                 END AS banking_type,
@@ -2386,7 +2487,7 @@ class ReceiptSearchMatchWidget(QWidget):
                                ''
                            )
                        END AS gl_name,
-                       COALESCE(r.banking_transaction_id, bt_link.transaction_id)
+                       COALESCE(bt_link.transaction_id, r.banking_transaction_id)
                            AS banking_transaction_id,
                        CASE
                            WHEN COALESCE(
@@ -2394,10 +2495,10 @@ class ReceiptSearchMatchWidget(QWidget):
                                NULLIF(bt_link.check_number, '')
                            ) IS NOT NULL THEN 'Cheque'
                            WHEN COALESCE(
-                               bt_id.credit_amount, bt_link.credit_amount, 0
+                               bt_link.credit_amount, bt_id.credit_amount, 0
                            ) > 0 THEN 'Credit'
                            WHEN COALESCE(
-                               bt_id.debit_amount, bt_link.debit_amount, 0
+                               bt_link.debit_amount, bt_id.debit_amount, 0
                            ) > 0 THEN 'Debit'
                            ELSE ''
                        END AS banking_type,
@@ -2504,9 +2605,25 @@ class ReceiptSearchMatchWidget(QWidget):
                 collapsed.append(first)
                 continue
 
-            representative = list(first)
+            split_group_id = first[13] if len(first) > 13 else None
+            representative_source = None
+            if split_group_id is not None:
+                for member in members:
+                    try:
+                        if int(member[0]) == int(split_group_id):
+                            representative_source = member
+                            break
+                    except (TypeError, ValueError):
+                        continue
+            if representative_source is None:
+                representative_source = min(
+                    members,
+                    key=lambda m: int(m[0]) if str(m[0]).isdigit() else 0,
+                )
+
+            representative = list(representative_source)
             split_total = (
-                representative[14] if len(representative) > 14 else None
+                representative[15] if len(representative) > 15 else None
             )
             try:
                 if split_total is not None:
@@ -2655,7 +2772,9 @@ class ReceiptSearchMatchWidget(QWidget):
                 self.results_table.setItem(
                     r, 6, QTableWidgetItem(banking_type or "")
                 )
-                self.results_table.setItem(r, 7, QTableWidgetItem(paym or ""))
+                self.results_table.setItem(
+                    r, 7, QTableWidgetItem(display_payment_method(paym))
+                )
                 self.results_table.setItem(
                     r, 8, QTableWidgetItem(charter_num or "")
                 )
@@ -2698,7 +2817,7 @@ class ReceiptSearchMatchWidget(QWidget):
                     ):
                         # Reimbursement - light orange/coral
                         row_color = QColor(255, 218, 185)  # Light coral/orange
-                    elif paym_lower == "loan":
+                    elif paym_lower in ("loan", "related personal loan"):
                         # Loan - light mint green
                         row_color = QColor(200, 255, 220)  # Light mint green
                     elif "gas rebate" in paym_lower or "fas" in paym_lower:
@@ -2760,6 +2879,11 @@ class ReceiptSearchMatchWidget(QWidget):
         """Populate form fields from selected receipt row. Safe error "
         "handling."""
 
+        scroll_position = (
+            self.form_scroll.verticalScrollBar().value()
+            if hasattr(self, "form_scroll")
+            else 0
+        )
         try:
             selected = self.results_table.selectedItems()
             if not selected:
@@ -2849,19 +2973,27 @@ class ReceiptSearchMatchWidget(QWidget):
             # Charter/Reserve Number field
             try:
                 if hasattr(self, "new_charter_input"):
-                    self.new_charter_input.setText(
-                        charter_item.text() if charter_item else ""
-                    )
+                    charter_text = charter_item.text() if charter_item else ""
+                    if (
+                        charter_text.strip()
+                        and hasattr(self, "charter_related_radio")
+                    ):
+                        self.charter_related_radio.setChecked(True)
+                    elif hasattr(self, "no_charter_radio"):
+                        self.no_charter_radio.setChecked(True)
+                    self.new_charter_input.setText(charter_text)
             except Exception:
                 if hasattr(self, "new_charter_input"):
                     self.new_charter_input.clear()
+                if hasattr(self, "charter_details_label"):
+                    self.charter_details_label.clear()
 
             # Payment Method field - populate from summary data
             try:
                 summary_data = vendor_item.data(Qt.ItemDataRole.UserRole) or {}
                 if hasattr(self, "payment_method"):
-                    payment_method_text = summary_data.get(
-                        "payment_method", ""
+                    payment_method_text = self._display_payment_method(
+                        summary_data.get("payment_method", "")
                     )
                     idx = (
                         self.payment_method.findText(payment_method_text)
@@ -2869,6 +3001,11 @@ class ReceiptSearchMatchWidget(QWidget):
                         else -1
                     )
                     self.payment_method.setCurrentIndex(idx if idx >= 0 else 0)
+                    self._load_related_loan_account_for_receipt(
+                        int(rid_item.text())
+                    )
+                    if (self.new_charter_input.text() or "").strip():
+                        self._populate_charter_details()
             except Exception:
                 if hasattr(self, "payment_method"):
                     self.payment_method.setCurrentIndex(0)
@@ -2990,6 +3127,15 @@ class ReceiptSearchMatchWidget(QWidget):
                 self._clear_form()
             except Exception as _e:
                 logger.debug('Suppressed: %s', _e)
+        finally:
+            if hasattr(self, "form_scroll"):
+                QTimer.singleShot(
+                    0,
+                    lambda position=scroll_position: (
+                        self.form_scroll.verticalScrollBar().setValue(position)
+                    ),
+                )
+
     def _is_add_form_dirty(self) -> bool:
         """Return True if the user has started filling in the add-receipt form.
         Used to prevent background search completions from wiping mid-entry
@@ -3048,11 +3194,17 @@ class ReceiptSearchMatchWidget(QWidget):
 
         if hasattr(self, "new_charter_input"):
             self.new_charter_input.clear()
+        if hasattr(self, "charter_details_label"):
+            self.charter_details_label.clear()
+        if hasattr(self, "no_charter_radio"):
+            self.no_charter_radio.setChecked(True)
 
         self.new_vehicle_combo.setCurrentIndex(0)
         self.new_driver_combo.setCurrentIndex(0)
         self.payment_method.setCurrentIndex(0)
+        self.loan_account_combo.setCurrentIndex(0)
         self.fuel_liters.setValue(0)
+        self.fuel_calc_amount.setValue(0)
         if hasattr(self, "reimbursement_amount_input"):
             self.reimbursement_amount_input.clear()
         if hasattr(self, "reimbursement_payee_input"):
@@ -3170,15 +3322,25 @@ class ReceiptSearchMatchWidget(QWidget):
                     else 0.0
                 )
 
-            payment_method = self.payment_method.currentText()
+            payment_method = self._stored_payment_method(
+                self.payment_method.currentText()
+            )
             is_reimbursement = payment_method.lower() == "reimbursement"
+            pay_account = self._selected_loan_account()
 
             if is_reimbursement and not driver_id:
                 QMessageBox.warning(
                     self,
                     "Missing reimbursee",
-                    "For reimbursement receipts, select an employee in "
-                    "Driver Reimburse. Payee is optional notes text.",
+                    "For reimbursement receipts, select the driver/employee. "
+                    "Payee is optional notes text.",
+                )
+                return
+            if self._is_related_personal_loan(payment_method) and not pay_account:
+                QMessageBox.warning(
+                    self,
+                    "Missing related loan",
+                    "Select Related Personal Loan.",
                 )
                 return
 
@@ -3306,6 +3468,9 @@ class ReceiptSearchMatchWidget(QWidget):
             if "payment_method" in self.receipts_columns:
                 cols.append("payment_method")
                 vals.append(payment_method)
+            if "pay_account" in self.receipts_columns:
+                cols.append("pay_account")
+                vals.append(pay_account)
             if "is_driver_reimbursement" in self.receipts_columns:
                 cols.append("is_driver_reimbursement")
                 vals.append(is_reimbursement)
@@ -3416,7 +3581,9 @@ class ReceiptSearchMatchWidget(QWidget):
                 # self._do_search()
                 # Set focus to amount field for next receipt entry
                 QTimer.singleShot(100, lambda: self.amount_filter.setFocus())
-                QTimer.singleShot(150, lambda: self.amount_filter.selectAll())
+                QTimer.singleShot(
+                    150, lambda: self.amount_filter.lineEdit().selectAll()
+                )
             else:
                 QMessageBox.information(
                     self,
@@ -3512,7 +3679,7 @@ class ReceiptSearchMatchWidget(QWidget):
                 ]
                 if self.fuel_column:
                     before_fields.append(self.fuel_column)
-                before_fields.extend(["gst_amount", "payment_method"])
+                before_fields.extend(["gst_amount", "payment_method", "pay_account"])
                 before_fields = self._validated_receipt_columns(before_fields)
                 cur_b.execute(
                     f"SELECT {', '.join(before_fields)} FROM receipts WHERE "
@@ -3533,7 +3700,7 @@ class ReceiptSearchMatchWidget(QWidget):
                     ]
                     if self.fuel_column:
                         keys.append("fuel_amount")
-                    keys.extend(["gst_amount", "payment_method"])
+                    keys.extend(["gst_amount", "payment_method", "pay_account"])
                     before = {k: row_b[i] for i, k in enumerate(keys)}
             except Exception:
                 before = {}
@@ -3602,15 +3769,25 @@ class ReceiptSearchMatchWidget(QWidget):
                     else 0.0
                 )
 
-            payment_method = self.payment_method.currentText()
+            payment_method = self._stored_payment_method(
+                self.payment_method.currentText()
+            )
             is_reimbursement = payment_method.lower() == "reimbursement"
+            pay_account = self._selected_loan_account()
 
             if is_reimbursement and not driver_id:
                 QMessageBox.warning(
                     self,
                     "Missing reimbursee",
-                    "For reimbursement receipts, select an employee in "
-                    "Driver Reimburse. Payee is optional notes text.",
+                    "For reimbursement receipts, select the driver/employee. "
+                    "Payee is optional notes text.",
+                )
+                return
+            if self._is_related_personal_loan(payment_method) and not pay_account:
+                QMessageBox.warning(
+                    self,
+                    "Missing related loan",
+                    "Select Related Personal Loan.",
                 )
                 return
 
@@ -3647,6 +3824,9 @@ class ReceiptSearchMatchWidget(QWidget):
             if "payment_method" in self.receipts_columns:
                 sets.append("payment_method = %s")
                 params.append(payment_method)
+            if "pay_account" in self.receipts_columns:
+                sets.append("pay_account = %s")
+                params.append(pay_account)
             if "is_driver_reimbursement" in self.receipts_columns:
                 sets.append("is_driver_reimbursement = %s")
                 params.append(is_reimbursement)
@@ -3710,6 +3890,7 @@ class ReceiptSearchMatchWidget(QWidget):
                     "fuel_amount": fuel_liters if self.fuel_column else None,
                     "gst_amount": gst_amount,
                     "payment_method": payment_method,
+                    "pay_account": pay_account,
                     "odometer_reading": (
                         odometer_reading if odometer_reading > 0 else None
                     ),
@@ -3729,7 +3910,9 @@ class ReceiptSearchMatchWidget(QWidget):
             # Clear form after update and set focus to amount for next entry
             self._clear_form()
             QTimer.singleShot(100, lambda: self.amount_filter.setFocus())
-            QTimer.singleShot(150, lambda: self.amount_filter.selectAll())
+            QTimer.singleShot(
+                150, lambda: self.amount_filter.lineEdit().selectAll()
+            )
             # PERFORMANCE FIX: Don't auto-refresh entire result set after
             # single UPDATE
             # This was causing 30-second delays when many receipts are filtered
@@ -4183,19 +4366,35 @@ class ReceiptSearchMatchWidget(QWidget):
                 "payment": payment,
             }
             self.sticky_btn.setStyleSheet(
-                "font-size: 9pt; background-color: #e8a020; color: white; "
+                "font-size: 9pt; background-color: #e8a020; color: black; "
                 "font-weight: bold;"
             )
             self.sticky_btn.setText("\U0001f58c\ufe0f Sticky ON")
             # Tint locked fields amber so user knows they are pinned
+            sticky_style = "background-color: #fff8e1; color: black;"
             for w in (self.new_vendor, self.new_gl, self.payment_method):
-                w.setStyleSheet("background-color: #fff8e1;")
+                w.setStyleSheet(sticky_style)
+                # VendorLookupWidget is a composite widget; style its inner
+                # combo box directly so the amber/black tint actually shows
+                # (ancestor style sheets do not reliably cascade into it).
+                if hasattr(w, "vendor_combo"):
+                    if not hasattr(self, "_vendor_combo_base_style"):
+                        self._vendor_combo_base_style = (
+                            w.vendor_combo.styleSheet()
+                        )
+                    w.vendor_combo.setStyleSheet(
+                        self._vendor_combo_base_style + sticky_style
+                    )
         else:
             self._sticky_defaults = {}
             self.sticky_btn.setStyleSheet("font-size: 9pt;")
             self.sticky_btn.setText("\U0001f58c\ufe0f Sticky")
             for w in (self.new_vendor, self.new_gl, self.payment_method):
                 w.setStyleSheet("")
+                if hasattr(w, "vendor_combo"):
+                    w.vendor_combo.setStyleSheet(
+                        getattr(self, "_vendor_combo_base_style", "")
+                    )
 
     def _apply_sticky_defaults(self) -> None:
         """Re-apply stored sticky defaults after a form clear."""
@@ -4258,6 +4457,8 @@ class ReceiptSearchMatchWidget(QWidget):
             fields.extend(["gst_amount", "payment_method"])
             if "odometer_reading" in self.receipts_columns:
                 fields.append("odometer_reading")
+            if "pay_account" in self.receipts_columns:
+                fields.append("pay_account")
             fields = self._validated_receipt_columns(fields)
 
             cur = self.conn.cursor()
@@ -4279,6 +4480,10 @@ class ReceiptSearchMatchWidget(QWidget):
             fuel = None
             odometer = None
             has_odometer = "odometer_reading" in self.receipts_columns
+            has_pay_account = "pay_account" in self.receipts_columns
+            pay_account = row_data[-1] if has_pay_account else None
+            if has_pay_account:
+                row_data = row_data[:-1]
             if self.fuel_column and has_odometer:
                 (
                     rdate,
@@ -4371,8 +4576,9 @@ class ReceiptSearchMatchWidget(QWidget):
                     else:
                         # Set as editable text if not found
                         self.new_gl.setEditText(gl)
-            if bank_id:
-                self.new_banking_id.setText(str(bank_id))
+            # A cloned receipt is a separate purchase and must not reuse the
+            # original receipt's banking transaction.
+            self.new_banking_id.clear()
             if veh_id:
                 idx = self.new_vehicle_combo.findData(veh_id)
                 if idx >= 0:
@@ -4382,7 +4588,10 @@ class ReceiptSearchMatchWidget(QWidget):
                 if idx >= 0:
                     self.new_driver_combo.setCurrentIndex(idx)
             if reserve:
+                if hasattr(self, "charter_related_radio"):
+                    self.charter_related_radio.setChecked(True)
                 self.new_charter_input.setText(reserve)
+                self._populate_charter_details()
             if fuel:
                 self.fuel_liters.setValue(float(fuel))
             if odometer and hasattr(self, "new_odometer"):
@@ -4391,9 +4600,12 @@ class ReceiptSearchMatchWidget(QWidget):
                 self.gst_override_input.setValue(float(gst))
                 self.gst_override_enable.setChecked(True)
             if pmeth:
-                idx = self.payment_method.findText(pmeth)
+                idx = self.payment_method.findText(
+                    self._display_payment_method(pmeth)
+                )
                 if idx >= 0:
                     self.payment_method.setCurrentIndex(idx)
+            self._set_related_loan_account(pay_account)
 
             QMessageBox.information(
                 self,
@@ -4787,14 +4999,18 @@ class ReceiptSearchMatchWidget(QWidget):
         """Add fuzzy/contains charter number lookup completer. Non-blocking
         with timeout protection.
         """
+        if not self._is_charter_lookup_enabled():
+            return
+        if getattr(self.new_charter_input, "completer", lambda: None)():
+            return
+
         try:
             cur = self.conn.cursor()
             # Add statement timeout to prevent hanging (5 seconds max)
             cur.execute("SET statement_timeout = 5000")
             cur.execute(
                 "SELECT DISTINCT CAST(reserve_number AS TEXT) FROM charters "
-                "WHERE reserve_number IS NOT NULL ORDER BY reserve_number "
-                "LIMIT 5000"
+                "WHERE reserve_number IS NOT NULL ORDER BY reserve_number"
             )
             charters = [row[0] for row in cur.fetchall()]
             cur.close()
@@ -4804,7 +5020,10 @@ class ReceiptSearchMatchWidget(QWidget):
                 comp = QCompleter(charters)
                 comp.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
                 comp.setFilterMode(Qt.MatchFlag.MatchContains)
+                comp.setMaxVisibleItems(15)
+                comp.popup().setMinimumWidth(320)
                 self.new_charter_input.setCompleter(comp)
+                comp.activated.connect(self._populate_charter_details)
                 logger.debug(
                     f"✓ Charter completer attached with {len(charters)} "
                     f"charters"
@@ -4816,6 +5035,460 @@ class ReceiptSearchMatchWidget(QWidget):
                 self.conn.rollback()
             except Exception as _e:
                 logger.debug('Suppressed: %s', _e)
+
+    def _is_charter_lookup_enabled(self) -> bool:
+        return bool(
+            getattr(self, "charter_related_radio", None)
+            and self.charter_related_radio.isChecked()
+        )
+
+    def _set_charter_controls_enabled(self) -> None:
+        enabled = self._is_charter_lookup_enabled()
+        for attr in (
+            "charter_lookup_input",
+            "charter_date_from_lookup",
+            "charter_date_to_lookup",
+            "charter_link_btn",
+            "reverse_charter_date_lookup",
+            "reverse_charter_vehicle_lookup",
+            "reverse_lookup_btn",
+            "new_charter_input",
+            "charter_details_label",
+        ):
+            widget = getattr(self, attr, None)
+            if widget is not None:
+                widget.setEnabled(enabled)
+        if not enabled:
+            if hasattr(self, "new_charter_input"):
+                self.new_charter_input.clear()
+            if hasattr(self, "charter_lookup_input"):
+                self.charter_lookup_input.clear()
+            if hasattr(self, "charter_details_label"):
+                self.charter_details_label.clear()
+        elif hasattr(self, "new_charter_input"):
+            QTimer.singleShot(0, self._attach_charter_completer)
+
+    def _populate_charter_details(self, _selected_text: str | None = None) -> None:
+        if not self._is_charter_lookup_enabled():
+            return
+
+        reserve_number = (self.new_charter_input.text() or "").strip()
+        if not reserve_number:
+            self.charter_details_label.clear()
+            return
+
+        cur = self.conn.cursor()
+        try:
+            cur.execute(
+                """
+                SELECT
+                    c.charter_date,
+                    c.vehicle_id,
+                    COALESCE(v.vehicle_number, c.vehicle, ''),
+                    COALESCE(c.employee_id, c.assigned_driver_id),
+                    COALESCE(
+                        NULLIF(
+                            TRIM(CONCAT_WS(' ', e.first_name, e.last_name)),
+                            ''
+                        ),
+                        c.driver,
+                        ''
+                    )
+                FROM charters c
+                LEFT JOIN vehicles v ON v.vehicle_id = c.vehicle_id
+                LEFT JOIN employees e
+                    ON e.employee_id =
+                        COALESCE(c.employee_id, c.assigned_driver_id)
+                WHERE c.reserve_number = %s
+                   OR (
+                        c.reserve_number ~ '^[0-9]+$'
+                        AND %s ~ '^[0-9]+$'
+                        AND LTRIM(c.reserve_number, '0') =
+                            LTRIM(%s, '0')
+                   )
+                ORDER BY
+                    CASE WHEN c.reserve_number = %s THEN 0 ELSE 1 END,
+                    c.charter_id DESC
+                LIMIT 1
+                """,
+                (
+                    reserve_number,
+                    reserve_number,
+                    reserve_number,
+                    reserve_number,
+                ),
+            )
+            row = cur.fetchone()
+        except Exception as error:
+            self.conn.rollback()
+            self.charter_details_label.setStyleSheet("color: #b00020;")
+            self.charter_details_label.setText("Charter lookup failed")
+            self.charter_details_label.setToolTip(str(error))
+            logger.exception(
+                "Failed to load charter details for %s", reserve_number
+            )
+            return
+        finally:
+            cur.close()
+
+        if not row:
+            self.charter_details_label.setStyleSheet("color: #b00020;")
+            self.charter_details_label.setText("Charter not found")
+            self.charter_details_label.setToolTip(
+                f"No charter found for {reserve_number}"
+            )
+            return
+
+        charter_date, vehicle_id, vehicle_number, employee_id, driver_name = row
+        if charter_date:
+            self.new_date.setDate(
+                QDate(
+                    charter_date.year,
+                    charter_date.month,
+                    charter_date.day,
+                )
+            )
+
+        if vehicle_id:
+            if not self._vehicles_loaded:
+                self.new_vehicle_combo.clear()
+                self.new_vehicle_combo.addItem("", None)
+                self._load_vehicles_into_combo()
+                self._vehicles_loaded = True
+            vehicle_index = self.new_vehicle_combo.findData(vehicle_id)
+            if vehicle_index >= 0:
+                self.new_vehicle_combo.setCurrentIndex(vehicle_index)
+            elif vehicle_number:
+                self.new_vehicle_combo.setCurrentText(str(vehicle_number))
+
+        self._select_driver_by_id_or_name(employee_id, driver_name)
+
+        details = [
+            charter_date.strftime("%m/%d/%Y") if charter_date else "No date",
+            f"Vehicle {vehicle_number}" if vehicle_number else "No vehicle",
+        ]
+        details.append(
+            f"Driver {driver_name}" if driver_name else "No driver assigned"
+        )
+        detail_text = " | ".join(details)
+        self.charter_details_label.setStyleSheet("color: #245b2a;")
+        self.charter_details_label.setText(detail_text)
+        self.charter_details_label.setToolTip(detail_text)
+
+    def _select_vehicle_by_id_or_number(
+        self, vehicle_id: int | None, vehicle_number: str | None
+    ) -> None:
+        """Select a vehicle in the receipt form from charter lookup data."""
+
+        if not vehicle_id and not vehicle_number:
+            return
+
+        if not self._vehicles_loaded:
+            self.new_vehicle_combo.clear()
+            self.new_vehicle_combo.addItem("", None)
+            self._load_vehicles_into_combo()
+            self._vehicles_loaded = True
+
+        if vehicle_id:
+            vehicle_index = self.new_vehicle_combo.findData(vehicle_id)
+            if vehicle_index >= 0:
+                self.new_vehicle_combo.setCurrentIndex(vehicle_index)
+                return
+
+        if vehicle_number:
+            vehicle_text = str(vehicle_number).strip()
+            for index in range(self.new_vehicle_combo.count()):
+                if (
+                    self.new_vehicle_combo.itemText(index).strip().lower()
+                    == vehicle_text.lower()
+                ):
+                    self.new_vehicle_combo.setCurrentIndex(index)
+                    return
+            self.new_vehicle_combo.setCurrentText(vehicle_text)
+
+    def _select_driver_by_id_or_name(
+        self, employee_id: int | None, driver_name: str | None
+    ) -> None:
+        """Select a driver in the receipt form from charter lookup data."""
+
+        if not employee_id and not driver_name:
+            return
+
+        if not self._drivers_loaded:
+            self.new_driver_combo.clear()
+            self.new_driver_combo.addItem("", None)
+            self._load_drivers_into_combo()
+            self._drivers_loaded = True
+
+        if employee_id:
+            driver_index = self.new_driver_combo.findData(employee_id)
+            if driver_index >= 0:
+                self.new_driver_combo.setCurrentIndex(driver_index)
+                return
+
+        if driver_name:
+            driver_text = str(driver_name).strip()
+            for index in range(self.new_driver_combo.count()):
+                if (
+                    self.new_driver_combo.itemText(index).strip().lower()
+                    == driver_text.lower()
+                ):
+                    self.new_driver_combo.setCurrentIndex(index)
+                    return
+            self.new_driver_combo.setCurrentText(driver_text)
+
+    def _apply_reverse_charter_selection(self, charter: dict) -> None:
+        """Fill receipt form fields from a reverse charter lookup result."""
+
+        reserve_number = str(charter.get("reserve_number") or "").strip()
+        if not reserve_number:
+            return
+
+        self.new_charter_input.setText(reserve_number)
+        self._select_vehicle_by_id_or_number(
+            charter.get("vehicle_id"), charter.get("vehicle_number")
+        )
+        self._select_driver_by_id_or_name(
+            charter.get("employee_id"), charter.get("driver_name")
+        )
+
+        details = [
+            charter["charter_date"].strftime("%m/%d/%Y")
+            if charter.get("charter_date")
+            else "No date",
+            f"Vehicle {charter.get('vehicle_number')}"
+            if charter.get("vehicle_number")
+            else "No vehicle",
+        ]
+        if charter.get("client_name"):
+            details.append(str(charter["client_name"]))
+        if charter.get("driver_name"):
+            details.append(f"Driver {charter['driver_name']}")
+
+        detail_text = " | ".join(details)
+        self.charter_details_label.setStyleSheet("color: #245b2a;")
+        self.charter_details_label.setText(detail_text)
+        self.charter_details_label.setToolTip(detail_text)
+
+    def _reverse_charter_lookup(self) -> None:
+        """Find charters by lookup date and optional vehicle, then fill form."""
+
+        if not self._is_charter_lookup_enabled():
+            QMessageBox.information(
+                self,
+                "Charter Disabled",
+                "Select the Charter radio button before searching charters.",
+            )
+            return
+
+        try:
+            lookup_date = self.reverse_charter_date_lookup.date().toPyDate()
+            vehicle_text = (
+                self.reverse_charter_vehicle_lookup.text() or ""
+            ).strip()
+            if (
+                not vehicle_text
+                and hasattr(self, "new_vehicle_combo")
+                and self.new_vehicle_combo.currentData() is not None
+            ):
+                vehicle_text = self.new_vehicle_combo.currentText().strip()
+
+            cur = self.conn.cursor()
+            params: list[object] = [lookup_date, lookup_date]
+            vehicle_where = ""
+            if vehicle_text:
+                vehicle_like = f"%{vehicle_text}%"
+                normalized_vehicle_like = (
+                    "%"
+                    + re.sub(r"[^A-Za-z0-9]", "", vehicle_text)
+                    + "%"
+                )
+                vehicle_where = """
+                    AND (
+                        COALESCE(v.vehicle_number, '') ILIKE %s
+                        OR COALESCE(c.vehicle, '') ILIKE %s
+                        OR regexp_replace(
+                            COALESCE(v.vehicle_number, c.vehicle, ''),
+                            '[^A-Za-z0-9]',
+                            '',
+                            'g'
+                        ) ILIKE %s
+                    )
+                """
+                params.extend(
+                    [vehicle_like, vehicle_like, normalized_vehicle_like]
+                )
+
+            cur.execute(
+                f"""
+                SELECT c.reserve_number,
+                       c.charter_date,
+                       c.pickup_time,
+                       COALESCE(c.client_display_name, '') AS client_name,
+                       c.vehicle_id,
+                       COALESCE(v.vehicle_number, c.vehicle, '') AS vehicle_number,
+                       COALESCE(
+                           NULLIF(
+                               TRIM(CONCAT_WS(' ', e.first_name, e.last_name)),
+                               ''
+                           ),
+                           c.driver,
+                           ''
+                       ) AS driver_name,
+                       COALESCE(c.employee_id, c.assigned_driver_id)
+                           AS employee_id,
+                       COALESCE(c.pickup_address, '') AS pickup_address
+                FROM charters c
+                LEFT JOIN vehicles v ON v.vehicle_id = c.vehicle_id
+                LEFT JOIN employees e
+                    ON e.employee_id =
+                        COALESCE(c.employee_id, c.assigned_driver_id)
+                WHERE c.charter_date BETWEEN %s AND %s + INTERVAL '1 day'
+                  AND c.reserve_number IS NOT NULL
+                  {vehicle_where}
+                ORDER BY
+                    CASE
+                        WHEN c.charter_date = %s THEN 0
+                        ELSE 1
+                    END,
+                    c.charter_date,
+                    c.pickup_time NULLS LAST,
+                    c.reserve_number
+                LIMIT 50
+                """,
+                params + [lookup_date],
+            )
+            rows = cur.fetchall()
+            cur.close()
+        except Exception as e:
+            try:
+                self.conn.rollback()
+            except Exception as _e:
+                logger.debug('Suppressed: %s', _e)
+            QMessageBox.critical(
+                self,
+                "Charter Lookup Error",
+                f"Could not search charters:\n\n{e}",
+            )
+            return
+
+        if not rows:
+            QMessageBox.information(
+                self,
+                "No Charters Found",
+                "No charters found for that date and vehicle. Try editing the "
+                "lookup date or clearing the vehicle filter.",
+            )
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Reverse Charter Lookup")
+        dlg.resize(950, 420)
+        layout = QVBoxLayout(dlg)
+        layout.addWidget(
+            QLabel(
+                "Select a charter to fill the Charter #, Vehicle, and Driver "
+                "fields. This does not change the receipt date."
+            )
+        )
+
+        table = QTableWidget(len(rows), 7)
+        table.setHorizontalHeaderLabels(
+            ["Reserve #", "Date", "Time", "Vehicle", "Client", "Driver", "Pickup"]
+        )
+        table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.ResizeToContents
+        )
+        table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.ResizeToContents
+        )
+        table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeMode.ResizeToContents
+        )
+        table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeMode.ResizeToContents
+        )
+        table.horizontalHeader().setSectionResizeMode(
+            4, QHeaderView.ResizeMode.Stretch
+        )
+        table.horizontalHeader().setSectionResizeMode(
+            5, QHeaderView.ResizeMode.ResizeToContents
+        )
+        table.horizontalHeader().setSectionResizeMode(
+            6, QHeaderView.ResizeMode.Stretch
+        )
+
+        payloads = []
+        for row_index, row in enumerate(rows):
+            (
+                reserve_number,
+                charter_date,
+                pickup_time,
+                client_name,
+                vehicle_id,
+                vehicle_number,
+                driver_name,
+                employee_id,
+                pickup_address,
+            ) = row
+            payload = {
+                "reserve_number": reserve_number,
+                "charter_date": charter_date,
+                "pickup_time": pickup_time,
+                "client_name": client_name,
+                "vehicle_id": vehicle_id,
+                "vehicle_number": vehicle_number,
+                "employee_id": employee_id,
+                "driver_name": driver_name,
+                "pickup_address": pickup_address,
+            }
+            payloads.append(payload)
+            values = [
+                reserve_number,
+                charter_date.strftime("%Y-%m-%d") if charter_date else "",
+                pickup_time.strftime("%H:%M") if pickup_time else "",
+                vehicle_number or "",
+                client_name or "",
+                driver_name or "",
+                pickup_address or "",
+            ]
+            for col, value in enumerate(values):
+                item = QTableWidgetItem(str(value))
+                item.setData(Qt.ItemDataRole.UserRole, payload)
+                table.setItem(row_index, col, item)
+
+        if rows:
+            table.setCurrentCell(0, 0)
+        layout.addWidget(table)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dlg.accept)
+        buttons.rejected.connect(dlg.reject)
+        layout.addWidget(buttons)
+
+        def accept_current_row() -> None:
+            if table.currentRow() >= 0:
+                dlg.accept()
+
+        table.itemDoubleClicked.connect(lambda _item: accept_current_row())
+
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        current_row = table.currentRow()
+        if current_row < 0:
+            return
+        selected_item = table.item(current_row, 0)
+        if not selected_item:
+            return
+        charter = selected_item.data(Qt.ItemDataRole.UserRole)
+        if not charter:
+            charter = payloads[current_row]
+        self._apply_reverse_charter_selection(charter)
+
     # ------------------------------------------------------------------
     # Data helpers
     # ------------------------------------------------------------------
@@ -4918,6 +5591,14 @@ class ReceiptSearchMatchWidget(QWidget):
 
     def _link_selected_to_charter(self) -> None:
         """Link the selected receipt row to a charter by reserve_number."""
+
+        if not self._is_charter_lookup_enabled():
+            QMessageBox.information(
+                self,
+                "Charter Disabled",
+                "Select the Charter radio button before linking to a charter.",
+            )
+            return
 
         # PERFORMANCE: Ensure drivers and vehicles are loaded before charter
         # lookup
@@ -5048,6 +5729,23 @@ class ReceiptSearchMatchWidget(QWidget):
                     )
                     AND transaction_date BETWEEN
                         %s AND %s + INTERVAL '5 days'
+                    AND (
+                        reconciliation_status IS NULL
+                        OR reconciliation_status IN ('unreconciled','ignored')
+                        OR (
+                            reconciliation_status = 'reconciled'
+                            AND receipt_id IS NULL
+                            AND (
+                                reconciled_receipt_id IS NULL
+                                OR NOT EXISTS (
+                                    SELECT 1
+                                    FROM receipts r_chk
+                                    WHERE r_chk.receipt_id =
+                                        banking_transactions.reconciled_receipt_id
+                                )
+                            )
+                        )
+                    )
                     ORDER BY ABS(transaction_date - %s),
                              LEAST(
                                  ABS(COALESCE(credit_amount,0) - %s),
@@ -5707,12 +6405,12 @@ class ReceiptSearchMatchWidget(QWidget):
                       '' AS reference_number
                 FROM banking_transactions bt
                 WHERE (
-                    ABS(COALESCE(bt.debit_amount, 0) - %s) < 1.0
-                    OR ABS(COALESCE(bt.credit_amount, 0) - %s) < 1.0
+                    ABS(COALESCE(bt.debit_amount, 0) - %s) < 0.005
+                    OR ABS(COALESCE(bt.credit_amount, 0) - %s) < 0.005
                 )
                 AND bt.transaction_date BETWEEN
-                    %s - INTERVAL '7 days' AND %s + INTERVAL '7 days'
-                ORDER BY bt.transaction_date DESC, bt.transaction_id DESC
+                    %s AND %s + INTERVAL '7 days'
+                ORDER BY bt.transaction_date ASC, bt.transaction_id DESC
                 LIMIT 20
                 """,
                 (amount, amount, rdate, rdate),
@@ -6028,6 +6726,99 @@ class ReceiptSearchMatchWidget(QWidget):
         # Re-populating causes selection change which clears the form
         # The payment method is a form field and shouldn't affect table display
         self._maybe_autoselect_david_reimbursement_gl(method)
+        is_loan = self._is_related_personal_loan(method)
+        if (
+            (method or "").strip().lower() == "reimbursement"
+            and (self.new_charter_input.text() or "").strip()
+        ):
+            self._populate_charter_details()
+        if is_loan and self.loan_account_combo.currentIndex() == 0:
+            default_index = self.loan_account_combo.findData(
+                "Related Personal Loan"
+            )
+            if default_index >= 0:
+                self.loan_account_combo.setCurrentIndex(default_index)
+        elif not is_loan:
+            self.loan_account_combo.setCurrentIndex(0)
+
+    def _load_related_loan_accounts(self) -> None:
+        """Load the renamed personal-loan ledger and its current balance."""
+        self.loan_account_combo.clear()
+        self.loan_account_combo.addItem("Select related loan account...", None)
+        try:
+            cur = self.conn.cursor()
+            cur.execute(
+                """
+                SELECT COALESCE(running_balance, 0)
+                FROM david_account_tracking
+                ORDER BY transaction_date DESC, id DESC
+                LIMIT 1
+                """
+            )
+            row = cur.fetchone()
+            balance = Decimal(str(row[0] if row else 0))
+            self.loan_account_combo.addItem(
+                f"Related Personal Loan — Balance ${balance:,.2f}",
+                "Related Personal Loan",
+            )
+            cur.close()
+        except Exception:
+            try:
+                self.conn.rollback()
+            except Exception as rollback_error:
+                logger.debug("Loan account rollback failed: %s", rollback_error)
+            raise
+
+    def _selected_loan_account(self) -> str | None:
+        if not self._is_related_personal_loan(self.payment_method.currentText()):
+            return None
+        return "Related Personal Loan"
+
+    def _set_related_loan_account(self, account_code) -> None:
+        code = str(account_code or "").strip()
+        if not code and self._is_related_personal_loan(
+            self.payment_method.currentText()
+        ):
+            code = "Related Personal Loan"
+        if code.lower() in {
+            "related_personal_loan",
+            "david richard",
+            "1090",
+        }:
+            code = "Related Personal Loan"
+        index = self.loan_account_combo.findData(code) if code else 0
+        self.loan_account_combo.setCurrentIndex(index if index >= 0 else 0)
+
+    @staticmethod
+    def _is_related_personal_loan(method: str | None) -> bool:
+        return (method or "").strip().lower() in {
+            "loan",
+            "related personal loan",
+            "rpl",
+        }
+
+    @classmethod
+    def _display_payment_method(cls, method: str | None) -> str:
+        return display_payment_method(method)
+
+    @classmethod
+    def _stored_payment_method(cls, method: str | None) -> str:
+        return normalize_payment_method(method)
+
+    def _load_related_loan_account_for_receipt(self, receipt_id: int) -> None:
+        if "pay_account" not in self.receipts_columns:
+            self._set_related_loan_account(None)
+            return
+        cur = self.conn.cursor()
+        try:
+            cur.execute(
+                "SELECT pay_account FROM receipts WHERE receipt_id = %s",
+                (receipt_id,),
+            )
+            row = cur.fetchone()
+            self._set_related_loan_account(row[0] if row else None)
+        finally:
+            cur.close()
 
     def _toggle_conditional_fields(self) -> None:
         """Show/hide fuel and odometer fields based on GL code selection."""
@@ -6069,6 +6860,17 @@ class ReceiptSearchMatchWidget(QWidget):
                 self.fuel_liters.setVisible(visible)
             if hasattr(self, "fuel_label") and self.fuel_label:
                 self.fuel_label.setVisible(visible)
+            for widget_name in (
+                "fuel_calc_amount_label",
+                "fuel_calc_amount",
+                "fuel_calc_price_label",
+                "fuel_calc_price_per_liter",
+                "fuel_calc_source_label",
+                "fuel_calc_btn",
+            ):
+                widget = getattr(self, widget_name, None)
+                if widget:
+                    widget.setVisible(visible)
         except Exception as e:
             # Silently continue - don't hide the entire UI
             import traceback
@@ -6076,6 +6878,110 @@ class ReceiptSearchMatchWidget(QWidget):
             logger.debug(
                 f"⚠️ Error in _set_fuel_row_visible: "
                 f"{e}\n{traceback.format_exc()}"
+            )
+
+    def _load_monthly_fuel_price(self, selected_date=None) -> None:
+        """Load the historical fuel price for the receipt's year and month."""
+        qdate = selected_date if isinstance(selected_date, QDate) else self.new_date.date()
+        if not qdate or not qdate.isValid():
+            return
+
+        cache_key = (qdate.year(), qdate.month())
+        cached = self._fuel_price_cache.get(cache_key)
+        if cached:
+            price, source = cached
+        else:
+            cur = self.conn.cursor()
+            try:
+                cur.execute(
+                    """
+                    WITH valid_prices AS (
+                        SELECT
+                            receipt_date,
+                            gross_amount / NULLIF(fuel_amount, 0) AS price
+                        FROM receipts
+                        WHERE fuel_amount > 0
+                          AND gross_amount > 0
+                          AND gross_amount / NULLIF(fuel_amount, 0)
+                              BETWEEN 0.40 AND 3.50
+                    ),
+                    selected_prices AS (
+                        SELECT price, 0 AS priority
+                        FROM valid_prices
+                        WHERE EXTRACT(YEAR FROM receipt_date) = %s
+                          AND EXTRACT(MONTH FROM receipt_date) = %s
+                        UNION ALL
+                        SELECT price, 1 AS priority
+                        FROM valid_prices
+                        WHERE EXTRACT(YEAR FROM receipt_date) = %s
+                    )
+                    SELECT
+                        priority,
+                        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price)
+                    FROM selected_prices
+                    GROUP BY priority
+                    ORDER BY priority
+                    LIMIT 1
+                    """,
+                    (qdate.year(), qdate.month(), qdate.year()),
+                )
+                row = cur.fetchone()
+            except Exception as error:
+                self.conn.rollback()
+                logger.exception("Failed to load historical fuel price")
+                self.fuel_calc_source_label.setText("Price unavailable")
+                self.fuel_calc_source_label.setToolTip(str(error))
+                return
+            finally:
+                cur.close()
+
+            if row:
+                priority, price_value = row
+                price = round(float(price_value), 3)
+                source = (
+                    qdate.toString("MM/yyyy") + " median"
+                    if priority == 0
+                    else str(qdate.year()) + " median"
+                )
+            else:
+                price = DEFAULT_FUEL_PRICE_PER_LITER
+                source = "historical fallback"
+            self._fuel_price_cache[cache_key] = (price, source)
+
+        self.fuel_calc_price_per_liter.setValue(price)
+        self.fuel_calc_source_label.setText(source)
+        self.fuel_calc_source_label.setToolTip(
+            f"Default ${price:.3f}/L from {source}. You can edit Price/L."
+        )
+
+    def _auto_calculate_fuel_liters(self) -> None:
+        """Calculate liters from the fuel dollar amount and historical price."""
+        try:
+            amount = float(self.fuel_calc_amount.value())
+            if amount <= 0:
+                amount = float(self.new_amount.value())
+                self.fuel_calc_amount.setValue(amount)
+            price_per_liter = float(self.fuel_calc_price_per_liter.value())
+            if amount <= 0:
+                QMessageBox.information(
+                    self,
+                    "Fuel Calculation",
+                    "Enter a fuel dollar amount greater than zero.",
+                )
+                return
+            if price_per_liter <= 0:
+                QMessageBox.information(
+                    self,
+                    "Fuel Calculation",
+                    "Price per liter must be greater than zero.",
+                )
+                return
+            self.fuel_liters.setValue(amount / price_per_liter)
+        except Exception as error:
+            QMessageBox.warning(
+                self,
+                "Fuel Calculation",
+                f"Could not calculate fuel liters:\n\n{error}",
             )
 
     def _set_odometer_visible(self, visible: bool) -> None:
