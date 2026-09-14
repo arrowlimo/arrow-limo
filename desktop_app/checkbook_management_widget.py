@@ -376,6 +376,13 @@ class CheckBookManagementWidget(QWidget):
         self.payee_filter.setMaximumWidth(180)
         filter_layout.addWidget(self.payee_filter)
 
+        filter_layout.addWidget(QLabel("Amount:"))
+        self.amount_filter = QLineEdit()
+        self.amount_filter.setPlaceholderText("e.g. 349.01")
+        self.amount_filter.setMaximumWidth(90)
+        self.amount_filter.returnPressed.connect(self._load_cheques)
+        filter_layout.addWidget(self.amount_filter)
+
         filter_layout.addWidget(QLabel("Date:"))
         self.date_from = StandardDateEdit(allow_blank=True)
         self.date_from.setMaximumWidth(110)
@@ -598,6 +605,21 @@ class CheckBookManagementWidget(QWidget):
             sql.append("AND COALESCE(cr.payee, '') ILIKE %s")
             params.append(f"%{payee}%")
 
+        amount_text = self.amount_filter.text().strip().replace("$", "").replace(",", "")
+        if amount_text:
+            try:
+                amount_value = float(amount_text)
+            except ValueError:
+                QMessageBox.warning(
+                    self,
+                    "Invalid Amount",
+                    f"'{self.amount_filter.text().strip()}' is not a valid "
+                    "amount. Use a plain number, e.g. 349.01.",
+                )
+            else:
+                sql.append("AND ABS(cr.amount - %s) < 0.01")
+                params.append(amount_value)
+
         _qd = self.date_from.getDate()
         date_from = _qd.toPyDate() if _qd else None
         if date_from:
@@ -760,6 +782,7 @@ class CheckBookManagementWidget(QWidget):
         self.match_filter.setCurrentIndex(0)
         self.cheque_filter.clear()
         self.payee_filter.clear()
+        self.amount_filter.clear()
         if hasattr(self.date_from, "clearDate"):
             self.date_from.clearDate()
         if hasattr(self.date_to, "clearDate"):
