@@ -5242,10 +5242,10 @@ class ReceiptSearchMatchWidget(QWidget):
         self.charter_details_label.setText(detail_text)
         self.charter_details_label.setToolTip(detail_text)
 
-    def _open_charter_details_for_verification(self, charter: dict) -> None:
-        """Open the selected charter in the Run Charter tab so it can be
-        verified before it is linked to this receipt. Does not affect the
-        Reverse Charter Lookup dialog's own selection/accept flow."""
+    def _open_charter_details_for_verification(
+        self, charter: dict, parent: QWidget | None = None
+    ) -> None:
+        """Open charter details temporarily without leaving the receipt."""
 
         reserve_number = str(charter.get("reserve_number") or "").strip()
         if not reserve_number:
@@ -5256,33 +5256,27 @@ class ReceiptSearchMatchWidget(QWidget):
             )
             return
 
-        main_window = self.window()
         try:
-            navigate_to_dispatch = getattr(
-                main_window, "navigate_to_operations_subtab", None
+            from drill_down_widgets import CharterDetailDialog
+
+            main_window = self.window()
+            db = getattr(main_window, "db", None)
+            if db is None:
+                raise RuntimeError("The database connection is not available.")
+
+            dialog = CharterDetailDialog(
+                db,
+                reserve_number=reserve_number,
+                parent=parent or self,
             )
-            if not callable(navigate_to_dispatch) or not navigate_to_dispatch(
-                "📡 Dispatch"
-            ):
-                raise RuntimeError("Could not open the Operations > Dispatch tab.")
-
-            dispatch_tabs = getattr(main_window, "dispatch_tabs_widget", None)
-            if dispatch_tabs is None:
-                raise RuntimeError("The Dispatch tab is not available.")
-            dispatch_tabs.setCurrentIndex(1)  # "📝 Run Charter"
-
-            charter_form = getattr(main_window, "charter_form", None)
-            if charter_form is None or not hasattr(
-                charter_form, "load_charter_by_reserve"
-            ):
-                raise RuntimeError(
-                    "The Run Charter form did not load under Operations > Dispatch."
-                )
-
-            booking_tabs = getattr(charter_form, "booking_tab_widget", None)
-            if booking_tabs is not None:
-                booking_tabs.setCurrentIndex(0)
-            charter_form.load_charter_by_reserve(reserve_number)
+            dialog.setWindowTitle(
+                f"Verify Charter #{reserve_number} - Return to Receipt When Done"
+            )
+            for button in dialog.findChildren(QPushButton):
+                if button.text() == "Close":
+                    button.setText("↩ Return to Receipt")
+                    break
+            dialog.exec()
         except Exception as e:
             QMessageBox.critical(
                 self,
@@ -5481,8 +5475,8 @@ class ReceiptSearchMatchWidget(QWidget):
         button_row = QHBoxLayout()
         view_details_btn = QPushButton("🔎 Open Charter Details")
         view_details_btn.setToolTip(
-            "Open the selected charter in the Run Charter tab to verify it "
-            "before linking. The lookup dialog stays open."
+            "Open the selected charter in a separate review window. Close it "
+            "to return here with the receipt form and lookup selection intact."
         )
         button_row.addWidget(view_details_btn)
         button_row.addStretch(1)
@@ -5515,7 +5509,7 @@ class ReceiptSearchMatchWidget(QWidget):
                 if selected_item
                 else None
             ) or payloads[current_row]
-            self._open_charter_details_for_verification(charter)
+            self._open_charter_details_for_verification(charter, parent=dlg)
 
         view_details_btn.clicked.connect(open_charter_details)
         table.itemDoubleClicked.connect(lambda _item: accept_current_row())
