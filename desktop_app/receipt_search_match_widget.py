@@ -5269,10 +5269,22 @@ class ReceiptSearchMatchWidget(QWidget):
             return
 
         try:
-            main_window.navigate_to_top_tab("📡 Dispatch")
+            navigate_to_dispatch = getattr(
+                main_window, "navigate_to_operations_subtab", None
+            )
+            if not callable(navigate_to_dispatch) or not navigate_to_dispatch(
+                "📡 Dispatch"
+            ):
+                raise RuntimeError("Could not open the Operations > Dispatch tab.")
+
             dispatch_tabs = getattr(main_window, "dispatch_tabs_widget", None)
-            if dispatch_tabs is not None:
-                dispatch_tabs.setCurrentIndex(1)  # "📝 Run Charter"
+            if dispatch_tabs is None:
+                raise RuntimeError("The Dispatch tab is not available.")
+            dispatch_tabs.setCurrentIndex(1)  # "📝 Run Charter"
+
+            booking_tabs = getattr(charter_form, "booking_tab_widget", None)
+            if booking_tabs is not None:
+                booking_tabs.setCurrentIndex(0)
             charter_form.load_charter_by_reserve(reserve_number)
         except Exception as e:
             QMessageBox.critical(
