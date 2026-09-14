@@ -755,6 +755,15 @@ class ReceiptSearchMatchWidget(QWidget):
         receipt_id_row.addStretch()
         search_form.addRow("Receipt ID:", receipt_id_row)
 
+        # GL Code filter (e.g. 5255 to pull up all CRA remittance receipts)
+        gl_code_row = QHBoxLayout()
+        self.gl_code_filter = QLineEdit()
+        self.gl_code_filter.setPlaceholderText("e.g., 5255")
+        self.gl_code_filter.setMaximumWidth(100)
+        gl_code_row.addWidget(self.gl_code_filter)
+        gl_code_row.addStretch()
+        search_form.addRow("GL Code:", gl_code_row)
+
         # Vendor filter — hidden backing widget; vendor_lookup combo drives it
         self.vendor_filter = QLineEdit()
         self.vendor_filter.setPlaceholderText("e.g., Fibrenew, Shell, etc.")
@@ -2029,6 +2038,8 @@ class ReceiptSearchMatchWidget(QWidget):
         self.vendor_lookup.setCurrentIndex(0)
         self.vendor_lookup.blockSignals(False)
         self.receipt_id_filter.clear()
+        if hasattr(self, "gl_code_filter"):
+            self.gl_code_filter.clear()
         self.amount_filter.setValue(0)
         self.date_range_days.setValue(0)
         self.amount_range.setValue(1.0)
@@ -2134,6 +2145,15 @@ class ReceiptSearchMatchWidget(QWidget):
                 params.append(int(receipt_id))
             except ValueError:
                 pass  # Ignore invalid receipt ID
+
+        gl_code = (
+            self.gl_code_filter.text().strip()
+            if hasattr(self, "gl_code_filter")
+            else ""
+        )
+        if gl_code:
+            sql.append("AND r.gl_account_code ILIKE %s")
+            params.append(f"%{gl_code}%")
 
         vendor = (self.vendor_filter.text() or "").strip()
         if vendor:

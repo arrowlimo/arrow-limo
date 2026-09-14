@@ -22,9 +22,11 @@ INSERT INTO chart_of_accounts (
 ON CONFLICT (account_code) DO NOTHING;
 
 -- Tag the one receipt already labeled exactly "REVENUE CANADA 3RD PARTY
--- REMITTANCE" that had no GL code assigned yet.
+-- REMITTANCE" that had no GL code assigned yet. gl_account_code is the
+-- authoritative column read by the desktop app's search/report/GL dropdown
+-- logic (gl_code is a secondary/legacy column and is set too for consistency).
 UPDATE receipts
-SET gl_code = '5255'
+SET gl_code = '5255',
+    gl_account_code = '5255'
 WHERE receipt_id = 140024
-  AND vendor_name = 'REVENUE CANADA 3RD PARTY REMITTANCE'
-  AND (gl_code IS NULL OR gl_code = '');
+  AND vendor_name = 'REVENUE CANADA 3RD PARTY REMITTANCE';
