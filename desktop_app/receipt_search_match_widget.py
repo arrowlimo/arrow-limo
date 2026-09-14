@@ -5257,17 +5257,6 @@ class ReceiptSearchMatchWidget(QWidget):
             return
 
         main_window = self.window()
-        charter_form = getattr(main_window, "charter_form", None)
-        if charter_form is None or not hasattr(
-            charter_form, "load_charter_by_reserve"
-        ):
-            QMessageBox.warning(
-                self,
-                "Unavailable",
-                "Could not locate the Run Charter tab to open this charter.",
-            )
-            return
-
         try:
             navigate_to_dispatch = getattr(
                 main_window, "navigate_to_operations_subtab", None
@@ -5281,6 +5270,14 @@ class ReceiptSearchMatchWidget(QWidget):
             if dispatch_tabs is None:
                 raise RuntimeError("The Dispatch tab is not available.")
             dispatch_tabs.setCurrentIndex(1)  # "📝 Run Charter"
+
+            charter_form = getattr(main_window, "charter_form", None)
+            if charter_form is None or not hasattr(
+                charter_form, "load_charter_by_reserve"
+            ):
+                raise RuntimeError(
+                    "The Run Charter form did not load under Operations > Dispatch."
+                )
 
             booking_tabs = getattr(charter_form, "booking_tab_widget", None)
             if booking_tabs is not None:
