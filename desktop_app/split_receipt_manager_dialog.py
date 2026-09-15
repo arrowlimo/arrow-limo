@@ -37,6 +37,32 @@ from PyQt6.QtWidgets import (
 logger = logging.getLogger(__name__)
 
 
+def _split_payment_method_options() -> list[tuple[str, str]]:
+    """Payment method (label, canonical_key) options for split rows.
+
+    Same canonical values as the main receipt form, except Debit Card and
+    Credit Card are combined into a single "Debit/Credit Card" option
+    (stored as debit_card) since splits don't need that distinction.
+    """
+    options = []
+    for pm_key, pm_label in PAYMENT_METHOD_LABELS.items():
+        if pm_key == "credit_card":
+            continue
+        if pm_key == "debit_card":
+            options.append(("Debit/Credit Card", "debit_card"))
+        else:
+            options.append((pm_label, pm_key))
+    return options
+
+
+def _split_payment_method_lookup_key(method: str | None) -> str:
+    """Canonical key to select in the split payment method combo."""
+    canonical = normalize_payment_method(method) if method else "cash"
+    if canonical == "credit_card":
+        canonical = "debit_card"
+    return canonical or "cash"
+
+
 class SplitReceiptManagerDialog(QDialog):
     """Popup dialog for managing receipt splits with real-time validation."""
 
@@ -521,13 +547,12 @@ class SplitReceiptManagerDialog(QDialog):
 
                     # Column 2: Payment Method (dropdown) - use the same
                     # canonical values/labels as the main receipt form so
-                    # splits always match what's stored on receipts.
+                    # splits always match what's stored on receipts, but
+                    # keep Debit/Credit Card combined as one option.
                     method_combo = QComboBox()
-                    for pm_key, pm_label in PAYMENT_METHOD_LABELS.items():
+                    for pm_label, pm_key in _split_payment_method_options():
                         method_combo.addItem(pm_label, pm_key)
-                    canonical_method = (
-                        normalize_payment_method(method) if method else "cash"
-                    )
+                    canonical_method = _split_payment_method_lookup_key(method)
                     idx = method_combo.findData(canonical_method)
                     method_combo.setCurrentIndex(idx if idx >= 0 else 0)
                     self.splits_table.setCellWidget(row, 2, method_combo)
@@ -756,16 +781,17 @@ class SplitReceiptManagerDialog(QDialog):
 
         # Column 2: Payment Method (dropdown with choices) - same canonical
         # values/labels as the main receipt form so splits always match
-        # what's stored on receipts.
+        # what's stored on receipts, but keep Debit/Credit Card combined
+        # as one option.
         method_combo = QComboBox()
-        for pm_key, pm_label in PAYMENT_METHOD_LABELS.items():
+        for pm_label, pm_key in _split_payment_method_options():
             method_combo.addItem(pm_label, pm_key)
         raw_method = (
             self.receipt_data.get("payment_method", "cash")
             if self.receipt_data
             else "cash"
         )
-        canonical_method = normalize_payment_method(raw_method) or "cash"
+        canonical_method = _split_payment_method_lookup_key(raw_method)
         idx = method_combo.findData(canonical_method)
         method_combo.setCurrentIndex(idx if idx >= 0 else 0)
         self.splits_table.setCellWidget(row, 2, method_combo)
