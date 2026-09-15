@@ -31,6 +31,8 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
+from bank_statement_parser import StatementParseError, parse_statement
+
 logger = logging.getLogger(__name__)
 
 ENV_VAR = "ARROW_BANK_STATEMENTS_DIR"
@@ -262,7 +264,20 @@ def scan_statements(conn, root=None, include_inactive: bool = False):
                     continue
                 statement_path = files[0]
                 size = statement_path.stat().st_size
-            found[owner.bank_id].append((year, month, statement_path, size))
+            covered_months = [(year, month)]
+            if statement_path.suffix.lower() in {".csv", ".txt", ".xlsx", ".xlsm"}:
+                try:
+                    covered_months = parse_statement(statement_path).months()
+                except (StatementParseError, OSError) as exc:
+                    logger.warning(
+                        "Could not inspect statement months for %s: %s",
+                        statement_path,
+                        exc,
+                    )
+            for covered_year, covered_month in covered_months:
+                found[owner.bank_id].append(
+                    (covered_year, covered_month, statement_path, size)
+                )
 
     for bank_id in found:
         found[bank_id].sort(key=lambda entry: (entry[0], entry[1]))

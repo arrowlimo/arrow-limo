@@ -6,15 +6,24 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 
-NSF_RE = re.compile(r"(?:^|[^A-Z])NSF(?:[^A-Z]|$)", re.IGNORECASE)
+NSF_RE = re.compile(
+    r"(?:^|[^A-Z])(?:NSF|NON-SUFFICIENT FUNDS)(?:[^A-Z]|$)",
+    re.IGNORECASE,
+)
 FEE_TERMS = (
     "SERVICE CHARGE",
     "OVERDRAFT INTEREST",
     "OVERDRAFT S/C",
+    "OVERDRAFT FEE",
     "E-TRANSFER NETWORK FEE",
+    "E-TRANSFER NWK FEE",
+    "NETWORK TRANSACTION FEE",
     "TRANSACTION FEE",
     "ACCOUNT FEE",
+    "ACC FEE",
+    "STOP SC",
     "NSF FEE",
+    "NON-SUFFICIENT FUNDS CHARGE",
 )
 GENERIC_VENDORS = {
     "",
