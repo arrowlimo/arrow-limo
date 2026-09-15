@@ -249,15 +249,20 @@ def scan_statements(conn, root=None, include_inactive: bool = False):
 
             _last4, year, month = parsed
             if child.is_file():
+                statement_path = child
                 size = child.stat().st_size
             else:
-                files = [f for f in child.iterdir() if f.is_file()]
-                if not files:
-                    # An empty month folder is a placeholder, not a download.
+                files = [
+                    f for f in child.iterdir()
+                    if f.is_file() and f.suffix.lower() in STATEMENT_SUFFIXES
+                ]
+                if len(files) != 1:
+                    # Empty or ambiguous folders cannot be imported safely.
                     unknown.append(child)
                     continue
-                size = sum(f.stat().st_size for f in files)
-            found[owner.bank_id].append((year, month, child, size))
+                statement_path = files[0]
+                size = statement_path.stat().st_size
+            found[owner.bank_id].append((year, month, statement_path, size))
 
     for bank_id in found:
         found[bank_id].sort(key=lambda entry: (entry[0], entry[1]))

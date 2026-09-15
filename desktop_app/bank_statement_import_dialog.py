@@ -8,10 +8,12 @@ missing for each registered account.
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 
 import bank_statement_folders as bsf
 import bank_statement_parser as bsp
+import bank_statement_postprocessor as bspp
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog,
@@ -94,6 +96,10 @@ class BankStatementImportDialog(QDialog):
         create_btn = QPushButton("📁 Create Missing Folders")
         create_btn.clicked.connect(self._create_folders)
         buttons.addWidget(create_btn)
+
+        file_btn = QPushButton("📄 Import Download File...")
+        file_btn.clicked.connect(self._import_download_file)
+        buttons.addWidget(file_btn)
 
         self.import_btn = QPushButton("⬆️ Import Selected Statement")
         self.import_btn.setEnabled(False)
@@ -205,7 +211,53 @@ class BankStatementImportDialog(QDialog):
         if not selection:
             return
         account_number, bank_id, path = selection
+        self._import_statement(account_number, bank_id, path)
 
+    def _import_download_file(self) -> None:
+        """Import an annual/monthly download directly from any folder."""
+        current = self.path_edit.text() or str(Path.home())
+        path, _selected_filter = QFileDialog.getOpenFileName(
+            self,
+            "Select Bank Statement Download",
+            current,
+            "Bank Statements (*.csv *.xlsx *.xlsm *.txt);;All Files (*)",
+        )
+        if not path:
+            return
+
+        digit_groups = re.findall(r"\d+", str(Path(path)))
+        matches = []
+        accounts = bsf.fetch_accounts(self.conn)
+        for bank_id, _institution, account_number, account_name in accounts:
+            last4 = bsf.account_last4(account_number)
+            if any(group.endswith(last4) for group in digit_groups):
+                matches.append((account_number, bank_id, account_name))
+
+        if len(matches) != 1:
+            expected = "\n".join(
+                f"  {bsf.account_last4(account)} — {name}"
+                for _bank_id, _institution, account, name in accounts
+            )
+            QMessageBox.warning(
+                self,
+                "Cannot Determine Account",
+                "The account number must appear in the file name or one of "
+                "its parent folders. Exactly one account must match.\n\n"
+                f"Expected one of:\n{expected}\n\nSelected:\n{path}",
+            )
+            return
+
+        account_number, bank_id, account_name = matches[0]
+        self._import_statement(account_number, bank_id, path, account_name)
+
+    def _import_statement(
+        self,
+        account_number: str,
+        bank_id: int,
+        path: str,
+        account_name: str | None = None,
+    ) -> None:
+        """Preview, import, post-process, and report one statement file."""
         try:
             statement = bsp.parse_statement(path)
             new_rows, duplicates, likely = bsp.classify_rows(
@@ -218,6 +270,15 @@ class BankStatementImportDialog(QDialog):
             logger.exception("Failed to classify statement %s", path)
             QMessageBox.critical(self, "Import Failed", str(exc))
             return
+
+        with self.conn.cursor() as cur:
+            cur.execute(
+                "SELECT MAX(transaction_date) FROM banking_transactions "
+                "WHERE account_number = %s",
+                (account_number,),
+            )
+            previous_latest = cur.fetchone()[0]
+        account_label = account_name or account_number
 
         if not new_rows:
             QMessageBox.information(
@@ -240,8 +301,14 @@ class BankStatementImportDialog(QDialog):
             preview += f"\n  ... and {len(new_rows) - 15} more"
 
         warning = ""
+        if previous_latest and statement.min_date <= previous_latest:
+            warning += (
+                f"\n\n⚠️ This file begins {statement.min_date}, which overlaps "
+                f"existing {account_label} data through {previous_latest}. "
+                "Only account-scoped rows not already present will be added."
+            )
         if likely:
-            warning = (
+            warning += (
                 f"\n\n⚠️ {len(likely)} row(s) matched an existing transaction on "
                 "date and amount but have a different description. These are "
                 "treated as already imported and will be skipped."
@@ -265,7 +332,11 @@ class BankStatementImportDialog(QDialog):
         batch = bsp.make_batch_name(account_number, statement)
         try:
             inserted = bsp.import_rows(
-                self.conn, account_number, bank_id, statement, new_rows, batch
+                self.conn, account_number, bank_id, statement, new_rows, batch,
+                commit=False,
+            )
+            processed = bspp.post_process_import(
+                self.conn, account_number, batch, commit=True
             )
         except Exception as exc:  # pragma: no cover - DB failure
             self.conn.rollback()
@@ -277,7 +348,16 @@ class BankStatementImportDialog(QDialog):
             self,
             "Import Complete",
             f"Imported {inserted} transaction(s) into account {account_number}.\n\n"
-            f"Import batch: {batch}",
+            f"Receipt links found: {processed.linked_receipts}\n"
+            f"Bank-fee receipts created: {processed.created_fee_receipts}\n"
+            f"Historical vendor receipts created: "
+            f"{processed.created_vendor_receipts}\n"
+            f"NSF transactions identified: {processed.nsf_transactions}\n"
+            f"Transactions needing manual review: "
+            f"{processed.review_transactions}\n"
+            f"Running balances updated: {processed.balances_updated}\n\n"
+            f"Import batch: {batch}\n\n"
+            "Use Enhanced Banking → Unreconciled Only to review outstanding rows.",
         )
         self.refresh()
 
