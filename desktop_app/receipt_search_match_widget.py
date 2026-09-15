@@ -5781,6 +5781,73 @@ class ReceiptSearchMatchWidget(QWidget):
             rows = cur.fetchall()
             cur.close()
             if not rows:
+                # Nothing UNLINKED matched. Before saying "no matches", check
+                # whether the exact amount/date is already linked to an
+                # existing receipt - that almost always means this is a
+                # duplicate, not a genuinely new cash transaction, and the
+                # generic "No matches" message was misleading users into
+                # re-adding it.
+                cur2 = self.conn.cursor()
+                cur2.execute(
+                    """
+                    SELECT bt.transaction_id, bt.transaction_date,
+                           bt.description,
+                           COALESCE(bt.credit_amount, 0)
+                               - COALESCE(bt.debit_amount, 0) AS net_amount,
+                           r.receipt_id, r.vendor_name, r.receipt_date
+                    FROM banking_transactions bt
+                    LEFT JOIN receipts r
+                           ON r.receipt_id = COALESCE(
+                               bt.receipt_id, bt.reconciled_receipt_id
+                           )
+                    WHERE (
+                        ABS(COALESCE(bt.credit_amount, 0) - %s) < 0.02
+                        OR ABS(COALESCE(bt.debit_amount, 0) - %s) < 0.02
+                    )
+                    AND bt.transaction_date BETWEEN
+                        %s - INTERVAL '7 days' AND %s + INTERVAL '7 days'
+                    ORDER BY ABS(bt.transaction_date - %s)
+                    LIMIT 5
+                    """,
+                    (amt, amt, date, date, date),
+                )
+                linked_rows = cur2.fetchall()
+                cur2.close()
+
+                if linked_rows:
+                    msg = (
+                        f"No unlinked banking transactions found matching "
+                        f"${amt:,.2f} near {date}.\n\n"
+                        f"However, this amount/date already matches "
+                        f"existing banking record(s) linked to a receipt - "
+                        f"this may be a duplicate:\n\n"
+                    )
+                    for (
+                        txn_id,
+                        txn_date,
+                        txn_desc,
+                        txn_amt,
+                        rid,
+                        rvendor,
+                        rdate,
+                    ) in linked_rows:
+                        msg += (
+                            f"• Banking #{txn_id} ({txn_date}): "
+                            f"{txn_desc} ${abs(txn_amt):,.2f}"
+                        )
+                        if rid:
+                            msg += (
+                                f" -> already linked to Receipt #{rid} "
+                                f"({rdate}, {rvendor})"
+                            )
+                        msg += "\n"
+                    msg += (
+                        "\nVerify this is not a duplicate before adding a "
+                        "new receipt."
+                    )
+                    QMessageBox.warning(self, "Possible Duplicate", msg)
+                    return
+
                 QMessageBox.information(
                     self,
                     "No matches",
