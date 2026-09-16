@@ -90,9 +90,14 @@ def _ensure_document_storage(conn) -> None:
 
 def _audit_actor_from_user(current_user: dict) -> AuditEventActor:
     username = current_user.get("username") or current_user.get("email") or current_user.get("user")
+    user_id = (
+        current_user.get("id")
+        or current_user.get("user_id")
+        or current_user.get("employee_id")
+    )
     return AuditEventActor(
         actor_type="user" if username else "service",
-        user_id=(str(current_user.get("id")) if current_user.get("id") else None),
+        user_id=str(user_id) if user_id is not None else None,
         username=(str(username) if username else None),
         role=(str(current_user.get("role")) if current_user.get("role") else None),
     )
