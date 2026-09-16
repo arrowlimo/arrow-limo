@@ -172,6 +172,12 @@ def _link_unique_receipts(conn, import_batch: str) -> int:
                AND bt.receipt_id IS NULL
                AND bt.reconciled_receipt_id IS NULL
                AND r.banking_transaction_id IS NULL
+               AND NOT EXISTS (
+                   SELECT 1
+                     FROM banking_transactions linked_bt
+                    WHERE linked_bt.receipt_id = r.receipt_id
+                       OR linked_bt.reconciled_receipt_id = r.receipt_id
+               )
                AND COALESCE(r.is_voided, FALSE) = FALSE
                AND COALESCE(r.is_nsf, FALSE) = FALSE
                AND COALESCE(r.exclude_from_reports, FALSE) = FALSE
