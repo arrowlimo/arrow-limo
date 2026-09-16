@@ -5,13 +5,12 @@ vehicles, business documents
 
 import os
 import shutil
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Annotated
 
-from anyio import open_file
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
@@ -50,6 +49,43 @@ class FileInfo(BaseModel):
     path: str
     size: int
     modified: str
+
+
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+
+
+def _safe_path_part(value: str, field_name: str) -> str:
+    value = value.strip()
+    if not value or value in {".", ".."} or "/" in value or "\\" in value:
+        raise HTTPException(status_code=400, detail=f"Invalid {field_name}")
+    return value
+
+
+def _document_path(category: str, entity_id: str, subfolder: str, filename: str) -> str:
+    return f"{category}/{entity_id}/{subfolder}/{filename}"
+
+
+def _ensure_document_storage(conn) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            ALTER TABLE documents
+                ADD COLUMN IF NOT EXISTS file_data BYTEA,
+                ADD COLUMN IF NOT EXISTS mime_type TEXT,
+                ADD COLUMN IF NOT EXISTS storage_source TEXT,
+                ADD COLUMN IF NOT EXISTS entity_id TEXT,
+                ADD COLUMN IF NOT EXISTS subfolder TEXT,
+                ADD COLUMN IF NOT EXISTS uploaded_by_username TEXT
+            """
+        )
+        cur.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_documents_web_location
+            ON documents (category, entity_id, subfolder, file_path)
+            WHERE storage_source = 'web'
+            """
+        )
+    conn.commit()
 
 
 def _audit_actor_from_user(current_user: dict) -> AuditEventActor:
@@ -166,18 +202,64 @@ async def upload_file(
     if not check_access(category, user_role, employee_id, target_employee_id):
         raise HTTPException(status_code=403, detail=ACCESS_DENIED_DETAIL)
 
-    # Construct target path
-    target_dir = FILE_STORAGE_ROOT / category / entity_id / subfolder
-    target_dir.mkdir(parents=True, exist_ok=True)
+    category = _safe_path_part(category, "category")
+    entity_id = _safe_path_part(entity_id, "entity ID")
+    subfolder = _safe_path_part(subfolder, "subfolder")
+    filename = _safe_path_part(Path(file.filename or "").name, "filename")
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File exceeds the 25 MB upload limit")
 
-    target_path = target_dir / file.filename
+    relative_path = _document_path(category, entity_id, subfolder, filename)
+    username = (
+        current_user.get("username")
+        or current_user.get("email")
+        or current_user.get("user")
+    )
+    conn = get_connection()
+    try:
+        _ensure_document_storage(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO documents (
+                    title, category, file_path, file_size, tags, upload_date,
+                    file_data, mime_type, storage_source, entity_id, subfolder,
+                    uploaded_by_username
+                )
+                VALUES (%s, %s, %s, %s, %s, NOW(), %s, %s, 'web', %s, %s, %s)
+                ON CONFLICT (category, entity_id, subfolder, file_path)
+                    WHERE storage_source = 'web'
+                DO UPDATE SET
+                    title = EXCLUDED.title,
+                    file_size = EXCLUDED.file_size,
+                    upload_date = NOW(),
+                    file_data = EXCLUDED.file_data,
+                    mime_type = EXCLUDED.mime_type,
+                    uploaded_by_username = EXCLUDED.uploaded_by_username
+                RETURNING document_id
+                """,
+                (
+                    filename,
+                    category,
+                    relative_path,
+                    len(content),
+                    f"web,{entity_id},{subfolder}",
+                    content,
+                    file.content_type or "application/octet-stream",
+                    entity_id,
+                    subfolder,
+                    username,
+                ),
+            )
+            document_id = cur.fetchone()[0]
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        return_connection(conn)
 
-    # Save file
-    async with await open_file(target_path, "wb") as f:
-        content = await file.read()
-        await f.write(content)
-
-    relative_path = str(target_path.relative_to(FILE_STORAGE_ROOT))
     _record_file_audit_event(
         current_user=current_user,
         action="upload_file",
@@ -185,17 +267,18 @@ async def upload_file(
         before=None,
         after={
             "path": relative_path,
-            "filename": file.filename,
+            "filename": filename,
             "size": len(content),
             "category": category,
             "entity_id": entity_id,
             "subfolder": subfolder,
+            "document_id": document_id,
         },
         note="File uploaded through API",
     )
 
     return {
-        "filename": file.filename,
+        "filename": filename,
         "path": relative_path,
         "size": len(content),
     }
@@ -219,24 +302,33 @@ async def list_files(
     if not check_access(category, user_role, employee_id, target_employee_id):
         raise HTTPException(status_code=403, detail=ACCESS_DENIED_DETAIL)
 
-    target_dir = FILE_STORAGE_ROOT / category / entity_id / subfolder
-    if not target_dir.exists():
-        return []
-
-    files = []
-    for item in target_dir.iterdir():
-        if item.is_file() and item.name != ".gitkeep":
-            stat = item.stat()
-            files.append(
-                FileInfo(
-                    filename=item.name,
-                    path=str(item.relative_to(FILE_STORAGE_ROOT)),
-                    size=stat.st_size,
-                    modified=str(stat.st_mtime),
-                )
+    conn = get_connection()
+    try:
+        _ensure_document_storage(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT title, file_path, file_size, upload_date
+                FROM documents
+                WHERE storage_source = 'web'
+                  AND category = %s
+                  AND entity_id = %s
+                  AND subfolder = %s
+                ORDER BY upload_date DESC, document_id DESC
+                """,
+                (category, entity_id, subfolder),
             )
-
-    return files
+            return [
+                FileInfo(
+                    filename=row[0],
+                    path=row[1],
+                    size=row[2] or 0,
+                    modified=(row[3] or datetime.now()).isoformat(),
+                )
+                for row in cur.fetchall()
+            ]
+    finally:
+        return_connection(conn)
 
 
 @router.get(
@@ -261,11 +353,30 @@ async def download_file(
     if not check_access(category, user_role, employee_id, target_employee_id):
         raise HTTPException(status_code=403, detail=ACCESS_DENIED_DETAIL)
 
-    target_path = FILE_STORAGE_ROOT / category / entity_id / subfolder / filename
-    if not target_path.exists():
-        raise HTTPException(status_code=404, detail="File not found")
+    relative_path = _document_path(category, entity_id, subfolder, filename)
+    conn = get_connection()
+    try:
+        _ensure_document_storage(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT file_data, mime_type
+                FROM documents
+                WHERE storage_source = 'web'
+                  AND category = %s
+                  AND entity_id = %s
+                  AND subfolder = %s
+                  AND file_path = %s
+                """,
+                (category, entity_id, subfolder, relative_path),
+            )
+            row = cur.fetchone()
+        if not row or row[0] is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        content, mime_type = bytes(row[0]), row[1]
+    finally:
+        return_connection(conn)
 
-    relative_path = str(target_path.relative_to(FILE_STORAGE_ROOT))
     _record_file_audit_event(
         current_user=current_user,
         action="download_file",
@@ -280,7 +391,11 @@ async def download_file(
         note="File downloaded through API",
     )
 
-    return FileResponse(target_path, filename=filename)
+    return Response(
+        content=content,
+        media_type=mime_type or "application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.delete(
@@ -304,21 +419,42 @@ async def delete_file(
     if user_role != "admin":
         raise HTTPException(status_code=403, detail="Only admins can delete files")
 
-    target_path = FILE_STORAGE_ROOT / category / entity_id / subfolder / filename
-    if not target_path.exists():
-        raise HTTPException(status_code=404, detail="File not found")
+    relative_path = _document_path(category, entity_id, subfolder, filename)
+    conn = get_connection()
+    try:
+        _ensure_document_storage(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM documents
+                WHERE storage_source = 'web'
+                  AND category = %s
+                  AND entity_id = %s
+                  AND subfolder = %s
+                  AND file_path = %s
+                RETURNING document_id, file_size
+                """,
+                (category, entity_id, subfolder, relative_path),
+            )
+            deleted = cur.fetchone()
+        if not deleted:
+            raise HTTPException(status_code=404, detail="File not found")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        return_connection(conn)
 
-    relative_path = str(target_path.relative_to(FILE_STORAGE_ROOT))
     before = {
         "path": relative_path,
         "filename": filename,
-        "size": target_path.stat().st_size,
+        "size": deleted[1] or 0,
         "category": category,
         "entity_id": entity_id,
         "subfolder": subfolder,
+        "document_id": deleted[0],
     }
-
-    target_path.unlink()
     _record_file_audit_event(
         current_user=current_user,
         action="delete_file",

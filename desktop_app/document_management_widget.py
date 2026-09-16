@@ -5,9 +5,14 @@ Ported from frontend/src/views/Documents.vue
 """
 
 import os
+import shutil
+import tempfile
+from pathlib import Path
 
 import psycopg2
 from db_error_handling import DatabaseContext, logger
+from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -29,6 +34,8 @@ from PyQt6.QtWidgets import (
 
 
 class DocumentManagementWidget(QWidget):
+    MAX_DATABASE_FILE_BYTES = 25 * 1024 * 1024
+
     def __init__(self, db) -> None:
         super().__init__()
         self.db = db
@@ -139,7 +146,7 @@ class DocumentManagementWidget(QWidget):
                 cur.execute("""
                     SELECT
                         document_id, title, category, upload_date, file_size,
-                        tags
+                        tags, file_path, file_data, mime_type
                     FROM documents
                     ORDER BY upload_date DESC
                     LIMIT 1000
@@ -156,7 +163,8 @@ class DocumentManagementWidget(QWidget):
             try:
                 self.display_documents([])
             except Exception as _e:
-                logger.debug('Suppressed: %s', _e)
+                logger.debug("Suppressed: %s", _e)
+
     def display_documents(self, documents) -> None:
         """Display documents in all category tabs"""
         for i in range(1, len(self.categories)):  # Skip "All" tab
@@ -179,6 +187,7 @@ class DocumentManagementWidget(QWidget):
                 ]
                 for col_idx, cell in enumerate(cells):
                     item = QTableWidgetItem(cell)
+                    item.setData(Qt.ItemDataRole.UserRole, doc[0])
                     table.setItem(row_idx, col_idx, item)
 
         # Also populate "All" tab
@@ -196,6 +205,7 @@ class DocumentManagementWidget(QWidget):
             ]
             for col_idx, cell in enumerate(cells):
                 item = QTableWidgetItem(cell)
+                item.setData(Qt.ItemDataRole.UserRole, doc[0])
                 all_table.setItem(row_idx, col_idx, item)
 
     def upload_document(self) -> None:
@@ -219,13 +229,20 @@ class DocumentManagementWidget(QWidget):
                 try:
                     file_size = os.path.getsize(file_path)
                     file_name = os.path.basename(file_path)
+                    if file_size > self.MAX_DATABASE_FILE_BYTES:
+                        raise ValueError(
+                            f"{file_name} exceeds the 25 MB document limit"
+                        )
+                    file_data = Path(file_path).read_bytes()
 
                     with DatabaseContext(self.db, auto_commit=True) as cur:
                         cur.execute(
                             """
                             INSERT INTO documents (title, category, file_path,
-                            file_size, tags, upload_date)
-                            VALUES (%s, %s, %s, %s, %s, NOW())
+                            file_size, tags, upload_date, file_data, mime_type,
+                            storage_source)
+                            VALUES (%s, %s, %s, %s, %s, NOW(), %s, %s,
+                            'desktop')
                         """,
                             (
                                 self.doc_title.text(),
@@ -233,6 +250,8 @@ class DocumentManagementWidget(QWidget):
                                 file_path,
                                 file_size,
                                 self.doc_tags.text(),
+                                file_data,
+                                self._mime_type_for_path(file_path),
                             ),
                         )
 
@@ -262,13 +281,14 @@ class DocumentManagementWidget(QWidget):
             )
             return
 
-        row = table.row(selected[0])
-        title = table.item(row, 0).text()
-        QMessageBox.information(
-            self,
-            "View Document",
-            f"Opening document: {title}\n(File viewer will be implemented)",
-        )
+        document_id = selected[0].data(Qt.ItemDataRole.UserRole)
+        try:
+            path = self._materialize_document(document_id)
+            if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(path))):
+                raise OSError("Windows could not open the selected file")
+        except Exception as e:
+            logger.error("Failed to open document %s: %s", document_id, e)
+            QMessageBox.critical(self, "View Error", f"Failed to open document: {e}")
 
     def download_document(self, table) -> None:
         """Download selected document"""
@@ -279,13 +299,34 @@ class DocumentManagementWidget(QWidget):
             )
             return
 
-        row = table.row(selected[0])
-        title = table.item(row, 0).text()
-        QMessageBox.information(
-            self,
-            "Download",
-            f"Downloading: {title}\n(Download implementation will be added)",
-        )
+        document_id = selected[0].data(Qt.ItemDataRole.UserRole)
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    "SELECT title, file_path, file_data FROM documents "
+                    "WHERE document_id = %s",
+                    (document_id,),
+                )
+                document = cur.fetchone()
+            if not document:
+                raise FileNotFoundError("Document record no longer exists")
+            destination, _ = QFileDialog.getSaveFileName(
+                self, "Save Document", document[0]
+            )
+            if not destination:
+                return
+            if document[2] is not None:
+                Path(destination).write_bytes(bytes(document[2]))
+            elif document[1] and Path(document[1]).is_file():
+                shutil.copy2(document[1], destination)
+            else:
+                raise FileNotFoundError("The document file is unavailable")
+            QMessageBox.information(self, "Success", "Document downloaded.")
+        except Exception as e:
+            logger.error("Failed to download document %s: %s", document_id, e)
+            QMessageBox.critical(
+                self, "Download Error", f"Failed to download document: {e}"
+            )
 
     def delete_document(self, table) -> None:
         """Delete selected document"""
@@ -298,6 +339,7 @@ class DocumentManagementWidget(QWidget):
 
         row = table.row(selected[0])
         title = table.item(row, 0).text()
+        document_id = selected[0].data(Qt.ItemDataRole.UserRole)
 
         reply = QMessageBox.question(
             self,
@@ -308,18 +350,46 @@ class DocumentManagementWidget(QWidget):
 
         if reply == QMessageBox.StandardButton.Yes:
             try:
-                # Find document ID from data
-                doc_id = self.documents_data[row][0]
                 with DatabaseContext(self.db, auto_commit=True) as cur:
                     cur.execute(
                         "DELETE FROM documents WHERE document_id = %s",
-                        (doc_id,),
+                        (document_id,),
                     )
                 QMessageBox.information(self, "Success", "Document deleted!")
                 self.load_documents()
             except Exception as e:
                 logger.error(f"Failed: {e}")
                 QMessageBox.critical(self, "Error", f"Failed to delete: {e}")
+
+    def _materialize_document(self, document_id: int) -> Path:
+        with DatabaseContext(self.db, auto_commit=False) as cur:
+            cur.execute(
+                "SELECT title, file_path, file_data FROM documents "
+                "WHERE document_id = %s",
+                (document_id,),
+            )
+            document = cur.fetchone()
+        if not document:
+            raise FileNotFoundError("Document record no longer exists")
+        title, file_path, file_data = document
+        if file_data is None:
+            path = Path(file_path or "")
+            if not path.is_file():
+                raise FileNotFoundError("The document file is unavailable")
+            return path
+
+        suffix = Path(title or "").suffix
+        with tempfile.NamedTemporaryFile(
+            prefix="arrow_document_", suffix=suffix, delete=False
+        ) as output:
+            output.write(bytes(file_data))
+            return Path(output.name)
+
+    @staticmethod
+    def _mime_type_for_path(file_path: str) -> str:
+        import mimetypes
+
+        return mimetypes.guess_type(file_path)[0] or "application/octet-stream"
 
     def _format_size(self, size_bytes) -> object:
         """Format file size"""
