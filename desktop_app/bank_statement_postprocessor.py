@@ -112,7 +112,15 @@ def _classify_imported(conn, import_batch: str) -> tuple[int, int, int]:
             nsf_count += int(is_nsf)
             fee_count += int(category == "Bank Fees")
             payload.append(
-                (vendor or None, category, is_nsf, is_transfer, transaction_id)
+                (
+                    vendor or None,
+                    category,
+                    is_nsf,
+                    is_transfer,
+                    is_nsf,
+                    is_nsf,
+                    transaction_id,
+                )
             )
         cur.executemany(
             """
@@ -121,6 +129,14 @@ def _classify_imported(conn, import_batch: str) -> tuple[int, int, int]:
                    category = %s,
                    is_nsf_charge = %s,
                    is_transfer = %s,
+                   accounting_status = CASE
+                       WHEN %s THEN 'NSF_NON_EXPENSE'
+                       ELSE COALESCE(accounting_status, 'REVIEW')
+                   END,
+                   accounting_exclusion_reason = CASE
+                       WHEN %s THEN 'NSF/returned transaction; excluded from accounting'
+                       ELSE accounting_exclusion_reason
+                   END,
                    reconciliation_status = COALESCE(
                        reconciliation_status, 'unreconciled'
                    ),
@@ -131,6 +147,40 @@ def _classify_imported(conn, import_batch: str) -> tuple[int, int, int]:
             payload,
         )
     return len(rows), nsf_count, fee_count
+
+
+def _exclude_nsf_receipts(conn, import_batch: str) -> int:
+    """Keep linked NSF/reversal receipts out of accounting reports."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE receipts r
+               SET is_nsf = TRUE,
+                   exclude_from_reports = TRUE,
+                   validation_status = 'NSF_CONFIRMED',
+                   validation_reason = COALESCE(
+                       r.validation_reason,
+                       'Linked banking transaction classified as NSF/returned'
+                   ),
+                   accounting_status = 'NSF_NON_EXPENSE',
+                   accounting_exclusion_reason =
+                       'NSF/returned transaction; excluded from accounting',
+                   updated_at = now()
+              FROM banking_transactions bt
+             WHERE bt.import_batch = %s
+               AND bt.is_nsf_charge = TRUE
+               AND (r.banking_transaction_id = bt.transaction_id
+                    OR r.receipt_id = bt.receipt_id
+                    OR r.receipt_id = bt.reconciled_receipt_id)
+               AND (
+                   COALESCE(r.is_nsf, FALSE) = FALSE
+                   OR COALESCE(r.exclude_from_reports, FALSE) = FALSE
+                   OR r.accounting_status IS DISTINCT FROM 'NSF_NON_EXPENSE'
+               )
+            """,
+            (import_batch,),
+        )
+        return cur.rowcount
 
 
 def _vendor_identity(value: str | None) -> str:
@@ -240,6 +290,7 @@ def _create_fee_receipts(conn, import_batch: str) -> int:
              WHERE import_batch = %s
                AND category = 'Bank Fees'
                AND debit_amount > 0
+               AND COALESCE(is_nsf_charge, FALSE) = FALSE
                AND receipt_id IS NULL
                AND reconciled_receipt_id IS NULL
              ORDER BY transaction_id
@@ -432,6 +483,7 @@ def post_process_import(conn, account_number: str, import_batch: str,
                         commit: bool = True) -> PostProcessSummary:
     """Classify, link, create safe receipts, balance, and queue review."""
     classified, nsf_count, fee_count = _classify_imported(conn, import_batch)
+    _exclude_nsf_receipts(conn, import_batch)
     linked = _link_unique_receipts(conn, import_batch)
     fee_receipts = _create_fee_receipts(conn, import_batch)
     vendor_receipts = _create_high_confidence_vendor_receipts(conn, import_batch)

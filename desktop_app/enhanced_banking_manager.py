@@ -118,6 +118,8 @@ class EnhancedBankingManager(QWidget):
             "reconciliation_notes",
             "verified",
             "is_nsf_charge",
+            "accounting_status",
+            "accounting_exclusion_reason",
             "verified_date",
             "verified_by",
         ]
