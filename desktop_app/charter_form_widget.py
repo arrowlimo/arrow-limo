@@ -11544,7 +11544,9 @@ class CharterFormWidget(CharterPdfMixin, QWidget):
                     c.dropoff_time,
                     COALESCE(c.beverages_separate, FALSE),
                     COALESCE(c.package_rate, 0),
-                    COALESCE(c.client_display_name, '')
+                    COALESCE(c.client_display_name, ''),
+                    c.odometer_start,
+                    c.odometer_end
                 FROM charters c
                 WHERE c.charter_id = %s
             """,
@@ -11587,6 +11589,8 @@ class CharterFormWidget(CharterPdfMixin, QWidget):
                     beverages_separate,
                     package_rate,
                     client_display_name,
+                    odometer_start,
+                    odometer_end,
                 ) = row
                 charter_data_json = charter_data  # consistent alias
 
@@ -11833,6 +11837,15 @@ class CharterFormWidget(CharterPdfMixin, QWidget):
                         )
                     except Exception as _e:
                         logger.debug("Suppressed: %s", _e)
+
+                if hasattr(self, "start_odometer_input"):
+                    self.start_odometer_input.setText(
+                        str(odometer_start) if odometer_start is not None else ""
+                    )
+                if hasattr(self, "end_odometer_input"):
+                    self.end_odometer_input.setText(
+                        str(odometer_end) if odometer_end is not None else ""
+                    )
                 # Load run_type and CC info from charter_data JSON blob
                 if charter_data_json:
                     try:

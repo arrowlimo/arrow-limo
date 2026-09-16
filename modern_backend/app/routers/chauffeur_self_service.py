@@ -126,18 +126,16 @@ def _daily_hos_status(
 
     if alerts:
         return "red", alerts
+    if not worked and not has_hos_record:
+        return "green", ["No assigned work; 24 hours off duty."]
     if day == date.today():
         warnings.append("Current-day totals are provisional until the day is complete.")
-    if rest_before is not None and abs(rest_before - 8) <= 0.01:
-        warnings.append("Minimum 8 consecutive hours off before this shift.")
     if bus_worked:
         warnings.append(
             "Confirm the required Alberta continuous-driving breaks from duty timestamps."
         )
     if warnings:
         return "yellow", warnings
-    if not worked and not has_hos_record:
-        return "green", ["No assigned work; 24 hours off duty."]
     return "green", ["Recorded daily totals have no Alberta HOS limit alerts."]
 
 
@@ -491,6 +489,9 @@ def update_my_trip(
                 assignments.append(f"{column} = %s")
                 values.append(value)
             if assignments:
+                if odometer_start is not None and odometer_end is not None:
+                    assignments.append("total_kms = %s")
+                    values.append(odometer_end - odometer_start)
                 if updates.get("status") == "completed":
                     assignments.append(
                         "completion_timestamp = COALESCE(completion_timestamp, NOW())"
@@ -1166,8 +1167,21 @@ def get_my_hos(
             )
             bus_charters = [charter for charter in day_charters if charter["is_bus"]]
             bus_hours = [charter["bus_driving_hours"] for charter in bus_charters]
+            charter_hours = [charter["actual_hours"] for charter in day_charters]
+            has_charter_hours = bool(day_charters) and all(
+                value is not None for value in charter_hours
+            )
             has_hos_record = row is not None
-            on_duty = _hours(row[3]) if row else 0.0 if not day_charters else None
+            has_hos_evidence = has_hos_record or has_charter_hours
+            on_duty = (
+                _hours(row[3])
+                if row
+                else round(sum(charter_hours), 2)
+                if has_charter_hours
+                else 0.0
+                if not day_charters
+                else None
+            )
             driving = (
                 round(sum(bus_hours), 2)
                 if not capacity_missing
@@ -1177,9 +1191,33 @@ def get_my_hos(
                 if bus_worked or capacity_missing
                 else 0.0
             )
-            off_duty = _hours(row[5]) if row else 24.0 if not day_charters else None
-            shift_start = _as_datetime(day, row[1]) if row else None
-            shift_end = _as_datetime(day, row[2]) if row else None
+            off_duty = (
+                _hours(row[5])
+                if row
+                else round(24 - on_duty, 2)
+                if on_duty is not None
+                else None
+            )
+            charter_starts = [
+                datetime.fromisoformat(charter["workshift_start"])
+                for charter in day_charters
+                if charter["workshift_start"]
+            ]
+            charter_ends = [
+                datetime.fromisoformat(charter["workshift_end"])
+                for charter in day_charters
+                if charter["workshift_end"]
+            ]
+            shift_start = (
+                _as_datetime(day, row[1])
+                if row and row[1] is not None
+                else min(charter_starts, default=None)
+            )
+            shift_end = (
+                _as_datetime(day, row[2])
+                if row and row[2] is not None
+                else max(charter_ends, default=None)
+            )
             if shift_start and shift_end and shift_end <= shift_start:
                 shift_end += timedelta(days=1)
             rest_before = None
@@ -1198,7 +1236,7 @@ def get_my_hos(
                 worked=bool(day_charters),
                 bus_worked=bus_worked,
                 capacity_missing=capacity_missing,
-                has_hos_record=has_hos_record,
+                has_hos_record=has_hos_evidence,
                 rest_before=rest_before,
                 shift_elapsed=shift_elapsed,
             )
@@ -1222,6 +1260,7 @@ def get_my_hos(
                     "alerts": alerts,
                     "charters": day_charters,
                     "has_hos_record": has_hos_record,
+                    "derived_from_charters": not has_hos_record and has_charter_hours,
                     "duty_log": row[7] if row and isinstance(row[7], list) else [],
                 }
             )
