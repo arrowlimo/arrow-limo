@@ -15,6 +15,7 @@ from decimal import Decimal
 import psycopg2
 
 logger = logging.getLogger(__name__)
+SEARCH_RESULT_LIMIT = 5_000
 from common_widgets import (
     PAYMENT_METHOD_CHOICES,
     StandardDateEdit,
@@ -368,7 +369,9 @@ class _SearchWorker(QThread):
             rows = cur.fetchall()
             cur.close()
             if not self._cancelled:
-                self.results_ready.emit(rows, len(rows) == 2000)
+                self.results_ready.emit(
+                    rows, len(rows) == SEARCH_RESULT_LIMIT
+                )
         except Exception as e:
             if not self._cancelled:
                 self.error_occurred.emit(str(e))
@@ -2219,7 +2222,7 @@ class ReceiptSearchMatchWidget(QWidget):
             sql.append("ORDER BY r.receipt_date DESC, r.receipt_id DESC")
 
         # Cap results to prevent UI crash on very large datasets
-        sql.append("LIMIT 2000")
+        sql.append(f"LIMIT {SEARCH_RESULT_LIMIT}")
 
         return "\n".join(sql), params
 
@@ -2445,7 +2448,8 @@ class ReceiptSearchMatchWidget(QWidget):
             self.results_label.setStyleSheet("color: #ff8800; font-size: 9pt;")
         elif truncated:
             self.results_label.setText(
-                "⚠️ Showing first 2000 of 2000+ receipts — add filters to "
+                f"⚠️ Showing first {SEARCH_RESULT_LIMIT:,} of "
+                f"{SEARCH_RESULT_LIMIT:,}+ receipts — add filters to "
                 "narrow"
             )
             self.results_label.setStyleSheet(
