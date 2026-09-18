@@ -58,10 +58,17 @@ def classify_description(description: str) -> tuple[str, str, bool, bool]:
     upper = text.upper()
     is_nsf = bool(NSF_RE.search(upper))
     is_fee = any(term in upper for term in FEE_TERMS)
+    is_bank_draft = (
+        "DRAFT PURCHASE" in upper
+        or "BANK DRAFT" in upper
+        or ("DEBIT MEMO" in upper and "DRAFT" in upper)
+    )
     is_transfer = "INTERNET TRANSFER" in upper and "E-TRANSFER" not in upper
 
     if is_fee:
         return "CIBC", "Bank Fees", is_nsf, False
+    if is_bank_draft:
+        return "BANK DRAFT", "Bank Draft / Certified Funds", False, True
     if is_nsf:
         vendor = re.sub(r".*?\bNSF\b(?:\s+RETURN|\s+REVERSAL)?", "", text,
                         flags=re.IGNORECASE)
@@ -118,7 +125,9 @@ def _classify_imported(conn, import_batch: str) -> tuple[int, int, int]:
                     is_nsf,
                     is_transfer,
                     is_nsf,
+                    category,
                     is_nsf,
+                    category,
                     transaction_id,
                 )
             )
@@ -131,10 +140,13 @@ def _classify_imported(conn, import_batch: str) -> tuple[int, int, int]:
                    is_transfer = %s,
                    accounting_status = CASE
                        WHEN %s THEN 'NSF_NON_EXPENSE'
+                       WHEN %s = 'Bank Draft / Certified Funds' THEN 'BANK_DRAFT_REVIEW'
                        ELSE COALESCE(accounting_status, 'REVIEW')
                    END,
                    accounting_exclusion_reason = CASE
                        WHEN %s THEN 'NSF/returned transaction; excluded from accounting'
+                       WHEN %s = 'Bank Draft / Certified Funds' THEN
+                           'Bank draft/certified funds movement; do not auto-create as an expense'
                        ELSE accounting_exclusion_reason
                    END,
                    reconciliation_status = COALESCE(
@@ -221,6 +233,13 @@ def _link_unique_receipts(conn, import_batch: str) -> int:
                AND bt.debit_amount > 0
                AND bt.receipt_id IS NULL
                AND bt.reconciled_receipt_id IS NULL
+               AND COALESCE(bt.is_nsf_charge, FALSE) = FALSE
+               AND COALESCE(bt.is_transfer, FALSE) = FALSE
+               AND COALESCE(bt.accounting_status, '') NOT IN (
+                   'NSF_NON_EXPENSE',
+                   'BANK_DRAFT_REVIEW',
+                   'BANK_DRAFT_RETURN_NON_EXPENSE'
+               )
                AND r.banking_transaction_id IS NULL
                AND NOT EXISTS (
                    SELECT 1
