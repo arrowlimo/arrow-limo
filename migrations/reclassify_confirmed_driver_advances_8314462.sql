@@ -32,7 +32,9 @@
 --   Barbara Peacock (employees.employee_id=122, driver/chauffeur)        -  5 rows
 --   John McLean     (employees.employee_id=119, driver/chauffeur)       -  1 row
 --   Michelle Ferris (payroll marker, identity unconfirmed in `employees`)   -  1 row
--- Total: 21 rows -> recategorized to 'DRIVER_PAY_REIMBURSEMENT', matching the
+--   Brittany Peacock (employees.employee_id=32, Operations/DR002)          -  1 row
+--   Michael Richard (additional rows found via payroll-marker sweep)        -  3 rows
+-- Total: 25 rows -> recategorized to 'DRIVER_PAY_REIMBURSEMENT', matching the
 -- existing category convention already used elsewhere in this account
 -- (e.g. Bill Gagne, correction_2of3_add_8314462_20180904_billgagne.sql).
 --
@@ -55,6 +57,10 @@
 --     `classification='transfer'`. They are NSF-related bank charges, NOT
 --     driver advances at all -- "Bank Fees" is the correct category here, so
 --     no reclassification is needed or appropriate for these 3.
+--   Barbara Peacock's 2 additional payroll-marker rows found during the
+--     Ferris follow-up sweep (35370 $50.00 2021-03-12, 35349 $100.00
+--     2021-04-09) -- explicitly excluded per user instruction; left as
+--     "Bank Fees" pending separate review/decision.
 --
 -- Note: two of accountant's CSV lines (John McLean, $50.00, 2021-03-12) point
 -- to the SAME single bank transaction (35371) -- an apparent duplicate entry
@@ -99,6 +105,36 @@ AND NOT EXISTS (
 UPDATE banking_transactions
 SET category = 'DRIVER_PAY_REIMBURSEMENT'
 WHERE transaction_id = 35996
+AND category = 'Bank Fees';
+
+COMMIT;
+
+-- Follow-up 2: while checking Michelle Ferris's reconciliation_status='payroll'
+-- marker, found 7 more "Bank Fees" rows on this account carrying the same
+-- 'payroll' marker but outside the original 94-row Driver Advances CSV group:
+-- Barbara Peacock x3 (35370 $50.00 2021-03-12, 35349 $100.00 2021-04-09,
+-- 35293-adjacent), Brittany Peacock x1 (35127 $654.00 2025-07-02), Michael
+-- Richard x3 (35341 $60.00 2021-04-12, 35163 $150.00 2025-03-17, 35129
+-- $200.00 2025-07-02).
+--
+-- Per user instruction: exclude Barbara Peacock's 2 rows (35370, 35349) from
+-- this pass; continue with Michael Richard and Brittany Peacock.
+--   Brittany Peacock confirmed as employee (employees.employee_id=32,
+--   "Peacock, Brittany", employee_category='Operations', status='active',
+--   driver_code='DR002').
+--   Michael Richard already confirmed earlier in this migration
+--   (employees.employee_id=9).
+-- 4 rows reclassified: 35341, 35163, 35129, 35127.
+BEGIN;
+
+INSERT INTO backup_driver_advance_reclass_20260918
+SELECT * FROM banking_transactions
+WHERE transaction_id IN (35341,35163,35129,35127)
+AND transaction_id NOT IN (SELECT transaction_id FROM backup_driver_advance_reclass_20260918);
+
+UPDATE banking_transactions
+SET category = 'DRIVER_PAY_REIMBURSEMENT'
+WHERE transaction_id IN (35341,35163,35129,35127)
 AND category = 'Bank Fees';
 
 COMMIT;
