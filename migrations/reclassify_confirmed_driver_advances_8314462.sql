@@ -35,11 +35,18 @@
 -- existing category convention already used elsewhere in this account
 -- (e.g. Bill Gagne, correction_2of3_add_8314462_20180904_billgagne.sql).
 --
--- Explicitly NOT touched, left as "Bank Fees" pending further review because
--- identity could not be confirmed as an employee/driver:
---   Michelle Ferris (1 row, $100.00, 2019-04-08) - name not found in `employees`.
---   3 unnamed "INTERNET TRANSFER 000000xxxxxx" rows ($450, $100, $600) - no
---     payee name recorded at all, cannot attribute to any driver.
+-- Explicitly NOT touched:
+--   Michelle Ferris (transaction_id 35996, $100.00, 2019-04-08) - name not
+--     found in `employees` under any spelling, and no `receipts` row links to
+--     this banking_transaction_id either. Left as "Bank Fees" pending further
+--     review/identification; genuinely unresolved, not a data-entry oversight.
+--   3 unnamed "INTERNET TRANSFER 000000xxxxxx" rows (transaction_ids 35914
+--     $600.00 2019-07-02, 35703 $450.00 2019-12-18, 35347 $100.00 2021-04-09)
+--     - confirmed via linked `receipts` rows (152262/152016/151855) that these
+--     are already recorded as `vendor_name='NSF CHARGE'`, `is_nsf=true`,
+--     `classification='transfer'`. They are NSF-related bank charges, NOT
+--     driver advances at all -- "Bank Fees" is the correct category here, so
+--     no reclassification is needed or appropriate for these 3.
 --
 -- Note: two of accountant's CSV lines (John McLean, $50.00, 2021-03-12) point
 -- to the SAME single bank transaction (35371) -- an apparent duplicate entry
