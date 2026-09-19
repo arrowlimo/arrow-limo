@@ -31,15 +31,23 @@
 --   Michael Richard (employees.employee_id=9,  driver/chauffeur)         -  4 rows
 --   Barbara Peacock (employees.employee_id=122, driver/chauffeur)        -  5 rows
 --   John McLean     (employees.employee_id=119, driver/chauffeur)       -  1 row
--- Total: 20 rows -> recategorized to 'DRIVER_PAY_REIMBURSEMENT', matching the
+--   Michelle Ferris (payroll marker, identity unconfirmed in `employees`)   -  1 row
+-- Total: 21 rows -> recategorized to 'DRIVER_PAY_REIMBURSEMENT', matching the
 -- existing category convention already used elsewhere in this account
 -- (e.g. Bill Gagne, correction_2of3_add_8314462_20180904_billgagne.sql).
 --
+-- Michelle Ferris (transaction_id 35996, $100.00, 2019-04-08): not found in
+-- `employees` under any spelling, and no `receipts` row links to this
+-- banking_transaction_id. HOWEVER independently confirmed via
+-- `banking_transactions.reconciliation_status`/`reconciliation_notes`, which
+-- already carries 'payroll' / "Employee pay -- excluded from GL expenses;
+-- tracked in payroll system / T4s" -- the identical marker already present on
+-- the confirmed Michael Richard / Barbara Peacock rows in this same
+-- migration. This is independent evidence (not a guess) that she was already
+-- recognized elsewhere in the system as an employee receiving payroll
+-- e-transfers. Included below as a 21st row.
+--
 -- Explicitly NOT touched:
---   Michelle Ferris (transaction_id 35996, $100.00, 2019-04-08) - name not
---     found in `employees` under any spelling, and no `receipts` row links to
---     this banking_transaction_id either. Left as "Bank Fees" pending further
---     review/identification; genuinely unresolved, not a data-entry oversight.
 --   3 unnamed "INTERNET TRANSFER 000000xxxxxx" rows (transaction_ids 35914
 --     $600.00 2019-07-02, 35703 $450.00 2019-12-18, 35347 $100.00 2021-04-09)
 --     - confirmed via linked `receipts` rows (152262/152016/151855) that these
@@ -72,5 +80,25 @@ WHERE transaction_id IN (
   35632,35852,35858,35659,35655,35792,35844,35723
 )
 AND category IN ('Bank Fees','2550');
+
+COMMIT;
+
+-- Follow-up: Michelle Ferris (transaction_id 35996), added after further
+-- investigation confirmed the pre-existing 'payroll' reconciliation marker
+-- (see comment block above). Backed up separately since it was applied in a
+-- later pass than the 20 rows above.
+BEGIN;
+
+INSERT INTO backup_driver_advance_reclass_20260918
+SELECT * FROM banking_transactions
+WHERE transaction_id = 35996
+AND NOT EXISTS (
+  SELECT 1 FROM backup_driver_advance_reclass_20260918 WHERE transaction_id = 35996
+);
+
+UPDATE banking_transactions
+SET category = 'DRIVER_PAY_REIMBURSEMENT'
+WHERE transaction_id = 35996
+AND category = 'Bank Fees';
 
 COMMIT;
