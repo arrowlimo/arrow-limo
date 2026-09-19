@@ -138,3 +138,20 @@ WHERE transaction_id IN (35341,35163,35129,35127)
 AND category = 'Bank Fees';
 
 COMMIT;
+
+-- Follow-up 3: Barbara Peacock's 2 excluded rows (35370, 35349) -- per user
+-- instruction, category is left as "Bank Fees" (not reclassified to
+-- DRIVER_PAY_REIMBURSEMENT), but business_personal is updated from 'Business'
+-- to 'Personal' at the user's explicit direction.
+BEGIN;
+
+INSERT INTO backup_driver_advance_reclass_20260918
+SELECT * FROM banking_transactions
+WHERE transaction_id IN (35370,35349)
+AND transaction_id NOT IN (SELECT transaction_id FROM backup_driver_advance_reclass_20260918);
+
+UPDATE banking_transactions
+SET business_personal = 'Personal'
+WHERE transaction_id IN (35370,35349);
+
+COMMIT;
