@@ -20,7 +20,10 @@ ALMS_USER_SETUP.md
 desktop_app/*
 !desktop_app/accounting_report_helpers.py
 !desktop_app/audit_management_widget.py
+!desktop_app/bank_statement_folders.py
 !desktop_app/bank_statement_import_dialog.py
+!desktop_app/bank_statement_parser.py
+!desktop_app/bank_statement_postprocessor.py
 !desktop_app/charter_form_db_helpers.py
 !desktop_app/charter_form_helpers.py
 !desktop_app/close_control_center_widget.py
