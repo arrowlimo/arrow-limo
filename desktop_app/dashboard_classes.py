@@ -4,6 +4,7 @@
 import logging
 
 from db_error_handling import DatabaseContext
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -45,7 +46,7 @@ class FleetManagementWidget(BaseReportWidget):
         breadcrumb_layout.addWidget(back_btn)
         breadcrumb_layout.addWidget(
             QLabel(
-                "📍 Core Operations › Fleet Management › Fleet Cost Dashboard"
+                "📍 Core Operations › Fleet Operations › Fleet Cost Dashboard"
             )
         )
         breadcrumb_layout.addStretch()
@@ -53,7 +54,7 @@ class FleetManagementWidget(BaseReportWidget):
 
         layout.addWidget(
             QLabel(
-                "<h3>🚐 Fleet Management</h3><p>Vehicle costs: Fuel,"
+                "<h3>🚐 Fleet Operations</h3><p>Vehicle costs: Fuel,"
                 "Maintenance, Insurance</p>"
             )
         )
@@ -148,7 +149,7 @@ class FleetManagementWidget(BaseReportWidget):
                 )
                 rows = cur.fetchall()
 
-            print(f"[OK] Fleet Management loaded {len(rows)} vehicles")
+            print(f"[OK] Fleet Operations loaded {len(rows)} vehicles")
             self.table.setRowCount(len(rows))
             self.vehicle_ids = {}
             for i, (
@@ -194,7 +195,7 @@ class FleetManagementWidget(BaseReportWidget):
                     ),
                 )
         except Exception:
-            logger.exception("Fleet Management load error")
+            logger.exception("Fleet Operations load error")
 
     def edit_vehicle(self) -> None:
         """Edit selected vehicle"""
@@ -418,104 +419,59 @@ class FinancialDashboardWidget(BaseReportWidget):
         from PyQt6.QtWidgets import QTabWidget
 
         self.report_tabs = QTabWidget()
-
-        try:
-            # Receipt Ledger
-            self.receipt_ledger = ReceiptLedgerWidget(self.db)
-            self.report_tabs.addTab(self.receipt_ledger, "[RL] Receipt Ledger")
-
-            # Vendor Receipt + Banking Audit
-            self.vendor_receipt_banking_audit = (
-                VendorReceiptBankingAuditWidget(self.db)
-            )
-            self.report_tabs.addTab(
-                self.vendor_receipt_banking_audit,
-                "[VR] Vendor Receipt-Banking Audit",
-            )
-
-            # General Ledger
-            self.general_ledger = GeneralLedgerWidget(self.db)
-            self.report_tabs.addTab(self.general_ledger, "[GL] General Ledger")
-
-            # GIFI Mapping
-            self.gifi_mapping = GIFIMappingWidget(self.db)
-            self.report_tabs.addTab(
-                self.gifi_mapping, "[GIFI] GL\u2192GIFI Map"
-            )
-
-            # Trial Balance
-            self.trial_balance = TrialBalanceWidget(self.db)
-            self.report_tabs.addTab(self.trial_balance, "[TB] Trial Balance")
-
-            # Balance Sheet
-            self.balance_sheet = BalanceSheetWidget(self.db)
-            self.report_tabs.addTab(self.balance_sheet, "[BS] Balance Sheet")
-
-            # Year-End Close
-            self.year_end_close = YearEndCloseWidget(self.db)
-            self.report_tabs.addTab(self.year_end_close, "[YC] Year-End Close")
-
-            # Ledger Integrity
-            self.ledger_integrity = LedgerIntegrityWidget(self.db)
-            self.report_tabs.addTab(
-                self.ledger_integrity, "[LI] Ledger Integrity"
-            )
-
-            # P&L Summary
-            self.pl_summary = PLSummaryWidget(self.db)
-            self.report_tabs.addTab(self.pl_summary, "[PL] Profit & Loss")
-
-            # P&L by Category
-            self.pl_category = PLCategoryWidget(self.db)
-            self.report_tabs.addTab(self.pl_category, "[PC] P&L by Category")
-
-            # Bank Reconciliation
-            self.bank_recon = BankReconciliationWidget(self.db)
-            self.report_tabs.addTab(
-                self.bank_recon, "[BR] Bank Reconciliation"
-            )
-
-            # Journal Explorer
-            self.journal = JournalExplorerWidget(self.db)
-            self.report_tabs.addTab(self.journal, "[JE] Journal Entries")
-
-            # GST Collection & ITC
-            self.gst_collection = GSTCollectionWidget(self.db)
-            self.report_tabs.addTab(
-                self.gst_collection, "[GST] GST Collection"
-            )
-
-            # Income & Expense Grouped
-            self.income_expense = IncomeExpenseGroupedWidget(self.db)
-            self.report_tabs.addTab(
-                self.income_expense, "[I/E] Income & Expense"
-            )
-
-            # Personal Expenses
-            self.personal_expense = PersonalExpenseWidget(self.db)
-            self.report_tabs.addTab(
-                self.personal_expense, "[PE] Personal Expenses"
-            )
-
-            # David Loan Accounting
-            self.david_loan_accounting = DavidLoanAccountingWidget(self.db)
-            self.report_tabs.addTab(
-                self.david_loan_accounting,
-                "[DL] David Loan",
-            )
-
-            # Reconciliation Status
-            self.reconciliation = ReconciliationStatusWidget(self.db)
-            self.report_tabs.addTab(
-                self.reconciliation, "[REC] Reconciliation"
-            )
-
-        except Exception as e:
-            logger.warning("Some financial reports unavailable: %s", e)
+        self._financial_report_factories = {
+            "[RL] Receipt Ledger": ReceiptLedgerWidget,
+            "[VR] Vendor Receipt-Banking Audit": VendorReceiptBankingAuditWidget,
+            "[GL] General Ledger": GeneralLedgerWidget,
+            "[GIFI] GL\u2192GIFI Map": GIFIMappingWidget,
+            "[TB] Trial Balance": TrialBalanceWidget,
+            "[BS] Balance Sheet": BalanceSheetWidget,
+            "[YC] Year-End Close": YearEndCloseWidget,
+            "[LI] Ledger Integrity": LedgerIntegrityWidget,
+            "[PL] Profit & Loss": PLSummaryWidget,
+            "[PC] P&L by Category": PLCategoryWidget,
+            "[BR] Bank Reconciliation": BankReconciliationWidget,
+            "[JE] Journal Entries": JournalExplorerWidget,
+            "[GST] GST Collection": GSTCollectionWidget,
+            "[I/E] Income & Expense": IncomeExpenseGroupedWidget,
+            "[PE] Personal Expenses": PersonalExpenseWidget,
+            "[RP] Reimbursements": DavidLoanAccountingWidget,
+            "[REC] Reconciliation": ReconciliationStatusWidget,
+        }
+        self._financial_reports_loaded: set[str] = set()
+        for tab_name in self._financial_report_factories:
+            placeholder = QLabel(f"Loading {tab_name}...")
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.report_tabs.addTab(placeholder, tab_name)
+        self.report_tabs.currentChanged.connect(self._load_financial_report)
+        self._load_financial_report(0)
 
         layout.addWidget(self.report_tabs)
         self.setLayout(layout)
         self.load_data()
+
+    def _load_financial_report(self, index: int) -> None:
+        if index < 0:
+            return
+        tab_name = self.report_tabs.tabText(index)
+        if (
+            tab_name not in self._financial_report_factories
+            or tab_name in self._financial_reports_loaded
+        ):
+            return
+        try:
+            widget = self._financial_report_factories[tab_name](self.db)
+        except Exception as exc:
+            logger.exception("Financial report failed to load: %s", tab_name)
+            widget = QLabel(f"Error loading {tab_name}:\n{exc}")
+            widget.setStyleSheet("color: red; padding: 20px;")
+            widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.report_tabs.blockSignals(True)
+        self.report_tabs.removeTab(index)
+        self.report_tabs.insertTab(index, widget, tab_name)
+        self.report_tabs.setCurrentIndex(index)
+        self.report_tabs.blockSignals(False)
+        self._financial_reports_loaded.add(tab_name)
 
     def load_data(self) -> None:
         try:

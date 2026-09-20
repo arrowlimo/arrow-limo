@@ -11,7 +11,9 @@ CRITICAL BUSINESS RULES IMPLEMENTED:
 """
 
 import os
+import re
 import sys
+import unicodedata
 
 # Fix Windows console encoding for unicode (emoji support)
 if sys.platform == "win32":
@@ -27,21 +29,27 @@ from dotenv import load_dotenv
 # Load environment variables from .env file FIRST
 load_dotenv()
 
+# Add current directory and project root to path for module imports before
+# loading package-local modules.
+current_dir = os.path.dirname(__file__)
+project_root = os.path.abspath(os.path.join(current_dir, os.pardir))
+for path_candidate in (current_dir, project_root):
+    if path_candidate not in sys.path:
+        sys.path.insert(0, path_candidate)
+
 # App-wide logging
 import logging
 
 try:
-    from app_logger import install_excepthook, setup_logging
+    from desktop_app.app_logger import install_excepthook, setup_logging
 except ModuleNotFoundError:
-    # Fallback: try relative import for frozen app
     try:
-        from .app_logger import install_excepthook, setup_logging
-    except (ImportError, SystemError):
-        # If all else fails, define dummy functions
-        def install_excepthook(logger):
-            pass
-        def setup_logging():
-            return logging.getLogger()
+        from app_logger import install_excepthook, setup_logging
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(
+            "Unable to import app_logger from either the package or the "
+            "project root."
+        ) from exc
 
 _root_logger = setup_logging()
 install_excepthook(_root_logger)
@@ -55,6 +63,8 @@ from datetime import datetime
 from PyQt6.QtCore import QEvent, QSettings, Qt, QTimer
 from PyQt6.QtGui import (
     QAction,
+    QColor,
+    QFont,
     QKeySequence,
     QShortcut,
 )
@@ -65,15 +75,21 @@ from PyQt6.QtWidgets import (
     QDateEdit,
     QDialog,
     QDoubleSpinBox,
+    QFrame,
+    QGridLayout,
     QHBoxLayout,
     QHeaderView,
     QInputDialog,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QScrollArea,
+    QSizePolicy,
     QSpinBox,
     QStatusBar,
     QTableWidget,
@@ -92,41 +108,70 @@ for path_candidate in (current_dir, project_root):
     if path_candidate not in sys.path:
         sys.path.insert(0, path_candidate)
 
-# Database utilities
-# Accounting-focused reports
-from asset_management_widget import AssetManagementWidget
-from charter_form_widget import CharterFormWidget
+# Keep database module import lightweight at startup. Heavy UI/report modules are
+# lazy-loaded after login so the login dialog appears faster.
 from db_connection import DatabaseConnection
-from enhanced_banking_manager import EnhancedBankingManager
-from enhanced_receipts_manager import EnhancedReceiptsManager
-from nsf_pair_manager_widget import NsfPairManagerWidget
 
-try:
-    from report_management_widget import ReportManagementWidget
-except ImportError:
+
+_MAIN_DEPS_LOADED = False
+
+
+def _load_main_window_dependencies() -> None:
+    """Load heavy runtime modules only when launching the main window."""
+    global _MAIN_DEPS_LOADED
+    global AssetManagementWidget
+    global CharterFormWidget
+    global EnhancedBankingManager
+    global EnhancedReceiptsManager
+    global NsfPairManagerWidget
+    global ReportManagementWidget
+    global CopilotWidget
+    global CrystalReportsWidget
+    global CustomReportBuilderWidget
+    global init_error_logger
+    global FunctionExecutor
+    global KnowledgeRetriever
+    global ReportExplorerWidget
+    global GridStandardsManager
+    global create_page_header
+    global install_replace_all_behavior
+    global YearEndManagementWidget
+    global YearEndWizardWidget
+
+    if _MAIN_DEPS_LOADED:
+        return
+
+    from asset_management_widget import AssetManagementWidget
+    from charter_form_widget import CharterFormWidget
+    from enhanced_banking_manager import EnhancedBankingManager
+    from enhanced_receipts_manager import EnhancedReceiptsManager
+    from nsf_pair_manager_widget import NsfPairManagerWidget
+
+    try:
+        from report_management_widget import ReportManagementWidget
+    except ImportError:
+        from report_explorer_widget import ReportExplorerWidget
+
+        class ReportManagementWidget(ReportExplorerWidget):
+            def __init__(self, db=None) -> None:
+                super().__init__()
+
+    from copilot_widget import CopilotWidget
+    from crystal_reports_widget import CrystalReportsWidget
+    from dashboards_analytics import CustomReportBuilderWidget
+    from error_logger import init_error_logger
+    from function_executor import FunctionExecutor
+    from rag_engine import KnowledgeRetriever
     from report_explorer_widget import ReportExplorerWidget
+    from ui_standards import (
+        GridStandardsManager,
+        create_page_header,
+        install_replace_all_behavior,
+    )
+    from year_end_management_widget import YearEndManagementWidget
+    from year_end_wizard_widget import YearEndWizardWidget
 
-    class ReportManagementWidget(ReportExplorerWidget):
-        def __init__(self, db=None) -> None:
-            super().__init__()
-# AI Copilot
-from copilot_widget import CopilotWidget
-from crystal_reports_widget import CrystalReportsWidget
-
-# Dashboard widget classes are imported lazily inside launch_dashboard_from_menu()
-# and individual factory methods — keeps ~8 heavy modules off the startup path.
-from dashboards_analytics import CustomReportBuilderWidget
-
-# Dispatch, calendar, and drill-down widgets are imported inside their factory
-# methods so they only load when that tab is first opened.
-from error_logger import init_error_logger
-from function_executor import FunctionExecutor
-from llm_engine import LLMEngine
-from rag_engine import KnowledgeRetriever
-from report_explorer_widget import ReportExplorerWidget
-from ui_standards import GridStandardsManager, install_replace_all_behavior
-from year_end_management_widget import YearEndManagementWidget
-from year_end_wizard_widget import YearEndWizardWidget
+    _MAIN_DEPS_LOADED = True
 
 
 def verify_password(password: str, stored_hash: str) -> bool:
@@ -166,6 +211,7 @@ class MainWindow(QMainWindow):
         db: DatabaseConnection | None = None,
         auth_user: dict | None = None,
     ) -> None:
+        _load_main_window_dependencies()
         logger.debug("MainWindow.__init__ START")
         super().__init__()
         logger.debug("  1. super().__init__() OK")
@@ -185,9 +231,16 @@ class MainWindow(QMainWindow):
             else ""
         )
         self.setWindowTitle(
-            f"Arrow Limousine Management System (Desktop){user_suffix}"
+            f"Arrow Limousine Desktop System{user_suffix}"
         )
         self.setMinimumSize(1024, 700)
+        current_year = datetime.now().year
+        self._app_scope = {
+            "domain": "all",
+            "year_mode": "range",
+            "year_start": current_year - 1,
+            "year_end": current_year + 1,
+        }
         self._loading_receipts = False
         self._current_receipt_filters = None
 
@@ -200,7 +253,7 @@ class MainWindow(QMainWindow):
         except Exception:
             pass  # Non-critical
 
-        logger.warning("  2. Basic init OK")
+        logger.info("  2. Basic init OK")
 
         # Initialize database
         try:
@@ -220,28 +273,35 @@ class MainWindow(QMainWindow):
 
         # Initialize error logging system
         try:
-            logger.warning("  4.5. Initializing error logger...")
+            logger.info("  4.5. Initializing error logger...")
             self.error_logger = init_error_logger(self.db)
-            logger.warning("  [OK] Error logging system initialized")
+            logger.info("  [OK] Error logging system initialized")
         except Exception as e:
             logger.warning("Error logger initialization failed: %s", e)
             # Non-fatal - app can continue without error logging
 
-        logger.warning("  5. Creating central widget...")
+        logger.info("  5. Creating central widget...")
         # Wrapper widget to host global search + tabs
         central = QWidget()
+        central.setObjectName("mainCentralWidget")
+        central.setStyleSheet(
+            "QWidget#mainCentralWidget { background: #e8eef5; }"
+        )
         central_layout = QVBoxLayout()
         central_layout.setContentsMargins(5, 5, 5, 5)
         central_layout.setSpacing(6)
 
         # Global search bar (multi-table)
-        search_bar = QHBoxLayout()
+        self.search_bar_widget = QWidget()
+        search_bar = QHBoxLayout(self.search_bar_widget)
+        search_bar.setContentsMargins(0, 0, 0, 0)
         search_bar.setSpacing(6)
         search_label = QLabel("Global Search:")
         self.global_search_input = QLineEdit()
         self.global_search_input.setPlaceholderText(
-            "Search receipts, charters, clients..."
+            "Search receipts, charters, clients, or sections (e.g. year end)..."
         )
+        self.global_search_input.returnPressed.connect(self.global_search)
         self.global_search_button = QPushButton("Search")
         self.global_search_button.clicked.connect(self.global_search)
         self.columns_button = QPushButton("Columns")
@@ -255,26 +315,28 @@ class MainWindow(QMainWindow):
         search_bar.addWidget(self.global_search_button)
         search_bar.addWidget(self.columns_button)
         search_bar.addWidget(self.reset_grid_layout_button)
-        central_layout.addLayout(search_bar)
-        logger.warning("  6. Search bar OK")
+        central_layout.addWidget(self.search_bar_widget)
+        logger.info("  6. Search bar OK")
 
         # Global UI behavior manager for all grids and input focus behavior.
         self.grid_standards = GridStandardsManager("ArrowLimo", "Desktop")
 
         # Create tab interface
-        logger.warning("  7. Creating main QTabWidget...")
+        logger.info("  7. Creating main QTabWidget...")
         self.tabs = QTabWidget()
+        self._focus_mode = False
 
         # Track which tabs have been loaded (for lazy loading)
         self._lazy_tab_factories = {
             "🚀 Operations": self.create_operations_parent_tab,
-            "🚗 Fleet Management": self.create_fleet_people_parent_tab,
+            "🚗 Fleet & People": self.create_fleet_people_parent_tab,
             "💰 Accounting & Finance": self.create_accounting_parent_tab,
             "🧮 Year-End Audit": self.create_year_end_audit_tab,
             "⚙️ Admin & Settings": self.create_admin_parent_tab,
         }
         self._tabs_loaded = set()
         self._tab_load_in_progress = set()
+        self._lazy_loading_ready = False
         self.tabs.currentChanged.connect(self._on_tab_changed)
 
         central_layout.addWidget(self.tabs)
@@ -294,7 +356,28 @@ class MainWindow(QMainWindow):
             f"{user_display} connected to {mode_display} | Role: "
             f"{role_display}"
         )
+        self._close_return_context = None
+        self._close_return_button = QPushButton()
+        self._close_return_button.setVisible(False)
+        self._close_return_button.setStyleSheet(
+            "background: #2563eb; color: white; font-weight: bold; padding: 3px 9px;"
+        )
+        self._close_return_button.clicked.connect(
+            self._return_to_close_management
+        )
+        self.status_bar.addPermanentWidget(self._close_return_button)
+
+        self._close_later_button = QPushButton("Later")
+        self._close_later_button.setVisible(False)
+        self._close_later_button.setToolTip(
+            "Dismiss the return reminder and continue working"
+        )
+        self._close_later_button.clicked.connect(
+            self.clear_close_return_context
+        )
+        self.status_bar.addPermanentWidget(self._close_later_button)
         self.setStatusBar(self.status_bar)
+        self._restore_close_return_context()
 
         # Initialize database connection monitor
         try:
@@ -311,8 +394,15 @@ class MainWindow(QMainWindow):
                 self._on_db_connection_restored
             )
             self.db_monitor.status_changed.connect(self._on_db_status_changed)
-            self.db_monitor.start_monitoring()
-            logger.debug("  [OK] Database connection monitoring started")
+            periodic_db_checks = (
+                os.getenv("DB_TARGET", "neon").lower().strip() == "local"
+            )
+            self.db_monitor.start_monitoring(periodic=periodic_db_checks)
+            logger.debug(
+                "  [OK] Database connection monitoring initialized "
+                "(periodic=%s)",
+                periodic_db_checks,
+            )
         except Exception as e:
             logger.warning("Could not start connection monitoring: %s", e)
             # Non-fatal - app can continue without monitoring
@@ -348,184 +438,60 @@ class MainWindow(QMainWindow):
         logout_action.triggered.connect(self._logout)
         file_menu.addAction(logout_action)
 
-        # Add Management menu with enhanced widgets
-        management_menu = menubar.addMenu("Management")
-        logger.warning("  ✓ Management menu created")
+        view_menu = menubar.addMenu("View")
+        self.focus_mode_action = QAction(
+            "Focus Mode (Hide Navigation)",
+            self,
+        )
+        self.focus_mode_action.setCheckable(True)
+        self.focus_mode_action.setShortcut("Ctrl+Shift+F")
+        self.focus_mode_action.setStatusTip(
+            "Hide search, tab rows, and the status bar to maximize workspace"
+        )
+        self.focus_mode_action.toggled.connect(self._set_focus_mode)
+        view_menu.addAction(self.focus_mode_action)
 
-        receipts_mgr_action = QAction("📋 Enhanced Receipts Manager", self)
+        # Passive update CTA (top-right): only appears when a newer version is detected.
+        self._update_notice_button = QPushButton("Update Required")
+        self._update_notice_button.setVisible(False)
+        self._update_notice_button.setStyleSheet(
+            "QPushButton {"
+            " background-color: #d98f00; color: white; font-weight: bold;"
+            " padding: 3px 10px; border-radius: 3px;"
+            "}"
+            "QPushButton:hover { background-color: #c57f00; }"
+        )
+        self._update_notice_button.clicked.connect(self._on_update_required_clicked)
+        menubar.setCornerWidget(self._update_notice_button, Qt.Corner.TopRightCorner)
+        self._pending_update_info = None
+
+        # Quick access menu for high-frequency accounting tools.
+        management_menu = menubar.addMenu("Quick Access")
+        logger.info("  ✓ Quick Access menu created")
+
+        receipts_mgr_action = QAction("📋 Enhanced Receipts", self)
         receipts_mgr_action.triggered.connect(
             self._open_enhanced_receipts_manager
         )
         management_menu.addAction(receipts_mgr_action)
-        logger.warning("  ✓ Receipts Manager action added")
+        logger.info("  ✓ Enhanced Receipts action added")
 
-        banking_mgr_action = QAction("🏦 Enhanced Banking Manager", self)
+        banking_mgr_action = QAction("🏦 Enhanced Banking", self)
         banking_mgr_action.triggered.connect(
             self._open_enhanced_banking_manager
         )
         management_menu.addAction(banking_mgr_action)
-        logger.warning("  ✓ Banking Manager action added")
+        logger.info("  ✓ Enhanced Banking action added")
 
-        logger.warning("  8. Main tab widget created")
+        logger.info("  8. Main tab widget created")
 
-        # Removed: Navigator tab (Mega Menu) - users prefer direct management
-        # tabs
-        # Users said they look up management tabs directly rather than use the
-        # menu navigator
+        # Main launcher tab controls section/year scope for this session.
+        self.main_workspace_tab = self.create_workspace_launcher_tab()
+        self.tabs.addTab(self.main_workspace_tab, "🏠 Main")
 
-        # Consolidated parent tabs with sub-tabs
-        logger.warning("  9. Creating Operations tab (placeholder for lazy loading)...")
-        try:
-            # Create placeholder - real widgets created on first click
-            placeholder = QLabel("Loading Operations widgets...")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.tabs.addTab(placeholder, "🚀 Operations")
-            logger.debug("  10. Operations tab placeholder OK")
-        except Exception:
-            logger.exception("Operations tab initialization failed")
-            raise
-
-        logger.warning("  11. Creating Fleet Management tab...")
-        try:
-            placeholder = QLabel("Loading Fleet widgets...")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.tabs.addTab(placeholder, "🚗 Fleet Management")
-            logger.debug("  12. Fleet Management tab OK")
-        except Exception:
-            logger.exception("Fleet Management tab initialization failed")
-            raise
-
-        logger.warning("  13. Creating Accounting tab (placeholder for lazy loading)...")
-        try:
-            # Create placeholder - real widgets created on first click
-            placeholder = QLabel("Loading Accounting widgets...")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.tabs.addTab(placeholder, "💰 Accounting & Finance")
-            logger.debug("  14. Accounting tab placeholder OK")
-        except Exception:
-            logger.exception("Accounting tab initialization failed")
-            raise
-
-        # Custom Report Builder - moved after Accounting as requested
-        logger.warning("  15. Creating Custom Report Builder...")
-        try:
-            self.custom_report = CustomReportBuilderWidget(self.db)
-            self.tabs.addTab(self.custom_report, "📊 Custom Reports")
-            logger.debug("  15a. Custom Report Builder OK")
-        except Exception as e:
-            try:
-                self.db.rollback()
-            except Exception as _e:
-                logger.debug('Suppressed: %s', _e)
-            logger.error("Custom Report Builder initialization failed: %s", e)
-            # Fallback to ReportExplorer if CustomReportBuilder fails
-            try:
-                self.report_explorer = ReportExplorerWidget()
-                self.report_explorer.report_selected.connect(
-                    self.launch_dashboard_from_menu
-                )
-                self.tabs.addTab(self.report_explorer, "📑 Reports")
-                logger.debug("  16b. ReportExplorerWidget (fallback) OK")
-            except Exception as e2:
-                try:
-                    self.db.rollback()
-                except Exception as _e:
-                    logger.debug('Suppressed: %s', _e)
-                logger.error("ReportExplorer fallback initialization failed: %s", e2)
-
-        # Crystal Reports
-        logger.warning("  16c. Creating Crystal Reports tab...")
-        try:
-            self.crystal_reports = CrystalReportsWidget(self.db)
-            self.tabs.addTab(self.crystal_reports, "💎 Crystal Reports")
-            logger.debug("  16c. Crystal Reports OK")
-        except Exception as e:
-            try:
-                self.db.rollback()
-            except Exception as _e:
-                logger.debug('Suppressed: %s', _e)
-            logger.error("Crystal Reports initialization failed: %s", e)
-
-        # Overdue Balance Aging Report
-        logger.warning("  16d. Creating Overdue Balance Aging Report tab...")
-        try:
-            from overdue_balance_report import OverdueBalanceReportWidget
-            self.overdue_report = OverdueBalanceReportWidget(self.db)
-            self.tabs.addTab(self.overdue_report, "⚠️ Overdue Balances")
-            logger.debug("  16d. Overdue Balance Report OK")
-        except Exception as e:
-            try:
-                self.db.rollback()
-            except Exception as _e:
-                logger.debug('Suppressed: %s', _e)
-            logger.error("Overdue Balance Report initialization failed: %s", e)
-
-        logger.warning("  16d. Creating Year-End Audit tab (placeholder for lazy"
-            "loading)...")
-        try:
-            placeholder = QLabel("Loading Year-End audit system...")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.tabs.addTab(placeholder, "🧮 Year-End Audit")
-            logger.debug("  16d. Year-End Audit placeholder OK")
-        except Exception as e:
-            logger.error("Year-End Audit tab initialization failed: %s", e)
-
-        logger.warning("  17. Creating Admin tab...")
-        try:
-            placeholder = QLabel("Loading Admin widgets...")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            admin_index = self.tabs.addTab(placeholder, "⚙️ Admin & Settings")
-            allowed_admin_roles = {
-                "admin",
-                "management",
-                "manager",
-                "super_user",
-            }
-            if (
-                self.auth_user
-                and str(self.auth_user.get("role", "")).lower()
-                not in allowed_admin_roles
-            ):
-                self.tabs.setTabEnabled(admin_index, False)
-            logger.debug("  20. Admin tab OK")
-        except Exception:
-            try:
-                self.db.rollback()
-            except Exception as _e:
-                logger.debug('Suppressed: %s', _e)
-            logger.exception("Admin tab initialization failed")
-            raise
-
-        # Initialize AI Copilot Tab
-        logger.warning("  21. Initializing AI Copilot...")
-        try:
-            self.rag_engine = KnowledgeRetriever()
-            self.llm_engine = LLMEngine()
-            self.function_executor = FunctionExecutor(user_role="analyst")
-
-            self.copilot_widget = CopilotWidget(
-                rag_engine=self.rag_engine,
-                llm_engine=self.llm_engine,
-                executor=self.function_executor,
-            )
-            self.tabs.addTab(self.copilot_widget, "🤖 AI Copilot")
-            logger.debug("  21a. AI Copilot OK")
-        except Exception as e:
-            logger.warning("AI Copilot initialization error: %s", e)
-            # Copilot is optional - don't crash if it fails
-            try:
-                error_label = QLabel(f"AI Copilot unavailable: {str(e)[:100]}")
-                error_label.setStyleSheet("color: red;")
-                self.tabs.addTab(error_label, "🤖 AI Copilot")
-            except Exception as _e:
-                logger.debug('Suppressed: %s', _e)
-        # Connect browse reservations double-click to show booking form tab
-        if hasattr(self, "enhanced_charter_widget") and hasattr(
-            self, "operations_tabs"
-        ):
-            self.enhanced_charter_widget.show_booking_tab_signal.connect(
-                self._on_show_booking_tab_requested
-            )
+        self._active_section_tab_text = ""
+        self._lazy_loading_ready = True
+        self._apply_initial_scope_tab_focus()
 
         # ============================================================================
         # PHASE 1 UX UPGRADES - KEYBOARD SHORTCUTS
@@ -556,21 +522,210 @@ class MainWindow(QMainWindow):
         self.show()
         # Apply UI standards to initial widget tree.
         self._apply_global_ui_standards(self)
-        # Silent auto-update check 3 seconds after startup
+        QTimer.singleShot(800, self._show_post_update_success_once)
+        # Startup + periodic passive update checks (no popup interruption).
         try:
             from auto_updater import AutoUpdater
-            _updater = AutoUpdater(parent_widget=self)
+            _updater = AutoUpdater(
+                parent_widget=self,
+                on_update_available=self._on_update_available_passive,
+            )
             from PyQt6.QtCore import QTimer as _QTimer
-            _QTimer.singleShot(3000, lambda: _updater.check_for_updates(silent=True))
+
+            _QTimer.singleShot(3000, self._run_passive_update_check)
+            self._update_check_timer = _QTimer(self)
+            self._update_check_timer.setInterval(30 * 60 * 1000)
+            self._update_check_timer.timeout.connect(self._run_passive_update_check)
+            self._update_check_timer.start()
             self._auto_updater = _updater  # keep reference alive
         except Exception as _ue:
             logger.debug("Auto-updater init skipped: %s", _ue)
 
+    def _run_passive_update_check(self) -> None:
+        """Check for updates without showing popup dialogs."""
+        updater = getattr(self, "_auto_updater", None)
+        if updater is None:
+            return
+        updater.check_for_updates(silent=True, passive=True)
+
+    def _on_update_available_passive(self, update_info: dict) -> None:
+        """Show non-blocking top update CTA as soon as a new version is detected."""
+        self._pending_update_info = dict(update_info or {})
+        btn = getattr(self, "_update_notice_button", None)
+        if btn is None:
+            return
+
+        version = str(self._pending_update_info.get("version") or "").strip()
+        changelog = self._pending_update_info.get("changelog") or []
+        fix_count = len(changelog) if isinstance(changelog, list) else 0
+
+        if version:
+            if fix_count >= 2:
+                btn.setText(f"Update Required (v{version}, {fix_count} fixes)")
+            else:
+                btn.setText(f"Update Required (v{version})")
+        else:
+            btn.setText("Update Required")
+        btn.setToolTip("New version available. Click when ready to update.")
+        btn.setVisible(True)
+
+    def _on_update_required_clicked(self) -> None:
+        """Open updater flow on demand from the top update button."""
+        updater = getattr(self, "_auto_updater", None)
+        if updater is None:
+            return
+        updater.start_update(getattr(self, "_pending_update_info", None))
+
+    def _show_post_update_success_once(self) -> None:
+        """Show one-time completion notice written by update_dispatcher.ps1."""
+        notice_candidates = []
+
+        if getattr(sys, "frozen", False):
+            install_root = os.path.dirname(sys.executable)
+            notice_candidates.append(
+                os.path.join(
+                    install_root,
+                    "_install_reports",
+                    "post_update_notice.txt",
+                )
+            )
+
+        notice_candidates.append(
+            os.path.join(project_root, "_install_reports", "post_update_notice.txt")
+        )
+
+        seen = set()
+        for notice_path in notice_candidates:
+            key = notice_path.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+
+            if not os.path.exists(notice_path):
+                continue
+
+            try:
+                version = "unknown"
+                with open(notice_path, encoding="utf-8") as notice_file:
+                    loaded_version = notice_file.read().strip()
+                    if loaded_version:
+                        version = loaded_version
+
+                try:
+                    os.remove(notice_path)
+                except Exception as remove_err:
+                    logger.warning(
+                        "Could not clear post-update notice marker %s: %s",
+                        notice_path,
+                        remove_err,
+                    )
+
+                QMessageBox.information(
+                    self,
+                    "Update Complete",
+                    (
+                        "Winner Winner Chicken Dinner\n"
+                        f"Update to version {version} completed."
+                    ),
+                )
+                return
+            except Exception as notice_err:
+                logger.warning(
+                    "Failed to process post-update notice marker %s: %s",
+                    notice_path,
+                    notice_err,
+                )
+
     # ============================================================================
     # LAZY LOADING - Load tab content only when first clicked
     # ============================================================================
+    def _set_focus_mode(self, enabled: bool) -> None:
+        """Expand the active workspace by hiding navigation chrome."""
+        self._focus_mode = enabled
+        self.search_bar_widget.setVisible(not enabled)
+        self.status_bar.setVisible(not enabled)
+        for tab_widget in self.findChildren(QTabWidget):
+            tab_widget.tabBar().setVisible(not enabled)
+        self.focus_mode_action.setText(
+            "Exit Focus Mode (Show Navigation)"
+            if enabled
+            else "Focus Mode (Hide Navigation)"
+        )
+
+    def set_close_return_context(
+        self,
+        period_type: str,
+        period_key: str,
+        task_key: str,
+    ) -> None:
+        """Show persistent Return/Later controls after a checklist handoff."""
+        self._close_return_context = {
+            "period_type": period_type,
+            "period_key": period_key,
+            "task_key": task_key,
+        }
+        settings = QSettings("ArrowLimo", "Desktop")
+        settings.beginGroup("close_return")
+        settings.setValue("period_type", period_type)
+        settings.setValue("period_key", period_key)
+        settings.setValue("task_key", task_key)
+        settings.endGroup()
+
+        close_name = "Month-End" if period_type == "month" else "Year-End"
+        self._close_return_button.setText(
+            f"↩ Return to {close_name} {period_key}"
+        )
+        self._close_return_button.setVisible(True)
+        self._close_later_button.setVisible(True)
+
+    def _restore_close_return_context(self) -> None:
+        """Restore an unfinished checklist handoff after reopening the app."""
+        settings = QSettings("ArrowLimo", "Desktop")
+        settings.beginGroup("close_return")
+        period_type = settings.value("period_type", "", type=str)
+        period_key = settings.value("period_key", "", type=str)
+        task_key = settings.value("task_key", "", type=str)
+        settings.endGroup()
+        if period_type in {"month", "year"} and period_key and task_key:
+            self.set_close_return_context(period_type, period_key, task_key)
+
+    def clear_close_return_context(self, *_args) -> None:
+        """Dismiss the return reminder and continue in the current module."""
+        self._close_return_context = None
+        QSettings("ArrowLimo", "Desktop").remove("close_return")
+        self._close_return_button.setVisible(False)
+        self._close_later_button.setVisible(False)
+
+    def _return_to_close_management(self) -> None:
+        """Return to the month/year checklist that opened the current module."""
+        context = self._close_return_context
+        if not context:
+            return
+        tab_name = (
+            "📆 Month-End Close"
+            if context["period_type"] == "month"
+            else "🗓️ Year-End Close"
+        )
+        if not self.navigate_to_accounting_subtab(tab_name):
+            QMessageBox.warning(
+                self,
+                "Return to Close",
+                f"Could not open {tab_name}.",
+            )
+            return
+        widget_name = (
+            "month_end_close_widget"
+            if context["period_type"] == "month"
+            else "year_end_close_widget"
+        )
+        widget = getattr(self, widget_name, None)
+        if widget is not None:
+            widget.set_period_key(context["period_key"])
+
     def _on_tab_changed(self, index: int) -> None:
         """Load tab content on first access (lazy loading)"""
+        if not self._lazy_loading_ready:
+            return
         if index < 0:
             return
 
@@ -609,6 +764,8 @@ class MainWindow(QMainWindow):
         finally:
             self.tabs.blockSignals(False)
             self._tab_load_in_progress.discard(tab_text)
+            if self._focus_mode:
+                QTimer.singleShot(0, lambda: self._set_focus_mode(True))
 
     # ============================================================================
     # KEYBOARD SHORTCUT HANDLERS
@@ -616,12 +773,904 @@ class MainWindow(QMainWindow):
     def new_receipt(self) -> None:
         """Ctrl+N: Create new receipt"""
         # Navigate to Receipts tab and clear form
-        self.tabs.setCurrentIndex(2)  # Accounting tab
+        self.navigate_to_top_tab("💰 Accounting & Finance")
         QMessageBox.information(
             self,
             "New Receipt",
             "New receipt form ready\n[Focus on Receipt entry area]",
         )
+
+    def _prompt_startup_scope(self) -> None:
+        """Collect startup domain/year scope to reduce initial workload."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Startup Load Scope")
+        dialog.setModal(True)
+        dialog.setMinimumWidth(440)
+
+        layout = QVBoxLayout(dialog)
+
+        intro = QLabel(
+            "Choose what to focus on for this session.\n"
+            "This limits what loads immediately and sets default year scope."
+        )
+        intro.setWordWrap(True)
+        layout.addWidget(intro)
+
+        domain_label = QLabel("Start In Domain:")
+        domain_combo = QComboBox()
+        domain_combo.addItem("All Domains", "all")
+        domain_combo.addItem("Operations", "operations")
+        domain_combo.addItem("Fleet", "fleet")
+        domain_combo.addItem("Accounting", "accounting")
+        layout.addWidget(domain_label)
+        layout.addWidget(domain_combo)
+
+        year_mode_label = QLabel("Working Years:")
+        year_mode_combo = QComboBox()
+        year_mode_combo.addItem("Current + Last Year", "current_plus_last")
+        year_mode_combo.addItem("Current Year Only", "current")
+        year_mode_combo.addItem("All Years", "all")
+        year_mode_combo.addItem("Custom Range", "custom")
+        layout.addWidget(year_mode_label)
+        layout.addWidget(year_mode_combo)
+
+        custom_row = QHBoxLayout()
+        custom_start = QSpinBox()
+        custom_end = QSpinBox()
+        now_year = datetime.now().year
+        custom_start.setRange(2010, 2035)
+        custom_end.setRange(2010, 2035)
+        custom_start.setValue(now_year - 1)
+        custom_end.setValue(now_year)
+        custom_start.setEnabled(False)
+        custom_end.setEnabled(False)
+        custom_row.addWidget(QLabel("From:"))
+        custom_row.addWidget(custom_start)
+        custom_row.addSpacing(12)
+        custom_row.addWidget(QLabel("To:"))
+        custom_row.addWidget(custom_end)
+        custom_row.addStretch(1)
+        layout.addLayout(custom_row)
+
+        def _toggle_custom_years() -> None:
+            is_custom = year_mode_combo.currentData() == "custom"
+            custom_start.setEnabled(is_custom)
+            custom_end.setEnabled(is_custom)
+
+        year_mode_combo.currentIndexChanged.connect(_toggle_custom_years)
+
+        buttons = QHBoxLayout()
+        continue_btn = QPushButton("Continue")
+        continue_btn.clicked.connect(dialog.accept)
+        default_btn = QPushButton("Use Defaults")
+        default_btn.clicked.connect(dialog.reject)
+        buttons.addStretch(1)
+        buttons.addWidget(default_btn)
+        buttons.addWidget(continue_btn)
+        layout.addLayout(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        year_mode = str(year_mode_combo.currentData())
+        year_start = now_year - 1
+        year_end = now_year
+        if year_mode == "current":
+            year_start = now_year
+            year_end = now_year
+        elif year_mode == "all":
+            year_start = 2010
+            year_end = now_year
+        elif year_mode == "custom":
+            year_start = int(custom_start.value())
+            year_end = int(custom_end.value())
+            if year_start > year_end:
+                year_start, year_end = year_end, year_start
+
+        self._app_scope = {
+            "domain": str(domain_combo.currentData()),
+            "year_mode": year_mode,
+            "year_start": year_start,
+            "year_end": year_end,
+        }
+
+    def get_working_year_scope(self) -> tuple[int, int]:
+        """Return the selected startup year range for data filters."""
+        return (
+            int(self._app_scope.get("year_start", datetime.now().year - 1)),
+            int(self._app_scope.get("year_end", datetime.now().year)),
+        )
+
+    def create_workspace_launcher_tab(self) -> QWidget:
+        """Main launcher tab with hierarchical icon drill-down navigation."""
+        widget = QWidget()
+        widget.setObjectName("workspaceLauncher")
+        widget.setStyleSheet(
+            "QWidget#workspaceLauncher { background: #e8eef5; }"
+        )
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+
+        title = QLabel("Session Workspace")
+        title.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        layout.addWidget(title)
+
+        subtitle = QLabel(
+            "Open one section at a time to reduce memory usage. "
+            "Use the full menu list below to open any section directly."
+        )
+        subtitle.setWordWrap(True)
+        layout.addWidget(subtitle)
+
+        year_row = QHBoxLayout()
+        year_row.addWidget(QLabel("Working Years:"))
+        year_row.addWidget(QLabel("From:"))
+        self.main_custom_year_start = QSpinBox()
+        self.main_custom_year_start.setRange(2010, 2035)
+        self.main_custom_year_start.setValue(datetime.now().year - 1)
+        year_row.addWidget(self.main_custom_year_start)
+        year_row.addWidget(QLabel("To:"))
+        self.main_custom_year_end = QSpinBox()
+        self.main_custom_year_end.setRange(2010, 2035)
+        self.main_custom_year_end.setValue(datetime.now().year + 1)
+        year_row.addWidget(self.main_custom_year_end)
+        self.main_current_year_btn = QPushButton("Current")
+        self.main_current_year_btn.clicked.connect(
+            self._set_main_year_range_current
+        )
+        year_row.addWidget(self.main_current_year_btn)
+        year_row.addStretch(1)
+        layout.addLayout(year_row)
+
+        self._main_nav_selection = {
+            "domain": None,
+            "sub_tab": None,
+            "sub_sub_tab": None,
+            "deep_tab": None,
+        }
+        self._menu_nav_request_id = 0
+        self._main_menu_collapsed_domains: set[str] = set()
+
+        toolbar_row = QHBoxLayout()
+        toolbar_row.addStretch(1)
+        self.main_menu_toggle_all_btn = QPushButton("▲ Collapse All")
+        self.main_menu_toggle_all_btn.setToolTip(
+            "Collapse or expand every section below to save screen space"
+        )
+        self.main_menu_toggle_all_btn.clicked.connect(
+            self._toggle_all_main_menu_domains
+        )
+        toolbar_row.addWidget(self.main_menu_toggle_all_btn)
+        layout.addLayout(toolbar_row)
+
+        self.main_full_menu_scroll = QScrollArea()
+        self.main_full_menu_scroll.setWidgetResizable(True)
+        self.main_full_menu_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.main_full_menu_scroll.setStyleSheet(
+            "QScrollArea { background: #e8eef5; border: 0; }"
+            "QScrollArea > QWidget > QWidget { background: #e8eef5; }"
+        )
+        self.main_full_menu_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        self.main_full_menu_scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        self.main_full_menu_scroll.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
+        )
+
+        self.main_full_menu_columns_panel = QWidget()
+        self.main_full_menu_columns_panel.setObjectName("mainMenuPanel")
+        self.main_full_menu_columns_panel.setAutoFillBackground(True)
+        self.main_full_menu_columns_panel.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred,
+        )
+        self.main_full_menu_columns_panel.setMinimumWidth(0)
+        self.main_full_menu_columns_panel.setStyleSheet(
+            "QWidget#mainMenuPanel { background: #e8eef5; border-radius: 0px; }"
+        )
+        self.main_full_menu_columns_layout = QHBoxLayout(
+            self.main_full_menu_columns_panel
+        )
+        self.main_full_menu_columns_layout.setContentsMargins(10, 10, 10, 10)
+        self.main_full_menu_columns_layout.setSpacing(12)
+        self.main_full_menu_scroll.setWidget(self.main_full_menu_columns_panel)
+
+        layout.addWidget(self.main_full_menu_scroll, 1)
+
+        self._render_full_open_menu_list()
+        return widget
+
+    def _render_full_open_menu_list(self) -> None:
+        """Render all navigation targets as expanded domain columns."""
+        while self.main_full_menu_columns_layout.count():
+            item = self.main_full_menu_columns_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
+        structure = self._main_navigation_structure()
+        longest_column_height = 0
+        for domain_key, domain_meta in structure.items():
+            column_widget = QWidget()
+            column_widget.setMinimumWidth(220)
+            column_widget.setSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Preferred,
+            )
+            column_layout = QVBoxLayout(column_widget)
+            column_layout.setContentsMargins(0, 0, 0, 0)
+            column_layout.setSpacing(6)
+
+            is_collapsed = domain_key in self._main_menu_collapsed_domains
+
+            header_row = QHBoxLayout()
+            header = QLabel(domain_meta.get("label", domain_key))
+            header.setStyleSheet(
+                "font-weight: bold; color: #1f2937; font-size: 11pt;"
+            )
+            header_row.addWidget(header)
+            header_row.addStretch(1)
+            toggle_btn = QPushButton("▶" if is_collapsed else "▼")
+            toggle_btn.setToolTip("Expand" if is_collapsed else "Collapse")
+            toggle_btn.setFixedWidth(28)
+            toggle_btn.setStyleSheet(
+                "QPushButton { border: none; font-weight: bold; }"
+            )
+            toggle_btn.clicked.connect(
+                lambda _=False, dk=domain_key: self._toggle_main_menu_domain(dk)
+            )
+            header_row.addWidget(toggle_btn)
+            column_layout.addLayout(header_row)
+
+            links = QListWidget()
+            links.setMinimumWidth(180)
+            links.setSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Preferred,
+            )
+            links.setFrameShape(QFrame.Shape.NoFrame)
+            links.setStyleSheet(
+                "QListWidget { font-size: 10.5pt; }"
+                " QListWidget::item { padding: 3px 2px; }"
+            )
+            links.setVerticalScrollBarPolicy(
+                Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+            )
+            links.setHorizontalScrollBarPolicy(
+                Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+            )
+            links.setUniformItemSizes(True)
+            links.itemDoubleClicked.connect(
+                self._on_full_menu_link_item_activated
+            )
+            links.itemActivated.connect(self._on_full_menu_link_item_activated)
+            links.itemClicked.connect(self._on_full_menu_link_item_activated)
+
+            self._populate_full_menu_domain_links(
+                links,
+                domain_key,
+                domain_meta.get("subtabs", {}),
+                [],
+            )
+            self._fit_full_menu_links_height(links)
+            links.setVisible(not is_collapsed)
+            column_layout.addWidget(links)
+            self.main_full_menu_columns_layout.addWidget(
+                column_widget,
+                1,
+                Qt.AlignmentFlag.AlignTop,
+            )
+
+            column_height = column_widget.sizeHint().height()
+            if column_height > longest_column_height:
+                longest_column_height = column_height
+
+        if longest_column_height > 0:
+            self.main_full_menu_columns_panel.setMinimumHeight(
+                longest_column_height + 14
+            )
+            self.main_full_menu_columns_panel.setMaximumHeight(
+                16777215
+            )
+
+    def _toggle_main_menu_domain(self, domain_key: str) -> None:
+        """Expand/collapse a single Main-tab domain column."""
+        if domain_key in self._main_menu_collapsed_domains:
+            self._main_menu_collapsed_domains.discard(domain_key)
+        else:
+            self._main_menu_collapsed_domains.add(domain_key)
+        self._render_full_open_menu_list()
+
+    def _toggle_all_main_menu_domains(self) -> None:
+        """Collapse every domain column if any are expanded, else expand all."""
+        structure = self._main_navigation_structure()
+        all_keys = set(structure.keys())
+        if self._main_menu_collapsed_domains == all_keys:
+            self._main_menu_collapsed_domains = set()
+        else:
+            self._main_menu_collapsed_domains = set(all_keys)
+        self.main_menu_toggle_all_btn.setText(
+            "▼ Expand All"
+            if self._main_menu_collapsed_domains
+            else "▲ Collapse All"
+        )
+        self._render_full_open_menu_list()
+
+    def _populate_full_menu_domain_links(
+        self,
+        links: QListWidget,
+        domain_key: str,
+        nodes: dict,
+        path_parts: list[str],
+    ) -> None:
+        """Populate one domain column as plain indented link rows."""
+        for name, node in nodes.items():
+            current = list(path_parts)
+            current.append(name)
+            depth = max(0, len(current) - 1)
+            indent = "  " * depth
+            prefix = "• " if depth == 0 else "↳ "
+            item = QListWidgetItem(f"{indent}{prefix}{name}")
+            item.setData(Qt.ItemDataRole.UserRole, (domain_key, tuple(current)))
+            if self._is_most_used_path(domain_key, tuple(current)):
+                item.setForeground(QColor("#0b6b2d"))
+                bold_font = QFont()
+                bold_font.setBold(True)
+                item.setFont(bold_font)
+            links.addItem(item)
+
+            child_nodes = node.get("subtabs", {}) if isinstance(node, dict) else {}
+            if child_nodes:
+                self._populate_full_menu_domain_links(
+                    links,
+                    domain_key,
+                    child_nodes,
+                    current,
+                )
+
+    def _on_full_menu_link_item_activated(self, item: QListWidgetItem) -> None:
+        """Open selected path from mega-menu text links."""
+        payload = item.data(Qt.ItemDataRole.UserRole)
+        if not payload:
+            return
+        domain_key, path_parts = payload
+        self._open_full_menu_path(domain_key, path_parts)
+
+    def _is_most_used_path(
+        self, domain_key: str, path_parts: tuple[str, ...]
+    ) -> bool:
+        """Return True when a path is in the visual most-used set."""
+        most_used_paths = {
+            ("operations", ("📡 Dispatch", "📋 Dispatch Board")),
+            ("operations", ("📡 Dispatch", "📝 Run Charter")),
+            ("operations", ("💳 Client Payments",)),
+            ("accounting", ("📅 Close Management", "📆 Month-End Close")),
+            ("accounting", ("💰 Receipts & Invoices",)),
+            ("operations", ("✅ Close Control Center",)),
+            ("fleet", ("🚗 Fleet List",)),
+            ("admin", ("⚙️ Admin Controls",)),
+            ("operations", ("📊 Reports & PDFs",)),
+        }
+        return (domain_key, path_parts) in most_used_paths
+
+    def _fit_full_menu_links_height(self, links: QListWidget) -> None:
+        """Fit a column list to all rows so it never shows internal scrollbars."""
+        rows = links.count()
+        if rows <= 0:
+            return
+
+        row_height = links.sizeHintForRow(0)
+        if row_height <= 0:
+            row_height = 22
+
+        target_height = (links.frameWidth() * 2) + (rows * row_height) + 6
+        links.setMinimumHeight(target_height)
+        links.setMaximumHeight(target_height)
+
+    def _collect_full_menu_targets(
+        self,
+        domain_key: str,
+        nodes: dict,
+        path_parts: list[str],
+    ) -> list[list[str]]:
+        """Collect every reachable menu path under a domain."""
+        targets = []
+        for name, node in nodes.items():
+            current = list(path_parts)
+            current.append(name)
+            targets.append(current)
+            child_nodes = node.get("subtabs", {}) if isinstance(node, dict) else {}
+            if child_nodes:
+                targets.extend(
+                    self._collect_full_menu_targets(domain_key, child_nodes, current)
+                )
+        return targets
+
+    def _open_full_menu_path(self, domain_key: str, path_parts: tuple[str, ...]) -> None:
+        """Open a selected path from the full open mini menu list."""
+        sub_tab = path_parts[0] if len(path_parts) >= 1 else None
+        sub_sub_tab = path_parts[1] if len(path_parts) >= 2 else None
+        deep_tab = path_parts[2] if len(path_parts) >= 3 else None
+
+        self._main_nav_selection = {
+            "domain": domain_key,
+            "sub_tab": sub_tab,
+            "sub_sub_tab": sub_sub_tab,
+            "deep_tab": deep_tab,
+        }
+        self._open_menu_target(domain_key, sub_tab, sub_sub_tab, deep_tab)
+
+    def _main_navigation_structure(self) -> dict:
+        """Navigation model used by Main dropdown launcher."""
+        return {
+            "operations": {
+                "label": "🚀 Operations",
+                "subtabs": {
+                    "📡 Dispatch": {
+                        "subtabs": {
+                            "📋 Dispatch Board": {},
+                            "📝 Run Charter": {},
+                            "👷 Staff Work Schedule": {},
+                            "📅 Calendar (Outlook Style)": {},
+                            "🗓️ Calendar (Table View)": {},
+                            "👤 Driver Calendar": {},
+                            "🚐 Vehicle Booked Out": {},
+                            "🛒 Beverage Orders": {},
+                            "📅 Unbooked Events": {},
+                        }
+                    },
+                    "🍷 Beverage": {},
+                    "👥 Customers": {},
+                    "💳 Client Payments": {},
+                    "📄 Documents": {},
+                    "✅ Close Control Center": {},
+                    "📊 Reports & PDFs": {
+                        "subtabs": {
+                            name: {}
+                            for name in self._report_section_factory_map()
+                        }
+                    },
+                },
+            },
+            "fleet": {
+                "label": "🚗 Fleet & People",
+                "subtabs": {
+                    "🚐 Vehicles": {
+                        "subtabs": {
+                            "🆔 Identification": {},
+                            "📊 Status & Specs": {},
+                            "🔧 Maintenance": {},
+                            "🛢️ Fluids & Parts": {},
+                            "🛡️ Insurance & Registration": {},
+                            "💲 Purchase & Lifecycle": {},
+                            "📑 Lease Compliance": {},
+                            "📄 Documents": {},
+                        }
+                    },
+                    "🚗 Fleet List": {},
+                    "👔 Employees": {
+                        "subtabs": {
+                            "📝 Basic Info": {},
+                            "💼 Classifications": {},
+                            "⚖️ HOS Compliance": {},
+                            "💰 Payroll": {},
+                            "🎓 Training": {},
+                            "📄 Qualifications & Documents": {},
+                        }
+                    },
+                },
+            },
+            "accounting": {
+                "label": "💰 Accounting & Finance",
+                "subtabs": {
+                    "📅 Close Management": {
+                        "subtabs": {
+                            "📆 Month-End Close": {},
+                            "🗓️ Year-End Close": {},
+                        }
+                    },
+                    "🗂️ Daily Work": {
+                        "subtabs": {
+                            "🎯 Accounting Hub": {},
+                            "💰 Receipts & Invoices": {},
+                            "📝 Accountant Notes": {},
+                            "📋 Vendor Invoices": {},
+                            "🧾 Enhanced Receipts": {},
+                            "💳 Payment Linker": {},
+                        }
+                    },
+                    "🏦 Banking & Cash": {
+                        "subtabs": {
+                            "📒 Check Book": {},
+                            "🏦 Enhanced Banking": {},
+                            "🧩 NSF Pairs": {},
+                            "🏦 Staff Loan Account": {},
+                        }
+                    },
+                    "👔 Payroll & Tax": {
+                        "subtabs": {
+                            "💵 Payroll Entry": {},
+                            "🧮 Payroll Remittances": {},
+                            "🏛️ Tax": {},
+                            "📋 T2 Corporate Tax": {},
+                            "🛡️ WCB Rates": {},
+                        }
+                    },
+                    "📊 Compliance & Reports": {
+                        "subtabs": {
+                            "🧪 Audit": {},
+                            "🏢 Business Entity": {},
+                            "📦 Asset Inventory": {},
+                            "📊 Financial Reports": {},
+                            "🍷 Beverage Revenue": {},
+                            "🍷 Beverage": {},
+                        }
+                    },
+                },
+            },
+            "year_end": {
+                "label": "🧮 Year-End Audit",
+                "subtabs": {
+                    "🧭 Year-End Guided Wizard": {},
+                    "🔎 Audit Checks (Advanced)": {},
+                },
+            },
+            "admin": {
+                "label": "⚙️ Admin & Settings",
+                "subtabs": {
+                    "⚙️ Admin Controls": {},
+                    "🔧 Settings": {},
+                    "🗄️ Table Browser": {},
+                },
+            },
+        }
+
+    def _set_main_year_range_current(self) -> None:
+        """Set Main working years to last year through next year."""
+        now_year = datetime.now().year
+        self.main_custom_year_start.setValue(now_year - 1)
+        self.main_custom_year_end.setValue(now_year + 1)
+
+    def _update_scope_from_main_tab_controls(self) -> None:
+        """Persist year/domain scope selected on the Main tab."""
+        domain = self._main_nav_selection.get("domain") or str(
+            self._app_scope.get("domain", "all")
+        )
+        year_mode = "range"
+        year_start = int(self.main_custom_year_start.value())
+        year_end = int(self.main_custom_year_end.value())
+        if year_start > year_end:
+            year_start, year_end = year_end, year_start
+
+        self._app_scope = {
+            "domain": domain,
+            "year_mode": year_mode,
+            "year_start": year_start,
+            "year_end": year_end,
+        }
+
+    def _open_menu_target(
+        self,
+        domain: str,
+        sub_tab: str | None = None,
+        sub_sub_tab: str | None = None,
+        deep_tab: str | None = None,
+    ) -> None:
+        """Open selected domain from Main menu and optionally drill into sub-tab."""
+        self._menu_nav_request_id += 1
+        request_id = self._menu_nav_request_id
+
+        self._app_scope["domain"] = domain
+        self._update_scope_from_main_tab_controls()
+        target_tab = {
+            "operations": "🚀 Operations",
+            "fleet": "🚗 Fleet & People",
+            "accounting": "💰 Accounting & Finance",
+            "year_end": "🧮 Year-End Audit",
+            "admin": "⚙️ Admin & Settings",
+        }.get(domain, "🚀 Operations")
+        self._open_single_section_tab(target_tab)
+
+        if not sub_tab:
+            return
+
+        if domain == "accounting":
+            self._deferred_menu_navigation(
+                self.navigate_to_accounting_subtab,
+                deep_tab or sub_sub_tab or sub_tab,
+                request_id=request_id,
+            )
+        elif domain == "operations":
+            if sub_tab == "📡 Dispatch" and sub_sub_tab:
+                self._deferred_menu_navigation(
+                    lambda tab_name, rid=request_id: self._navigate_to_dispatch_subtab(
+                        tab_name,
+                        nav_request_id=rid,
+                    ),
+                    deep_tab or sub_sub_tab,
+                    request_id=request_id,
+                )
+            elif sub_tab == "📝 Run Charter":
+                self._deferred_menu_navigation(
+                    lambda tab_name, rid=request_id: self._navigate_to_dispatch_subtab(
+                        tab_name,
+                        nav_request_id=rid,
+                    ),
+                    "📝 Run Charter",
+                    request_id=request_id,
+                )
+            elif sub_tab == "📊 Reports & PDFs" and sub_sub_tab:
+                self._deferred_menu_navigation(
+                    lambda tab_name, rid=request_id: self._navigate_to_reports_subtab(
+                        tab_name,
+                        nav_request_id=rid,
+                    ),
+                    sub_sub_tab,
+                    request_id=request_id,
+                )
+            else:
+                self._deferred_menu_navigation(
+                    self.navigate_to_operations_subtab,
+                    sub_tab,
+                    request_id=request_id,
+                )
+        elif domain == "fleet":
+            if sub_tab in ("🚐 Vehicles", "👔 Employees") and sub_sub_tab:
+                self._deferred_menu_navigation(
+                    lambda tab_name, rid=request_id, parent=sub_tab: self._navigate_to_fleet_inner_subtab(
+                        parent,
+                        tab_name,
+                        nav_request_id=rid,
+                    ),
+                    sub_sub_tab,
+                    request_id=request_id,
+                )
+            else:
+                self._deferred_menu_navigation(
+                    self._navigate_to_fleet_subtab,
+                    sub_tab,
+                    request_id=request_id,
+                )
+        elif domain == "admin":
+            self._deferred_menu_navigation(
+                self._navigate_to_admin_subtab,
+                sub_tab,
+                request_id=request_id,
+            )
+        elif domain == "year_end":
+            self._deferred_menu_navigation(
+                self._navigate_to_year_end_subtab,
+                sub_tab,
+                request_id=request_id,
+            )
+
+    def _deferred_menu_navigation(
+        self,
+        navigate_fn,
+        tab_name: str,
+        retries: int = 120,
+        delay_ms: int = 120,
+        request_id: int | None = None,
+    ) -> None:
+        """Retry menu navigation briefly while lazy-loaded tabs initialize."""
+        active_request_id = getattr(self, "_menu_nav_request_id", 0)
+        if request_id is not None and request_id != active_request_id:
+            return
+
+        if navigate_fn(tab_name):
+            return
+        if retries <= 0:
+            logger.warning("Menu navigation failed for tab: %s", tab_name)
+            return
+        QTimer.singleShot(
+            delay_ms,
+            lambda fn=navigate_fn, name=tab_name, r=retries - 1, d=delay_ms: (
+                self._deferred_menu_navigation(
+                    fn,
+                    name,
+                    r,
+                    d,
+                    request_id=request_id,
+                )
+            ),
+        )
+
+    def _open_run_charter_from_main(self, retries: int = 4) -> None:
+        """Open Operations > Dispatch, then focus Dispatch's Run Charter sub-tab."""
+        if not self.navigate_to_operations_subtab("📡 Dispatch"):
+            return
+
+        dispatch_tabs = getattr(self, "dispatch_tabs_widget", None)
+        if dispatch_tabs is None:
+            if retries > 0:
+                QTimer.singleShot(
+                    120,
+                    lambda r=retries - 1: self._open_run_charter_from_main(r),
+                )
+            return
+
+        if dispatch_tabs.count() > 1:
+            dispatch_tabs.setCurrentIndex(1)
+
+    def _navigate_to_dispatch_subtab(
+        self,
+        sub_tab_name: str,
+        retries: int = 4,
+        nav_request_id: int | None = None,
+    ) -> bool:
+        """Open Operations > Dispatch and focus a Dispatch nested sub-tab."""
+        active_request_id = getattr(self, "_menu_nav_request_id", 0)
+        if nav_request_id is not None and nav_request_id != active_request_id:
+            return False
+
+        if not self.navigate_to_operations_subtab("📡 Dispatch"):
+            return False
+
+        dispatch_tabs = getattr(self, "dispatch_tabs_widget", None)
+        if dispatch_tabs is None:
+            if retries > 0:
+                QTimer.singleShot(
+                    120,
+                    lambda r=retries - 1, s=sub_tab_name, req=nav_request_id: self._navigate_to_dispatch_subtab(
+                        s,
+                        r,
+                        req,
+                    ),
+                )
+            return False
+
+        for i in range(dispatch_tabs.count()):
+            if dispatch_tabs.tabText(i) == sub_tab_name:
+                if i >= 2:
+                    self._on_dispatch_subtab_changed(dispatch_tabs, i)
+                dispatch_tabs.setCurrentIndex(i)
+                return True
+        return False
+
+    def _navigate_to_reports_subtab(
+        self,
+        sub_tab_name: str,
+        retries: int = 4,
+        nav_request_id: int | None = None,
+    ) -> bool:
+        """Open Operations > Reports & PDFs and focus one drill-down report tab."""
+        active_request_id = getattr(self, "_menu_nav_request_id", 0)
+        if nav_request_id is not None and nav_request_id != active_request_id:
+            return False
+
+        if not self.navigate_to_operations_subtab("📊 Reports & PDFs"):
+            return False
+
+        report_tabs = getattr(self, "report_tabs_widget", None)
+        if report_tabs is None:
+            if retries > 0:
+                QTimer.singleShot(
+                    120,
+                    lambda r=retries - 1, s=sub_tab_name, req=nav_request_id: self._navigate_to_reports_subtab(
+                        s,
+                        r,
+                        req,
+                    ),
+                )
+            return False
+
+        for i in range(report_tabs.count()):
+            if report_tabs.tabText(i) == sub_tab_name:
+                report_tabs.setCurrentIndex(i)
+                self._on_report_section_changed(i)
+                return True
+        return False
+
+    def _navigate_to_fleet_subtab(self, sub_tab_name: str) -> bool:
+        if not hasattr(self, "fleet_parent_tabs"):
+            return False
+        for i in range(self.fleet_parent_tabs.count()):
+            if self.fleet_parent_tabs.tabText(i) == sub_tab_name:
+                self.fleet_parent_tabs.setCurrentIndex(i)
+                self._on_fleet_subtab_changed(self.fleet_parent_tabs, i)
+                return True
+        return False
+
+    def _navigate_to_fleet_inner_subtab(
+        self,
+        parent_sub_tab_name: str,
+        inner_tab_name: str,
+        retries: int = 4,
+        nav_request_id: int | None = None,
+    ) -> bool:
+        """Open Fleet & People > Vehicles/Employees and focus a nested
+        drill-down detail tab (e.g. Maintenance, Lease Compliance,
+        Training) inside that widget's own tab bar."""
+        active_request_id = getattr(self, "_menu_nav_request_id", 0)
+        if nav_request_id is not None and nav_request_id != active_request_id:
+            return False
+
+        if not self._navigate_to_fleet_subtab(parent_sub_tab_name):
+            return False
+
+        inner_widget = None
+        if parent_sub_tab_name == "🚐 Vehicles":
+            inner_widget = getattr(self, "vehicles_widget", None)
+        elif parent_sub_tab_name == "👔 Employees":
+            inner_widget = getattr(self, "employees_widget", None)
+
+        inner_tabs = None
+        if inner_widget is not None:
+            inner_tabs = getattr(inner_widget, "tabs", None) or getattr(
+                inner_widget, "form_tabs", None
+            )
+
+        if inner_tabs is None:
+            if retries > 0:
+                QTimer.singleShot(
+                    120,
+                    lambda r=retries - 1, p=parent_sub_tab_name, t=inner_tab_name, req=nav_request_id: self._navigate_to_fleet_inner_subtab(
+                        p,
+                        t,
+                        r,
+                        req,
+                    ),
+                )
+            return False
+
+        for i in range(inner_tabs.count()):
+            if inner_tabs.tabText(i) == inner_tab_name:
+                inner_tabs.setCurrentIndex(i)
+                return True
+        return False
+
+    def _navigate_to_admin_subtab(self, sub_tab_name: str) -> bool:
+        tabs = getattr(self, "admin_parent_tabs", None)
+        if tabs is None:
+            return False
+        for i in range(tabs.count()):
+            if tabs.tabText(i) == sub_tab_name:
+                tabs.setCurrentIndex(i)
+                self._on_admin_subtab_changed(tabs, i)
+                return True
+        return False
+
+    def _navigate_to_year_end_subtab(self, sub_tab_name: str) -> bool:
+        tabs = getattr(self, "year_end_tabs", None)
+        if tabs is None:
+            return False
+        for i in range(tabs.count()):
+            if tabs.tabText(i) == sub_tab_name:
+                tabs.setCurrentIndex(i)
+                return True
+        return False
+
+    def _open_single_section_tab(self, target_tab: str) -> bool:
+        """Keep only Main + selected section tab visible/loaded."""
+        if target_tab not in self._lazy_tab_factories:
+            return False
+
+        # Remove previous active section tab and release widget memory.
+        for i in range(self.tabs.count() - 1, -1, -1):
+            tab_text = self.tabs.tabText(i)
+            if tab_text in self._lazy_tab_factories:
+                old_widget = self.tabs.widget(i)
+                self.tabs.removeTab(i)
+                if old_widget is not None:
+                    old_widget.deleteLater()
+                self._tabs_loaded.discard(tab_text)
+                self._tab_load_in_progress.discard(tab_text)
+
+        placeholder = QLabel(f"Loading {target_tab}...")
+        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        section_index = self.tabs.addTab(placeholder, target_tab)
+        self._active_section_tab_text = target_tab
+        self.tabs.setCurrentIndex(section_index)
+        return True
+
+    def _apply_initial_scope_tab_focus(self) -> None:
+        """Always start on Main tab to avoid eager heavy loads on open."""
+        self.tabs.setCurrentIndex(0)
 
     def save_current_form(self) -> None:
         """Ctrl+S: Save current form"""
@@ -718,8 +1767,32 @@ class MainWindow(QMainWindow):
         try:
             self.grid_standards.apply_to_widget(root_widget)
             install_replace_all_behavior(root_widget)
+            self._compact_non_run_charter_tabs(root_widget)
         except Exception as e:
             logger.warning("UI standards apply failed: %s", e)
+
+    def _compact_non_run_charter_tabs(self, root_widget: QWidget) -> None:
+        """Tighten tab chrome everywhere while leaving Run Charter alone."""
+        try:
+            tab_widgets = root_widget.findChildren(QTabWidget)
+            for tab_widget in tab_widgets:
+                has_run_charter_tab = any(
+                    "run charter" in tab_widget.tabText(index).lower()
+                    for index in range(tab_widget.count())
+                )
+                if has_run_charter_tab:
+                    continue
+                tab_widget.setUsesScrollButtons(False)
+                tab_widget.setStyleSheet(
+                    "QTabWidget::pane { border: 1px solid #d0d7de; margin-top: 2px; } "
+                    "QTabBar::tab { padding: 4px 8px; min-height: 18px; max-height: 22px; "
+                    "font-size: 10px; font-weight: bold; } "
+                    "QTabBar::tab:selected { background: #eaf3ff; }"
+                )
+                if tab_widget.minimumHeight() < 220:
+                    tab_widget.setMinimumHeight(220)
+        except Exception as e:
+            logger.debug("Compact desk tab layout skipped: %s", e)
 
     def duplicate_record(self) -> None:
         """Ctrl+D: Duplicate selected record"""
@@ -772,19 +1845,38 @@ class MainWindow(QMainWindow):
         "form inputs."""
 
         if event.type() in self._activity_event_types:
+            idle_seconds = (
+                datetime.now() - self._last_activity
+            ).total_seconds()
             self._mark_activity()
+            if (
+                idle_seconds >= 300
+                and hasattr(self, "db_monitor")
+                and not self.db_monitor.timer.isActive()
+            ):
+                self.db_monitor.check_connection()
 
-        # Block scroll wheel from accidentally changing spinboxes / combos
-        # while the user scrolls the page.  Only allow wheel changes once
-        # the control has keyboard focus (i.e. the user clicked into it).
-        if (event.type() == QEvent.Type.Wheel
-                and isinstance(obj, (
-                    QSpinBox, QDoubleSpinBox,
-                    QDateEdit, QTimeEdit,
-                    QComboBox,
-                ))
-                and not obj.hasFocus()):
+        # Block scroll wheel from changing value controls anywhere in the app.
+        # Page scrolling still works on containers; only direct value widgets
+        # are protected.
+        if event.type() == QEvent.Type.Wheel and isinstance(
+            obj, (QSpinBox, QDoubleSpinBox, QDateEdit, QTimeEdit, QComboBox)
+        ):
             return True  # consume – don't change the control
+
+        # Standardize every dollar-value QDoubleSpinBox to behave like the
+        # Add Receipt "Amount" field: select the whole value on focus/click
+        # so typing "60" or "31.63" replaces it instead of appending digits
+        # onto the existing value (which is what caused 60.00 -> 6000.00 or
+        # 31.63 -> 313163.63 style corruption). selectAll() lives on the
+        # spin box's internal QLineEdit, not on QDoubleSpinBox itself.
+        if (
+            event.type() in (QEvent.Type.FocusIn, QEvent.Type.MouseButtonPress)
+            and isinstance(obj, QDoubleSpinBox)
+        ):
+            line_edit = obj.lineEdit()
+            if line_edit is not None:
+                QTimer.singleShot(0, line_edit.selectAll)
 
         if event.type() == QEvent.Type.KeyPress and hasattr(event, "key"):
             key = event.key()
@@ -860,13 +1952,8 @@ class MainWindow(QMainWindow):
             f"✅ {user_display} connected to {mode_display}"
         )
 
-        # Show success notification
-        QMessageBox.information(
-            self,
-            "Connection Restored",
-            "✅ Database connection has been restored.\n\nYou can now save and"
-            "load data normally.",
-        )
+        # Keep restore handling non-blocking; status bar already reports
+        # recovery without interrupting active data entry workflows.
 
     def _on_db_status_changed(self, is_online, status_message) -> None:
         """Handler for any database status change"""
@@ -917,7 +2004,7 @@ class MainWindow(QMainWindow):
         """Open enhanced receipts management widget."""
         try:
             dialog = QDialog(self)
-            dialog.setWindowTitle("Enhanced Receipts Manager")
+            dialog.setWindowTitle("Enhanced Receipts")
             dialog.setGeometry(100, 100, 1400, 800)
 
             layout = QVBoxLayout(dialog)
@@ -934,7 +2021,7 @@ class MainWindow(QMainWindow):
         """Open enhanced banking management widget."""
         try:
             dialog = QDialog(self)
-            dialog.setWindowTitle("Enhanced Banking Manager")
+            dialog.setWindowTitle("Enhanced Banking")
             dialog.setGeometry(100, 100, 1400, 800)
 
             layout = QVBoxLayout(dialog)
@@ -1101,6 +2188,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
 
         tabs = QTabWidget()
+        self.fleet_parent_tabs = tabs
 
         self._fleet_subtab_factories = {
             "🚐 Vehicles": self.create_vehicles_tab,
@@ -1115,12 +2203,17 @@ class MainWindow(QMainWindow):
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
             tabs.addTab(placeholder, sub_tab_name)
 
-        tabs.currentChanged.connect(
+        tabs.tabBarClicked.connect(
             lambda idx: self._on_fleet_subtab_changed(tabs, idx)
         )
 
-        # Eager-load first fleet sub-tab only
-        self._on_fleet_subtab_changed(tabs, 0)
+        QTimer.singleShot(
+            0,
+            lambda t=tabs: self._on_fleet_subtab_changed(
+                t,
+                t.currentIndex(),
+            ),
+        )
 
         layout.addWidget(tabs)
         return parent
@@ -1173,44 +2266,104 @@ class MainWindow(QMainWindow):
         tabs = QTabWidget()
         self.accounting_parent_tabs = tabs
 
-        # Nested lazy-loading for Accounting sub-tabs.
-        # This keeps open time fast and limits fault impact.
+        # Nested lazy-loading for Accounting grouped sub-tabs.
         self._accounting_subtab_factories = {
             "🎯 Accounting Hub": self.create_accounting_control_center_tab,
+            "📆 Month-End Close": self.create_month_end_close_tab,
+            "🗓️ Year-End Close": self.create_year_end_close_tab,
             "💰 Receipts & Invoices": (
                 lambda: self.create_accounting_tab_with_parent(tabs)
             ),
             "📝 Accountant Notes": self.create_accountant_notes_tab,
-            "📒 Check Book Management": self.create_checkbook_management_tab,
-            "🏦 Enhanced Banking Manager": self.create_enhanced_banking_tab,
-            "🧩 NSF Pair Manager": self.create_nsf_pair_manager_tab,
-            "🧾 Enhanced Receipts Manager": self.create_enhanced_receipts_tab,
-            "📋 Vendor Invoice Manager": self.create_vendor_invoice_tab,
+            "📋 Vendor Invoices": self.create_vendor_invoice_tab,
+            "🧾 Enhanced Receipts": self.create_enhanced_receipts_tab,
+            "💳 Payment Linker": self.create_payment_linker_tab,
+            "📒 Check Book": self.create_checkbook_management_tab,
+            "🏦 Enhanced Banking": self.create_enhanced_banking_tab,
+            "🧩 NSF Pairs": self.create_nsf_pair_manager_tab,
+            "🏦 Staff Loan Account": self.create_staff_loan_account_tab,
             "💵 Payroll Entry": self.create_payroll_entry_tab,
             "🧮 Payroll Remittances": self.create_payroll_remittances_tab,
-            "🏛️ Tax Management": self.create_tax_management_tab,
+            "🏛️ Tax": self.create_tax_management_tab,
             "📋 T2 Corporate Tax": self.create_t2_data_entry_tab,
             "🛡️ WCB Rates": self.create_wcb_rates_tab,
+            "🧪 Audit": self.create_audit_management_tab,
             "🏢 Business Entity": self.create_business_entity_tab,
             "📦 Asset Inventory": lambda: AssetManagementWidget(),
             "📊 Financial Reports": self.create_reports_tab,
             "🍷 Beverage Revenue": self.create_beverage_accounting_tab,
-            "🍷 Beverage Management": self.create_beverage_management_tab,
+            "🍷 Beverage": self.create_beverage_management_tab,
         }
+        self._accounting_subtab_aliases = {
+            "🧪 Audit Management": "🧪 Audit",
+            "📒 Check Book Management": "📒 Check Book",
+            "🏦 Enhanced Banking Manager": "🏦 Enhanced Banking",
+            "🧩 NSF Pair Manager": "🧩 NSF Pairs",
+            "🧾 Enhanced Receipts Manager": "🧾 Enhanced Receipts",
+            "📋 Vendor Invoice Manager": "📋 Vendor Invoices",
+            "🏛️ Tax Management": "🏛️ Tax",
+            "🍷 Beverage Management": "🍷 Beverage",
+        }
+
+        self._accounting_group_layout = {
+            "📅 Close Management": [
+                "📆 Month-End Close",
+                "🗓️ Year-End Close",
+            ],
+            "🗂️ Daily Work": [
+                "🎯 Accounting Hub",
+                "💰 Receipts & Invoices",
+                "📝 Accountant Notes",
+                "📋 Vendor Invoices",
+                "🧾 Enhanced Receipts",
+                "💳 Payment Linker",
+            ],
+            "🏦 Banking & Cash": [
+                "📒 Check Book",
+                "🏦 Enhanced Banking",
+                "🧩 NSF Pairs",
+                "🏦 Staff Loan Account",
+            ],
+            "👔 Payroll & Tax": [
+                "💵 Payroll Entry",
+                "🧮 Payroll Remittances",
+                "🏛️ Tax",
+                "📋 T2 Corporate Tax",
+                "🛡️ WCB Rates",
+            ],
+            "📊 Compliance & Reports": [
+                "🧪 Audit",
+                "🏢 Business Entity",
+                "📦 Asset Inventory",
+                "📊 Financial Reports",
+                "🍷 Beverage Revenue",
+                "🍷 Beverage",
+            ],
+        }
+        self._accounting_subtab_to_group = {}
+        self._accounting_group_tabs = {}
         self._accounting_subtabs_loaded = set()
         self._accounting_subtabs_in_progress = set()
 
-        for sub_tab_name in self._accounting_subtab_factories:
-            placeholder = QLabel(f"Loading {sub_tab_name}...")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            tabs.addTab(placeholder, sub_tab_name)
-
-        tabs.currentChanged.connect(
-            lambda idx: self._on_accounting_subtab_changed(tabs, idx)
-        )
-
-        # Eager-load first accounting sub-tab only
-        self._on_accounting_subtab_changed(tabs, 0)
+        for group_name, sub_tabs in self._accounting_group_layout.items():
+            group_tabs = QTabWidget()
+            self._accounting_group_tabs[group_name] = group_tabs
+            for sub_tab_name in sub_tabs:
+                self._accounting_subtab_to_group[sub_tab_name] = group_name
+                placeholder = QLabel(f"Loading {sub_tab_name}...")
+                placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                group_tabs.addTab(placeholder, sub_tab_name)
+            group_tabs.tabBarClicked.connect(
+                lambda idx, t=group_tabs: self._on_accounting_subtab_changed(t, idx)
+            )
+            QTimer.singleShot(
+                0,
+                lambda t=group_tabs: self._on_accounting_subtab_changed(
+                    t,
+                    t.currentIndex(),
+                ),
+            )
+            tabs.addTab(group_tabs, group_name)
 
         layout.addWidget(tabs)
         return parent
@@ -1259,6 +2412,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
 
         tabs = QTabWidget()
+        self.admin_parent_tabs = tabs
 
         self._admin_subtab_factories = {
             "⚙️ Admin Controls": self.create_admin_tab,
@@ -1273,12 +2427,18 @@ class MainWindow(QMainWindow):
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
             tabs.addTab(placeholder, sub_tab_name)
 
-        tabs.currentChanged.connect(
+        # Also load when the same tab is clicked (currentChanged won't fire).
+        tabs.tabBarClicked.connect(
             lambda idx: self._on_admin_subtab_changed(tabs, idx)
         )
 
-        # Defer first sub-tab load to keep the parent Admin tab responsive.
-        QTimer.singleShot(0, lambda: self._on_admin_subtab_changed(tabs, 0))
+        QTimer.singleShot(
+            0,
+            lambda t=tabs: self._on_admin_subtab_changed(
+                t,
+                t.currentIndex(),
+            ),
+        )
 
         layout.addWidget(tabs)
         return parent
@@ -1321,29 +2481,95 @@ class MainWindow(QMainWindow):
             self._admin_subtabs_in_progress.discard(tab_text)
 
     def create_operations_parent_tab(self) -> QWidget:
-        """Consolidated Operations: Charters, Dispatch, Customers, Documents,"
-        "Quotes"""
+        """Consolidated Operations with lazy-loaded sub-tabs."""
 
         parent = QWidget()
         layout = QVBoxLayout(parent)
         layout.setContentsMargins(0, 0, 0, 0)
 
         tabs = QTabWidget()
-        # Store reference for tab management
         self.operations_tabs = tabs
 
-        # Dispatch is now PRIMARY (includes Dispatch Board, Booking, Quote,
-        # Calendars)
-        self.dispatch_tab_index = tabs.addTab(
-            self.create_dispatch_tab(), "📡 Dispatch"
+        self._operations_subtab_factories = {
+            "📡 Dispatch": self.create_dispatch_tab,
+            "🍷 Beverage": self.create_beverage_management_tab,
+            "👥 Customers": self.create_customers_tab,
+            "💳 Client Payments": (
+                self.create_client_payment_management_tab
+            ),
+            "📄 Documents": self.create_documents_tab,
+            "✅ Close Control Center": self.create_close_control_center_tab,
+            "📊 Reports & PDFs": lambda: ReportManagementWidget(self.db),
+        }
+        self._operations_subtabs_loaded = set()
+        self._operations_subtabs_in_progress = set()
+
+        for sub_tab_name in self._operations_subtab_factories:
+            placeholder = QLabel(f"Loading {sub_tab_name}...")
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            tabs.addTab(placeholder, sub_tab_name)
+
+        tabs.tabBarClicked.connect(
+            lambda idx: self._on_operations_subtab_changed(tabs, idx)
         )
-        tabs.addTab(self.create_beverage_management_tab(), "🍷 Beverage Management")
-        tabs.addTab(self.create_customers_tab(), "👥 Customers")
-        tabs.addTab(self.create_documents_tab(), "📄 Documents")
-        tabs.addTab(ReportManagementWidget(self.db), "📊 Reports & PDFs")
+
+        self.dispatch_tab_index = 0
+        self.booking_tab_index = 0
+
+        QTimer.singleShot(
+            0,
+            lambda t=tabs: self._on_operations_subtab_changed(
+                t,
+                t.currentIndex(),
+            ),
+        )
 
         layout.addWidget(tabs)
         return parent
+
+    def _on_operations_subtab_changed(self, tabs: QTabWidget, index: int) -> None:
+        """Load Operations sub-tab content on first access."""
+        if index < 0:
+            return
+
+        tab_text = tabs.tabText(index)
+        if tab_text not in self._operations_subtab_factories:
+            return
+
+        if (
+            tab_text in self._operations_subtabs_loaded
+            or tab_text in self._operations_subtabs_in_progress
+        ):
+            return
+
+        self._operations_subtabs_in_progress.add(tab_text)
+        tabs.blockSignals(True)
+        try:
+            real_widget = self._operations_subtab_factories[tab_text]()
+            tabs.removeTab(index)
+            tabs.insertTab(index, real_widget, tab_text)
+            tabs.setCurrentIndex(index)
+            self._apply_global_ui_standards(real_widget)
+            self._operations_subtabs_loaded.add(tab_text)
+        except Exception as e:
+            logger.exception("Failed to load operations sub-tab %s", tab_text)
+            error_widget = QLabel(f"Error loading {tab_text}:\n{e!s}")
+            error_widget.setStyleSheet("color: red; padding: 20px;")
+            error_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            tabs.removeTab(index)
+            tabs.insertTab(index, error_widget, tab_text)
+            tabs.setCurrentIndex(index)
+            self._operations_subtabs_loaded.add(tab_text)
+        finally:
+            tabs.blockSignals(False)
+            self._operations_subtabs_in_progress.discard(tab_text)
+
+    def create_close_control_center_tab(self) -> QWidget:
+        """Operations control checks for daily/month-end close readiness."""
+        from close_control_center_widget import CloseControlCenterWidget
+
+        self.close_control_center_widget = CloseControlCenterWidget(self.db)
+        return self.close_control_center_widget
 
     def create_charter_tab(self) -> QWidget:
         """Charter/booking management tab"""
@@ -1351,6 +2577,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout()
 
         self.charter_form = CharterFormWidget(self.db)
+        self._ensure_payroll_refresh_hook()
         layout.addWidget(self.charter_form)
 
         widget.setLayout(layout)
@@ -1450,6 +2677,12 @@ class MainWindow(QMainWindow):
         from enhanced_client_widget import EnhancedClientListWidget
         return EnhancedClientListWidget(self.db)
 
+    def create_client_payment_management_tab(self) -> QWidget:
+        """Client payment workflow tab with direct access to payments."""
+        from enhanced_client_widget import EnhancedClientListWidget
+
+        return EnhancedClientListWidget(self.db, payment_mode=True)
+
     def create_vehicles_tab(self) -> QWidget:
         """Vehicle management tab with maintenance tracking"""
         from vehicle_management_widget import VehicleManagementWidget
@@ -1479,9 +2712,62 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout()
         self.payroll_entry_widget = PayrollEntryWidget(self.db)
+        self._apply_year_scope_to_widget(self.payroll_entry_widget)
+        self._ensure_payroll_refresh_hook()
         layout.addWidget(self.payroll_entry_widget)
         widget.setLayout(layout)
         return widget
+
+    def _apply_year_scope_to_widget(self, widget) -> None:
+        """Apply selected startup year scope to compatible widgets."""
+        try:
+            _start_year, end_year = self.get_working_year_scope()
+
+            if hasattr(widget, "year_spin"):
+                widget.year_spin.setValue(int(end_year))
+
+            if hasattr(widget, "year_combo"):
+                year_text = str(int(end_year))
+                idx = widget.year_combo.findText(year_text)
+                if idx >= 0:
+                    widget.year_combo.setCurrentIndex(idx)
+        except Exception as exc:
+            logger.debug("Suppressed year scope apply error: %s", exc)
+
+    def _ensure_payroll_refresh_hook(self) -> None:
+        """Connect charter saves to payroll refresh once."""
+
+        if getattr(self, "_charter_payroll_refresh_connected", False):
+            return
+        if not hasattr(self, "charter_form"):
+            return
+
+        self.charter_form.saved.connect(self._refresh_payroll_views_from_charter)
+        self._charter_payroll_refresh_connected = True
+
+    def _refresh_payroll_views_from_charter(self, *_args) -> None:
+        """Refresh payroll views after charter edits change approved hours or gratuity."""
+
+        widget = getattr(self, "payroll_entry_widget", None)
+        if not widget:
+            return
+
+        try:
+            widget._load_pay_printout()
+        except Exception as exc:
+            logger.debug("Suppressed payroll printout refresh after charter save: %s", exc)
+
+        for refresh_name in (
+            "_load_monthly_remittance_summary",
+            "_refresh_pay_ledger",
+            "_load_ytd_totals",
+        ):
+            refresh = getattr(widget, refresh_name, None)
+            if callable(refresh):
+                try:
+                    refresh()
+                except Exception as exc:
+                    logger.debug("Suppressed payroll refresh %s after charter save: %s", refresh_name, exc)
 
     def create_payroll_remittances_tab(self) -> QWidget:
         """Monthly CRA/WCB remittance reconciliation tab."""
@@ -1540,6 +2826,7 @@ class MainWindow(QMainWindow):
 
         # TABs 2-7: lazy placeholders
         self._dispatch_subtab_factories = {
+            "👷 Staff Work Schedule": self._create_employee_work_schedule_subtab,
             "📅 Calendar (Outlook Style)": self._create_outlook_calendar_subtab,
             "🗓️ Calendar (Table View)": self._create_dispatcher_calendar_subtab,
             "👤 Driver Calendar": self._create_driver_calendar_subtab,
@@ -1556,13 +2843,22 @@ class MainWindow(QMainWindow):
             dispatch_tabs.addTab(placeholder, tab_name)
 
         dispatch_tabs.currentChanged.connect(
-            lambda idx: self._on_dispatch_subtab_changed(dispatch_tabs, idx)
+            lambda idx: self._on_dispatch_tab_changed(dispatch_tabs, idx)
         )
         dispatch_tabs.setCurrentIndex(0)
 
         layout.addWidget(dispatch_tabs)
         widget.setLayout(layout)
         return widget
+
+    def _on_dispatch_tab_changed(self, tabs: QTabWidget, index: int) -> None:
+        """Keep dispatch board fresh and lazy-load secondary sub-tabs."""
+        if index == 0 and hasattr(self, "dispatch_widget"):
+            try:
+                self.dispatch_widget._trigger_load()
+            except Exception as e:
+                logger.debug("Dispatch board refresh on tab switch skipped: %s", e)
+        self._on_dispatch_subtab_changed(tabs, index)
 
     def _on_dispatch_subtab_changed(
         self, tabs: QTabWidget, index: int
@@ -1604,6 +2900,12 @@ class MainWindow(QMainWindow):
         from outlook_style_calendar_widget import OutlookStyleCalendarWidget
         self.outlook_calendar_widget = OutlookStyleCalendarWidget(self.db)
         return self.outlook_calendar_widget
+
+    def _create_employee_work_schedule_subtab(self) -> QWidget:
+        from employee_work_schedule_widget import EmployeeWorkScheduleWidget
+
+        self.employee_work_schedule_widget = EmployeeWorkScheduleWidget(self.db)
+        return self.employee_work_schedule_widget
 
     def _create_dispatcher_calendar_subtab(self) -> QWidget:
         from dispatcher_calendar_widget import DispatcherCalendarWidget
@@ -1654,6 +2956,11 @@ class MainWindow(QMainWindow):
         """Beverage cost vs revenue vs profit accounting report."""
         from beverage_accounting_widget import BeverageAccountingWidget
         return BeverageAccountingWidget(self.db)
+
+    def create_payment_linker_tab(self) -> QWidget:
+        """Payment Linker - manual assignment of orphaned payments to charters."""
+        from payment_linker_widget import PaymentLinkerWidget
+        return PaymentLinkerWidget(self.db)
 
     def create_admin_tab(self) -> QWidget:
         """Admin and system management"""
@@ -1715,6 +3022,34 @@ class MainWindow(QMainWindow):
         widget.setLayout(layout)
         return widget
 
+    def create_audit_management_tab(self) -> QWidget:
+        """Centralized audit findings + resolutions for CRA/payroll/banking."""
+        from audit_management_widget import AuditManagementWidget
+
+        widget = QWidget()
+        layout = QVBoxLayout()
+        self.audit_management_widget = AuditManagementWidget(
+            self.db,
+            auth_user=getattr(self, "auth_user", {}),
+        )
+        layout.addWidget(self.audit_management_widget)
+        widget.setLayout(layout)
+        return widget
+
+    def create_staff_loan_account_tab(self) -> QWidget:
+        """Unified non-owner staff loan ledger and balance-forward workflow."""
+        from staff_loan_account_widget import StaffLoanAccountWidget
+
+        widget = QWidget()
+        layout = QVBoxLayout()
+        self.staff_loan_account_widget = StaffLoanAccountWidget(
+            self.db,
+            auth_user=getattr(self, "auth_user", {}),
+        )
+        layout.addWidget(self.staff_loan_account_widget)
+        widget.setLayout(layout)
+        return widget
+
     def create_t2_data_entry_tab(self) -> QWidget:
         """T2 Corporation Tax Return Data Entry - Historical data from paper"
         "forms"""
@@ -1735,16 +3070,16 @@ class MainWindow(QMainWindow):
         return WCBRateEntryWidget(self.db)
 
     def create_business_entity_tab(self) -> QWidget:
-        """Business entity management - overall company view"""
+        """Business entity overview - overall company view"""
         widget = QWidget()
         layout = QVBoxLayout()
 
         # Add button to open business entity dialog
-        header = QLabel("<h2>🏢 Business Entity Management</h2>")
+        header = QLabel("<h2>🏢 Business Entity</h2>")
         layout.addWidget(header)
 
         info_label = QLabel("""
-        <p>Manage Arrow Limousine as a business entity:</p>
+        <p>Configure Arrow Limousine as a business entity:</p>
         <ul>
         <li>Company registration and legal documents</li>
         <li>Financial overview (P&L, balance sheet)</li>
@@ -1757,7 +3092,7 @@ class MainWindow(QMainWindow):
         """)
         layout.addWidget(info_label)
 
-        open_btn = QPushButton("🏢 Open Business Management Dashboard")
+        open_btn = QPushButton("🏢 Open Business Entity Dashboard")
         open_btn.setMinimumHeight(50)
         open_btn.setStyleSheet("font-size: 14px; font-weight: bold;")
         open_btn.clicked.connect(self.open_business_entity_dialog)
@@ -1809,14 +3144,38 @@ class MainWindow(QMainWindow):
         from accounting_control_center_widget import (
             AccountingControlCenterWidget,
         )
+        widget = AccountingControlCenterWidget(self.db)
+        self._apply_year_scope_to_widget(widget)
+        return widget
 
-        return AccountingControlCenterWidget(self.db)
+    def create_month_end_close_tab(self) -> QWidget:
+        """Create the persistent month-end close management checklist."""
+        from period_close_management_widget import PeriodCloseManagementWidget
+
+        self.month_end_close_widget = PeriodCloseManagementWidget(
+            self.db,
+            "month",
+            main_window=self,
+        )
+        return self.month_end_close_widget
+
+    def create_year_end_close_tab(self) -> QWidget:
+        """Create the persistent year-end close management checklist."""
+        from period_close_management_widget import PeriodCloseManagementWidget
+
+        self.year_end_close_widget = PeriodCloseManagementWidget(
+            self.db,
+            "year",
+            main_window=self,
+        )
+        return self.year_end_close_widget
 
     def create_year_end_audit_tab(self) -> QWidget:
         """Year-end hub: Guided Wizard + legacy Audit Checks."""
         try:
             from PyQt6.QtWidgets import QTabWidget
             tabs = QTabWidget()
+            self.year_end_tabs = tabs
 
             # Step-by-step guided workflow (H&R Block style)
             auth = getattr(self, "auth_user", {"username": "system", "role": "admin"})
@@ -1841,7 +3200,7 @@ class MainWindow(QMainWindow):
             return widget
 
     def create_enhanced_banking_tab(self) -> QWidget:
-        """Create Enhanced Banking Manager tab"""
+        """Create Enhanced Banking tab"""
         widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -1852,18 +3211,18 @@ class MainWindow(QMainWindow):
             layout.addWidget(banking_manager)
         except Exception as e:
             error_label = QLabel(
-                f"❌ Error loading Enhanced Banking Manager:\n{e!s}"
+                f"❌ Error loading Enhanced Banking:\n{e!s}"
             )
             error_label.setStyleSheet("color: red; padding: 20px;")
             error_label.setWordWrap(True)
             layout.addWidget(error_label)
-            logger.warning(f"Error creating Enhanced Banking Manager tab: {e}")
+            logger.warning(f"Error creating Enhanced Banking tab: {e}")
 
         widget.setLayout(layout)
         return widget
 
     def create_nsf_pair_manager_tab(self) -> QWidget:
-        """Create NSF Pair Manager tab."""
+        """Create NSF Pairs tab."""
         widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -1872,11 +3231,11 @@ class MainWindow(QMainWindow):
             nsf_manager = NsfPairManagerWidget(self.db, widget)
             layout.addWidget(nsf_manager)
         except Exception as e:
-            error_label = QLabel(f"Error loading NSF Pair Manager:\n{e!s}")
+            error_label = QLabel(f"Error loading NSF Pairs:\n{e!s}")
             error_label.setStyleSheet("color: red; padding: 20px;")
             error_label.setWordWrap(True)
             layout.addWidget(error_label)
-            logger.warning(f"Error creating NSF Pair Manager tab: {e}")
+            logger.warning(f"Error creating NSF Pairs tab: {e}")
 
         widget.setLayout(layout)
         return widget
@@ -1885,6 +3244,20 @@ class MainWindow(QMainWindow):
         """Programmatically focus a top-level tab by text."""
         if not hasattr(self, "tabs"):
             return False
+        legacy_top_tab_aliases = {
+            "🚗 Fleet Management": "🚗 Fleet & People",
+        }
+        top_tab_name = legacy_top_tab_aliases.get(top_tab_name, top_tab_name)
+
+        has_existing_tab = False
+        for i in range(self.tabs.count()):
+            if self.tabs.tabText(i) == top_tab_name:
+                has_existing_tab = True
+                break
+
+        if top_tab_name in self._lazy_tab_factories and not has_existing_tab:
+            self._open_single_section_tab(top_tab_name)
+
         for i in range(self.tabs.count()):
             if self.tabs.tabText(i) == top_tab_name:
                 self.tabs.setCurrentIndex(i)
@@ -1897,9 +3270,43 @@ class MainWindow(QMainWindow):
             return False
         if not hasattr(self, "accounting_parent_tabs"):
             return False
-        for i in range(self.accounting_parent_tabs.count()):
-            if self.accounting_parent_tabs.tabText(i) == sub_tab_name:
-                self.accounting_parent_tabs.setCurrentIndex(i)
+
+        canonical_name = getattr(self, "_accounting_subtab_aliases", {}).get(
+            sub_tab_name,
+            sub_tab_name,
+        )
+        group_name = getattr(self, "_accounting_subtab_to_group", {}).get(canonical_name)
+        if not group_name:
+            return False
+
+        group_tabs = getattr(self, "_accounting_group_tabs", {}).get(group_name)
+        if group_tabs is None:
+            return False
+
+        for group_idx in range(self.accounting_parent_tabs.count()):
+            if self.accounting_parent_tabs.tabText(group_idx) == group_name:
+                self.accounting_parent_tabs.setCurrentIndex(group_idx)
+                break
+        else:
+            return False
+
+        for sub_idx in range(group_tabs.count()):
+            if group_tabs.tabText(sub_idx) == canonical_name:
+                group_tabs.setCurrentIndex(sub_idx)
+                self._on_accounting_subtab_changed(group_tabs, sub_idx)
+                return True
+        return False
+
+    def navigate_to_fleet_subtab(self, sub_tab_name: str) -> bool:
+        """Focus Fleet & People, then a specific fleet sub-tab."""
+        if not self.navigate_to_top_tab("🚗 Fleet & People"):
+            return False
+        if not hasattr(self, "fleet_parent_tabs"):
+            return False
+        for index in range(self.fleet_parent_tabs.count()):
+            if self.fleet_parent_tabs.tabText(index) == sub_tab_name:
+                self.fleet_parent_tabs.setCurrentIndex(index)
+                self._on_fleet_subtab_changed(self.fleet_parent_tabs, index)
                 return True
         return False
 
@@ -1909,14 +3316,19 @@ class MainWindow(QMainWindow):
             return False
         if not hasattr(self, "operations_tabs"):
             return False
+        legacy_operation_aliases = {
+            "💳 Client Payment Management": "💳 Client Payments",
+        }
+        sub_tab_name = legacy_operation_aliases.get(sub_tab_name, sub_tab_name)
         for i in range(self.operations_tabs.count()):
             if self.operations_tabs.tabText(i) == sub_tab_name:
                 self.operations_tabs.setCurrentIndex(i)
+                self._on_operations_subtab_changed(self.operations_tabs, i)
                 return True
         return False
 
     def create_enhanced_receipts_tab(self) -> QWidget:
-        """Create Enhanced Receipts Manager tab"""
+        """Create Enhanced Receipts tab"""
         widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -1926,638 +3338,274 @@ class MainWindow(QMainWindow):
             layout.addWidget(receipts_manager)
         except Exception as e:
             error_label = QLabel(
-                f"❌ Error loading Enhanced Receipts Manager:\n{e!s}"
+                f"❌ Error loading Enhanced Receipts:\n{e!s}"
             )
             error_label.setStyleSheet("color: red; padding: 20px;")
             error_label.setWordWrap(True)
             layout.addWidget(error_label)
-            logger.warning(f"Error creating Enhanced Receipts Manager tab: {e}")
+            logger.warning(f"Error creating Enhanced Receipts tab: {e}")
 
         widget.setLayout(layout)
         return widget
 
     def create_reports_tab(self) -> QWidget:
         """Reports & analytics tab with Phase 1, 2, 3 dashboards"""
+        import importlib
+
+        report_modules = (
+            "dashboard_classes",
+            "dashboards_phase2_phase3",
+            "dashboards_phase4_5_6",
+            "dashboards_phase7_8",
+            "dashboards_phase9",
+            "dashboards_phase10",
+            "dashboards_phase11",
+            "dashboards_phase12",
+            "dashboards_phase13",
+            "dashboards_phase14",
+            "dashboards_phase15",
+        )
+        for module_name in report_modules:
+            module = importlib.import_module(module_name)
+            for class_name in dir(module):
+                if class_name.endswith("Widget"):
+                    globals().setdefault(class_name, getattr(module, class_name))
+
         widget = QWidget()
         layout = QVBoxLayout()
 
-        # Create sub-tabs for different reports (11 total dashboards)
         report_tabs = QTabWidget()
-
-        # Accountant-focused drill-down entry point
-        from reports_widget import DrillDownReportWidget
-
-        self.drilldown_widget = DrillDownReportWidget(self.db)
-        report_tabs.addTab(self.drilldown_widget, "🔎 Drill-Down Reports")
-
-        # ===== PHASE 1: CORE DASHBOARDS (4) =====
-        # Fleet Management
-        self.fleet_widget = FleetManagementWidget(self.db)
-        report_tabs.addTab(self.fleet_widget, "🚐 Fleet Management")
-
-        # Driver Performance
-        self.driver_widget = DriverPerformanceWidget(self.db)
-        report_tabs.addTab(self.driver_widget, "👤 Driver Performance")
-
-        # Financial Dashboard
-        self.financial_widget = FinancialDashboardWidget(self.db)
-        report_tabs.addTab(self.financial_widget, "📈 Financial Reports")
-
-        # Payment Reconciliation
-        self.payment_widget = PaymentReconciliationWidget(self.db)
-        report_tabs.addTab(self.payment_widget, "💳 Payment Reconciliation")
-
-        # ===== PHASE 2: ADVANCED ANALYTICS (4) =====
-        # Advanced Vehicle Analytics
-        self.vehicle_analytics_widget = VehicleAnalyticsWidget(self.db)
-        report_tabs.addTab(
-            self.vehicle_analytics_widget, "🚗 Vehicle Analytics"
-        )
-
-        # Employee Payroll Audit
-        self.payroll_audit_widget = EmployeePayrollAuditWidget(self.db)
-        report_tabs.addTab(self.payroll_audit_widget, "👔 Payroll Audit")
-
-        # QuickBooks Reconciliation
-        self.qb_recon_widget = QuickBooksReconciliationWidget(self.db)
-        report_tabs.addTab(self.qb_recon_widget, "📊 QB Reconciliation")
-
-        # Charter Analytics
-        self.charter_analytics_widget = CharterAnalyticsWidget(self.db)
-        report_tabs.addTab(
-            self.charter_analytics_widget, "📈 Charter Analytics"
-        )
-
-        # ===== PHASE 3: COMPLIANCE & BUDGET (3) =====
-        # Compliance Tracking
-        self.compliance_widget = ComplianceTrackingWidget(self.db)
-        report_tabs.addTab(self.compliance_widget, "✅ Compliance")
-
-        # Budget vs Actual
-        self.budget_widget = BudgetAnalysisWidget(self.db)
-        report_tabs.addTab(self.budget_widget, "💰 Budget vs Actual")
-
-        # Insurance Tracking
-        self.insurance_widget = InsuranceTrackingWidget(self.db)
-        report_tabs.addTab(self.insurance_widget, "🛡️ Insurance")
-
-        # ===== PHASE 4: FLEET MANAGEMENT (5) =====
-        # Vehicle Fleet Cost Analysis
-        self.fleet_cost_widget = VehicleFleetCostAnalysisWidget(self.db)
-        report_tabs.addTab(self.fleet_cost_widget, "🚗 Fleet Cost Analysis")
-
-        # Vehicle Maintenance Tracking
-        self.maintenance_widget = VehicleMaintenanceTrackingWidget(self.db)
-        report_tabs.addTab(self.maintenance_widget, "🔧 Maintenance Tracking")
-
-        # Fuel Efficiency Tracking
-        self.fuel_efficiency_widget = FuelEfficiencyTrackingWidget(self.db)
-        report_tabs.addTab(self.fuel_efficiency_widget, "⛽ Fuel Efficiency")
-
-        # Vehicle Utilization
-        self.utilization_widget = VehicleUtilizationWidget(self.db)
-        report_tabs.addTab(self.utilization_widget, "📊 Vehicle Utilization")
-
-        # Fleet Age Analysis
-        self.fleet_age_widget = FleetAgeAnalysisWidget(self.db)
-        report_tabs.addTab(self.fleet_age_widget, "📈 Fleet Age Analysis")
-
-        # ===== PHASE 5: EMPLOYEE/PAYROLL (5) =====
-        # Driver Pay Analysis
-        self.driver_pay_widget = DriverPayAnalysisWidget(self.db)
-        report_tabs.addTab(self.driver_pay_widget, "💰 Driver Pay Analysis")
-
-        # Employee Performance Metrics
-        self.perf_metrics_widget = EmployeePerformanceMetricsWidget(self.db)
-        report_tabs.addTab(self.perf_metrics_widget, "⭐ Performance Metrics")
-
-        # Payroll Tax Compliance
-        self.tax_compliance_widget = PayrollTaxComplianceWidget(self.db)
-        report_tabs.addTab(self.tax_compliance_widget, "📋 Tax Compliance")
-
-        # Driver Schedule Management
-        self.schedule_widget = DriverScheduleManagementWidget(self.db)
-        report_tabs.addTab(self.schedule_widget, "📅 Driver Schedule")
-
-        # ===== PHASE 6: PAYMENTS & FINANCIAL (5) =====
-        # Payment Reconciliation (Advanced)
-        self.payment_adv_widget = PaymentReconciliationAdvancedWidget(self.db)
-        report_tabs.addTab(self.payment_adv_widget, "💳 Payments (Advanced)")
-
-        # AR Aging Dashboard
-        self.ar_aging_widget = ARAgingDashboardWidget(self.db)
-        report_tabs.addTab(self.ar_aging_widget, "📊 AR Aging")
-
-        # Cash Flow Report
-        self.cashflow_widget = CashFlowReportWidget(self.db)
-        report_tabs.addTab(self.cashflow_widget, "💸 Cash Flow")
-
-        # Profit & Loss Report
-        self.pl_widget = ProfitLossReportWidget(self.db)
-        report_tabs.addTab(self.pl_widget, "📊 Profit & Loss")
-
-        # Charter Analytics (Advanced)
-        self.charter_adv_widget = CharterAnalyticsAdvancedWidget(self.db)
-        report_tabs.addTab(self.charter_adv_widget, "📈 Charter Analytics+")
-
-        # ===== PHASE 7: CHARTER & CUSTOMER ANALYTICS (8) =====
-        # Charter Management
-        self.charter_mgmt_widget = CharterManagementDashboardWidget(self.db)
-        report_tabs.addTab(self.charter_mgmt_widget, "📅 Charter Management")
-
-        # Customer Lifetime Value
-        self.clv_widget = CustomerLifetimeValueWidget(self.db)
-        report_tabs.addTab(self.clv_widget, "💰 Customer LTV")
-
-        # Charter Cancellation Analysis
-        self.cancel_widget = CharterCancellationAnalysisWidget(self.db)
-        report_tabs.addTab(self.cancel_widget, "📊 Cancellation Analysis")
-
-        # Booking Lead Time
-        self.leadtime_widget = BookingLeadTimeAnalysisWidget(self.db)
-        report_tabs.addTab(self.leadtime_widget, "⏱️ Lead Time")
-
-        # Customer Segmentation
-        self.segment_widget = CustomerSegmentationWidget(self.db)
-        report_tabs.addTab(self.segment_widget, "🎯 Segmentation")
-
-        # Route Profitability
-        self.route_widget = RouteProfitabilityWidget(self.db)
-        report_tabs.addTab(self.route_widget, "🛣️ Route Profitability")
-
-        # Geographic Distribution
-        self.geo_widget = GeographicRevenueDistributionWidget(self.db)
-        report_tabs.addTab(self.geo_widget, "🗺️ Geographic Revenue")
-
-        # ===== PHASE 8: COMPLIANCE, MAINTENANCE, MONITORING (8) =====
-        # HOS Compliance
-        self.hos_widget = HosComplianceTrackingWidget(self.db)
-        report_tabs.addTab(self.hos_widget, "⚖️ HOS Compliance")
-
-        # Advanced Maintenance
-        self.maint_adv_widget = AdvancedMaintenanceScheduleWidget(self.db)
-        report_tabs.addTab(self.maint_adv_widget, "🔧 Maintenance (Advanced)")
-
-        # Safety Incidents
-        self.safety_widget = SafetyIncidentTrackingWidget(self.db)
-        report_tabs.addTab(self.safety_widget, "⚠️ Safety Incidents")
-
-        # Vendor Performance
-        self.vendor_widget = VendorPerformanceWidget(self.db)
-        report_tabs.addTab(self.vendor_widget, "🤝 Vendor Performance")
-
-        # Real-Time Monitoring
-        self.monitor_widget = RealTimeFleetMonitoringWidget(self.db)
-        report_tabs.addTab(self.monitor_widget, "📡 Fleet Monitoring")
-
-        # System Health
-        self.health_widget = SystemHealthDashboardWidget(self.db)
-        report_tabs.addTab(self.health_widget, "🏥 System Health")
-
-        # Data Quality Audit
-        self.quality_widget = DataQualityAuditWidget(self.db)
-        report_tabs.addTab(self.quality_widget, "📋 Data Quality")
-
-        # ===== PHASE 9: PREDICTIVE & ADVANCED ANALYTICS (15) =====
-        # Demand Forecasting
-        self.demand_widget = DemandForecastingWidget(self.db)
-        report_tabs.addTab(self.demand_widget, "📈 Demand Forecasting")
-
-        # Churn Prediction
-        self.churn_widget = ChurnPredictionWidget(self.db)
-        report_tabs.addTab(self.churn_widget, "⚠️ Churn Prediction")
-
-        # Revenue Optimization
-        self.revenue_opt_widget = RevenueOptimizationWidget(self.db)
-        report_tabs.addTab(self.revenue_opt_widget, "💰 Revenue Optimization")
-
-        # Customer Worth (RFM)
-        self.customer_worth_widget = CustomerWorthWidget(self.db)
-        report_tabs.addTab(
-            self.customer_worth_widget, "⭐ Customer Worth (RFM)"
-        )
-
-        # Next Best Action
-        self.nba_widget = NextBestActionWidget(self.db)
-        report_tabs.addTab(self.nba_widget, "🎯 Next Best Action")
-
-        # Seasonality Analysis
-        self.seasonality_widget = SeasonalityAnalysisWidget(self.db)
-        report_tabs.addTab(self.seasonality_widget, "📊 Seasonality")
-
-        # Cost Behavior Analysis
-        self.cost_behavior_widget = CostBehaviorAnalysisWidget(self.db)
-        report_tabs.addTab(self.cost_behavior_widget, "💡 Cost Behavior")
-
-        # Break-Even Analysis
-        self.breakeven_widget = BreakEvenAnalysisWidget(self.db)
-        report_tabs.addTab(self.breakeven_widget, "📊 Break-Even")
-
-        # Email Campaign Performance
-        self.email_widget = EmailCampaignPerformanceWidget(self.db)
-        report_tabs.addTab(self.email_widget, "📧 Email Campaigns")
-
-        # Customer Journey
-        self.journey_widget = CustomerJourneyAnalysisWidget(self.db)
-        report_tabs.addTab(self.journey_widget, "🛣️ Customer Journey")
-
-        # Competitive Intelligence
-        self.competitive_widget = CompetitiveIntelligenceWidget(self.db)
-        report_tabs.addTab(self.competitive_widget, "🎯 Competitive Intel")
-
-        # Regulatory Compliance
-        self.regulatory_widget = RegulatoryComplianceTrackingWidget(self.db)
-        report_tabs.addTab(self.regulatory_widget, "⚖️ Regulatory Compliance")
-
-        # CRA Compliance Report
-        self.cra_widget = CRAComplianceReportWidget(self.db)
-        report_tabs.addTab(self.cra_widget, "📋 CRA Compliance")
-
-        # Employee Productivity
-        self.productivity_widget = EmployeeProductivityTrackingWidget(self.db)
-        report_tabs.addTab(
-            self.productivity_widget, "👥 Employee Productivity"
-        )
-
-        # Promotional Effectiveness
-        self.promo_widget = PromotionalEffectivenessWidget(self.db)
-        report_tabs.addTab(self.promo_widget, "🎁 Promotional Effectiveness")
-
-        # ===== PHASE 10: REAL-TIME & ADVANCED CHARTS (13) =====
-        # Real-Time Fleet Tracking
-        self.realtime_tracking_widget = RealTimeFleetTrackingMapWidget(self.db)
-        report_tabs.addTab(
-            self.realtime_tracking_widget, "🗺️ Fleet Tracking Map"
-        )
-
-        # Live Dispatch Monitor
-        self.dispatch_widget = LiveDispatchMonitorWidget(self.db)
-        report_tabs.addTab(self.dispatch_widget, "📡 Live Dispatch")
-
-        # Mobile Customer Portal
-        self.mobile_customer_widget = MobileCustomerPortalWidget(self.db)
-        report_tabs.addTab(self.mobile_customer_widget, "📱 Mobile Portal")
-
-        # Mobile Driver Dashboard
-        self.mobile_driver_widget = MobileDriverDashboardWidget(self.db)
-        report_tabs.addTab(self.mobile_driver_widget, "🚗 Mobile Driver")
-
-        # API Endpoint Performance
-        self.api_perf_widget = APIEndpointPerformanceWidget(self.db)
-        report_tabs.addTab(self.api_perf_widget, "⚙️ API Performance")
-
-        # Third Party Integrations
-        self.integration_widget = ThirdPartyIntegrationMonitorWidget(self.db)
-        report_tabs.addTab(self.integration_widget, "🔗 Integrations")
-
-        # Advanced Time Series
-        self.timeseries_widget = AdvancedTimeSeriesChartWidget(self.db)
-        report_tabs.addTab(self.timeseries_widget, "📊 Time Series")
-
-        # Interactive Heatmap
-        self.heatmap_widget = InteractiveHeatmapWidget(self.db)
-        report_tabs.addTab(self.heatmap_widget, "🔥 Heatmap")
-
-        # Comparative Analysis
-        self.comparative_widget = ComparativeAnalysisChartWidget(self.db)
-        report_tabs.addTab(self.comparative_widget, "🔄 Comparative Analysis")
-
-        # Distribution Analysis
-        self.distribution_widget = DistributionAnalysisChartWidget(self.db)
-        report_tabs.addTab(self.distribution_widget, "📈 Distribution")
-
-        # Correlation Matrix
-        self.correlation_widget = CorrelationMatrixWidget(self.db)
-        report_tabs.addTab(self.correlation_widget, "🔗 Correlation Matrix")
-
-        # Automation Workflows
-        self.automation_widget = AutomationWorkflowsWidget(self.db)
-        report_tabs.addTab(self.automation_widget, "⚡ Automation")
-
-        # Alert Management
-        self.alerts_widget = AlertManagementWidget(self.db)
-        report_tabs.addTab(self.alerts_widget, "🔔 Alerts")
-
-        # ===== PHASE 11: ADVANCED SCHEDULING & OPTIMIZATION (12) =====
-        # Driver Shift Optimization
-        self.shift_opt_widget = DriverShiftOptimizationWidget(self.db)
-        report_tabs.addTab(self.shift_opt_widget, "📅 Shift Optimization")
-
-        # Route Scheduling
-        self.route_sched_widget = RouteSchedulingWidget(self.db)
-        report_tabs.addTab(self.route_sched_widget, "🛣️ Route Scheduling")
-
-        # Vehicle Assignment Planner
-        self.vehicle_assign_widget = VehicleAssignmentPlannerWidget(self.db)
-        report_tabs.addTab(self.vehicle_assign_widget, "🚗 Vehicle Assignment")
-
-        # Calendar Forecasting
-        self.calendar_forecast_widget = CalendarForecasitngWidget(self.db)
-        report_tabs.addTab(
-            self.calendar_forecast_widget, "📆 Calendar Forecast"
-        )
-
-        # Break Compliance Schedule
-        self.break_compliance_widget = BreakComplianceScheduleWidget(self.db)
-        report_tabs.addTab(self.break_compliance_widget, "⏰ Break Compliance")
-
-        # Maintenance Scheduling
-        self.maint_sched_widget = MaintenanceSchedulingWidget(self.db)
-        report_tabs.addTab(self.maint_sched_widget, "🔧 Maintenance Sched")
-
-        # Crew Rotation Analysis
-        self.crew_rotation_widget = CrewRotationAnalysisWidget(self.db)
-        report_tabs.addTab(self.crew_rotation_widget, "👥 Crew Rotation")
-
-        # Load Balancing
-        self.load_balance_widget = LoadBalancingOptimizerWidget(self.db)
-        report_tabs.addTab(self.load_balance_widget, "⚖️ Load Balancing")
-
-        # Dynamic Pricing Schedule
-        self.dyn_pricing_widget = DynamicPricingScheduleWidget(self.db)
-        report_tabs.addTab(self.dyn_pricing_widget, "💰 Dynamic Pricing")
-
-        # Historical Patterns
-        self.hist_patterns_widget = HistoricalSchedulingPatternsWidget(self.db)
-        report_tabs.addTab(self.hist_patterns_widget, "📊 Historical Patterns")
-
-        # Predictive Scheduling
-        self.pred_sched_widget = PredictiveSchedulingWidget(self.db)
-        report_tabs.addTab(self.pred_sched_widget, "🤖 Predictive Schedule")
-
-        # Capacity Utilization
-        self.capacity_widget = CapacityUtilizationWidget(self.db)
-        report_tabs.addTab(self.capacity_widget, "📦 Capacity Planning")
-
-        # ===== PHASE 12: MULTI-PROPERTY MANAGEMENT (15) =====
-        # Branch Consolidation
-        self.branch_consol_widget = BranchLocationConsolidationWidget(self.db)
-        report_tabs.addTab(
-            self.branch_consol_widget, "🏢 Branch Consolidation"
-        )
-
-        # Inter-Branch Comparison
-        self.inter_branch_widget = InterBranchPerformanceComparisonWidget(
-            self.db
-        )
-        report_tabs.addTab(
-            self.inter_branch_widget, "📊 Inter-Branch Comparison"
-        )
-
-        # Consolidated P&L
-        self.consol_pl_widget = ConsolidatedProfitLossWidget(self.db)
-        report_tabs.addTab(self.consol_pl_widget, "💰 Consolidated P&L")
-
-        # Resource Allocation
-        self.resource_alloc_widget = ResourceAllocationAcrossPropertiesWidget(
-            self.db
-        )
-        report_tabs.addTab(
-            self.resource_alloc_widget, "🔄 Resource Allocation"
-        )
-
-        # Cross-Branch Chartering
-        self.cross_branch_widget = CrossBranchCharteringWidget(self.db)
-        report_tabs.addTab(self.cross_branch_widget, "🚐 Cross-Branch")
-
-        # Shared Vehicle Tracking
-        self.shared_vehicle_widget = SharedVehicleTrackingWidget(self.db)
-        report_tabs.addTab(self.shared_vehicle_widget, "🚗 Shared Vehicles")
-
-        # Unified Inventory
-        self.inventory_widget = UnifiedInventoryManagementWidget(self.db)
-        report_tabs.addTab(self.inventory_widget, "📦 Unified Inventory")
-
-        # Multi-Location Payroll
-        self.multi_payroll_widget = MultiLocationPayrollWidget(self.db)
-        report_tabs.addTab(
-            self.multi_payroll_widget, "💳 Multi-Location Payroll"
-        )
-
-        # Territory Mapping
-        self.territory_widget = TerritoryMappingWidget(self.db)
-        report_tabs.addTab(self.territory_widget, "🗺️ Territory Mapping")
-
-        # Market Overlap
-        self.overlap_widget = MarketOverlapAnalysisWidget(self.db)
-        report_tabs.addTab(self.overlap_widget, "📊 Market Overlap")
-
-        # Regional Performance
-        self.regional_widget = RegionalPerformanceMetricsWidget(self.db)
-        report_tabs.addTab(self.regional_widget, "📈 Regional Performance")
-
-        # Property-Level KPIs
-        self.property_kpi_widget = PropertyLevelKPIWidget(self.db)
-        report_tabs.addTab(self.property_kpi_widget, "📊 Property KPIs")
-
-        # Franchise Integration
-        self.franchise_widget = FranchiseIntegrationWidget(self.db)
-        report_tabs.addTab(self.franchise_widget, "🏢 Franchise Integration")
-
-        # License Tracking
-        self.license_widget = LicenseTrackingWidget(self.db)
-        report_tabs.addTab(self.license_widget, "📜 License Tracking")
-
-        # Operations Consolidation
-        self.ops_consol_widget = OperationsConsolidationWidget(self.db)
-        report_tabs.addTab(
-            self.ops_consol_widget, "⚙️ Operations Consolidation"
-        )
-
-        # Phase 13 tabs (18 widgets - Customer Portal Enhancements)
-
-        # Self-Service Booking Portal
-        self.booking_portal_widget = SelfServiceBookingPortalWidget(self.db)
-        report_tabs.addTab(
-            self.booking_portal_widget, "📱 Self-Service Booking"
-        )
-
-        # Trip History
-        self.trip_history_widget = TripHistoryWidget(self.db)
-        report_tabs.addTab(self.trip_history_widget, "📜 Trip History")
-
-        # Invoice & Receipt Management
-        self.invoice_widget = InvoiceReceiptManagementWidget(self.db)
-        report_tabs.addTab(self.invoice_widget, "📄 Invoice Management")
-
-        # Account Settings
-        self.account_settings_widget = AccountSettingsWidget(self.db)
-        report_tabs.addTab(self.account_settings_widget, "⚙️ Account Settings")
-
-        # Loyalty Program Tracking
-        self.loyalty_widget = LoyaltyProgramTrackingWidget(self.db)
-        report_tabs.addTab(self.loyalty_widget, "🎁 Loyalty Program")
-
-        # Referral Analytics
-        self.referral_widget = ReferralAnalyticsWidget(self.db)
-        report_tabs.addTab(self.referral_widget, "👥 Referral Analytics")
-
-        # Subscription Management
-        self.subscription_widget = SubscriptionManagementWidget(self.db)
-        report_tabs.addTab(
-            self.subscription_widget, "🔄 Subscription Management"
-        )
-
-        # Corporate Account Management
-        self.corporate_widget = CorporateAccountManagementWidget(self.db)
-        report_tabs.addTab(self.corporate_widget, "🏢 Corporate Accounts")
-
-        # Recurring Booking Management
-        self.recurring_widget = RecurringBookingManagementWidget(self.db)
-        report_tabs.addTab(self.recurring_widget, "📅 Recurring Bookings")
-
-        # Chat Integration
-        self.chat_widget = ChatIntegrationWidget(self.db)
-        report_tabs.addTab(self.chat_widget, "💬 Customer Chat")
-
-        # Support Ticket Management
-        self.support_widget = SupportTicketManagementWidget(self.db)
-        report_tabs.addTab(self.support_widget, "🎫 Support Tickets")
-
-        # Rating & Review Management
-        self.rating_widget = RatingReviewManagementWidget(self.db)
-        report_tabs.addTab(self.rating_widget, "⭐ Ratings & Reviews")
-
-        # Saved Preferences
-        self.preferences_widget = SavedPreferencesWidget(self.db)
-        report_tabs.addTab(self.preferences_widget, "❤️ Saved Preferences")
-
-        # Fleet Preferences
-        self.fleet_pref_widget = FleetPreferencesWidget(self.db)
-        report_tabs.addTab(self.fleet_pref_widget, "🚗 Fleet Preferences")
-
-        # Driver Feedback
-        self.driver_feedback_widget = DriverFeedbackWidget(self.db)
-        report_tabs.addTab(self.driver_feedback_widget, "👤 Driver Feedback")
-
-        # Customer Communications
-        self.comms_widget = CustomerCommunicationsWidget(self.db)
-        report_tabs.addTab(self.comms_widget, "📧 Communications")
-
-        # Phase 14 tabs (15 widgets - Advanced Reporting)
-
-        # Custom Report Builder
-        self.custom_report_widget = CustomReportBuilderWidget(self.db)
-        report_tabs.addTab(self.custom_report_widget, "🛠️ Custom Reports")
-
-        # Executive Dashboard
-        self.executive_widget = ExecutiveDashboardWidget(self.db)
-        report_tabs.addTab(self.executive_widget, "👔 Executive Dashboard")
-
-        # Budget vs Actual
-        self.budget_widget = BudgetVsActualWidget(self.db)
-        report_tabs.addTab(self.budget_widget, "💵 Budget vs Actual")
-
-        # Trend Analysis
-        self.trend_widget = TrendAnalysisWidget(self.db)
-        report_tabs.addTab(self.trend_widget, "📊 Trend Analysis")
-
-        # Anomaly Detection
-        self.anomaly_widget = AnomalyDetectionWidget(self.db)
-        report_tabs.addTab(self.anomaly_widget, "🚨 Anomaly Detection")
-
-        # Segmentation Analysis
-        self.segment_widget = SegmentationAnalysisWidget(self.db)
-        report_tabs.addTab(self.segment_widget, "📍 Segmentation Analysis")
-
-        # Competitive Analysis
-        self.competitive_widget = CompetitiveAnalysisWidget(self.db)
-        report_tabs.addTab(self.competitive_widget, "⚔️ Competitive Analysis")
-
-        # Operational Metrics
-        self.operational_widget = OperationalMetricsWidget(self.db)
-        report_tabs.addTab(self.operational_widget, "📈 Operational Metrics")
-
-        # Data Quality Report
-        self.quality_widget = DataQualityReportWidget(self.db)
-        report_tabs.addTab(self.quality_widget, "✅ Data Quality")
-
-        # ROI Analysis
-        self.roi_widget = ROIAnalysisWidget(self.db)
-        report_tabs.addTab(self.roi_widget, "💰 ROI Analysis")
-
-        # Forecasting
-        self.forecast_widget = ForecastingWidget(self.db)
-        report_tabs.addTab(self.forecast_widget, "🔮 Forecasting")
-
-        # Report Scheduler
-        self.scheduler_widget = ReportSchedulerWidget(self.db)
-        report_tabs.addTab(self.scheduler_widget, "📅 Report Scheduler")
-
-        # Compliance Reporting
-        self.compliance_widget = ComplianceReportingWidget(self.db)
-        report_tabs.addTab(self.compliance_widget, "📋 Compliance Reporting")
-
-        # Export Management
-        self.export_widget = ExportManagementWidget(self.db)
-        report_tabs.addTab(self.export_widget, "💾 Export Management")
-
-        # Audit Trail
-        self.audit_widget = AuditTrailWidget(self.db)
-        report_tabs.addTab(self.audit_widget, "🔐 Audit Trail")
-
-        # Phase 15 tabs (10 widgets - ML Integration)
-
-        # Demand Forecasting ML
-        self.demand_ml_widget = DemandForecastingMLWidget(self.db)
-        report_tabs.addTab(self.demand_ml_widget, "🤖 Demand Forecasting ML")
-
-        # Churn Prediction ML
-        self.churn_ml_widget = ChurnPredictionMLWidget(self.db)
-        report_tabs.addTab(self.churn_ml_widget, "⚠️ Churn Prediction ML")
-
-        # Pricing Optimization ML
-        self.pricing_ml_widget = PricingOptimizationMLWidget(self.db)
-        report_tabs.addTab(
-            self.pricing_ml_widget, "💲 Pricing Optimization ML"
-        )
-
-        # Customer Clustering ML
-        self.cluster_ml_widget = CustomerClusteringMLWidget(self.db)
-        report_tabs.addTab(self.cluster_ml_widget, "👥 Customer Clustering ML")
-
-        # Anomaly Detection ML
-        self.anomaly_ml_widget = AnomalyDetectionMLWidget(self.db)
-        report_tabs.addTab(self.anomaly_ml_widget, "🚨 Anomaly Detection ML")
-
-        # Recommendation Engine ML
-        self.rec_ml_widget = RecommendationEngineWidget(self.db)
-        report_tabs.addTab(self.rec_ml_widget, "🎯 Recommendation Engine ML")
-
-        # Resource Optimization ML
-        self.resource_ml_widget = ResourceOptimizationMLWidget(self.db)
-        report_tabs.addTab(
-            self.resource_ml_widget, "⚡ Resource Optimization ML"
-        )
-
-        # Marketing Optimization ML
-        self.marketing_ml_widget = MarketingMLWidget(self.db)
-        report_tabs.addTab(
-            self.marketing_ml_widget, "📢 Marketing Optimization ML"
-        )
-
-        # Model Performance
-        self.model_perf_widget = ModelPerformanceWidget(self.db)
-        report_tabs.addTab(self.model_perf_widget, "📊 Model Performance")
-
-        # Predictive Maintenance ML
-        self.predict_maint_widget = PredictiveMaintenanceMLWidget(self.db)
-        report_tabs.addTab(
-            self.predict_maint_widget, "🔧 Predictive Maintenance ML"
-        )
+        self.report_tabs_widget = report_tabs
+        self._report_section_factories = self._report_section_factory_map()
+        self._build_reports_tab_body(widget, layout, report_tabs)
+        return widget
+
+    def _report_section_factory_map(self) -> dict:
+        """Ordered map of every Reports & PDFs drill-down tab name -> factory.
+
+        Kept as a single source of truth so the mega-menu navigation
+        structure (`_main_navigation_structure`) can list the same names
+        without instantiating any widgets.
+        """
+        return {
+            "🔎 Drill-Down Reports": lambda: __import__(
+                "reports_widget", fromlist=["DrillDownReportWidget"]
+            ).DrillDownReportWidget(self.db),
+            "🚐 Fleet Operations": lambda: FleetManagementWidget(self.db),
+            "👤 Driver Performance": lambda: DriverPerformanceWidget(self.db),
+            "📈 Financial Reports": lambda: FinancialDashboardWidget(self.db),
+            "💳 Payment Reconciliation": lambda: PaymentReconciliationWidget(self.db),
+            "🚗 Vehicle Analytics": lambda: VehicleAnalyticsWidget(self.db),
+            "👔 Payroll Audit": lambda: EmployeePayrollAuditWidget(self.db),
+            "📊 QB Reconciliation": lambda: QuickBooksReconciliationWidget(self.db),
+            "📈 Charter Analytics": lambda: CharterAnalyticsWidget(self.db),
+            "✅ Compliance": lambda: ComplianceTrackingWidget(self.db),
+            "💰 Budget vs Actual": lambda: BudgetAnalysisWidget(self.db),
+            "🛡️ Insurance": lambda: InsuranceTrackingWidget(self.db),
+            "🚗 Fleet Cost Analysis": lambda: VehicleFleetCostAnalysisWidget(self.db),
+            "🔧 Maintenance Tracking": lambda: VehicleMaintenanceTrackingWidget(self.db),
+            "⛽ Fuel Efficiency": lambda: FuelEfficiencyTrackingWidget(self.db),
+            "📊 Vehicle Utilization": lambda: VehicleUtilizationWidget(self.db),
+            "📈 Fleet Age Analysis": lambda: FleetAgeAnalysisWidget(self.db),
+            "💰 Driver Pay Analysis": lambda: DriverPayAnalysisWidget(self.db),
+            "⭐ Performance Metrics": lambda: EmployeePerformanceMetricsWidget(self.db),
+            "📋 Tax Compliance": lambda: PayrollTaxComplianceWidget(self.db),
+            "📅 Driver Schedule": lambda: DriverScheduleManagementWidget(self.db),
+            "💳 Payments (Advanced)": lambda: PaymentReconciliationAdvancedWidget(self.db),
+            "📊 AR Aging": lambda: ARAgingDashboardWidget(self.db),
+            "💸 Cash Flow": lambda: CashFlowReportWidget(self.db),
+            "📊 Profit & Loss": lambda: ProfitLossReportWidget(self.db),
+            "📉 Operating Breakdown": lambda: __import__(
+                "accounting_reports", fromlist=["WeeklyOperatingDashboardWidget"]
+            ).WeeklyOperatingDashboardWidget(self.db),
+            "📈 Charter Analytics+": lambda: CharterAnalyticsAdvancedWidget(self.db),
+            "📅 Charter Ops": lambda: CharterManagementDashboardWidget(self.db),
+            "💰 Customer LTV": lambda: CustomerLifetimeValueWidget(self.db),
+            "📊 Cancellation Analysis": lambda: CharterCancellationAnalysisWidget(self.db),
+            "⏱️ Lead Time": lambda: BookingLeadTimeAnalysisWidget(self.db),
+            "🎯 Segmentation": lambda: CustomerSegmentationWidget(self.db),
+            "🛣️ Route Profitability": lambda: RouteProfitabilityWidget(self.db),
+            "🗺️ Geographic Revenue": lambda: GeographicRevenueDistributionWidget(self.db),
+            "⚖️ HOS Compliance": lambda: HosComplianceTrackingWidget(self.db),
+            "🔧 Maintenance (Advanced)": lambda: AdvancedMaintenanceScheduleWidget(self.db),
+            "⚠️ Safety Incidents": lambda: SafetyIncidentTrackingWidget(self.db),
+            "🤝 Vendor Performance": lambda: VendorPerformanceWidget(self.db),
+            "📡 Fleet Monitoring": lambda: RealTimeFleetMonitoringWidget(self.db),
+            "🏥 System Health": lambda: SystemHealthDashboardWidget(self.db),
+            "📋 Data Quality": lambda: DataQualityAuditWidget(self.db),
+            "📈 Demand Forecasting": lambda: DemandForecastingWidget(self.db),
+            "⚠️ Churn Prediction": lambda: ChurnPredictionWidget(self.db),
+            "💰 Revenue Optimization": lambda: RevenueOptimizationWidget(self.db),
+            "⭐ Customer Worth (RFM)": lambda: CustomerWorthWidget(self.db),
+            "🎯 Next Best Action": lambda: NextBestActionWidget(self.db),
+            "📊 Seasonality": lambda: SeasonalityAnalysisWidget(self.db),
+            "💡 Cost Behavior": lambda: CostBehaviorAnalysisWidget(self.db),
+            "📊 Break-Even": lambda: BreakEvenAnalysisWidget(self.db),
+            "📧 Email Campaigns": lambda: EmailCampaignPerformanceWidget(self.db),
+            "🛣️ Customer Journey": lambda: CustomerJourneyAnalysisWidget(self.db),
+            "🎯 Competitive Intel": lambda: CompetitiveIntelligenceWidget(self.db),
+            "⚖️ Regulatory Compliance": lambda: RegulatoryComplianceTrackingWidget(self.db),
+            "📋 CRA Compliance": lambda: CRAComplianceReportWidget(self.db),
+            "👥 Employee Productivity": lambda: EmployeeProductivityTrackingWidget(self.db),
+            "🎁 Promotional Effectiveness": lambda: PromotionalEffectivenessWidget(self.db),
+            "🗺️ Fleet Tracking Map": lambda: RealTimeFleetTrackingMapWidget(self.db),
+            "📡 Live Dispatch": lambda: LiveDispatchMonitorWidget(self.db),
+            "📱 Mobile Portal": lambda: MobileCustomerPortalWidget(self.db),
+            "🚗 Mobile Driver": lambda: MobileDriverDashboardWidget(self.db),
+            "⚙️ API Performance": lambda: APIEndpointPerformanceWidget(self.db),
+            "🔗 Integrations": lambda: ThirdPartyIntegrationMonitorWidget(self.db),
+            "📊 Time Series": lambda: AdvancedTimeSeriesChartWidget(self.db),
+            "🔥 Heatmap": lambda: InteractiveHeatmapWidget(self.db),
+            "🔄 Comparative Analysis": lambda: ComparativeAnalysisChartWidget(self.db),
+            "📈 Distribution": lambda: DistributionAnalysisChartWidget(self.db),
+            "🔗 Correlation Matrix": lambda: CorrelationMatrixWidget(self.db),
+            "⚡ Automation": lambda: AutomationWorkflowsWidget(self.db),
+            "🔔 Alerts": lambda: AlertManagementWidget(self.db),
+            "📅 Shift Optimization": lambda: DriverShiftOptimizationWidget(self.db),
+            "🛣️ Route Scheduling": lambda: RouteSchedulingWidget(self.db),
+            "🚗 Vehicle Assignment": lambda: VehicleAssignmentPlannerWidget(self.db),
+            "📆 Calendar Forecast": lambda: CalendarForecasitngWidget(self.db),
+            "⏰ Break Compliance": lambda: BreakComplianceScheduleWidget(self.db),
+            "🔧 Maintenance Sched": lambda: MaintenanceSchedulingWidget(self.db),
+            "👥 Crew Rotation": lambda: CrewRotationAnalysisWidget(self.db),
+            "⚖️ Load Balancing": lambda: LoadBalancingOptimizerWidget(self.db),
+            "💰 Dynamic Pricing": lambda: DynamicPricingScheduleWidget(self.db),
+            "📊 Historical Patterns": lambda: HistoricalSchedulingPatternsWidget(self.db),
+            "🤖 Predictive Schedule": lambda: PredictiveSchedulingWidget(self.db),
+            "📦 Capacity Planning": lambda: CapacityUtilizationWidget(self.db),
+            "🏢 Branch Consolidation": lambda: BranchLocationConsolidationWidget(self.db),
+            "📊 Inter-Branch Comparison": lambda: InterBranchPerformanceComparisonWidget(self.db),
+            "💰 Consolidated P&L": lambda: ConsolidatedProfitLossWidget(self.db),
+            "🔄 Resource Allocation": lambda: ResourceAllocationAcrossPropertiesWidget(self.db),
+            "🚐 Cross-Branch": lambda: CrossBranchCharteringWidget(self.db),
+            "🚗 Shared Vehicles": lambda: SharedVehicleTrackingWidget(self.db),
+            "📦 Unified Inventory": lambda: UnifiedInventoryManagementWidget(self.db),
+            "💳 Multi-Location Payroll": lambda: MultiLocationPayrollWidget(self.db),
+            "🗺️ Territory Mapping": lambda: TerritoryMappingWidget(self.db),
+            "📊 Market Overlap": lambda: MarketOverlapAnalysisWidget(self.db),
+            "📈 Regional Performance": lambda: RegionalPerformanceMetricsWidget(self.db),
+            "📊 Property KPIs": lambda: PropertyLevelKPIWidget(self.db),
+            "🏢 Franchise Integration": lambda: FranchiseIntegrationWidget(self.db),
+            "📜 License Tracking": lambda: LicenseTrackingWidget(self.db),
+            "⚙️ Operations Consolidation": lambda: OperationsConsolidationWidget(self.db),
+            "📱 Self-Service Booking": lambda: SelfServiceBookingPortalWidget(self.db),
+            "📜 Trip History": lambda: TripHistoryWidget(self.db),
+            "📄 Invoices": lambda: InvoiceReceiptManagementWidget(self.db),
+            "⚙️ Account Settings": lambda: AccountSettingsWidget(self.db),
+            "🎁 Loyalty Program": lambda: LoyaltyProgramTrackingWidget(self.db),
+            "👥 Referral Analytics": lambda: ReferralAnalyticsWidget(self.db),
+            "🔄 Subscriptions": lambda: SubscriptionManagementWidget(self.db),
+            "🏢 Corporate Accounts": lambda: CorporateAccountManagementWidget(self.db),
+            "📅 Recurring Bookings": lambda: RecurringBookingManagementWidget(self.db),
+            "💬 Customer Chat": lambda: ChatIntegrationWidget(self.db),
+            "🎫 Support Tickets": lambda: SupportTicketManagementWidget(self.db),
+            "⭐ Ratings & Reviews": lambda: RatingReviewManagementWidget(self.db),
+            "❤️ Saved Preferences": lambda: SavedPreferencesWidget(self.db),
+            "🚗 Fleet Preferences": lambda: FleetPreferencesWidget(self.db),
+            "👤 Driver Feedback": lambda: DriverFeedbackWidget(self.db),
+            "📧 Communications": lambda: CustomerCommunicationsWidget(self.db),
+            "🛠️ Custom Reports": lambda: CustomReportBuilderWidget(self.db),
+            "👔 Executive Dashboard": lambda: ExecutiveDashboardWidget(self.db),
+            "💵 Budget vs Actual": lambda: BudgetVsActualWidget(self.db),
+            "📊 Trend Analysis": lambda: TrendAnalysisWidget(self.db),
+            "🚨 Anomaly Detection": lambda: AnomalyDetectionWidget(self.db),
+            "📍 Segmentation Analysis": lambda: SegmentationAnalysisWidget(self.db),
+            "⚔️ Competitive Analysis": lambda: CompetitiveAnalysisWidget(self.db),
+            "📈 Operational Metrics": lambda: OperationalMetricsWidget(self.db),
+            "✅ Data Quality": lambda: DataQualityReportWidget(self.db),
+            "💰 ROI Analysis": lambda: ROIAnalysisWidget(self.db),
+            "🔮 Forecasting": lambda: ForecastingWidget(self.db),
+            "📅 Report Scheduler": lambda: ReportSchedulerWidget(self.db),
+            "📋 Compliance Reporting": lambda: ComplianceReportingWidget(self.db),
+            "💾 Exports": lambda: ExportManagementWidget(self.db),
+            "🔐 Audit Trail": lambda: AuditTrailWidget(self.db),
+            "🤖 Demand Forecasting ML": lambda: DemandForecastingMLWidget(self.db),
+            "⚠️ Churn Prediction ML": lambda: ChurnPredictionMLWidget(self.db),
+            "💲 Pricing Optimization ML": lambda: PricingOptimizationMLWidget(self.db),
+            "👥 Customer Clustering ML": lambda: CustomerClusteringMLWidget(self.db),
+            "🚨 Anomaly Detection ML": lambda: AnomalyDetectionMLWidget(self.db),
+            "🎯 Recommendation Engine ML": lambda: RecommendationEngineWidget(self.db),
+            "⚡ Resource Optimization ML": lambda: ResourceOptimizationMLWidget(self.db),
+            "📢 Marketing Optimization ML": lambda: MarketingMLWidget(self.db),
+            "📊 Model Performance": lambda: ModelPerformanceWidget(self.db),
+            "🔧 Predictive Maintenance ML": lambda: PredictiveMaintenanceMLWidget(self.db),
+        }
+
+    def _build_reports_tab_body(
+        self, widget: QWidget, layout: QVBoxLayout, report_tabs: QTabWidget
+    ) -> None:
+        """Populate the Reports & PDFs tab with lazy-loaded drill-down sections."""
+        self._report_sections_loaded = set()
+        self._report_sections_in_progress = set()
+
+        for tab_name in self._report_section_factories:
+            placeholder = QLabel(f"Loading {tab_name}...")
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            report_tabs.addTab(placeholder, tab_name)
+
+        report_tabs.currentChanged.connect(self._on_report_section_changed)
+        report_tabs.tabBarClicked.connect(self._on_report_section_changed)
+        QTimer.singleShot(0, lambda: self._on_report_section_changed(0))
 
         layout.addWidget(report_tabs)
         widget.setLayout(layout)
-        return widget
+
+    def _on_report_section_changed(self, index: int) -> None:
+        """Create report sub-tabs on demand to avoid heavy startup loads."""
+        if index < 0:
+            return
+
+        report_tabs = self.sender()
+        if report_tabs is None:
+            return
+
+        tab_text = report_tabs.tabText(index)
+        if tab_text not in self._report_section_factories:
+            return
+        if (
+            tab_text in self._report_sections_loaded
+            or tab_text in self._report_sections_in_progress
+        ):
+            return
+
+        self._report_sections_in_progress.add(tab_text)
+        report_tabs.blockSignals(True)
+        try:
+            widget = self._report_section_factories[tab_text]()
+            report_tabs.removeTab(index)
+            report_tabs.insertTab(index, widget, tab_text)
+            report_tabs.setCurrentIndex(index)
+            self._report_sections_loaded.add(tab_text)
+        except Exception as e:
+            logger.exception("Failed to load Reports section %s", tab_text)
+            error_widget = QLabel(f"Error loading {tab_text}:\n{e!s}")
+            error_widget.setStyleSheet("color: red; padding: 20px;")
+            error_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            report_tabs.removeTab(index)
+            report_tabs.insertTab(index, error_widget, tab_text)
+            report_tabs.setCurrentIndex(index)
+            self._report_sections_loaded.add(tab_text)
+        finally:
+            report_tabs.blockSignals(False)
+            self._report_sections_in_progress.discard(tab_text)
 
     def create_settings_tab(self) -> QWidget:
         """Settings tab (stub)"""
         widget = QWidget()
         layout = QVBoxLayout()
 
-        info = QLabel("""
-        <h3>Arrow Limousine Management System</h3>
-        <p><b>Version:</b> 1.0 (Desktop)</p>
+        app_version = "1.0.0"
+        try:
+            version_path = os.path.join(project_root, "version.txt")
+            if os.path.exists(version_path):
+                with open(version_path, encoding="utf-8") as vf:
+                    app_version = vf.read().strip() or app_version
+        except Exception as e:
+            logger.warning("Failed to read version.txt for settings tab: %s", e)
+
+        info = QLabel(f"""
+        <h3>Arrow Limousine Desktop System</h3>
+        <p><b>Version:</b> {app_version} (Desktop)</p>
         <p><b>Database:</b> PostgreSQL (almsdata)</p>
         <p><b>Framework:</b> PyQt6</p>
 
@@ -2628,7 +3676,7 @@ class MainWindow(QMainWindow):
 
             cur.execute(
                 """
-                SELECT id as receipt_id, receipt_date, vendor_name,
+                SELECT receipt_id, receipt_date, vendor_name,
                 description, gross_amount
                 FROM receipts
                 WHERE vendor_name ILIKE %s OR description ILIKE %s
@@ -2675,7 +3723,26 @@ class MainWindow(QMainWindow):
 
             cur.close()
 
-            self._show_global_results(query, receipts, charters, clients)
+            nav_targets = self._search_navigation_targets(query)
+            auto_target = self._find_exact_navigation_target(query, nav_targets)
+            if auto_target:
+                self._open_full_menu_path(
+                    auto_target["domain"],
+                    tuple(auto_target["path_parts"]),
+                )
+                self.status_bar.showMessage(
+                    f"Opened: {auto_target['path_text']}",
+                    6000,
+                )
+                return
+
+            self._show_global_results(
+                query,
+                receipts,
+                charters,
+                clients,
+                nav_targets,
+            )
         except Exception as e:
             try:
                 self.db.rollback()
@@ -2683,7 +3750,199 @@ class MainWindow(QMainWindow):
                 logger.debug('Suppressed: %s', _e)
             QMessageBox.critical(self, "Search Failed", f"Search error: {e}")
 
-    def _show_global_results(self, query: str, receipts, charters, clients) -> None:
+    def _normalize_search_text(self, text: str) -> str:
+        """Normalize labels/text so fuzzy search handles emoji and punctuation."""
+        cleaned = unicodedata.normalize("NFKD", str(text or ""))
+        cleaned = "".join(ch for ch in cleaned if not unicodedata.combining(ch))
+        cleaned = re.sub(r"[^a-zA-Z0-9]+", " ", cleaned).strip().lower()
+        return cleaned
+
+    def _navigation_search_aliases(self) -> dict[str, list[str]]:
+        """Aliases so users can find sections using plain language terms."""
+        return {
+            "year_end": ["year end", "year-end", "audit", "wizard"],
+            "accounting": ["finance", "receipt", "invoice", "tax"],
+            "operations": ["booking", "dispatch", "calendar", "charter"],
+            "fleet": ["vehicles", "employees", "fleet"],
+            "admin": ["settings", "table browser", "admin"],
+        }
+
+    def _score_navigation_target(
+        self,
+        blob_norm: str,
+        leaf_norm: str,
+        q_norm: str,
+        query_tokens: list[str],
+    ) -> int:
+        """Compute relevance score for one navigation target."""
+        score = 0
+        if q_norm in blob_norm:
+            score += 200
+        for token in query_tokens:
+            if token in blob_norm:
+                score += 30
+        if score == 0:
+            return 0
+        if blob_norm.startswith(q_norm):
+            score += 40
+        if leaf_norm.startswith(q_norm):
+            score += 25
+        return score
+
+    def _build_navigation_search_rows(
+        self,
+        domain_key: str,
+        domain_label: str,
+        path_parts_list: list[list[str]],
+        aliases: list[str],
+        q_norm: str,
+        query_tokens: list[str],
+    ) -> list[dict]:
+        """Build scored rows for all paths in one menu domain."""
+        rows = []
+        for path_parts in path_parts_list:
+            path_text = " > ".join([domain_label, *path_parts])
+            blob_norm = self._normalize_search_text(
+                " ".join([domain_label, *path_parts, *aliases])
+            )
+            leaf_norm = self._normalize_search_text(path_parts[-1])
+            score = self._score_navigation_target(
+                blob_norm,
+                leaf_norm,
+                q_norm,
+                query_tokens,
+            )
+            if score <= 0:
+                continue
+            rows.append(
+                {
+                    "domain": domain_key,
+                    "path_parts": path_parts,
+                    "path_text": path_text,
+                    "score": score,
+                }
+            )
+        return rows
+
+    def _search_navigation_targets(self, query: str) -> list[dict]:
+        """Search the Main launcher menu targets and rank likely destinations."""
+        q_norm = self._normalize_search_text(query)
+        if not q_norm:
+            return []
+
+        query_tokens = [tok for tok in q_norm.split(" ") if tok]
+        if not query_tokens:
+            return []
+
+        structure = self._main_navigation_structure()
+        aliases_by_domain = self._navigation_search_aliases()
+        candidates = []
+
+        for domain_key, domain_meta in structure.items():
+            domain_label = str(domain_meta.get("label", domain_key))
+            aliases = aliases_by_domain.get(domain_key, [])
+            path_parts_list = self._collect_full_menu_targets(
+                domain_key,
+                domain_meta.get("subtabs", {}),
+                [],
+            )
+            candidates.extend(
+                self._build_navigation_search_rows(
+                    domain_key,
+                    domain_label,
+                    path_parts_list,
+                    aliases,
+                    q_norm,
+                    query_tokens,
+                )
+            )
+
+        candidates.sort(key=lambda row: (-row["score"], len(row["path_parts"]), row["path_text"]))
+        return candidates[:30]
+
+    def _find_exact_navigation_target(self, query: str, nav_targets: list[dict]) -> dict | None:
+        """Open directly when query is clearly an exact section target."""
+        q_norm = self._normalize_search_text(query)
+        q_norm = re.sub(r"^(open|go|goto|launch)\s+", "", q_norm).strip()
+        if not q_norm:
+            return None
+
+        for target in nav_targets:
+            leaf = self._normalize_search_text(target["path_parts"][-1])
+            full = self._normalize_search_text(target["path_text"])
+            if q_norm == leaf or q_norm == full:
+                return target
+        return None
+
+    def _open_section_target(self, target: dict) -> None:
+        """Open a navigation search target."""
+        self._open_full_menu_path(
+            target["domain"],
+            tuple(target["path_parts"]),
+        )
+
+    def _build_sections_results_widget(self, dialog: QDialog, nav_targets) -> QWidget:
+        """Build sections results tab with open-on-double-click behavior."""
+        sections_table = QTableWidget()
+        sections_table.setColumnCount(2)
+        sections_table.setHorizontalHeaderLabels(["Section", "Open"])
+        sections_table.setRowCount(len(nav_targets))
+        for idx, target in enumerate(nav_targets):
+            section_item = QTableWidgetItem(str(target["path_text"]))
+            section_item.setFlags(
+                section_item.flags() & ~Qt.ItemFlag.ItemIsEditable
+            )
+            section_item.setData(Qt.ItemDataRole.UserRole, target)
+            sections_table.setItem(idx, 0, section_item)
+
+            open_hint = QTableWidgetItem("Double-click row to open")
+            open_hint.setFlags(open_hint.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            sections_table.setItem(idx, 1, open_hint)
+
+        sections_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch
+        )
+        sections_table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows
+        )
+        sections_table.setEditTriggers(
+            QAbstractItemView.EditTrigger.NoEditTriggers
+        )
+
+        def _open_selected_section() -> None:
+            row = sections_table.currentRow()
+            if row < 0:
+                return
+            item = sections_table.item(row, 0)
+            if item is None:
+                return
+            target = item.data(Qt.ItemDataRole.UserRole)
+            if not isinstance(target, dict):
+                return
+            self._open_section_target(target)
+            dialog.accept()
+
+        sections_table.itemDoubleClicked.connect(
+            lambda _item: _open_selected_section()
+        )
+
+        open_btn = QPushButton("Open Selected Section")
+        open_btn.clicked.connect(_open_selected_section)
+        sections_panel = QWidget()
+        sections_layout = QVBoxLayout(sections_panel)
+        sections_layout.setContentsMargins(0, 0, 0, 0)
+        sections_layout.addWidget(sections_table)
+        sections_layout.addWidget(open_btn)
+        return sections_panel
+
+    def _show_global_results(
+        self,
+        query: str,
+        receipts,
+        charters,
+        clients,
+        nav_targets,
+    ) -> None:
         """Render search results in a tabbed dialog"""
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Search Results: {query}")
@@ -2691,7 +3950,7 @@ class MainWindow(QMainWindow):
 
         summary = QLabel(
             f"Receipts: {len(receipts)} | Charters: {len(charters)} |"
-            f"Clients: {len(clients)}"
+            f"Clients: {len(clients)} | Sections: {len(nav_targets)}"
         )
         layout.addWidget(summary)
 
@@ -2742,6 +4001,11 @@ class MainWindow(QMainWindow):
                 ],
             ),
             "Clients",
+        )
+
+        tabs.addTab(
+            self._build_sections_results_widget(dialog, nav_targets),
+            "Sections",
         )
 
         layout.addWidget(tabs)
@@ -2885,89 +4149,88 @@ def _resolve_display_theme(auth_user: dict | None) -> str:
 
 
 def _build_display_theme_stylesheet(theme_name: str) -> str:
+    background_color = "#e8eef5"
+    surface_color = "#edf4fb"
+    border_color = "#cbd5e1"
+    text_color = "#1f2937"
+    title_background_color = background_color
+    button_background_color = "#dbe3ef"
+    button_hover_color = "#cfdae8"
+    button_text_color = "#1f2937"
+    header_section_background_color = "#d8eafc"
+
     if theme_name == "soft_blue":
-        return """
-            QMainWindow, QWidget {
-                background-color: #eaf4ff;
-                color: #16324f;
-            }
-            QTabWidget::pane {
-                background-color: #f5faff;
-                border: 1px solid #b9d6f2;
-            }
-            QGroupBox {
-                background-color: #f5faff;
-                border: 1px solid #b9d6f2;
-                margin-top: 10px;
-                padding-top: 4px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 8px;
-                padding: 0 4px;
-                color: #16324f;
-                background-color: #eaf4ff;
-            }
-            QLineEdit, QPlainTextEdit, QTextEdit, QComboBox, QDateEdit,
-            QSpinBox, QDoubleSpinBox, QTimeEdit, QTableWidget {
-                background-color: #ffffff;
-                color: #16324f;
-                border: 1px solid #8fb6de;
-                selection-background-color: #5f9ed6;
-                selection-color: #ffffff;
-            }
-            QPushButton {
-                background-color: #5f9ed6;
-                color: #ffffff;
-                border: 1px solid #3f7fb7;
-                padding: 4px 10px;
-            }
-            QPushButton:hover {
-                background-color: #4a8bc5;
-            }
-            QHeaderView::section {
-                background-color: #d8eafc;
-                color: #16324f;
-                border: 1px solid #aac8e6;
-            }
-        """
+        background_color = "#eaf4ff"
+        surface_color = "#f5faff"
+        border_color = "#b9d6f2"
+        text_color = "#16324f"
+        title_background_color = background_color
+        button_background_color = "#5f9ed6"
+        button_hover_color = "#4a8bc5"
+        button_text_color = "#ffffff"
+        header_section_background_color = "#d8eafc"
     if theme_name == "light_gray":
-        return """
-            QMainWindow, QWidget {
-                background-color: #f2f4f7;
-                color: #1f2933;
-            }
-            QTabWidget::pane {
-                background-color: #f7f8fa;
-                border: 1px solid #cfd8e3;
-            }
-            QGroupBox {
-                background-color: #f7f8fa;
-                border: 1px solid #cfd8e3;
-                margin-top: 10px;
-                padding-top: 4px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 8px;
-                padding: 0 4px;
-                color: #1f2933;
-                background-color: #f2f4f7;
-            }
-            QLineEdit, QPlainTextEdit, QTextEdit, QComboBox, QDateEdit,
-            QSpinBox, QDoubleSpinBox, QTimeEdit, QTableWidget {
-                background-color: #ffffff;
-                color: #1f2933;
-                border: 1px solid #c8d1dc;
-            }
-            QPushButton {
-                background-color: #64748b;
-                color: #ffffff;
-                border: 1px solid #475569;
-                padding: 4px 10px;
-            }
-        """
-    return ""
+        background_color = "#f2f4f7"
+        surface_color = "#f7f8fa"
+        border_color = "#cfd8e3"
+        text_color = "#1f2933"
+        title_background_color = background_color
+        button_background_color = "#64748b"
+        button_hover_color = "#55657a"
+        button_text_color = "#ffffff"
+        header_section_background_color = "#e0e6ee"
+
+    return f"""
+        QMainWindow, QWidget {{
+            background-color: {background_color};
+            color: {text_color};
+        }}
+        QTabWidget::pane {{
+            background-color: {surface_color};
+            border: 1px solid {border_color};
+        }}
+        QGroupBox, QFrame {{
+            background-color: {surface_color};
+            border: 1px solid {border_color};
+            border-radius: 8px;
+        }}
+        QGroupBox::title {{
+            subcontrol-origin: margin;
+            left: 8px;
+            padding: 0 4px;
+            color: {text_color};
+            background-color: {title_background_color};
+        }}
+        QScrollArea {{
+            background-color: {background_color};
+            border: 0;
+        }}
+        QScrollArea > QWidget > QWidget {{
+            background-color: {background_color};
+        }}
+        QLineEdit, QPlainTextEdit, QTextEdit, QComboBox, QDateEdit,
+        QSpinBox, QDoubleSpinBox, QTimeEdit, QTableWidget {{
+            background-color: #ffffff;
+            color: {text_color};
+            border: 1px solid #c8d1dc;
+            selection-background-color: #5f9ed6;
+            selection-color: #ffffff;
+        }}
+        QPushButton {{
+            background-color: {button_background_color};
+            color: {button_text_color};
+            border: 1px solid {border_color};
+            padding: 4px 10px;
+        }}
+        QPushButton:hover {{
+            background-color: {button_hover_color};
+        }}
+        QHeaderView::section {{
+            background-color: {header_section_background_color};
+            color: {text_color};
+            border: 1px solid {border_color};
+        }}
+    """
 
 
 def _apply_display_theme(app: QApplication, auth_user: dict | None) -> None:
@@ -3028,6 +4291,9 @@ def main() -> None:
 
         app = QApplication(sys.argv)
         app.setStyle("Fusion")  # Modern look
+        from friendly_input_behavior import install_friendly_input_behavior
+
+        install_friendly_input_behavior(app)
 
         # Force 24-hour time display on all QTimeEdit widgets regardless of
         # the Windows system locale (which may default to 12hr on US installs).
@@ -3071,6 +4337,9 @@ def main() -> None:
             else:
                 # User cancelled login
                 sys.exit(0)
+
+        # Load heavy desktop modules only after login succeeds.
+        _load_main_window_dependencies()
 
         # Launch main window
         db = DatabaseConnection(ACTIVE_DB_CONFIG)
