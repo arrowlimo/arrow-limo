@@ -154,7 +154,7 @@ def upsert_customer(payload: dict[str, Any], request: Request):
         raise HTTPException(status_code=400, detail="client_name_required")
 
     client_type = (payload.get("client_type") or "Individual").strip()
-    phone = (payload.get("phone") or payload.get("primary_phone") or "").strip()
+    phone = (payload.get("phone") or payload.get("primary_phone") or "").strip() or None
     email = (payload.get("email") or "").strip()
     company_name = (payload.get("company_name") or "").strip()
     is_gst_exempt = bool(payload.get("is_gst_exempt", False))

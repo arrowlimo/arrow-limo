@@ -7,13 +7,14 @@ import csv
 import json
 import logging
 import os
+import re
 import tempfile
 from datetime import date, datetime
 from decimal import Decimal
 
 from db_error_handling import DatabaseContext
 from PyQt6.QtCore import QSettings, Qt, QTimer
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QTextCursor
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -29,9 +30,11 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
+    QSpinBox,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
+    QTextEdit,
     QToolButton,
     QTreeWidget,
     QTreeWidgetItem,
@@ -44,6 +47,8 @@ logger = logging.getLogger(__name__)
 # ── Table categories ──────────────────────────────────────────────────────────
 TABLE_CATEGORIES = {
     "📋 Bookings": [
+        "confirmation_letter_templates",
+        "quote_letter_templates",
         "charters",
         "charter_routes",
         "charter_charges",
@@ -375,6 +380,8 @@ class AdminTableBrowserWidget(QWidget):
         self._all_tables: list[str] = []
         self._col_visibility: dict[str, bool] = {}
         self._settings = QSettings("ArrowLimo", "AdminTableBrowser")
+        self._ensure_confirmation_letter_template_table()
+        self._ensure_quote_letter_template_table()
         self._build_ui()
         QTimer.singleShot(100, self._load_all_tables)
 
@@ -445,6 +452,11 @@ class AdminTableBrowserWidget(QWidget):
         toolbar.addWidget(btn_refresh)
 
         toolbar.addSpacing(8)
+
+        self._template_designer_btn = QPushButton("📝 Template Designer")
+        self._template_designer_btn.setFixedWidth(148)
+        self._template_designer_btn.clicked.connect(self._open_template_designer)
+        toolbar.addWidget(self._template_designer_btn)
 
         btn_add = QPushButton("➕ Add Row")
         btn_add.setFixedWidth(90)
@@ -530,7 +542,356 @@ class AdminTableBrowserWidget(QWidget):
         splitter.setSizes([230, 900])
         root.addWidget(splitter)
 
+    # ── Template designer ─────────────────────────────────────────────────────
+
+    def _template_table_has_column(self, table_name: str, column_name: str) -> bool:
+        try:
+            with DatabaseContext(self.db) as cur:
+                cur.execute(
+                    "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name=%s",
+                    (table_name,),
+                )
+                cols = {row[0].lower() for row in cur.fetchall()}
+                return column_name.lower() in cols
+        except Exception:
+            return False
+
+    def _template_row_for_table(self, table_name: str):
+        if not table_name:
+            return None
+        try:
+            with DatabaseContext(self.db) as cur:
+                cur.execute(
+                    f"SELECT * FROM {table_name} ORDER BY is_active DESC NULLS LAST, updated_at DESC LIMIT 1"
+                )
+                row = cur.fetchone()
+                return dict(zip([d[0] for d in cur.description], row)) if row else None
+        except Exception as exc:
+            logger.warning("Could not load template row for %s: %s", table_name, exc)
+            return None
+
+    @staticmethod
+    def _template_body_to_html(body: str) -> str:
+        if not body:
+            return "<p></p>"
+        body = str(body).replace("\r\n", "\n").replace("\r", "\n")
+        if "<" in body and ">" in body:
+            return body
+        escaped = body.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        paragraphs = escaped.split("\n\n")
+        rendered = []
+        for paragraph in paragraphs:
+            lines = paragraph.split("\n")
+            rendered.append("<p>" + "<br>".join(lines) + "</p>")
+        return "".join(rendered) if rendered else "<p></p>"
+
+    @staticmethod
+    def _template_html_to_plain(body: str) -> str:
+        if not body:
+            return ""
+        text = str(body)
+        text = text.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n")
+        text = text.replace("</p>", "\n\n").replace("</div>", "\n\n")
+        text = text.replace("<li>", "\n• ").replace("</li>", "\n")
+        text = text.replace("&nbsp;", " ")
+        text = text.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+        text = re.sub(r"<[^>]+>", "", text)
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        return text.strip()
+
+    def _open_template_designer(self):
+        table_name = self._current_table
+        if not table_name:
+            QMessageBox.information(self, "Select a table", "Choose a template table first.")
+            return
+        if not table_name.lower().endswith("_templates") and "template" not in table_name.lower():
+            QMessageBox.information(self, "Template designer", "This tool is intended for template tables only.")
+            return
+        if not self._template_table_has_column(table_name, "body"):
+            QMessageBox.information(self, "Template designer", f"{table_name} does not look like a document template table.")
+            return
+
+        row = self._template_row_for_table(table_name)
+        template_id = row.get("template_id") if row else None
+        name_value = (row or {}).get("name", "default")
+        subject_value = (row or {}).get("subject", "")
+        body_value = (row or {}).get("body", "")
+        active_value = bool((row or {}).get("is_active", True)) if row else True
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Template Designer — {table_name}")
+        dialog.resize(1200, 800)
+        root = QVBoxLayout(dialog)
+
+        header = QHBoxLayout()
+        name_edit = QLineEdit(name_value)
+        name_edit.setPlaceholderText("Template name")
+        header.addWidget(QLabel("Name:"))
+        header.addWidget(name_edit)
+
+        subject_edit = QLineEdit(subject_value)
+        subject_edit.setPlaceholderText("Subject")
+        header.addWidget(QLabel("Subject:"))
+        header.addWidget(subject_edit)
+
+        active_chk = QCheckBox("Active")
+        active_chk.setChecked(active_value)
+        header.addWidget(active_chk)
+        root.addLayout(header)
+
+        actions = QHBoxLayout()
+        insert_bar = [
+            ("Client Name", "{{client_name}}"),
+            ("Reservation", "{{reservation_number}}"),
+            ("Charter Date", "{{charter_date}}"),
+            ("Vehicle", "{{vehicle_type}}"),
+            ("Driver", "{{driver_name}}"),
+            ("Pickup Date", "{{pickup_date}}"),
+            ("Quote Number", "{{quote_number}}"),
+            ("Itinerary", "{{itinerary}}"),
+        ]
+        for label, token in insert_bar:
+            btn = QPushButton(label)
+            btn.clicked.connect(lambda checked=False, token=token: self._insert_template_token(editor, token))
+            actions.addWidget(btn)
+        actions.addStretch()
+
+        root.addLayout(actions)
+
+        editor_frame = QHBoxLayout()
+        editor = QTextEdit()
+        editor.setAcceptRichText(True)
+        editor.setHtml(self._template_body_to_html(body_value))
+        editor.setTabStopDistance(32)
+        editor.setMinimumWidth(700)
+
+        toolbar = QVBoxLayout()
+        for label, method in [
+            ("Indent +", lambda: self._template_indent(editor, 1)),
+            ("Indent -", lambda: self._template_indent(editor, -1)),
+            ("Align Left", lambda: self._template_align(editor, QTextCursor.HorizontalAlignment.AlignLeft)),
+            ("Align Center", lambda: self._template_align(editor, QTextCursor.HorizontalAlignment.AlignCenter)),
+            ("Align Right", lambda: self._template_align(editor, QTextCursor.HorizontalAlignment.AlignRight)),
+        ]:
+            btn = QPushButton(label)
+            btn.clicked.connect(method)
+            toolbar.addWidget(btn)
+        toolbar.addStretch()
+        editor_frame.addLayout(toolbar)
+        editor_frame.addWidget(editor, 1)
+
+        left_margin = QSpinBox()
+        left_margin.setRange(0, 200)
+        left_margin.setValue(90)
+        top_margin = QSpinBox()
+        top_margin.setRange(0, 200)
+        top_margin.setValue(70)
+        preview = QTextEdit()
+        preview.setReadOnly(True)
+        preview.setMinimumWidth(320)
+        preview.setStyleSheet("background: #f5f5f5; color: #222;")
+
+        def refresh_preview():
+            margin_left = left_margin.value()
+            margin_top = top_margin.value()
+            page = self._template_preview_html(editor.toHtml(), margin_left, margin_top)
+            preview.setHtml(page)
+
+        left_margin.valueChanged.connect(refresh_preview)
+        top_margin.valueChanged.connect(refresh_preview)
+        editor.textChanged.connect(refresh_preview)
+
+        margin_box = QHBoxLayout()
+        margin_box.addWidget(QLabel("Left margin (mm):"))
+        margin_box.addWidget(left_margin)
+        margin_box.addWidget(QLabel("Top margin (mm):"))
+        margin_box.addWidget(top_margin)
+        margin_box.addStretch()
+        root.addLayout(margin_box)
+        root.addLayout(editor_frame)
+        root.addWidget(QLabel("Page Preview"))
+        root.addWidget(preview)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        root.addWidget(buttons)
+
+        refresh_preview()
+        result = dialog.exec()
+        if result != QDialog.DialogCode.Accepted:
+            return
+
+        body_text = self._template_html_to_plain(editor.toHtml())
+        template_name = name_edit.text().strip() or "default"
+        subject_text = subject_edit.text().strip() or "Template"
+        is_active = active_chk.isChecked()
+        self._save_template_row(table_name, template_id, template_name, subject_text, body_text, is_active)
+        self._status.setText(f"Template updated: {table_name}")
+        self._load_table()
+
+    @staticmethod
+    def _insert_template_token(editor: QTextEdit, token: str):
+        cursor = editor.textCursor()
+        cursor.insertText(token)
+        editor.setTextCursor(cursor)
+
+    @staticmethod
+    def _template_indent(editor: QTextEdit, delta: int):
+        cursor = editor.textCursor()
+        if not cursor.hasSelection():
+            cursor.select(QTextCursor.SelectionType.BlockUnderCursor)
+        block_format = cursor.blockFormat()
+        indent = max(0, block_format.indent() + delta)
+        block_format.setIndent(indent)
+        cursor.mergeBlockFormat(block_format)
+        editor.setTextCursor(cursor)
+
+    @staticmethod
+    def _template_align(editor: QTextEdit, alignment):
+        cursor = editor.textCursor()
+        if not cursor.hasSelection():
+            cursor.select(QTextCursor.SelectionType.BlockUnderCursor)
+        block_format = cursor.blockFormat()
+        block_format.setAlignment(alignment)
+        cursor.mergeBlockFormat(block_format)
+        editor.setTextCursor(cursor)
+
+    @staticmethod
+    def _template_preview_html(body_html: str, margin_left_mm: int, margin_top_mm: int) -> str:
+        safe_body = body_html or "<p></p>"
+        left_px = max(0, int(margin_left_mm * 3.78))
+        top_px = max(0, int(margin_top_mm * 3.78))
+        width_px = 670
+        return (
+            "<html><body style='margin:0; background:#e5e5e5; font-family:Arial; padding:20px;'>"
+            f"<div style='width:{width_px}px; min-height:960px; background:#fff; border:1px solid #cfcfcf; margin:0 auto; padding:0;'>"
+            f"<div style='margin-left:{left_px}px; margin-top:{top_px}px; width:{width_px - left_px - 30}px; font-size:12pt; line-height:1.5; color:#222; padding:0 24px 24px 0;'>"
+            f"{safe_body}</div></div></body></html>"
+        )
+
+    def _save_template_row(self, table_name: str, template_id, name: str, subject: str, body: str, is_active: bool):
+        try:
+            with DatabaseContext(self.db) as cur:
+                if template_id is not None:
+                    cur.execute(
+                        f"UPDATE {table_name} SET name=%s, subject=%s, body=%s, is_active=%s, updated_at=NOW() WHERE template_id=%s",
+                        (name, subject, body, is_active, template_id),
+                    )
+                    if is_active:
+                        cur.execute(
+                            f"UPDATE {table_name} SET is_active = FALSE WHERE template_id != %s",
+                            (template_id,),
+                        )
+                else:
+                    cur.execute(
+                        f"INSERT INTO {table_name} (name, subject, body, is_active) VALUES (%s, %s, %s, %s)",
+                        (name, subject, body, is_active),
+                    )
+                    if is_active:
+                        cur.execute(f"UPDATE {table_name} SET is_active = FALSE WHERE name != %s AND template_id != (SELECT MAX(template_id) FROM {table_name})", (name,))
+        except Exception as exc:
+            logger.warning("Could not save template row for %s: %s", table_name, exc)
+            QMessageBox.warning(self, "Template save failed", f"Could not save the template: {exc}")
+            return
+
     # ── Tree loading ──────────────────────────────────────────────────────────
+
+    def _ensure_confirmation_letter_template_table(self):
+        """Create the editable confirmation-letter template table if it is missing."""
+        template_body = (
+            "Thank you for choosing Arrow Limousine & Sedan Services Ltd. "
+            "We have reserved the following transportation for you. "
+            "Your Reservation Number is {{reservation_number}}. "
+            "Please quote this number when calling us. "
+            "Date for the reservation: {{charter_date}}. "
+            "Type of vehicle: {{vehicle_type}}. "
+            "Driver: {{driver_name}}. "
+            "Itinerary: {{itinerary}}."
+        )
+        try:
+            with DatabaseContext(self.db) as cur:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS confirmation_letter_templates (
+                        template_id SERIAL PRIMARY KEY,
+                        name VARCHAR(120) NOT NULL DEFAULT 'default',
+                        subject VARCHAR(255) NOT NULL DEFAULT 'Confirmation Letter',
+                        body TEXT NOT NULL,
+                        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                    )
+                    """
+                )
+                cur.execute(
+                    """
+                    INSERT INTO confirmation_letter_templates (name, subject, body, is_active)
+                    SELECT %s, %s, %s, TRUE
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM confirmation_letter_templates
+                        WHERE name = %s
+                    )
+                    """,
+                    (
+                        "default",
+                        "Confirmation Letter",
+                        template_body,
+                        "default",
+                    ),
+                )
+        except Exception as exc:
+            logger.warning("Could not ensure confirmation letter template table: %s", exc)
+
+    def _ensure_quote_letter_template_table(self):
+        """Create the editable quote-letter template table if it is missing."""
+        template_body = (
+            "Dear {{client_name}},\n\n"
+            "Thank you for requesting a quote from Arrow Limousine & Sedan Services Ltd. "
+            "We are pleased to provide the following transportation estimate for your reservation. "
+            "Quote Number: {{quote_number}}. "
+            "Requested date: {{charter_date}}. "
+            "Vehicle type: {{vehicle_type}}. "
+            "Pickup / dropoff: {{pickup_time}} to {{dropoff_time}}.\n\n"
+            "Please review the itinerary and rates below. We would be happy to confirm the booking "
+            "once you are ready to proceed."
+        )
+        try:
+            with DatabaseContext(self.db) as cur:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS quote_letter_templates (
+                        template_id SERIAL PRIMARY KEY,
+                        name VARCHAR(120) NOT NULL DEFAULT 'default',
+                        subject VARCHAR(255) NOT NULL DEFAULT 'Quote Letter',
+                        body TEXT NOT NULL,
+                        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                    )
+                    """
+                )
+                cur.execute(
+                    """
+                    INSERT INTO quote_letter_templates (name, subject, body, is_active)
+                    SELECT %s, %s, %s, TRUE
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM quote_letter_templates
+                        WHERE name = %s
+                    )
+                    """,
+                    (
+                        "default",
+                        "Quote Letter",
+                        template_body,
+                        "default",
+                    ),
+                )
+        except Exception as exc:
+            logger.warning("Could not ensure quote letter template table: %s", exc)
 
     def _load_all_tables(self):
         """Fetch table list from DB and populate tree."""
@@ -1151,7 +1512,8 @@ class RowDetailDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(f"Row Detail — {table}")
         self.setMinimumWidth(500)
-        self.setMinimumHeight(450)
+        self.resize(760, 560)
+        self.setSizeGripEnabled(True)
         layout = QVBoxLayout(self)
         lbl = QLabel(f"<b>{table}</b>  ·  PK ({pk_col}) = {data.get(pk_col, '—')}")
         layout.addWidget(lbl)

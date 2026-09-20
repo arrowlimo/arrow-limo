@@ -518,7 +518,7 @@ class FunctionExecutor:
 
         if not matched_rules:
             matched_rules.append(
-                "Fallback mode is active because Ollama is offline. I can"
+                "Fallback mode is active because local AI is disabled. I can"
                 "still answer policy questions and run the built-in"
                 "accounting functions for trial balance, monthly summary,"
                 "WCB, unpaid charters, and missing deductions."

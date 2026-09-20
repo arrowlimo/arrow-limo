@@ -39,17 +39,21 @@ def get_accounting_stats(month: int | None = None, year: int | None = None):
     if year is None:
         year = datetime.now().year
 
-    # Monthly Revenue (from charters)
+    # Monthly Revenue (from income ledger)
     cur.execute(
         """
-        SELECT COALESCE(SUM(total_amount_due), 0)
-        FROM charters
-        WHERE EXTRACT(MONTH FROM charter_date) = %s
-        AND EXTRACT(YEAR FROM charter_date) = %s
+        SELECT COALESCE(SUM(gross_amount), 0),
+               COALESCE(SUM(gst_collected), 0)
+        FROM income_ledger
+        WHERE EXTRACT(MONTH FROM transaction_date) = %s
+          AND EXTRACT(YEAR FROM transaction_date) = %s
+          AND source_system = 'charter_payments'
     """,
         (month, year),
     )
-    monthly_revenue = cur.fetchone()[0] or 0
+    revenue_row = cur.fetchone() or (0, 0)
+    monthly_revenue = revenue_row[0] or 0
+    monthly_gst_collected = revenue_row[1] or 0
 
     # Monthly Expenses (from receipts)
     cur.execute(
@@ -80,7 +84,7 @@ def get_accounting_stats(month: int | None = None, year: int | None = None):
     try:
         monthly_revenue_f = float(monthly_revenue) if monthly_revenue else 0
         monthly_expenses_f = float(monthly_expenses) if monthly_expenses else 0
-        gst_collected = monthly_revenue_f * 0.05
+        gst_collected = float(monthly_gst_collected) if monthly_gst_collected else 0
         gst_paid = (monthly_expenses_f * 0.95) * 0.05 if monthly_expenses_f > 0 else 0
         gst_owed = gst_collected - gst_paid
     except Exception:
@@ -223,15 +227,16 @@ def get_profit_loss_report(start_date: date | None = None, end_date: date | None
     if end_date is None:
         end_date = date.today()
 
-    # Revenue breakdown
+    # Revenue breakdown from income ledger
     cur.execute(
         """
         SELECT
             COUNT(*) as charter_count,
-            SUM(total_amount_due) as total_revenue,
-            SUM(gst) as gst_collected
-        FROM charters
-        WHERE charter_date >= %s AND charter_date <= %s
+            COALESCE(SUM(gross_amount), 0) as total_revenue,
+            COALESCE(SUM(gst_collected), 0) as gst_collected
+        FROM income_ledger
+        WHERE transaction_date >= %s AND transaction_date <= %s
+          AND source_system = 'charter_payments'
     """,
         (start_date, end_date),
     )
@@ -249,7 +254,7 @@ def get_profit_loss_report(start_date: date | None = None, end_date: date | None
         SELECT
             category,
             COUNT(*) as count,
-            SUM(amount) as total,
+            SUM(gross_amount) as total,
             SUM(COALESCE(gst_amount, 0)) as gst
         FROM receipts
         WHERE receipt_date >= %s AND receipt_date <= %s
@@ -358,18 +363,21 @@ def get_ar_aging_report():
             i.invoice_id,
             i.invoice_number,
             COALESCE(
-                c.customer_name,
-                cust.company_name,
-                cust.first_name || ' ' || cust.last_name
+                cl.client_name,
+                c.client_display_name,
+                c.client_id::text,
+                ''
             ) as customer_name,
             i.invoice_date,
             i.due_date,
-            (i.amount + i.gst) as total,
-            CURRENT_DATE - i.due_date as days_overdue
+            COALESCE(i.balance_due, i.invoice_total, 0) as total,
+            CURRENT_DATE - COALESCE(i.due_date, i.invoice_date, CURRENT_DATE)
+            as days_overdue
         FROM invoices i
-        LEFT JOIN charters c ON i.charter_id = c.charter_id
-        LEFT JOIN customers cust ON i.customer_id = cust.customer_id
-        WHERE i.paid_date IS NULL
+        LEFT JOIN charters c ON i.reserve_number = c.reserve_number
+        LEFT JOIN clients cl ON c.client_id = cl.client_id
+        WHERE COALESCE(i.paid, FALSE) = FALSE
+          AND COALESCE(i.balance_due, i.invoice_total, 0) > 0
         ORDER BY days_overdue DESC
     """)
 

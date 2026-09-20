@@ -4,6 +4,7 @@ Matches LMSGold payment format with table view and action buttons
 """
 
 import logging
+import re
 
 from db_error_handling import DatabaseContext
 from PyQt6.QtCore import QDate, Qt
@@ -16,6 +17,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QInputDialog,
     QMessageBox,
     QPushButton,
     QTableWidget,
@@ -29,6 +31,58 @@ from PyQt6.QtWidgets import (
 logger = logging.getLogger(__name__)
 
 
+def _canonical_payment_method(method_label: str) -> str:
+    mapping = {
+        "e-transfer": "etransfer",
+        "credit card": "credit_card",
+        "debit card": "debit_card",
+        "cash": "cash",
+        "cheque": "cheque",
+        "nrr retainer": "nrr",
+        "bank transfer": "bank_transfer",
+        "other": "other",
+    }
+    return mapping.get((method_label or "").strip().lower(), "other")
+
+
+def _extract_nrr_portion(text: str) -> float:
+    raw = (text or "").strip()
+    if not raw:
+        return 0.0
+
+    bracket = re.search(r"\[NRR_PART:\s*(\d+(?:\.\d{1,2})?)\]", raw, flags=re.IGNORECASE)
+    if bracket:
+        try:
+            return float(bracket.group(1))
+        except Exception:
+            return 0.0
+
+    marker = re.search(r"\bnrr\b\D{0,12}(\d+(?:\.\d{1,2})?)", raw.replace(",", ""), flags=re.IGNORECASE)
+    if marker:
+        try:
+            return float(marker.group(1))
+        except Exception:
+            return 0.0
+    return 0.0
+
+
+def _strip_nrr_markers(text: str) -> str:
+    value = (text or "").strip()
+    if not value:
+        return ""
+    value = re.sub(r"\[NRR_PART:\s*\d+(?:\.\d{1,2})?\]", "", value, flags=re.IGNORECASE)
+    value = re.sub(r"\bnrr\b\D{0,12}\d+(?:\.\d{1,2})?", "", value, flags=re.IGNORECASE)
+    value = re.sub(r"\s{2,}", " ", value).strip()
+    return value
+
+
+def _normalize_hold_method(method_label: str) -> str:
+    method = (method_label or "").strip().lower()
+    if method in ("nrr retainer", "nrr", "retainer"):
+        return "nrr"
+    return _canonical_payment_method(method_label)
+
+
 class PaymentDialog(QDialog):
     """Payment management dialog with transaction history and payment entry"""
 
@@ -38,7 +92,7 @@ class PaymentDialog(QDialog):
         self.reserve_number = reserve_number
         self.client_id = client_id
 
-        self.setWindowTitle(f"Payment Manager - {reserve_number}")
+        self.setWindowTitle(f"Payment Entry - {reserve_number}")
         self.setGeometry(100, 100, 1200, 700)
         self.setModal(True)
 
@@ -170,6 +224,14 @@ class PaymentDialog(QDialog):
         edit_btn.clicked.connect(self.edit_transaction)
         action_layout.addWidget(edit_btn)
 
+        move_btn = QPushButton("↔ Move To Charter")
+        move_btn.clicked.connect(self.move_transaction_to_charter)
+        action_layout.addWidget(move_btn)
+
+        unassign_btn = QPushButton("⤴ Unassign")
+        unassign_btn.clicked.connect(self.unassign_transaction)
+        action_layout.addWidget(unassign_btn)
+
         action_layout.addStretch()
         layout.addLayout(action_layout)
 
@@ -226,12 +288,10 @@ class PaymentDialog(QDialog):
             [
                 "E-Transfer",
                 "Credit Card",
-                "Debit Card",
                 "Cash",
                 "Cheque",
                 "NRR Retainer",
                 "Bank Transfer",
-                "Deposit",
                 "Other",
             ]
         )
@@ -256,6 +316,7 @@ class PaymentDialog(QDialog):
         notes_label.setMinimumWidth(100)
         notes_label.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.payment_notes = QTextEdit()
+        self.payment_notes.setPlaceholderText("Optional split marker examples: nrr=500 or [NRR_PART:500]")
         self.payment_notes.setMaximumHeight(80)
         row4 = QHBoxLayout()
         row4.addWidget(notes_label)
@@ -374,24 +435,74 @@ class PaymentDialog(QDialog):
         """Load payment and charge history for this charter"""
         try:
             with DatabaseContext(self.db, auto_commit=False) as cur:
-                # Query payments linked via charter_id (= reserve_number)
+                cur.execute(
+                    "SELECT charter_id FROM charters WHERE reserve_number = %s LIMIT 1",
+                    (self.reserve_number,),
+                )
+                charter_row = cur.fetchone()
+                charter_id_text = str(charter_row[0]) if charter_row and charter_row[0] is not None else ""
+
+                # Primary source: charter_payments
                 cur.execute(
                     """
                     SELECT
                         DATE(p.payment_date) as payment_date,
                         'PAYMENT' as type,
-                        COALESCE(p.payment_method, 'Unknown') as description,
+                        CASE
+                            WHEN LOWER(COALESCE(p.payment_method, '')) IN ('nrr', 'retainer')
+                              OR LOWER(COALESCE(p.payment_key, '')) LIKE '%%nrr%%'
+                              OR LOWER(COALESCE(p.source, '')) LIKE '%%nrr%%'
+                            THEN 'NRR Retainer'
+                            WHEN LOWER(COALESCE(p.source, '')) LIKE '%%escrow%%'
+                              OR LOWER(COALESCE(p.payment_key, '')) LIKE '%%escrow%%'
+                            THEN 'Escrow Hold'
+                            ELSE COALESCE(p.payment_method, 'Unknown')
+                        END as description,
                         p.amount as amount,
                         COALESCE(p.source, '') as reference,
                         0 as balance,
-                        'recorded' as status,
+                        COALESCE(p.payment_label, '') as status,
                         p.id as record_id
                     FROM charter_payments p
-                    WHERE p.charter_id = %s
+                    WHERE CAST(p.charter_id AS TEXT) = %s
+                       OR (%s <> '' AND CAST(p.charter_id AS TEXT) = %s)
+                """,
+                    (self.reserve_number, charter_id_text, charter_id_text),
+                )
+                payment_rows = cur.fetchall() or []
 
-                    UNION ALL
+                # Legacy fallback: mirror invoice packet behavior for older data.
+                if not payment_rows:
+                    cur.execute(
+                        """
+                        SELECT
+                            DATE(p.payment_date) as payment_date,
+                            'LEGACY_PAYMENT' as type,
+                            CASE
+                                WHEN LOWER(COALESCE(p.payment_label, '')) LIKE '%%nrr%%'
+                                  OR LOWER(COALESCE(p.notes, '')) LIKE '%%nrr%%'
+                                THEN 'NRR Retainer'
+                                WHEN LOWER(COALESCE(p.payment_label, '')) LIKE '%%escrow%%'
+                                  OR LOWER(COALESCE(p.notes, '')) LIKE '%%escrow%%'
+                                THEN 'Escrow Hold'
+                                ELSE COALESCE(p.payment_method, 'Other')
+                            END as description,
+                            COALESCE(p.amount, 0) as amount,
+                            COALESCE(p.reference_number, '') as reference,
+                            0 as balance,
+                            COALESCE(p.payment_label, 'legacy') as status,
+                            p.payment_id as record_id
+                        FROM payments p
+                        WHERE p.reserve_number = %s
+                           OR (%s <> '' AND CAST(p.charter_id AS TEXT) = %s)
+                        ORDER BY p.payment_date DESC, p.payment_id DESC
+                        """,
+                        (self.reserve_number, charter_id_text, charter_id_text),
+                    )
+                    payment_rows = cur.fetchall() or []
 
-                    -- Charges linked via reserve_number
+                cur.execute(
+                    """
                     SELECT
                         DATE(ch.created_at) as charge_date,
                         'CHARGE' as type,
@@ -403,13 +514,15 @@ class PaymentDialog(QDialog):
                         ch.charge_id as record_id
                     FROM charter_charges ch
                     WHERE ch.reserve_number = %s
-
-                    ORDER BY payment_date DESC
-                """,
-                    (self.reserve_number, self.reserve_number),
+                    ORDER BY ch.created_at DESC, ch.charge_id DESC
+                    """,
+                    (self.reserve_number,),
                 )
+                charge_rows = cur.fetchall() or []
 
-                rows = cur.fetchall()
+                rows = list(payment_rows) + list(charge_rows)
+
+            rows.sort(key=lambda row: str(row[0] or ""), reverse=True)
 
             # Populate table
             self.history_table.setRowCount(0)
@@ -430,6 +543,8 @@ class PaymentDialog(QDialog):
                     if col_num == 1:  # Type column
                         if value == "PAYMENT":
                             item.setBackground(QColor(220, 240, 220))
+                        elif value == "LEGACY_PAYMENT":
+                            item.setBackground(QColor(220, 230, 245))
                         elif value == "CHARGE":
                             item.setBackground(QColor(240, 220, 220))
 
@@ -479,34 +594,169 @@ class PaymentDialog(QDialog):
             QMessageBox.warning(self, "Invalid Amount", "Please enter a valid payment amount")
             return
 
+        payment_total = round(float(self.payment_amount.value()), 2)
+        method_val = _canonical_payment_method(self.payment_method.currentText())
+        reference_txt = self.payment_reference.text().strip()
+        notes_txt = self.payment_notes.toPlainText().strip()
+        nrr_portion = max(0.0, float(_extract_nrr_portion(notes_txt) or 0.0))
+        if method_val == "nrr" and nrr_portion <= 0:
+            nrr_portion = payment_total
+        nrr_portion = min(nrr_portion, payment_total)
+        cleaned_notes = _strip_nrr_markers(notes_txt)
+
+        source_parts = ["manual"]
+        if reference_txt:
+            source_parts.append(reference_txt)
+        if cleaned_notes:
+            source_parts.append(cleaned_notes)
+        source_val = " | ".join(source_parts)
+
+        split_created = nrr_portion > 0 and nrr_portion < payment_total
+
         try:
             with DatabaseContext(self.db, auto_commit=True) as cur:
-                # Insert into charter_payments (charter_id = reserve_number)
+                cur.execute(
+                    "SELECT charter_id, total_amount_due FROM charters WHERE reserve_number = %s LIMIT 1",
+                    (self.reserve_number,),
+                )
+                charter_row = cur.fetchone()
+                charter_id_text = str(charter_row[0]) if charter_row and charter_row[0] is not None else self.reserve_number
+                client_id_val = self.client_id
+                if client_id_val is None:
+                    cur.execute(
+                        "SELECT client_id FROM charters WHERE reserve_number = %s LIMIT 1",
+                        (self.reserve_number,),
+                    )
+                    client_row = cur.fetchone()
+                    client_id_val = client_row[0] if client_row and client_row[0] is not None else None
+
+                def _insert_client_hold(amount: float, hold_method: str, hold_note: str) -> None:
+                    if client_id_val is None:
+                        raise RuntimeError("client_id_required_for_hold")
+                    cur.execute(
+                        """
+                        INSERT INTO client_unapplied_payments (
+                            client_id,
+                            payment_date,
+                            amount,
+                            remaining_amount,
+                            payment_method,
+                            reference,
+                            notes,
+                            source,
+                            hold_type,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'escrow', NOW(), NOW())
+                        """,
+                        (
+                            int(client_id_val),
+                            self.payment_date.date().toPyDate(),
+                            round(amount, 2),
+                            round(amount, 2),
+                            hold_method,
+                            self.reserve_number,
+                            hold_note,
+                            "nrr_retainer",
+                        ),
+                    )
+
+                if split_created:
+                    base_amount = round(payment_total - nrr_portion, 2)
+                    if base_amount > 0:
+                        base_method = method_val if method_val != "nrr" else "etransfer"
+                        cur.execute(
+                            """
+                            INSERT INTO charter_payments (
+                                charter_id,
+                                payment_date,
+                                amount,
+                                payment_method,
+                                source,
+                                imported_at)
+                            VALUES (%s, %s, %s, %s, %s, NOW())
+                        """,
+                            (
+                                charter_id_text,
+                                self.payment_date.date().toPyDate(),
+                                base_amount,
+                                base_method,
+                                source_val,
+                            ),
+                        )
+                    _insert_client_hold(
+                        round(nrr_portion, 2),
+                        _normalize_hold_method(self.payment_method.currentText()),
+                        f"NRR held from reserve #{self.reserve_number}",
+                    )
+                else:
+                    if nrr_portion > 0:
+                        _insert_client_hold(
+                            round(nrr_portion, 2),
+                            _normalize_hold_method(self.payment_method.currentText()),
+                            f"NRR held from reserve #{self.reserve_number}",
+                        )
+                    else:
+                        cur.execute(
+                            """
+                            INSERT INTO charter_payments (
+                                charter_id,
+                                payment_date,
+                                amount,
+                                payment_method,
+                                source,
+                                imported_at)
+                            VALUES (%s, %s, %s, %s, %s, NOW())
+                        """,
+                            (
+                                charter_id_text,
+                                self.payment_date.date().toPyDate(),
+                                payment_total,
+                                method_val,
+                                source_val,
+                            ),
+                        )
+
+                # Keep charter summary columns aligned with posted payments.
                 cur.execute(
                     """
-                    INSERT INTO charter_payments (
-                        charter_id,
-                        payment_date,
-                        amount,
-                        payment_method,
-                        source,
-                        imported_at)
-                    VALUES (%s, %s, %s, %s, %s, NOW())
-                """,
-                    (
-                        self.reserve_number,
-                        self.payment_date.date().toPyDate(),
-                        self.payment_amount.value(),
-                        self.payment_method.currentText(),
-                        (
-                            f"manual: {self.payment_reference.text().strip()} "
-                            if self.payment_reference.text().strip()
-                            else "manual"
+                    UPDATE charters c
+                    SET amount_paid = COALESCE(paid.total_paid, 0),
+                        balance_owing = GREATEST(
+                            COALESCE(c.total_amount_due, 0) - COALESCE(paid.total_paid, 0),
+                            0
                         ),
-                    ),
+                        updated_at = NOW()
+                    FROM (
+                        SELECT COALESCE(SUM(p.amount), 0) AS total_paid
+                        FROM charter_payments p
+                        WHERE CAST(p.charter_id AS TEXT) = %s
+                           OR CAST(p.charter_id AS TEXT) = %s
+                    ) paid
+                    WHERE c.reserve_number = %s
+                    """,
+                    (self.reserve_number, charter_id_text, self.reserve_number),
                 )
 
-            QMessageBox.information(self, "Success", "Payment recorded successfully")
+            if split_created:
+                QMessageBox.information(
+                    self,
+                    "Success",
+                    (
+                        "Payment recorded and split successfully\n"
+                        f"Base: ${payment_total - nrr_portion:.2f}\n"
+                        f"NRR held: ${nrr_portion:.2f}"
+                    ),
+                )
+            elif nrr_portion > 0:
+                QMessageBox.information(
+                    self,
+                    "Success",
+                    f"NRR held as escrow: ${nrr_portion:.2f}",
+                )
+            else:
+                QMessageBox.information(self, "Success", "Payment recorded successfully")
 
             # Clear form
             self.payment_amount.setValue(0)
@@ -586,6 +836,13 @@ class PaymentDialog(QDialog):
 
         row = selected[0].row()
         transaction_type = self.history_table.item(row, 1).text()
+        if transaction_type == "LEGACY_PAYMENT":
+            QMessageBox.warning(
+                self,
+                "Legacy Payment",
+                "This row is from the legacy payments table. Delete it from the legacy payments workflow.",
+            )
+            return
         amount = self.history_table.item(row, 3).text()
         description = self.history_table.item(row, 2).text()
         record_id_item = self.history_table.item(row, 7)  # Hidden column with record_id
@@ -610,13 +867,24 @@ class PaymentDialog(QDialog):
         ):
             try:
                 with DatabaseContext(self.db, auto_commit=True) as cur:
+                    cur.execute(
+                        "SELECT charter_id FROM charters WHERE reserve_number = %s LIMIT 1",
+                        (self.reserve_number,),
+                    )
+                    charter_row = cur.fetchone()
+                    charter_id_text = str(charter_row[0]) if charter_row and charter_row[0] is not None else ""
+
                     if transaction_type == "PAYMENT":
                         cur.execute(
                             """
                             DELETE FROM charter_payments
-                            WHERE id = %s AND charter_id = %s
+                            WHERE id = %s
+                              AND (
+                                    CAST(charter_id AS TEXT) = %s
+                                 OR (%s <> '' AND CAST(charter_id AS TEXT) = %s)
+                              )
                         """,
-                            (record_id, self.reserve_number),
+                            (record_id, self.reserve_number, charter_id_text, charter_id_text),
                         )
                     elif transaction_type == "CHARGE":
                         cur.execute(
@@ -638,6 +906,27 @@ class PaymentDialog(QDialog):
                         )
                         return
 
+                    if transaction_type == "PAYMENT":
+                        cur.execute(
+                            """
+                            UPDATE charters c
+                            SET amount_paid = COALESCE(paid.total_paid, 0),
+                                balance_owing = GREATEST(
+                                    COALESCE(c.total_amount_due, 0) - COALESCE(paid.total_paid, 0),
+                                    0
+                                ),
+                                updated_at = NOW()
+                            FROM (
+                                SELECT COALESCE(SUM(p.amount), 0) AS total_paid
+                                FROM charter_payments p
+                                WHERE CAST(p.charter_id AS TEXT) = %s
+                                   OR (%s <> '' AND CAST(p.charter_id AS TEXT) = %s)
+                            ) paid
+                            WHERE c.reserve_number = %s
+                            """,
+                            (self.reserve_number, charter_id_text, charter_id_text, self.reserve_number),
+                        )
+
                 QMessageBox.information(
                     self,
                     "Deleted",
@@ -656,6 +945,245 @@ class PaymentDialog(QDialog):
                     f"Failed to delete {transaction_type.lower()}: {e!s}",
                 )
 
+    def _recalc_charter_payment_summary(
+        self,
+        cur,
+        reserve_number: str,
+        charter_id_text: str,
+    ) -> None:
+        cur.execute(
+            """
+            UPDATE charters c
+            SET amount_paid = COALESCE(paid.total_paid, 0),
+                balance_owing = GREATEST(
+                    COALESCE(c.total_amount_due, 0) - COALESCE(paid.total_paid, 0),
+                    0
+                ),
+                updated_at = NOW()
+            FROM (
+                SELECT COALESCE(SUM(p.amount), 0) AS total_paid
+                FROM charter_payments p
+                WHERE CAST(p.charter_id AS TEXT) = %s
+                   OR CAST(p.charter_id AS TEXT) = %s
+            ) paid
+            WHERE c.reserve_number = %s
+            """,
+            (reserve_number, charter_id_text, reserve_number),
+        )
+
+    def move_transaction_to_charter(self) -> None:
+        """Move a selected posted payment to a different charter reserve."""
+        selected = self.history_table.selectedIndexes()
+        if not selected:
+            QMessageBox.warning(self, "No Selection", "Please select a payment to move")
+            return
+
+        row = selected[0].row()
+        transaction_type = self.history_table.item(row, 1).text()
+        if transaction_type != "PAYMENT":
+            QMessageBox.warning(self, "Invalid Selection", "Only payments can be moved.")
+            return
+
+        record_id_item = self.history_table.item(row, 7)
+        if not record_id_item:
+            QMessageBox.warning(self, "Error", "Could not identify payment ID")
+            return
+        record_id = record_id_item.text().strip()
+        if not record_id:
+            QMessageBox.warning(self, "Error", "Invalid payment ID")
+            return
+
+        target_reserve, ok = QInputDialog.getText(
+            self,
+            "Move Payment",
+            "Enter target reserve number:",
+            text="",
+        )
+        if not ok:
+            return
+
+        target_reserve = (target_reserve or "").strip()
+        if not target_reserve:
+            QMessageBox.warning(self, "Missing Reserve", "Target reserve number is required.")
+            return
+        if target_reserve == self.reserve_number:
+            QMessageBox.information(
+                self,
+                "No Change",
+                "Target reserve matches the current charter.",
+            )
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    "SELECT charter_id FROM charters WHERE reserve_number = %s LIMIT 1",
+                    (self.reserve_number,),
+                )
+                source_charter_row = cur.fetchone()
+                source_charter_id_text = (
+                    str(source_charter_row[0])
+                    if source_charter_row and source_charter_row[0] is not None
+                    else ""
+                )
+
+                cur.execute(
+                    "SELECT charter_id FROM charters WHERE reserve_number = %s LIMIT 1",
+                    (target_reserve,),
+                )
+                target_row = cur.fetchone()
+                if not target_row or target_row[0] is None:
+                    QMessageBox.warning(
+                        self,
+                        "Target Not Found",
+                        f"No charter found for reserve {target_reserve}.",
+                    )
+                    return
+                target_charter_id_text = str(target_row[0])
+
+                cur.execute(
+                    """
+                    UPDATE charter_payments
+                    SET charter_id = %s,
+                        imported_at = COALESCE(imported_at, NOW())
+                    WHERE id = %s
+                      AND (
+                            CAST(charter_id AS TEXT) = %s
+                         OR (%s <> '' AND CAST(charter_id AS TEXT) = %s)
+                      )
+                    """,
+                    (
+                        target_charter_id_text,
+                        record_id,
+                        self.reserve_number,
+                        source_charter_id_text,
+                        source_charter_id_text,
+                    ),
+                )
+
+                if cur.rowcount == 0:
+                    QMessageBox.warning(
+                        self,
+                        "Move Failed",
+                        "Payment not found on the current charter, or already moved.",
+                    )
+                    return
+
+                self._recalc_charter_payment_summary(
+                    cur,
+                    self.reserve_number,
+                    source_charter_id_text,
+                )
+                self._recalc_charter_payment_summary(
+                    cur,
+                    target_reserve,
+                    target_charter_id_text,
+                )
+
+            QMessageBox.information(
+                self,
+                "Payment Moved",
+                f"Payment #{record_id} moved to reserve {target_reserve}.",
+            )
+            self.load_payment_history()
+            self.load_summary()
+
+        except Exception as e:
+            logger.error(f"Failed to move payment: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to move payment: {e!s}")
+
+    def unassign_transaction(self) -> None:
+        """Unassign a selected posted payment from this charter."""
+        selected = self.history_table.selectedIndexes()
+        if not selected:
+            QMessageBox.warning(self, "No Selection", "Please select a payment to unassign")
+            return
+
+        row = selected[0].row()
+        transaction_type = self.history_table.item(row, 1).text()
+        if transaction_type != "PAYMENT":
+            QMessageBox.warning(self, "Invalid Selection", "Only payments can be unassigned.")
+            return
+
+        record_id_item = self.history_table.item(row, 7)
+        if not record_id_item:
+            QMessageBox.warning(self, "Error", "Could not identify payment ID")
+            return
+        record_id = record_id_item.text().strip()
+        if not record_id:
+            QMessageBox.warning(self, "Error", "Invalid payment ID")
+            return
+
+        if (
+            QMessageBox.question(
+                self,
+                "Confirm Unassign",
+                f"Unassign payment #{record_id} from reserve {self.reserve_number}?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            != QMessageBox.StandardButton.Yes
+        ):
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    "SELECT charter_id FROM charters WHERE reserve_number = %s LIMIT 1",
+                    (self.reserve_number,),
+                )
+                source_charter_row = cur.fetchone()
+                source_charter_id_text = (
+                    str(source_charter_row[0])
+                    if source_charter_row and source_charter_row[0] is not None
+                    else ""
+                )
+
+                cur.execute(
+                    """
+                    UPDATE charter_payments
+                    SET charter_id = NULL,
+                        source = COALESCE(source, '') || ' | unassigned:' || NOW()::text,
+                        imported_at = COALESCE(imported_at, NOW())
+                    WHERE id = %s
+                      AND (
+                            CAST(charter_id AS TEXT) = %s
+                         OR (%s <> '' AND CAST(charter_id AS TEXT) = %s)
+                      )
+                    """,
+                    (
+                        record_id,
+                        self.reserve_number,
+                        source_charter_id_text,
+                        source_charter_id_text,
+                    ),
+                )
+
+                if cur.rowcount == 0:
+                    QMessageBox.warning(
+                        self,
+                        "Unassign Failed",
+                        "Payment not found on the current charter, or already unassigned.",
+                    )
+                    return
+
+                self._recalc_charter_payment_summary(
+                    cur,
+                    self.reserve_number,
+                    source_charter_id_text,
+                )
+
+            QMessageBox.information(
+                self,
+                "Payment Unassigned",
+                f"Payment #{record_id} was unassigned from reserve {self.reserve_number}.",
+            )
+            self.load_payment_history()
+            self.load_summary()
+
+        except Exception as e:
+            logger.error(f"Failed to unassign payment: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to unassign payment: {e!s}")
+
     def edit_transaction(self) -> None:
         """Edit selected payment (charges cannot be edited - delete and"
         "re-add instead)"""
@@ -669,6 +1197,13 @@ class PaymentDialog(QDialog):
         transaction_type = self.history_table.item(row, 1).text()
 
         if transaction_type != "PAYMENT":
+            if transaction_type == "LEGACY_PAYMENT":
+                QMessageBox.warning(
+                    self,
+                    "Cannot Edit",
+                    "Legacy payments are read-only in this manager.",
+                )
+                return
             QMessageBox.warning(
                 self,
                 "Cannot Edit",

@@ -36,7 +36,7 @@ SECTIONS = [
     ("expense_notes",       "🧾 Expenses & Receipts"),
     ("payroll_notes",       "👷 Payroll & T4s"),
     ("gst_notes",           "🏛️ GST / CRA Remittances"),
-    ("reimbursement_notes", "🔄 Related Party Reimbursements"),
+    ("reimbursement_notes", "🔄 RPL / Related Party Advances"),
     ("vehicles_notes",      "🚗 Vehicles & Asset Changes"),
     ("other_notes",         "📎 Other Notes"),
 ]

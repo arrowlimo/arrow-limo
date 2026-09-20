@@ -18,6 +18,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection, return_connection
+from ..services.auth.session_store import get_session
+from ..settings import get_settings
 from ..services.inspection_pdf import generate_pre_trip_pdf
 
 router = APIRouter(prefix="/api/inspection-forms", tags=["inspection-forms"])
@@ -25,19 +27,48 @@ security = HTTPBearer()
 
 # Use SECRET_KEY from environment (required for auth)
 SECRET_KEY = os.environ.get("SECRET_KEY")
+settings = get_settings()
+
+
+def _inspection_secret() -> str:
+    """Resolve secret used for signed URL HMAC and optional JWT verification."""
+    secret = SECRET_KEY or os.environ.get("INSPECTION_FORMS_SECRET")
+    if secret:
+        return secret
+
+    # Keep local sandbox functional without leaking environment secrets.
+    if settings.environment.lower() != "production":
+        return "dev-inspection-forms-secret"
+
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail=(
+            "SECRET_KEY environment variable is required for "
+            "inspection form authentication"
+        ),
+    )
 
 
 def verify_jwt_token(credentials: HTTPAuthorizationCredentials) -> dict:
-    """Verify JWT token and return payload"""
-    if not SECRET_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=(
-                "SECRET_KEY environment variable is required for " "inspection form authentication"
-            ),
-        )
+    """Verify bearer token and return payload.
+
+    Supports current session tokens first, then JWT as backward-compatible path.
+    """
+    token = (credentials.credentials or "").strip()
+    session = get_session(token)
+    if session:
+        return {
+            "user_id": session.get("employee_id"),
+            "employee_id": session.get("employee_id"),
+            "role": session.get("role", "user"),
+        }
+
+    secret = SECRET_KEY or os.environ.get("INSPECTION_FORMS_SECRET")
+    if not secret:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(token, secret, algorithms=["HS256"])
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
@@ -47,13 +78,7 @@ def verify_jwt_token(credentials: HTTPAuthorizationCredentials) -> dict:
 
 def verify_signature(reserve_number: str, expires: int, signature: str) -> None:
     """Verify HMAC signature (prevents URL tampering)"""
-    if not SECRET_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=(
-                "SECRET_KEY environment variable is required for " "inspection form authentication"
-            ),
-        )
+    secret = _inspection_secret()
     current_time = int(datetime.now().timestamp())
 
     # Check expiration (30 minutes default)
@@ -62,7 +87,7 @@ def verify_signature(reserve_number: str, expires: int, signature: str) -> None:
 
     # Verify HMAC signature
     expected_sig = hmac.new(
-        SECRET_KEY.encode(),
+        secret.encode(),
         f"{reserve_number}{expires}".encode(),
         hashlib.sha256,
     ).hexdigest()
@@ -173,7 +198,7 @@ async def get_signed_url(
         user_id = payload.get("user_id")
         user_role = payload.get("role", "user")
 
-        if not user_id:
+        if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token: missing user_id",
@@ -200,13 +225,15 @@ async def get_signed_url(
 
         charter_id = result[0]
 
+        secret = _inspection_secret()
+
         # 3. Verify authorization
         check_authorization(user_id, user_role, charter_id)
 
         # 4. Generate signature
         expires = int((datetime.now() + timedelta(minutes=expires_in_minutes)).timestamp())
         signature = hmac.new(
-            SECRET_KEY.encode(),
+            secret.encode(),
             f"{reserve_number}{expires}".encode(),
             hashlib.sha256,
         ).hexdigest()
@@ -290,7 +317,7 @@ async def download_inspection_form(
         user_role = payload.get("role", "user")
         ip_address = request.client.host if request else "unknown"
 
-        if not user_id:
+        if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token: missing user_id",

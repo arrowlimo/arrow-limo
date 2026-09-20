@@ -3,10 +3,29 @@ from decimal import Decimal
 from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from ..db import get_connection, return_connection
 
 router = APIRouter(prefix="/api/beverage_order", tags=["beverage-order"])
+_CHARTER_NOT_FOUND = "Charter not found"
+
+
+class BeverageOrderLine(BaseModel):
+    id: int | None = None
+    name: str
+    qty: float = 0
+    price: float = 0
+    cost: float | None = None
+
+
+class BeverageOrderUpsert(BaseModel):
+    beverage_orders: list[BeverageOrderLine] = []
+
+
+class BeverageInvoiceSeparatelyRequest(BaseModel):
+    charter_id: int
+    invoice_separately: bool = True
 
 
 @contextmanager
@@ -60,11 +79,55 @@ def _load_order_items(cur, order_id: int) -> list[dict[str, Any]]:
     return items
 
 
+def _column_exists(cur, table_name: str, column_name: str) -> bool:
+    cur.execute(
+        """
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name = %s
+          AND column_name = %s
+        LIMIT 1
+        """,
+        (table_name, column_name),
+    )
+    return cur.fetchone() is not None
+
+
+def _resolve_reserve_number(cur, charter_id: int) -> str:
+    cur.execute(
+        "SELECT reserve_number FROM charters WHERE charter_id = %s LIMIT 1",
+        (charter_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail=_CHARTER_NOT_FOUND)
+    return str(row[0])
+
+
+def _latest_order_for_reserve(cur, reserve_number: str) -> dict[str, Any] | None:
+    cur.execute(
+        """
+        SELECT order_id, subtotal, gst, total, order_date
+        FROM beverage_orders
+        WHERE reserve_number = %s
+        ORDER BY order_date DESC, order_id DESC
+        LIMIT 1
+        """,
+        (reserve_number,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return None
+    cols = [d[0] for d in (cur.description or [])]
+    return dict(zip(cols, row, strict=False))
+
+
 @router.get(
     "/print_data",
     responses={
         400: {"description": "charter_id or run_id is required"},
-        404: {"description": "Charter not found"},
+        404: {"description": _CHARTER_NOT_FOUND},
     },
 )
 def get_beverage_order_print_data(
@@ -104,7 +167,7 @@ def get_beverage_order_print_data(
         )
         charter_row = cur.fetchone()
         if not charter_row:
-            raise HTTPException(status_code=404, detail="Charter not found")
+            raise HTTPException(status_code=404, detail=_CHARTER_NOT_FOUND)
 
         charter_columns = [d[0] for d in (cur.description or [])]
         charter = dict(zip(charter_columns, charter_row, strict=False))
@@ -159,3 +222,126 @@ def get_beverage_order_print_data(
                 "grand_total": grand_total,
             },
         }
+
+
+@router.get("/charters/{charter_id}/orders", responses={404: {"description": _CHARTER_NOT_FOUND}})
+def get_charter_beverage_orders(charter_id: int):
+    """Return latest beverage order lines for a charter."""
+    with _db_cursor() as cur:
+        reserve_number = _resolve_reserve_number(cur, charter_id)
+        order = _latest_order_for_reserve(cur, reserve_number)
+        if not order:
+            return {"beverage_orders": []}
+
+        items = _load_order_items(cur, int(order.get("order_id")))
+        result = [
+            {
+                "id": idx + 1,
+                "name": line.get("name") or "",
+                "qty": _to_float(line.get("qty")),
+                "price": _to_float(line.get("price")),
+            }
+            for idx, line in enumerate(items)
+        ]
+        return {"beverage_orders": result}
+
+
+@router.put(
+    "/charters/{charter_id}/orders",
+    responses={
+        404: {"description": _CHARTER_NOT_FOUND},
+        500: {"description": "failed_to_create_beverage_order"},
+    },
+)
+def upsert_charter_beverage_orders(charter_id: int, payload: BeverageOrderUpsert):
+    """Create a new beverage order snapshot for a charter."""
+    with _db_cursor() as cur:
+        reserve_number = _resolve_reserve_number(cur, charter_id)
+
+        normalized_lines = [
+            line
+            for line in payload.beverage_orders
+            if (line.qty or 0) > 0 and (line.name or "").strip()
+        ]
+
+        subtotal = sum(max(float(line.qty), 0.0) * max(float(line.price), 0.0) for line in normalized_lines)
+        gst = round(subtotal * 0.05, 2)
+        total = round(subtotal + gst, 2)
+
+        cur.execute(
+            """
+            INSERT INTO beverage_orders
+            (reserve_number, order_date, subtotal, gst, total, status)
+            VALUES (%s, NOW(), %s, %s, %s, 'pending')
+            RETURNING order_id
+            """,
+            (reserve_number, subtotal, gst, total),
+        )
+        order_row = cur.fetchone()
+        if not order_row:
+            raise HTTPException(status_code=500, detail="failed_to_create_beverage_order")
+        order_id = int(order_row[0])
+
+        for line in normalized_lines:
+            qty = max(float(line.qty), 0.0)
+            price = max(float(line.price), 0.0)
+            line_total = round(qty * price, 2)
+            cur.execute(
+                """
+                INSERT INTO beverage_order_items
+                (order_id, item_id, item_name, quantity, unit_price, total)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (order_id, line.id, (line.name or "").strip(), qty, price, line_total),
+            )
+
+        return {
+            "ok": True,
+            "order_id": order_id,
+            "beverage_orders": [
+                {
+                    "id": line.id,
+                    "name": line.name,
+                    "qty": line.qty,
+                    "price": line.price,
+                }
+                for line in normalized_lines
+            ],
+            "totals": {
+                "subtotal": subtotal,
+                "gst": gst,
+                "total": total,
+            },
+        }
+
+
+@router.post("/invoice_separately", responses={404: {"description": _CHARTER_NOT_FOUND}})
+def set_invoice_beverages_separately(payload: BeverageInvoiceSeparatelyRequest):
+    """Toggle separate customer printout on charter for beverage invoicing workflow."""
+    with _db_cursor() as cur:
+        if not _column_exists(cur, "charters", "separate_customer_printout"):
+            return {
+                "ok": True,
+                "charter_id": payload.charter_id,
+                "invoice_separately": payload.invoice_separately,
+                "applied": False,
+                "reason": "column_missing",
+            }
+
+        cur.execute(
+            """
+            UPDATE charters
+            SET separate_customer_printout = %s
+            WHERE charter_id = %s
+            """,
+            (payload.invoice_separately, payload.charter_id),
+        )
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail=_CHARTER_NOT_FOUND)
+
+    return {
+        "ok": True,
+        "charter_id": payload.charter_id,
+        "invoice_separately": payload.invoice_separately,
+        "applied": True,
+    }

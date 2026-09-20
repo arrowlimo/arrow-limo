@@ -5,6 +5,8 @@ lunch tracking
 """
 
 import logging
+import csv
+from datetime import datetime
 
 from db_error_handling import DatabaseContext
 from employee_drill_down import EmployeeDetailDialog
@@ -12,6 +14,7 @@ from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -47,7 +50,7 @@ class EnhancedEmployeeListWidget(QWidget):
         layout = QVBoxLayout()
 
         # Title
-        title = QLabel("👥 Employee Management - Enhanced")
+        title = QLabel("👥 Employee Ops - Enhanced")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 
@@ -381,6 +384,43 @@ class EnhancedEmployeeListWidget(QWidget):
 
     def generate_reports(self) -> None:
         """Generate employee reports"""
-        QMessageBox.information(
-            self, "Info", "Report generation (to be implemented)"
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Employee Report",
+            f"employee_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            "CSV Files (*.csv);;All Files (*)",
         )
+        if not path:
+            return
+
+        try:
+            headers = [
+                self.table.horizontalHeaderItem(i).text()
+                for i in range(self.table.columnCount())
+            ]
+
+            with open(path, "w", newline="", encoding="utf-8") as fh:
+                writer = csv.writer(fh)
+                writer.writerow(headers)
+                for row_idx in range(self.table.rowCount()):
+                    writer.writerow(
+                        [
+                            self.table.item(row_idx, col_idx).text()
+                            if self.table.item(row_idx, col_idx)
+                            else ""
+                            for col_idx in range(self.table.columnCount())
+                        ]
+                    )
+
+            QMessageBox.information(
+                self,
+                "Report Exported",
+                f"Exported {self.table.rowCount()} employee rows to:\n{path}",
+            )
+        except Exception as e:
+            logger.error("Failed to export employee report: %s", e)
+            QMessageBox.critical(
+                self,
+                "Export Failed",
+                f"Failed to export employee report: {e}",
+            )

@@ -5,6 +5,7 @@ internal transfers with a consistent audit note for T2 exclusion.
 """
 
 import re
+import logging
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -28,6 +29,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass

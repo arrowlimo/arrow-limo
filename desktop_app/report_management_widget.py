@@ -6,6 +6,7 @@ and custom report generation.
 
 import os
 import sys
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -57,17 +58,51 @@ except ImportError:
     from db_connection import DatabaseConnection as DatabaseManager
 
 
+logger = logging.getLogger(__name__)
+
+
 class PDFQuoteManager:
     """Handles PDF quote template filling and generation."""
 
     def __init__(self, template_path="L:/Confirmation/quote.pdf") -> None:
         self.template_path = template_path
-        self.template_exists = os.path.exists(template_path)
+        self.template_exists = False
+        self._resolve_template_path()
+
+    def _resolve_template_path(self) -> None:
+        """Pick the first existing PDF template from known quote locations."""
+        candidates = [
+            self.template_path,
+            "L:/Confirmation/quote.pdf",
+            "L:/Confirmation/quote letter.pdf",
+            "L:/Confirmation/template/quote.pdf",
+            "L:/Confirmation/template/quote letter.pdf",
+        ]
+
+        seen = set()
+        for candidate in candidates:
+            if not candidate:
+                continue
+            normalized = str(Path(candidate))
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            if os.path.exists(normalized):
+                self.template_path = normalized
+                self.template_exists = True
+                return
+
+        self.template_exists = False
 
     def get_template_info(self) -> object:
         """Get info about the template PDF."""
+        self._resolve_template_path()
+
         if not self.template_exists:
-            return {"status": "Template not found", "path": self.template_path}
+            return {
+                "status": "Overlay mode (no template found)",
+                "path": self.template_path,
+            }
 
         try:
             if PYPDF_AVAILABLE:
@@ -91,6 +126,10 @@ class PDFQuoteManager:
         """Fill PDF form fields and save to output path."""
         if not PYPDF_AVAILABLE:
             return False, "PyPDF2 not available"
+
+        self._resolve_template_path()
+        if not self.template_exists:
+            return False, "No PDF template found for form filling"
 
         try:
             reader = PdfReader(self.template_path)
@@ -214,7 +253,7 @@ class ReportManagementWidget(QWidget):
         layout = QVBoxLayout()
 
         # Title
-        title = QLabel("📊 Report Management & PDF Templates")
+        title = QLabel("📊 Reports & PDF Templates")
         title.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         layout.addWidget(title)
 
@@ -223,7 +262,7 @@ class ReportManagementWidget(QWidget):
         layout.addWidget(self.tabs)
 
         # PDF Quote Manager tab
-        self.tabs.addTab(self._create_pdf_quote_tab(), "📋 PDF Quote Manager")
+        self.tabs.addTab(self._create_pdf_quote_tab(), "📋 PDF Quotes")
 
         # Charter Confirmation tab
         self.tabs.addTab(
@@ -232,7 +271,7 @@ class ReportManagementWidget(QWidget):
 
         # Template Manager tab
         self.tabs.addTab(
-            self._create_template_manager_tab(), "⚙️ Template Manager"
+            self._create_template_manager_tab(), "⚙️ Templates"
         )
 
         self.setLayout(layout)
@@ -240,10 +279,13 @@ class ReportManagementWidget(QWidget):
     def check_template(self) -> None:
         """Check if quote.pdf template is available."""
         info = self.pdf_manager.get_template_info()
-        if info.get("status") == "OK":
-            print(f"✓ Quote template found: {self.pdf_manager.template_path}")
+        status = info.get("status", "Unknown")
+        if status == "OK":
+            logger.info("Quote template found: %s", self.pdf_manager.template_path)
+        elif status.startswith("Overlay mode"):
+            logger.info("Quote template overlay mode active")
         else:
-            print(f"⚠ Quote template issue: {info.get('status')}")
+            logger.info("Quote template issue: %s", status)
 
     def _create_pdf_quote_tab(self) -> object:
         """Create PDF Quote Manager tab."""

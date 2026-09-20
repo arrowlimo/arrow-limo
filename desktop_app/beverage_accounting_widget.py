@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date
 
 from PyQt6.QtCore import QDate, Qt
@@ -25,6 +26,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _neon_conn() -> object:
@@ -356,9 +359,11 @@ class BeverageAccountingWidget(QWidget):
     # DB
     # ------------------------------------------------------------------
     def _get_conn(self) -> object:
-        if self.db is not None:
+        if self.db is not None and hasattr(self.db, "config"):
             try:
-                return self.db.conn
-            except Exception:
-                pass
+                import psycopg2
+
+                return psycopg2.connect(**dict(self.db.config))
+            except Exception as exc:
+                logger.warning("Configured beverage DB connection failed: %s", exc)
         return _neon_conn()

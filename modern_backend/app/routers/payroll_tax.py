@@ -22,6 +22,7 @@ from ..db import get_connection
 from ..schemas.common import StatusMessageResponse
 from ..schemas.payroll_tax import T4EntryResponse
 from ..utils.validation import validate_tax_year
+from .year_end import refresh_draft_year_end_close
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["payroll-tax"])
@@ -47,6 +48,11 @@ def _table_exists(conn, table_name: str) -> bool:
 
 def _using_legacy_t4_entries(conn) -> bool:
     return _table_exists(conn, "t4_entries")
+
+
+def _refresh_year_end_totals(conn, fiscal_years: set[int]) -> None:
+    for fiscal_year in sorted(fiscal_years):
+        refresh_draft_year_end_close(conn, fiscal_year)
 
 
 def _audit_actor(request: Request) -> AuditEventActor:
@@ -424,6 +430,7 @@ async def save_t4_entry(entry: T4Entry, request: Request, conn=Depends(get_conne
             commit=False,
         )
 
+        _refresh_year_end_totals(conn, {entry.tax_year})
         conn.commit()
         return {"status": "success", "message": "T4 saved"}
 
@@ -651,7 +658,11 @@ async def export_t4_xml(tax_year: int, conn=Depends(get_connection)):
         return Response(
             content=xml_payload,
             media_type="application/xml",
-            headers={"Content-Disposition": "attachment;" "filename=t4_{tax_year}_submission.xml"},
+            headers={
+                "Content-Disposition": (
+                    f"attachment;filename=t4_{tax_year}_submission.xml"
+                )
+            },
         )
     finally:
         cur.close()
@@ -699,6 +710,8 @@ async def get_payroll_entry(employee_id: int, year: int, period: str, conn=Depen
             "notes": result[11] or "",
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error retrieving payroll: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -824,6 +837,7 @@ async def save_payroll_entry(entry: PayrollEntry, request: Request, conn=Depends
             commit=False,
         )
 
+        _refresh_year_end_totals(conn, {entry.year})
         conn.commit()
         return {"status": "success", "message": "Payroll saved"}
 
@@ -847,17 +861,19 @@ async def get_employee_work_history(employee_id: int, year: int, conn=Depends(ge
         cur.execute(
             """
             SELECT 
-                ch.charter_id, ch.charter_date, ch.charter_number, 
-                ch.base_charge + ch.airport_fee +
-                COALESCE(ch.additional_charges, 0) as gross,
-                COALESCE(ch.gratuity_cash_amount, 0) as gratuity,
-                COALESCE(dp.hours, 0) as hours,
-                COALESCE(dp.hourly_rate, 0) as rate,
-                ch.status
+                ch.charter_id,
+                ch.charter_date,
+                ch.reserve_number,
+                COALESCE(ch.total_amount_due, 0) as gross,
+                COALESCE(ch.gratuity_amount, ch.driver_gratuity, 0) as gratuity,
+                COALESCE(dp.hours_worked, ch.approved_hours, ch.actual_hours, 0)
+                as hours,
+                COALESCE(ch.driver_hourly_rate, 0) as rate,
+                COALESCE(ch.status, 'completed') as status
             FROM charters ch
-            LEFT JOIN driver_payroll dp ON ch.charter_id = dp.charter_id AND
-            dp.employee_id = %s
-            WHERE ch.assigned_driver_id = %s OR dp.employee_id = %s
+            LEFT JOIN driver_payroll dp ON ch.charter_id::text = dp.charter_id
+            AND dp.employee_id = %s
+            WHERE (ch.assigned_driver_id = %s OR dp.employee_id = %s)
             AND EXTRACT(YEAR FROM ch.charter_date) = %s
             ORDER BY ch.charter_date DESC
         """,
@@ -901,21 +917,36 @@ async def get_employee_monthly_summary(employee_id: int, year: int, conn=Depends
             cur.execute(
                 """
                 SELECT 
-                    COALESCE(SUM(hours), 0) as hours,
-                    COALESCE(SUM(salary), 0) as salary,
+                    COALESCE(SUM(
+                        COALESCE(regular_hours, 0) + COALESCE(ot_hours, 0)
+                    ), 0) as hours,
+                    COALESCE(SUM(base_salary), 0) as salary,
                     COALESCE(SUM(bonus), 0) as bonus,
                     COALESCE(SUM(gratuity), 0) as gratuity,
                     COALESCE(SUM(base_salary + bonus + gratuity + 
-                        regular_hours * hourly_rate + ot_hours * ot_rate),
+                        COALESCE(other_benefits, 0) +
+                        COALESCE(regular_hours, 0) * COALESCE(hourly_rate, 0) +
+                        COALESCE(ot_hours, 0) * COALESCE(ot_rate, 0)),
                         0) as gross,
                     COALESCE(SUM(cpp), 0) as cpp,
                     COALESCE(SUM(ei), 0) as ei,
                     COALESCE(SUM(income_tax), 0) as tax
                 FROM payroll_entries
-                WHERE employee_id = %s AND year = %s AND EXTRACT(MONTH FROM
-                created_at) = %s
+                WHERE employee_id = %s
+                  AND year = %s
+                  AND (
+                        pay_period::text = %s
+                        OR pay_period::text = %s
+                        OR pay_period::text LIKE %s
+                  )
             """,
-                (employee_id, year, month),
+                (
+                    employee_id,
+                    year,
+                    f"{year}-{month:02d}",
+                    str(month),
+                    f"{year}-{month:02d}%",
+                ),
             )
 
             result = cur.fetchone()
@@ -965,14 +996,11 @@ async def get_available_periods(employee_id: int, year: int, conn=Depends(get_co
     try:
         cur = conn.cursor()
 
-        # Generate standard biweekly periods for the year
+        # Generate monthly pay periods for the year.
         periods = []
 
-        # You can customize this logic based on your actual pay period
-        # structure
-        for week_num in range(1, 27):  # 26 biweekly periods
-            period_str = f"P{week_num:02d} - {year}"
-            periods.append(period_str)
+        for month_num in range(1, 13):
+            periods.append(f"{year}-{month_num:02d}")
 
         cur.close()
         return periods
@@ -1026,6 +1054,7 @@ async def auto_match_charters(payload: dict, request: Request, conn=Depends(get_
             )
             matched_count += 1
 
+        _refresh_year_end_totals(conn, {int(period[:4])})
         conn.commit()
         cur.close()
 
@@ -1081,6 +1110,14 @@ async def match_single_charter(
         """,
             (employee_id, charter_id),
         )
+
+        cur.execute(
+            "SELECT EXTRACT(YEAR FROM charter_date) FROM charters WHERE charter_id = %s",
+            (charter_id,),
+        )
+        charter_year_row = cur.fetchone()
+        if charter_year_row and charter_year_row[0] is not None:
+            _refresh_year_end_totals(conn, {int(charter_year_row[0])})
 
         conn.commit()
         cur.close()
@@ -1138,10 +1175,21 @@ async def month_end_balance(payload: dict, conn=Depends(get_connection)):
                 COALESCE(SUM(ei), 0),
                 COALESCE(SUM(income_tax), 0)
             FROM payroll_entries
-            WHERE employee_id = %s AND year = %s 
-            AND EXTRACT(MONTH FROM created_at) = %s
+            WHERE employee_id = %s
+              AND year = %s
+              AND (
+                    pay_period::text = %s
+                    OR pay_period::text = %s
+                    OR pay_period::text LIKE %s
+              )
         """,
-            (employee_id, int(year), int(month)),
+            (
+                employee_id,
+                int(year),
+                f"{int(year)}-{int(month):02d}",
+                str(int(month)),
+                f"{int(year)}-{int(month):02d}%",
+            ),
         )
 
         result = cur.fetchone()
@@ -1211,6 +1259,8 @@ async def generate_paystub(employee_id: int, period: str, conn=Depends(get_conne
 
         # Get payroll data for period
         year, month = period.split("-") if "-" in period else (period[:4], period[4:6])
+        month_int = int(month)
+        period_token = f"{int(year)}-{month_int:02d}"
 
         cur.execute(
             """
@@ -1218,11 +1268,21 @@ async def generate_paystub(employee_id: int, period: str, conn=Depends(get_conne
                 regular_hours, hourly_rate, bonus, gratuity,
                 base_salary, cpp, ei, income_tax, pay_period
             FROM payroll_entries
-            WHERE employee_id = %s AND year = %s 
-            AND EXTRACT(MONTH FROM created_at) = %s
+                        WHERE employee_id = %s AND year = %s
+                            AND (
+                                pay_period::text = %s
+                                OR pay_period::text = %s
+                                OR pay_period::text LIKE %s
+                            )
             LIMIT 1
         """,
-            (employee_id, int(year), int(month)),
+                        (
+                            employee_id,
+                            int(year),
+                            period_token,
+                            str(month_int),
+                            f"{period_token}%",
+                        ),
         )
 
         payroll = cur.fetchone()
@@ -1251,7 +1311,7 @@ async def generate_paystub(employee_id: int, period: str, conn=Depends(get_conne
             "employeeId": employee_id,
             "employeeName": emp[0],
             "sin": emp[2],
-            "period": f"{year}-{month:0>2}",
+            "period": period_token,
             "payDate": datetime.now().date().isoformat(),
             "hours": hours,
             "hourlyRate": hourly_rate,
@@ -1265,6 +1325,8 @@ async def generate_paystub(employee_id: int, period: str, conn=Depends(get_conne
             "netPay": net,
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error generating pay stub: {e}")
         raise HTTPException(status_code=500, detail=str(e))

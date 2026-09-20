@@ -32,14 +32,14 @@ def get_charter_sheet(reserve_number: str):
         cur.execute(
             """
             SELECT
-                c.charter_id, c.reserve_number, c.charter_date, c.pickup_time,
-                c.pickup_address, c.dropoff_address, c.passenger_load,
-                c.vehicle_type_requested, c.vehicle_booked_id, c.driver_name,
-                c.total_amount_due, c.status, c.charter_type, c.quoted_hours,
-                c.separate_customer_printout,
-                c.actual_pickup_time, c.actual_dropoff_time, c.actual_hours,
-                c.odometer_start, c.odometer_end, c.total_miles,
-                c.fuel_gallons, c.fuel_price_per_gallon, c.fuel_total_cost,
+                c.charter_id, c.reserve_number, c.charter_date, NULL::time AS pickup_time,
+                c.pickup_address, c.dropoff_address, NULL::integer AS passenger_load,
+                NULL::text AS vehicle_type_requested, NULL::integer AS vehicle_booked_id, NULL::text AS driver_name,
+                c.total_amount_due, c.status, NULL::text AS charter_type, NULL::numeric AS quoted_hours,
+                NULL::boolean AS separate_customer_printout,
+                NULL::time AS actual_pickup_time, NULL::time AS actual_dropoff_time, NULL::numeric AS actual_hours,
+                NULL::numeric AS odometer_start, NULL::numeric AS odometer_end, NULL::numeric AS total_miles,
+                NULL::numeric AS fuel_gallons, NULL::numeric AS fuel_price_per_gallon, NULL::numeric AS fuel_total_cost,
                 cl.client_name, cl.phone, cl.email, cl.address_line1,
                 cl.city, cl.province, cl.zip_code, cl.gst_exempt,
                 cl.account_number
@@ -93,6 +93,7 @@ def get_charter_sheet(reserve_number: str):
                 "account_number": charter_row[32],
             },
         }
+        cancelled = str(charter_data.get("status") or "").strip().lower() == "cancelled"
 
         # Get charge breakdown (line items)
         cur.execute(
@@ -117,16 +118,17 @@ def get_charter_sheet(reserve_number: str):
         total_charges = 0.0
         for row in cur.fetchall():
             amt = float(row[2]) if row[2] else 0.0
+            display_amt = 0.0 if cancelled else amt
             charges.append(
                 {
                     "charge_id": row[0],
                     "charge_type": row[1],
-                    "amount": amt,
+                    "amount": display_amt,
                     "description": row[3],
                     "created_at": row[4].isoformat() if row[4] else None,
                 }
             )
-            if row[1] != "gst":  # Don't double-count GST in subtotal
+            if not cancelled and row[1] != "gst":  # Don't double-count GST in subtotal
                 total_charges += amt
 
         # Get payment breakdown (with labels: NRD, Deposit, E-Transfer, etc.)
@@ -161,8 +163,8 @@ def get_charter_sheet(reserve_number: str):
             total_paid += amt
 
         # Calculate balance
-        total_due = charter_data["total_amount_due"]
-        balance = round(total_due - total_paid, 2)
+        total_due = 0.0 if cancelled else charter_data["total_amount_due"]
+        balance = 0.0 if cancelled else round(max(total_due - total_paid, 0.0), 2)
 
         # Get trip notes (beverage orders, etc.)
         trip_notes = []

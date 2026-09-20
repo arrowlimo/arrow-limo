@@ -3,6 +3,11 @@ UI Standards and Helpers for Desktop Application
 Provides consistent sizing, tab order, and fuzzy search functionality
 """
 
+APP_BACKGROUND_COLOR = "#e8eef5"
+APP_SURFACE_COLOR = "#edf4fb"
+APP_BORDER_COLOR = "#cbd5e1"
+APP_TEXT_COLOR = "#1f2937"
+
 
 from PyQt6.QtCore import QEvent, QObject, QSettings, Qt, pyqtSignal
 from PyQt6.QtGui import QAction
@@ -11,15 +16,20 @@ from PyQt6.QtWidgets import (
     QCompleter,
     QDateEdit,
     QDoubleSpinBox,
+    QFrame,
     QHeaderView,
+    QHBoxLayout,
+    QLabel,
     QLineEdit,
     QMenu,
+    QScrollArea,
     QSpinBox,
     QTableView,
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
     QTimeEdit,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -91,12 +101,19 @@ FIELD_WIDTHS = {
 
 class SmartTableWidget(QTableWidget):
     """
-    Enhanced QTableWidget with smart column sizing and auto-configuration
+    Enhanced QTableWidget with smart column sizing and auto-configuration.
+
+    Selected text and cell content should stay readable in narrow columns instead
+    of being silently ellipsized by Qt's default elide behavior.
     """
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.column_configs = {}
+        self.setTextElideMode(Qt.TextElideMode.ElideNone)
+        self.setWordWrap(True)
+        self.setAlternatingRowColors(True)
+        self.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
     def setup_columns(
         self, headers: list[str], column_types: dict[str, str] | None = None
@@ -197,6 +214,85 @@ class SmartTableWidget(QTableWidget):
         header.setSectionResizeMode(
             column_index, QHeaderView.ResizeMode.ResizeToContents
         )
+
+
+def create_page_header(
+    title: str,
+    subtitle: str = "",
+    actions: list[QWidget] | None = None,
+    parent: QWidget | None = None,
+) -> QWidget:
+    """Create a consistent page header card with optional actions."""
+    header = QFrame(parent)
+    header.setObjectName("pageHeaderCard")
+    header.setStyleSheet(
+        "QFrame#pageHeaderCard {"
+        f"background: {APP_SURFACE_COLOR}; border: 1px solid {APP_BORDER_COLOR}; "
+        "border-radius: 10px; }"
+    )
+
+    layout = QVBoxLayout(header)
+    layout.setContentsMargins(12, 10, 12, 10)
+    layout.setSpacing(6)
+
+    title_row = QHBoxLayout()
+    title_label = QLabel(title)
+    title_label.setStyleSheet(
+        f"font-size: 16px; font-weight: bold; color: {APP_TEXT_COLOR};"
+    )
+    title_row.addWidget(title_label)
+    title_row.addStretch()
+    layout.addLayout(title_row)
+
+    if subtitle:
+        subtitle_label = QLabel(subtitle)
+        subtitle_label.setWordWrap(True)
+        subtitle_label.setStyleSheet(
+            "color: #475569; font-size: 10.5pt;"
+        )
+        layout.addWidget(subtitle_label)
+
+    if actions:
+        actions_row = QHBoxLayout()
+        actions_row.setSpacing(6)
+        for action in actions:
+            actions_row.addWidget(action)
+        actions_row.addStretch()
+        layout.addLayout(actions_row)
+
+    return header
+
+
+def wrap_in_scroll_area(
+    widget: QWidget,
+    *,
+    minimum_height: int | None = None,
+    always_on_vertical: bool = False,
+) -> QScrollArea:
+    """Wrap a widget in a scroll area using consistent app defaults."""
+    scroll = QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setWidget(widget)
+    scroll.setFrameShape(QFrame.Shape.NoFrame)
+    scroll.setStyleSheet(
+        "QScrollArea {"
+        f" background: {APP_BACKGROUND_COLOR}; border: 0;"
+        " }"
+        "QScrollArea > QWidget > QWidget {"
+        f" background: {APP_BACKGROUND_COLOR};"
+        " }"
+    )
+    if minimum_height is not None:
+        scroll.setMinimumHeight(minimum_height)
+    scroll.setVerticalScrollBarPolicy(
+        Qt.ScrollBarPolicy.ScrollBarAlwaysOn
+        if always_on_vertical
+        else Qt.ScrollBarPolicy.ScrollBarAsNeeded
+    )
+    scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+    return scroll
+
+
 
 
 class FuzzySearchLineEdit(QLineEdit):
@@ -650,12 +746,17 @@ class GridStandardsManager(QObject):
         # Scrollbars present as needed on both axes.
         table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        if hasattr(table, "setTextElideMode"):
+            table.setTextElideMode(Qt.TextElideMode.ElideNone)
+        if hasattr(table, "setWordWrap"):
+            table.setWordWrap(True)
 
         # Sorting and adjustable headers.
         if hasattr(table, "setSortingEnabled"):
             table.setSortingEnabled(True)
 
         header = table.horizontalHeader()
+        header.setTextElideMode(Qt.TextElideMode.ElideNone)
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setSectionsMovable(True)
         # Stretch the last column so grids fill the panel width instead of

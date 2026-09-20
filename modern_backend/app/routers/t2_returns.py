@@ -83,6 +83,52 @@ def _ensure_tax_rate_for_year(conn, tax_year: int) -> None:
         cur.close()
 
 
+def _refresh_t2_return_totals(conn, tax_year: int):
+    from .year_end import _compute_summary
+
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT return_id
+            FROM t2_return_metadata
+            WHERE tax_year = %s
+            """,
+            (tax_year,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+
+        summary = _compute_summary(conn, tax_year)
+        cur.execute(
+            """
+            UPDATE t2_return_metadata
+            SET total_revenue = %s,
+                total_expenses = %s,
+                net_income = %s,
+                updated_at = NOW()
+            WHERE return_id = %s
+            """,
+            (summary["total_revenue"], summary["total_expenses"], summary["net_income"], row[0]),
+        )
+        cur.execute(
+            """
+            SELECT return_id, tax_year, corporation_name, business_number,
+                   fiscal_year_end, status, total_revenue, total_expenses,
+                   net_income, taxable_income, federal_tax, provincial_tax,
+                   total_tax, created_at, updated_at
+            FROM t2_return_metadata
+            WHERE return_id = %s
+            """,
+            (row[0],),
+        )
+        refreshed = cur.fetchone()
+        return refreshed
+    finally:
+        cur.close()
+
+
 # ============================================================================
 # PYDANTIC MODELS
 # ============================================================================
@@ -100,7 +146,7 @@ class TaxRatesResponse(BaseModel):
 
 
 class T2ReturnCreate(BaseModel):
-    tax_year: int = Field(..., ge=2007, le=2030)
+    tax_year: int = Field(..., ge=2006, le=2011)
     corporation_name: str = Field(default="Arrow Limousine Ltd.")
     business_number: str | None = None
     fiscal_year_end: date
@@ -231,7 +277,7 @@ def _ensure_t2_adjustment_table(conn):
 
 @router.get("/tax-rates", response_model=list[TaxRatesResponse])
 async def get_tax_rates(conn=Depends(get_connection)):
-    """Get corporate tax rates for all years (2007-2025)"""
+    """Get corporate tax rates for all years (2006-2011)"""
     cur = conn.cursor()
     try:
         cur.execute("""
@@ -364,24 +410,25 @@ async def create_t2_return(data: T2ReturnCreate, request: Request, conn=Depends(
             ensure_storage=False,
             commit=False,
         )
+        refreshed_row = _refresh_t2_return_totals(conn, data.tax_year) or row
         conn.commit()
 
         return T2ReturnMetadata(
-            return_id=row[0],
-            tax_year=row[1],
-            corporation_name=row[2],
-            business_number=row[3],
-            fiscal_year_end=row[4],
-            status=row[5],
-            total_revenue=float(row[6]) if row[6] else None,
-            total_expenses=float(row[7]) if row[7] else None,
-            net_income=float(row[8]) if row[8] else None,
-            taxable_income=float(row[9]) if row[9] else None,
-            federal_tax=float(row[10]) if row[10] else None,
-            provincial_tax=float(row[11]) if row[11] else None,
-            total_tax=float(row[12]) if row[12] else None,
-            created_at=row[13],
-            updated_at=row[14],
+            return_id=refreshed_row[0],
+            tax_year=refreshed_row[1],
+            corporation_name=refreshed_row[2],
+            business_number=refreshed_row[3],
+            fiscal_year_end=refreshed_row[4],
+            status=refreshed_row[5],
+            total_revenue=float(refreshed_row[6]) if refreshed_row[6] else None,
+            total_expenses=float(refreshed_row[7]) if refreshed_row[7] else None,
+            net_income=float(refreshed_row[8]) if refreshed_row[8] else None,
+            taxable_income=float(refreshed_row[9]) if refreshed_row[9] else None,
+            federal_tax=float(refreshed_row[10]) if refreshed_row[10] else None,
+            provincial_tax=float(refreshed_row[11]) if refreshed_row[11] else None,
+            total_tax=float(refreshed_row[12]) if refreshed_row[12] else None,
+            created_at=refreshed_row[13],
+            updated_at=refreshed_row[14],
         )
     except HTTPException:
         conn.rollback()
@@ -415,6 +462,9 @@ async def get_t2_return(tax_year: int, conn=Depends(get_connection)):
         row = cur.fetchone()
         if not row:
             return None
+
+        row = _refresh_t2_return_totals(conn, tax_year) or row
+        conn.commit()
 
         return T2ReturnMetadata(
             return_id=row[0],

@@ -5,17 +5,19 @@ Provides standardized error handling patterns for database operations
 
 import functools
 import logging
+import os
 from collections.abc import Callable
 from typing import Any
 
 import psycopg2
 
 try:
-    from PyQt6.QtCore import QCoreApplication, Qt
+    from PyQt6.QtCore import QCoreApplication, QThread, Qt
     from PyQt6.QtWidgets import QApplication
 except Exception:  # pragma: no cover - non-Qt contexts
     QApplication = None
     QCoreApplication = None
+    QThread = None
     Qt = None
 
 # Setup logger
@@ -32,6 +34,8 @@ def _begin_busy_cursor() -> bool:
 
     app = QApplication.instance()
     if app is None:
+        return False
+    if QThread is None or QThread.currentThread() != app.thread():
         return False
 
     try:
@@ -312,6 +316,24 @@ class DatabaseContext:
         self._busy_cursor_started = _begin_busy_cursor()
         try:
             self.cursor = self.conn.cursor()
+            # Prevent UI freezes from indefinitely blocked DB calls.
+            # Can be tuned via env vars or disabled by setting to 0.
+            try:
+                statement_timeout_ms = int(os.getenv("DB_STATEMENT_TIMEOUT_MS", "30000"))
+            except Exception:
+                statement_timeout_ms = 30000
+            try:
+                lock_timeout_ms = int(os.getenv("DB_LOCK_TIMEOUT_MS", "15000"))
+            except Exception:
+                lock_timeout_ms = 15000
+
+            try:
+                if statement_timeout_ms > 0:
+                    self.cursor.execute(f"SET statement_timeout = {statement_timeout_ms}")
+                if lock_timeout_ms > 0:
+                    self.cursor.execute(f"SET lock_timeout = {lock_timeout_ms}")
+            except Exception as _e:
+                logger.debug("Suppressed: %s", _e)
             return self.cursor
         except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
             err = str(e).lower()

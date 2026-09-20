@@ -1,7 +1,7 @@
 import json
 from contextlib import contextmanager
 from datetime import date, timedelta
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, HTTPException, Path, Query, Request
 from psycopg2.extras import execute_values
@@ -26,6 +26,17 @@ _CHARTER_ROUTE_COLUMNS = (
     "event_type_code, address, reserve_number, stop_time"
 )
 
+_DELETE_DEPENDENCY_CHECKS = (
+    ("payments", "charter_id", "Payments"),
+    ("charter_payments", "charter_id", "Charter payments"),
+    ("charter_receipts", "charter_id", "Charter receipts"),
+    ("charter_refunds", "charter_id", "Charter refunds"),
+    ("invoices", "reserve_number", "Invoices"),
+)
+
+# SQL Constants for duplicate query elimination
+_VERIFY_CHARTER_EXISTS = "SELECT charter_id FROM charters WHERE charter_id = %s"
+
 
 def _audit_actor(request: Request | None) -> AuditEventActor:
     if request is None:
@@ -44,12 +55,16 @@ def _audit_actor(request: Request | None) -> AuditEventActor:
 
 
 def _fetch_charter(cur, charter_id: int) -> dict[str, Any] | None:
-    cur.execute("SELECT * FROM charters WHERE charter_id=%s", (charter_id,))
+    cur.execute("SELECT to_jsonb(c) FROM charters c WHERE c.charter_id = %s", (charter_id,))
     row = cur.fetchone()
     if not row:
         return None
-    cols = [d[0] for d in (cur.description or [])]
-    return dict(zip(cols, row, strict=False))
+    payload = row[0]
+    if payload is None:
+        return None
+    if isinstance(payload, dict):
+        return payload
+    return json.loads(payload)
 
 
 def _fetch_route(cur, charter_id: int, route_id: int) -> dict[str, Any] | None:
@@ -63,6 +78,24 @@ def _fetch_route(cur, charter_id: int, route_id: int) -> dict[str, Any] | None:
         return None
     cols = [d[0] for d in (cur.description or [])]
     return dict(zip(cols, row, strict=False))
+
+
+def _fetch_delete_dependencies(cur, charter: dict[str, Any]) -> list[dict[str, Any]]:
+    reserve_number = charter.get("reserve_number")
+    blockers: list[dict[str, Any]] = []
+    for table_name, column_name, label in _DELETE_DEPENDENCY_CHECKS:
+        value = charter.get("charter_id") if column_name == "charter_id" else reserve_number
+        if value is None:
+            continue
+        cur.execute(
+            f"SELECT COUNT(*) FROM {table_name} WHERE {column_name} = %s",
+            (value,),
+        )
+        count_row = cur.fetchone()
+        count = int(count_row[0]) if count_row else 0
+        if count:
+            blockers.append({"table": table_name, "label": label, "count": count})
+    return blockers
 
 
 @contextmanager
@@ -82,24 +115,29 @@ def _db_cursor():
 
 @router.get("/charters")
 def list_charters(
-    q: str | None = Query(default=None, description="Search by charter_id or client name"),
-    limit: int = Query(default=100, ge=1, le=1000),
-    offset: int = Query(default=0, ge=0),
+    q: Annotated[str | None, Query(description="Search by charter_id or client name")] = None,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ):
-    sql = """
-        SELECT c.charter_id, c.charter_date, COALESCE(cl.client_name,
-        c.client_id::text) AS client,
-               c.vehicle_booked_id, c.driver_name, c.status
-        FROM charters c
-        LEFT JOIN clients cl ON c.client_id = cl.client_id
-        {where}
-        ORDER BY c.charter_date DESC, c.charter_id DESC
-        LIMIT %s OFFSET %s
-        """
+    sql = (
+        "SELECT c.charter_id, c.charter_date,"
+        " COALESCE(cl.client_name, c.client_id::text) AS client,"
+        " c.vehicle_id,"
+        " COALESCE(v.vehicle_number, \'\') AS vehicle_number,"
+        " COALESCE(e.first_name || \' \' || e.last_name, \'\') AS driver_name,"
+        " c.status"
+        " FROM charters c"
+        " LEFT JOIN clients cl ON c.client_id = cl.client_id"
+        " LEFT JOIN vehicles v ON c.vehicle_id = v.vehicle_id"
+        " LEFT JOIN employees e ON c.employee_id = e.employee_id"
+        " {where}"
+        " ORDER BY c.charter_date DESC, c.charter_id DESC"
+        " LIMIT %s OFFSET %s"
+    )
     where = ""
     params: list[Any] = []
     if q:
-        where = "WHERE (c.charter_id::text ILIKE %s" " OR COALESCE(cl.client_name,'') ILIKE %s)"
+        where = "WHERE (c.charter_id::text ILIKE %s OR COALESCE(cl.client_name,\'\') ILIKE %s)"
         like = f"%{q}%"
         params.extend([like, like])
     params.extend([limit, offset])
@@ -112,11 +150,8 @@ def list_charters(
 
 @router.get("/charters/search")
 def search_charters(
-    q: str = Query(
-        default="",
-        description="Search by reserve number, client name, or charter ID",
-    ),
-    limit: int = Query(default=10, ge=1, le=100),
+    q: Annotated[str, Query(description="Search by reserve number, client name, or charter ID")] = "",
+    limit: Annotated[int, Query(ge=1, le=100)] = 10,
 ):
     """Search charters with detailed information for autocomplete/search"
     "features."""
@@ -188,11 +223,11 @@ def get_charges_by_reserve_number(reserve_number: str):
     with _db_cursor() as cur:
         cur.execute(
             """
-            SELECT id, reserve_number, charge_type, amount, description,
+            SELECT charge_id, reserve_number, charge_type, amount, description,
             created_at
             FROM charges
             WHERE reserve_number = %s
-            ORDER BY id
+            ORDER BY charge_id
             """,
             (reserve_number,),
         )
@@ -205,21 +240,19 @@ def get_charges_by_reserve_number(reserve_number: str):
 
 @router.get("/charters/{charter_id}")
 def get_charter(
-    charter_id: int = Path(..., description="Charter ID"),
+    charter_id: Annotated[int, Path(description="Charter ID")],
 ):
     with _db_cursor() as cur:
-        cur.execute("SELECT * FROM charters WHERE charter_id=%s", (charter_id,))
-        row = cur.fetchone()
-        cols = [d[0] for d in (cur.description or [])]
+        row = _fetch_charter(cur, charter_id)
     if not row:
         raise HTTPException(status_code=404, detail="charter_not_found")
-    return dict(zip(cols, row, strict=False))
+    return row
 
 
 @router.patch("/charters/{charter_id}")
 def update_charter(
     request: Request,
-    charter_id: int = Path(...),
+    charter_id: Annotated[int, Path()],
     payload: dict[str, Any] | None = None,
 ):
     # Only allow a safe subset of fields to be updated via this endpoint
@@ -257,7 +290,7 @@ def update_charter(
     with _db_cursor() as cur:
         before_snapshot = _fetch_charter(cur, charter_id)
         if not before_snapshot:
-            raise HTTPException(status_code=404, detail="charter_not_found")
+            return None
 
         cur.execute(f"UPDATE charters SET {sets} WHERE charter_id=%s", params)
         # Return the updated record
@@ -287,20 +320,44 @@ def update_charter(
     return row
 
 
-@router.delete("/charters/{charter_id}", status_code=204)
+@router.delete(
+    "/charters/{charter_id}",
+    status_code=204,
+    responses={
+        404: {"description": "charter_not_found"},
+        409: {"description": "charter_has_dependencies"},
+    },
+)
 def delete_charter(
     request: Request,
-    charter_id: int = Path(...),
+    charter_id: Annotated[int, Path()],
 ):
     with _db_cursor() as cur:
         before_snapshot = _fetch_charter(cur, charter_id)
         if not before_snapshot:
             raise HTTPException(status_code=404, detail="charter_not_found")
 
+        blockers = _fetch_delete_dependencies(cur, before_snapshot)
+        if blockers:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "charter_has_dependencies",
+                    "message": (
+                        "Move or stage attached payments, receipts, refunds, or invoices "
+                        "before deleting this charter."
+                    ),
+                    "blockers": blockers,
+                },
+            )
+
+        cur.execute("DELETE FROM charter_beverage_orders WHERE charter_id=%s", (charter_id,))
+        cur.execute("DELETE FROM charter_charges WHERE charter_id=%s", (charter_id,))
+        cur.execute("DELETE FROM charter_beverages WHERE charter_id=%s", (charter_id,))
         cur.execute("DELETE FROM charter_routes WHERE charter_id=%s", (charter_id,))
         cur.execute("DELETE FROM charters WHERE charter_id=%s", (charter_id,))
         if cur.rowcount == 0:
-            raise HTTPException(status_code=404, detail="charter_not_found")
+            return None
 
         ensure_audit_storage(cur.connection)
         record_audit_event(
@@ -324,18 +381,46 @@ def delete_charter(
     return None
 
 
+@router.get(
+    "/charters/{charter_id}/delete-preview",
+    responses={404: {"description": "charter_not_found"}},
+)
+def preview_charter_delete(
+    charter_id: Annotated[int, Path()],
+):
+    with _db_cursor() as cur:
+        charter = _fetch_charter(cur, charter_id)
+        if not charter:
+            return {
+                "charter_id": charter_id,
+                "reserve_number": None,
+                "can_delete": False,
+                "exists": False,
+                "blockers": [],
+            }
+
+        blockers = _fetch_delete_dependencies(cur, charter)
+        return {
+            "charter_id": charter_id,
+            "reserve_number": charter.get("reserve_number"),
+            "can_delete": not blockers,
+            "exists": True,
+            "blockers": blockers,
+        }
+
+
 # ==================== CHARTER ROUTES ENDPOINTS ====================
 
 
 @router.get("/charters/{charter_id}/routes", response_model=list[CharterRoute])
 def get_charter_routes(
-    charter_id: int = Path(..., description="Charter ID"),
+    charter_id: Annotated[int, Path(description="Charter ID")],
 ):
     """Get all routes for a charter, ordered by sequence."""
     with _db_cursor() as cur:
         # Verify charter exists
         cur.execute(
-            "SELECT charter_id FROM charters WHERE charter_id = %s",
+            _VERIFY_CHARTER_EXISTS,
             (charter_id,),
         )
         if not cur.fetchone():
@@ -357,7 +442,7 @@ def get_charter_routes(
 
 @router.get("/charters/{charter_id}/with-routes", response_model=CharterWithRoutes)
 def get_charter_with_routes(
-    charter_id: int = Path(..., description="Charter ID"),
+    charter_id: Annotated[int, Path(description="Charter ID")],
 ):
     """Get charter with all routes and calculated totals."""
     with _db_cursor() as cur:
@@ -416,8 +501,8 @@ def get_charter_with_routes(
 )
 def create_charter_route(
     request: Request,
-    charter_id: int = Path(..., description="Charter ID"),
-    route: CharterRouteCreate = Body(...),
+    charter_id: Annotated[int, Path(description="Charter ID")],
+    route: Annotated[CharterRouteCreate, Body()],
 ):
     """Create a new route for a charter."""
     if route.charter_id != charter_id:
@@ -426,7 +511,7 @@ def create_charter_route(
     with _db_cursor() as cur:
         # Verify charter exists
         cur.execute(
-            "SELECT charter_id FROM charters WHERE charter_id = %s",
+            _VERIFY_CHARTER_EXISTS,
             (charter_id,),
         )
         if not cur.fetchone():
@@ -491,9 +576,9 @@ def create_charter_route(
 @router.patch("/charters/{charter_id}/routes/{route_id}", response_model=CharterRoute)
 def update_charter_route(
     request: Request,
-    charter_id: int = Path(..., description="Charter ID"),
-    route_id: int = Path(..., description="Route ID"),
-    route: CharterRouteUpdate = Body(...),
+    charter_id: Annotated[int, Path(description="Charter ID")],
+    route_id: Annotated[int, Path(description="Route ID")],
+    route: Annotated[CharterRouteUpdate, Body()],
 ):
     """Update a charter route."""
     route_dict = route.model_dump(exclude_unset=True)
@@ -549,8 +634,8 @@ def update_charter_route(
 @router.delete("/charters/{charter_id}/routes/{route_id}", status_code=204)
 def delete_charter_route(
     request: Request,
-    charter_id: int = Path(..., description="Charter ID"),
-    route_id: int = Path(..., description="Route ID"),
+    charter_id: Annotated[int, Path(description="Charter ID")],
+    route_id: Annotated[int, Path(description="Route ID")],
 ):
     """Delete a charter route."""
     with _db_cursor() as cur:
@@ -559,7 +644,7 @@ def delete_charter_route(
             raise HTTPException(status_code=404, detail="route_not_found")
 
         cur.execute(
-            "DELETE FROM charter_routes WHERE route_id = %s AND charter_id =" "%s",
+            "DELETE FROM charter_routes WHERE route_id = %s AND charter_id = %s",
             (route_id, charter_id),
         )
         if cur.rowcount == 0:
@@ -590,8 +675,8 @@ def delete_charter_route(
 @router.post("/charters/{charter_id}/routes/reorder", response_model=list[CharterRoute])
 def reorder_charter_routes(
     request: Request,
-    charter_id: int = Path(..., description="Charter ID"),
-    sequence_map: dict[int, int] = Body(..., description="Map of route_id to new sequence number"),
+    charter_id: Annotated[int, Path(description="Charter ID")],
+    sequence_map: Annotated[dict[int, int], Body(description="Map of route_id to new sequence number")],
 ):
     """
     Reorder routes by providing a map of route_id -> new_sequence.
@@ -613,7 +698,7 @@ def reorder_charter_routes(
 
         # Verify charter exists
         cur.execute(
-            "SELECT charter_id FROM charters WHERE charter_id = %s",
+            _VERIFY_CHARTER_EXISTS,
             (charter_id,),
         )
         if not cur.fetchone():

@@ -4,9 +4,13 @@ Search for existing clients or create new ones
 """
 
 import logging
+import re
+from difflib import SequenceMatcher
+
+import psycopg2
 
 from db_error_handling import DatabaseContext
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtWidgets import (
     QDialog,
     QFormLayout,
@@ -25,6 +29,11 @@ from PyQt6.QtWidgets import (
 logger = logging.getLogger(__name__)
 
 
+def _norm_text(value: str) -> str:
+    """Normalize text for tolerant name matching."""
+    return re.sub(r"[^a-z0-9]", "", (value or "").lower())
+
+
 def _get_clients_columns(cur) -> object:
     cur.execute("""
         SELECT column_name
@@ -32,6 +41,40 @@ def _get_clients_columns(cur) -> object:
         WHERE table_schema = 'public' AND table_name = 'clients'
     """)
     return {row[0] for row in cur.fetchall()}
+
+
+def _is_account_number_unique_violation(error: psycopg2.Error) -> bool:
+    """Return True when DB error indicates account number unique conflict."""
+    constraint_name = (
+        getattr(getattr(error, "diag", None), "constraint_name", "") or ""
+    ).lower()
+    message = str(error).lower()
+    return (
+        "account_number" in constraint_name
+        or (
+            "unique" in message
+            and "account_number" in message
+            and "clients" in message
+        )
+    )
+
+
+def _next_client_account_number(cur) -> str:
+    """Get next account number from shared sequence; fallback to MAX+1."""
+    try:
+        cur.execute("SAVEPOINT acct_seq")
+        cur.execute("SELECT nextval('account_number_seq')")
+        account_number = str(int(cur.fetchone()[0]))
+        cur.execute("RELEASE SAVEPOINT acct_seq")
+        return account_number
+    except Exception:
+        cur.execute("ROLLBACK TO SAVEPOINT acct_seq")
+        cur.execute(
+            "SELECT MAX(CAST(account_number AS INTEGER)) FROM clients "
+            "WHERE account_number ~ '^[0-9]+$'"
+        )
+        max_account = cur.fetchone()[0] or 7604
+        return str(int(max_account) + 1)
 
 
 class ClientFinderDialog(QDialog):
@@ -42,6 +85,12 @@ class ClientFinderDialog(QDialog):
         self.db = db
         self.selected_client_id = None
         self.selected_client_name = None
+        self.clients_data = []
+
+        self._search_timer = QTimer(self)
+        self._search_timer.setSingleShot(True)
+        self._search_timer.setInterval(180)
+        self._search_timer.timeout.connect(self.search_clients)
 
         self.setWindowTitle("Find or Create Client")
         self.setGeometry(150, 150, 900, 500)
@@ -58,7 +107,7 @@ class ClientFinderDialog(QDialog):
         search_layout.addWidget(QLabel("Search:"))
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Client name, phone, email...")
-        self.search_input.textChanged.connect(self.search_clients)
+        self.search_input.textChanged.connect(self._schedule_search)
         search_layout.addWidget(self.search_input)
 
         search_group.setLayout(search_layout)
@@ -98,6 +147,10 @@ class ClientFinderDialog(QDialog):
 
         self.setLayout(layout)
         self.load_all_clients()
+
+    def _schedule_search(self) -> None:
+        """Debounce search while typing to keep the dialog responsive."""
+        self._search_timer.start()
 
     def load_all_clients(self) -> None:
         """Load all clients into table, grouping children under parents"""
@@ -181,6 +234,11 @@ class ClientFinderDialog(QDialog):
             self.display_clients(self.clients_data)
             return
 
+        db_rows = self._query_clients(search_text)
+        if db_rows:
+            self.display_clients(self._rank_matches(db_rows, search_text))
+            return
+
         # Find matching clients
         matching_ids = set()
         _parent_child_map = {}  # Track parent-child relationships
@@ -231,7 +289,79 @@ class ClientFinderDialog(QDialog):
 
         self.display_clients(filtered)
 
-    def select_client_from_table(self) -> None:
+    def _query_clients(self, search_text: str) -> list:
+        """Search full clients table, not only the initial cached subset."""
+        terms = [t for t in re.split(r"\s+", search_text) if t]
+        if not terms:
+            return []
+
+        clauses = []
+        params = []
+        for term in terms:
+            like_val = f"%{term}%"
+            clauses.append(
+                "(COALESCE(c.company_name, '') ILIKE %s "
+                "OR COALESCE(c.client_name, '') ILIKE %s "
+                "OR COALESCE(c.primary_phone, '') ILIKE %s "
+                "OR COALESCE(c.email, '') ILIKE %s)"
+            )
+            params.extend([like_val, like_val, like_val, like_val])
+
+        where_sql = " OR ".join(clauses)
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    f"""
+                    SELECT
+                        c.client_id,
+                        COALESCE(c.company_name, c.client_name) as display_name,
+                        c.client_name,
+                        c.primary_phone,
+                        c.email,
+                        c.address_line1,
+                        c.parent_client_id
+                    FROM clients c
+                    WHERE {where_sql}
+                    ORDER BY COALESCE(c.parent_client_id, c.client_id), c.client_id
+                    LIMIT 800
+                    """,
+                    params,
+                )
+                return cur.fetchall() or []
+        except Exception as e:
+            logger.warning("Client finder DB search failed: %s", e)
+            return []
+
+    def _rank_matches(self, rows: list, search_text: str) -> list:
+        """Rank fuzzy name matches so near-typos still surface."""
+        search_norm = _norm_text(search_text)
+        terms = [t for t in re.split(r"\s+", search_text.lower()) if t]
+
+        scored = []
+        for row in rows:
+            display_name = str(row[1] or "")
+            full_name = str(row[2] or "")
+            phone = str(row[3] or "")
+            email = str(row[4] or "")
+            haystack = " ".join([display_name, full_name, phone, email]).lower()
+
+            base_score = 0.0
+            if all(term in haystack for term in terms):
+                base_score = 1.0
+            else:
+                cand_norm = _norm_text(" ".join([display_name, full_name]))
+                if cand_norm:
+                    base_score = SequenceMatcher(
+                        None, search_norm, cand_norm
+                    ).ratio()
+
+            if base_score >= 0.58:
+                scored.append((base_score, row))
+
+        scored.sort(key=lambda item: item[0], reverse=True)
+        return [row for _, row in scored] or rows
+
+    def select_client_from_table(self, *_args) -> None:
         """Select client from table and close dialog"""
         selected = self.results_table.selectedItems()
         if not selected:
@@ -351,9 +481,6 @@ class ClientInputDialog(QDialog):
             with DatabaseContext(self.db, auto_commit=True) as cur:
                 clients_columns = _get_clients_columns(cur)
 
-                # Generate account number from client name
-                account_number = f"ACC-{client_name[:3].upper()}-{int(__import__('time').time()) % 10000}"
-
                 insert_columns = [
                     "account_number",
                     "client_name",
@@ -365,7 +492,6 @@ class ClientInputDialog(QDialog):
                     "is_company",
                 ]
                 values = [
-                    account_number,
                     client_name,
                     phone or None,
                     email or None,
@@ -387,18 +513,39 @@ class ClientInputDialog(QDialog):
 
                 placeholders = ", ".join(["%s"] * len(insert_columns))
                 column_clause = ", ".join(insert_columns)
+                account_number = None
+                result = None
+                last_error = None
+                for _attempt in range(2):
+                    account_number = _next_client_account_number(cur)
+                    attempt_values = [account_number, *values]
+                    cur.execute("SAVEPOINT client_insert")
+                    try:
+                        cur.execute(
+                            f"""
+                            INSERT INTO clients ({column_clause})
+                            VALUES ({placeholders})
+                            RETURNING client_id
+                        """,
+                            attempt_values,
+                        )
+                        result = cur.fetchone()
+                        cur.execute("RELEASE SAVEPOINT client_insert")
+                        last_error = None
+                        break
+                    except psycopg2.Error as insert_error:
+                        cur.execute("ROLLBACK TO SAVEPOINT client_insert")
+                        last_error = insert_error
+                        if (
+                            _attempt == 0
+                            and _is_account_number_unique_violation(insert_error)
+                        ):
+                            continue
+                        raise
 
-                # Insert new client
-                cur.execute(
-                    f"""
-                    INSERT INTO clients ({column_clause})
-                    VALUES ({placeholders})
-                    RETURNING client_id
-                """,
-                    values,
-                )
+                if last_error is not None:
+                    raise last_error
 
-                result = cur.fetchone()
                 self.new_client_id = result[0]
                 self.new_client_name = client_name
 

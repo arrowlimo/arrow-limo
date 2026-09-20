@@ -19,7 +19,9 @@ import psycopg2.errors
 logger = logging.getLogger(__name__)
 from common_widgets import StandardDateEdit
 from db_error_handling import DatabaseContext
-from PyQt6.QtCore import QDate, QLocale, Qt, QTime, pyqtSignal
+from charter_form_helpers import NoScrollWheelFilter
+import drill_down_dialogs as drill_down_dialogs
+from PyQt6.QtCore import QDate, QLocale, Qt, QTime, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -47,6 +49,7 @@ from PyQt6.QtWidgets import (
     QTimeEdit,
     QVBoxLayout,
     QWidget,
+    QApplication,
 )
 
 logger = logging.getLogger(__name__)
@@ -64,11 +67,13 @@ class CharterDetailDialog(QDialog):
         parent=None,
         initial_tab=None,
         client_id=None,
+        charter_id=None,
     ) -> None:
         super().__init__(parent)
         self.db = db
         self.reserve_number = reserve_number
         self.client_id = client_id  # Pre-selected client for new charters
+        self.charter_id = charter_id
         self.is_locked = False
         self.charter_data = None
         self._load_retry_count = 0  # Track retries to prevent infinite loops
@@ -178,9 +183,10 @@ class CharterDetailDialog(QDialog):
         if client_id and not reserve_number:
             self.load_client_info(client_id)
 
-        # Load data if reserve_number provided
+        # Load data after the dialog event loop starts so the UI can render
+        # first and avoids appearing hung during large DB fetches.
         if reserve_number:
-            self.load_charter_data()
+            QTimer.singleShot(0, self.load_charter_data)
 
         # Optionally select a starting tab
         if initial_tab:
@@ -211,7 +217,26 @@ class CharterDetailDialog(QDialog):
         # Wire up signals for split-run auto-population
         self._setup_split_run_signals()
         self._setup_auto_sync_signals()
+        self._setup_payment_and_time_auto_recalc_signals()
         self._update_trip_boundary_labels(False)
+        self._no_scroll_filter = NoScrollWheelFilter(self)
+        app = QApplication.instance()
+        if app is not None:
+            app.installEventFilter(self._no_scroll_filter)
+
+    def closeEvent(self, event) -> None:
+        app = QApplication.instance()
+        if app is not None and hasattr(self, "_no_scroll_filter"):
+            app.removeEventFilter(self._no_scroll_filter)
+        super().closeEvent(event)
+
+    def _apply_cursor_timeouts(self, cur) -> None:
+        """Best-effort query/lock timeout guard for synchronous dialog DB calls."""
+        try:
+            cur.execute("SET statement_timeout = 30000")
+            cur.execute("SET lock_timeout = 15000")
+        except Exception as _e:
+            logger.debug("Suppressed: %s", _e)
 
     def _get_allowed_payment_methods(self) -> list[str]:
         """Fetch allowed payment methods from existing data; fall back to
@@ -456,6 +481,26 @@ class CharterDetailDialog(QDialog):
             )
         except Exception as _e:
             logger.debug('Suppressed: %s', _e)
+
+    def _setup_payment_and_time_auto_recalc_signals(self) -> None:
+        """Wire payment and time edits to trigger auto-recalculation of totals."""
+        try:
+            # Payment/deposit edits trigger balance recalculation
+            if hasattr(self, "deposit"):
+                self.deposit.valueChanged.connect(
+                    lambda *_: self.recalculate_charge_totals()
+                )
+            if hasattr(self, "retainer_amount"):
+                self.retainer_amount.valueChanged.connect(
+                    lambda *_: self.recalculate_charge_totals()
+                )
+            # Time edits already trigger via _sync_routing_boundary_times chain:
+            # pickup_time/dropoff_time → _sync_routing_boundary_times
+            # → routing_table.itemChanged → _on_routing_item_changed
+            # → _calculate_routing_charges_core → recalculate_charge_totals
+        except Exception as _e:
+            logger.debug('Suppressed: %s', _e)
+
     def _sync_routing_boundary_times(self) -> None:
         """Push pickup/dropoff time edits into first/last routing rows."""
         if getattr(self, "_syncing_routing_times", False):
@@ -1579,7 +1624,7 @@ class CharterDetailDialog(QDialog):
         row2a.addWidget(billing_label)
 
         self.billing_type = QComboBox()
-        self.billing_type.addItems(["Hourly", "Package"])
+        self.billing_type.addItems(["Select billing type", "Hourly", "Package", "Trade of Services"])
         self.billing_type.setMaximumWidth(120)
         self.billing_type.currentTextChanged.connect(
             self.toggle_billing_fields
@@ -1619,7 +1664,7 @@ class CharterDetailDialog(QDialog):
         self.min_hours_label.setMinimumWidth(100)
         row2b.addWidget(self.min_hours_label)
         self.min_hours = QSpinBox()
-        self.min_hours.setMinimum(1)
+        self.min_hours.setMinimum(0)
         self.min_hours.setMaximum(24)
         self.min_hours.setMaximumWidth(80)
         row2b.addWidget(self.min_hours)
@@ -2905,7 +2950,7 @@ class CharterDetailDialog(QDialog):
 
     def add_routing_stop(self) -> None:
         """Add a new routing stop"""
-        dialog = RoutingStopDialog(parent=self)
+        dialog = drill_down_dialogs.RoutingStopDialog(parent=self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             stop_data = dialog.get_stop_data()
 
@@ -3132,7 +3177,7 @@ class CharterDetailDialog(QDialog):
             "notes": self.routing_table.item(row, 4).text(),
         }
 
-        dialog = RoutingStopDialog(parent=self, stop_data=current_data)
+        dialog = drill_down_dialogs.RoutingStopDialog(parent=self, stop_data=current_data)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             stop_data = dialog.get_stop_data()
 
@@ -3206,6 +3251,26 @@ class CharterDetailDialog(QDialog):
             billing_type = (self.billing_type.currentText() or "").strip()
             is_hourly = billing_type == "Hourly"
             is_package = billing_type == "Package"
+            is_trade_billing = billing_type == "Trade of Services"
+            is_unset = billing_type.lower().startswith("select") or not (
+                is_hourly or is_package or is_trade_billing
+            )
+
+            charter_type_code = (
+                str(self.charter_type.currentData() or "").strip().lower()
+                if hasattr(self, "charter_type")
+                else ""
+            )
+            charter_type_text = (
+                str(self.charter_type.currentText() or "").strip().lower()
+                if hasattr(self, "charter_type")
+                else ""
+            )
+            is_trade_of_services = (
+                "trade" in charter_type_code
+                or "trade of service" in charter_type_text
+                or "trade-of-service" in charter_type_text
+            )
 
             total_minutes = self._routing_duration_minutes()
             actual_hours = round(total_minutes / 60.0, 2)
@@ -3227,16 +3292,29 @@ class CharterDetailDialog(QDialog):
             billable_hours = max(0.0, actual_hours)
             overtime_hours = 0.0
 
-            if is_hourly:
+            if is_unset or is_trade_billing:
+                charter_fee = 0.0
+                overtime_hours = 0.0
+                extra_time_fee = 0.0
+                billable_hours = max(0.0, actual_hours)
+            elif is_hourly:
                 billable_hours = max(min_hours, actual_hours)
                 charter_fee = billable_hours * rate
                 overtime_hours = 0.0
                 extra_time_fee = 0.0
             elif is_package:
-                charter_fee = package_price
-                overtime_hours = max(0.0, actual_hours - max(0.0, package_hours))
-                extra_time_fee = overtime_hours * (extra_rate or rate)
-                billable_hours = max(0.0, package_hours)
+                if is_trade_of_services and package_price <= 0:
+                    # Trade-of-services runs can be intentionally zero-dollar
+                    # package base; do not fall back into hourly/overtime fees.
+                    charter_fee = 0.0
+                    overtime_hours = 0.0
+                    extra_time_fee = 0.0
+                    billable_hours = max(0.0, actual_hours)
+                else:
+                    charter_fee = package_price
+                    overtime_hours = max(0.0, actual_hours - max(0.0, package_hours))
+                    extra_time_fee = overtime_hours * (extra_rate or rate)
+                    billable_hours = max(0.0, package_hours)
             else:
                 billable_hours = max(0.0, actual_hours)
                 charter_fee = billable_hours * rate
@@ -3259,7 +3337,16 @@ class CharterDetailDialog(QDialog):
                 self.total_amount.setValue(float(self.invoice_total.value()))
 
             if notify:
-                mode = "Hourly" if is_hourly else "Package" if is_package else "Custom"
+                if is_unset:
+                    mode = "Select billing type"
+                elif is_trade_billing:
+                    mode = "Trade of Services"
+                elif is_hourly:
+                    mode = "Hourly"
+                elif is_package:
+                    mode = "Package"
+                else:
+                    mode = "Custom"
                 QMessageBox.information(
                     self,
                     "Charges Calculated",
@@ -3360,30 +3447,58 @@ class CharterDetailDialog(QDialog):
                 )
 
                 # Load main charter data (including split-run times)
-                cur.execute(
-                    f"""
-                    SELECT c.reserve_number, c.charter_date,
-                    COALESCE(cl.company_name, cl.client_name),
-                           c.pickup_address, c.dropoff_address, c.pickup_time,
-                           {dropoff_time_select},
-                           c.passenger_count, e.full_name, v.vehicle_number,
-                           c.status, c.total_amount_due, c.notes,
-                           c.vehicle, c.client_id, c.employee_id,
-                           c.workshift_start,
-                           c.workshift_end
-                    FROM charters c
-                    LEFT JOIN clients cl ON c.client_id = cl.client_id
-                    LEFT JOIN employees e ON c.employee_id = e.employee_id
-                    LEFT JOIN vehicles v ON c.vehicle_id = v.vehicle_id
-                    WHERE c.reserve_number = %s
-                """,
-                    (self.reserve_number,),
-                )
+                if self.charter_id:
+                    cur.execute(
+                        f"""
+                           SELECT c.reserve_number, c.charter_date,
+                           COALESCE(cl.company_name, cl.client_name),
+                               c.pickup_address, c.dropoff_address,
+                               c.pickup_time,
+                               {dropoff_time_select},
+                               c.passenger_count, e.full_name,
+                               v.vehicle_number,
+                               c.status, c.total_amount_due, c.notes,
+                               c.vehicle_id, c.vehicle, c.client_id,
+                               c.employee_id, c.workshift_start,
+                               c.workshift_end
+                        FROM charters c
+                        LEFT JOIN clients cl ON c.client_id = cl.client_id
+                        LEFT JOIN employees e ON c.employee_id = e.employee_id
+                        LEFT JOIN vehicles v ON c.vehicle_id = v.vehicle_id
+                        WHERE c.charter_id = %s
+                    """,
+                        (self.charter_id,),
+                    )
+                else:
+                    cur.execute(
+                        f"""
+                           SELECT c.reserve_number, c.charter_date,
+                           COALESCE(cl.company_name, cl.client_name),
+                               c.pickup_address, c.dropoff_address,
+                               c.pickup_time,
+                               {dropoff_time_select},
+                               c.passenger_count, e.full_name,
+                               v.vehicle_number,
+                               c.status, c.total_amount_due, c.notes,
+                               c.vehicle_id, c.vehicle, c.client_id,
+                               c.employee_id, c.workshift_start,
+                               c.workshift_end
+                        FROM charters c
+                        LEFT JOIN clients cl ON c.client_id = cl.client_id
+                        LEFT JOIN employees e ON c.employee_id = e.employee_id
+                        LEFT JOIN vehicles v ON c.vehicle_id = v.vehicle_id
+                        WHERE c.reserve_number = %s
+                        ORDER BY c.charter_id DESC
+                        LIMIT 1
+                    """,
+                        (self.reserve_number,),
+                    )
 
                 charter = cur.fetchone()
             # DatabaseContext.__exit__ closed cur. Reopen for all subsequent
             # data loading.
             cur = self.db.get_cursor()
+            self._apply_cursor_timeouts(cur)
             if charter:
                 (
                     res_num,
@@ -3399,6 +3514,7 @@ class CharterDetailDialog(QDialog):
                     status,
                     total,
                     notes,
+                    assigned_vehicle_id,
                     vehicle,
                     client_id,
                     employee_id,
@@ -3492,22 +3608,27 @@ class CharterDetailDialog(QDialog):
                         self.vehicle_requested.setCurrentIndex(idx)
                     self.apply_vehicle_pricing_defaults()
 
-                # Set vehicle - find by text match (handle vehicle_number and
-                # vehicle_number (type) format)
-                vehicle_name = str(vehicle_num or vehicle or "")
-                vehicle_idx = self.vehicle.findText(vehicle_name)
-                if vehicle_idx >= 0:
-                    self.vehicle.setCurrentIndex(vehicle_idx)
-                else:
-                    # Try to find by partial match (in case it's stored as
-                    # "LIM-001 (Coach)" format)
-                    for i in range(self.vehicle.count()):
-                        if (
-                            vehicle_name.upper()
-                            in self.vehicle.itemText(i).upper()
-                        ):
-                            self.vehicle.setCurrentIndex(i)
-                            break
+                # Set assigned vehicle by stable FK first, then fallback to
+                # visible vehicle number text for legacy rows.
+                vehicle_set = False
+                if assigned_vehicle_id:
+                    idx = self.vehicle.findData(assigned_vehicle_id)
+                    if idx >= 0:
+                        self.vehicle.setCurrentIndex(idx)
+                        vehicle_set = True
+
+                if not vehicle_set:
+                    vehicle_name = str(vehicle_num or "")
+                    vehicle_idx = self.vehicle.findText(vehicle_name)
+                    if vehicle_idx >= 0:
+                        self.vehicle.setCurrentIndex(vehicle_idx)
+                    elif vehicle_name:
+                        # Legacy fallback: partial text match for formatted
+                        # labels such as "L-11 (Coach)".
+                        for i in range(self.vehicle.count()):
+                            if vehicle_name.upper() in self.vehicle.itemText(i).upper():
+                                self.vehicle.setCurrentIndex(i)
+                                break
 
                 # Set status - if it was "Pending", change to "Confirmed"
                 display_status = str(status or "Confirmed")
@@ -3523,7 +3644,7 @@ class CharterDetailDialog(QDialog):
                 )
                 self.invoice_client_display.setText(str(client or ""))
                 self.invoice_driver_display.setText(str(driver or ""))
-                self.invoice_vehicle_display.setText(str(vehicle or ""))
+                self.invoice_vehicle_display.setText(str(vehicle_num or ""))
                 self.invoice_reserve_display.setText(
                     str(res_num or self.reserve_number or "")
                 )
@@ -3535,8 +3656,8 @@ class CharterDetailDialog(QDialog):
             try:
                 cur.execute(
                     """
-                    SELECT oi.item_name, oi.quantity, oi.unit_price, oi.total,
-                    o.status,
+                    SELECT oi.item_line_id, o.order_id, oi.item_name,
+                    oi.quantity, oi.unit_price, oi.total, o.status,
                            COALESCE(b.category, '')
                     FROM beverage_orders o
                     JOIN beverage_order_items oi ON o.order_id = oi.order_id
@@ -3552,6 +3673,8 @@ class CharterDetailDialog(QDialog):
                 if orders:
                     beverage_qty_total = 0
                     for i, (
+                        item_line_id,
+                        order_id,
                         item,
                         qty,
                         price,
@@ -3559,9 +3682,14 @@ class CharterDetailDialog(QDialog):
                         status,
                         category,
                     ) in enumerate(orders):
-                        self.orders_table.setItem(
-                            i, 0, QTableWidgetItem(str(item))
+                        item_widget = QTableWidgetItem(str(item))
+                        item_widget.setData(
+                            Qt.ItemDataRole.UserRole, item_line_id
                         )
+                        item_widget.setData(
+                            Qt.ItemDataRole.UserRole + 1, order_id
+                        )
+                        self.orders_table.setItem(i, 0, item_widget)
                         self.orders_table.setItem(
                             i, 1, QTableWidgetItem(str(qty))
                         )
@@ -3585,6 +3713,8 @@ class CharterDetailDialog(QDialog):
                     # Invoice beverage items (GST included per line)
                     self.invoice_beverage_table.setRowCount(len(orders))
                     for i, (
+                        item_line_id,
+                        order_id,
                         item,
                         qty,
                         price,
@@ -3608,6 +3738,8 @@ class CharterDetailDialog(QDialog):
                     # Populate client confirmation list (no prices)
                     self.beverage_confirm_table.setRowCount(len(orders))
                     for i, (
+                        item_line_id,
+                        order_id,
                         item,
                         qty,
                         price,
@@ -3630,6 +3762,8 @@ class CharterDetailDialog(QDialog):
                     self.beverage_items_count.setText(str(beverage_qty_total))
                     self.beverage_card_table.setRowCount(len(orders))
                     for i, (
+                        item_line_id,
+                        order_id,
                         item,
                         qty,
                         price,
@@ -3934,8 +4068,17 @@ class CharterDetailDialog(QDialog):
                         if idx >= 0:
                             self.charter_type.setCurrentIndex(idx)
                     # billing_type combo (hourly / package)
-                    fee_map = {"hourly": "Hourly", "package": "Package"}
-                    bt = fee_map.get((db_fee_type or "").lower(), "Hourly")
+                    fee_map = {
+                        "hourly": "Hourly",
+                        "package": "Package",
+                        "trade_of_services": "Trade of Services",
+                        "trade": "Trade of Services",
+                    }
+                    raw_fee_type = str(db_fee_type or "").strip().lower()
+                    if raw_fee_type in fee_map:
+                        bt = fee_map[raw_fee_type]
+                    else:
+                        bt = "Select billing type"
                     self.billing_type.blockSignals(True)
                     self.billing_type.setCurrentText(bt)
                     self.billing_type.blockSignals(False)
@@ -3985,6 +4128,12 @@ class CharterDetailDialog(QDialog):
             self._calculate_routing_charges_core(notify=False)
             # Get the IDs from the dropdowns
             vehicle_id = self.vehicle.currentData()
+            if not vehicle_id:
+                selected_vehicle_text = (self.vehicle.currentText() or "").strip()
+                for i in range(self.vehicle.count()):
+                    if (self.vehicle.itemText(i) or "").strip() == selected_vehicle_text:
+                        vehicle_id = self.vehicle.itemData(i)
+                        break
             vehicle_requested_text = (
                 self.vehicle_requested.currentText().strip()
             )
@@ -4038,7 +4187,7 @@ class CharterDetailDialog(QDialog):
                     "passenger_count = %s",
                     "status = %s",
                     "employee_id = %s",
-                    "vehicle_id = %s",
+                    "vehicle_id = COALESCE(%s, vehicle_id)",
                     "notes = %s",
                 ]
                 params = [
@@ -4105,7 +4254,13 @@ class CharterDetailDialog(QDialog):
                     set_clauses.append("charter_type = %s")
                     params.append(self.charter_type.currentText().strip() or None)
                 if "charter_fee_type" in charter_columns:
-                    _billing = self.billing_type.currentText().strip().lower()
+                    _billing_text = self.billing_type.currentText().strip().lower()
+                    _billing_map = {
+                        "hourly": "hourly",
+                        "package": "package",
+                        "trade of services": "trade_of_services",
+                    }
+                    _billing = _billing_map.get(_billing_text)
                     set_clauses.append("charter_fee_type = %s")
                     params.append(_billing or None)
                 if "package_rate" in charter_columns:
@@ -4388,11 +4543,79 @@ class CharterDetailDialog(QDialog):
             logger.error(f"Failed to duplicate charter: {e}")
             QMessageBox.critical(self, "Error", f"Failed to duplicate: {e}")
 
+    def _get_delete_blockers(self) -> list[tuple[str, int]]:
+        """Return dependent records that should block charter deletion."""
+        checks = [
+            (
+                "payments",
+                [("charter_id", self.charter_id), ("reserve_number", self.reserve_number)],
+                "Payments",
+            ),
+            (
+                "charter_payments",
+                [("charter_id", self.charter_id), ("reserve_number", self.reserve_number)],
+                "Charter payments",
+            ),
+            (
+                "charter_receipts",
+                [("charter_id", self.charter_id), ("reserve_number", self.reserve_number)],
+                "Charter receipts",
+            ),
+            (
+                "charter_refunds",
+                [("charter_id", self.charter_id), ("reserve_number", self.reserve_number)],
+                "Charter refunds",
+            ),
+            ("invoices", [("reserve_number", self.reserve_number)], "Invoices"),
+        ]
+        blockers: list[tuple[str, int]] = []
+        with DatabaseContext(self.db, auto_commit=False) as cur:
+            for table_name, candidate_columns, label in checks:
+                cur.execute(
+                    """
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = %s
+                      AND column_name = ANY(%s)
+                    """,
+                    (table_name, [column_name for column_name, _ in candidate_columns]),
+                )
+                existing_columns = {row[0] for row in cur.fetchall()}
+                filters = [
+                    (column_name, value)
+                    for column_name, value in candidate_columns
+                    if column_name in existing_columns and value not in (None, "")
+                ]
+                if not filters:
+                    continue
+
+                where_clause = " OR ".join(f"{column_name} = %s" for column_name, _ in filters)
+                params = [value for _, value in filters]
+                cur.execute(f"SELECT COUNT(*) FROM {table_name} WHERE {where_clause}", params)
+                row = cur.fetchone()
+                count = int(row[0]) if row else 0
+                if count:
+                    blockers.append((label, count))
+        return blockers
+
     def delete_charter(self) -> None:
         """Delete current charter after confirmation"""
         if not self.reserve_number:
             QMessageBox.warning(
                 self, "Warning", "No charter loaded to delete."
+            )
+            return
+
+        blockers = self._get_delete_blockers()
+        if blockers:
+            details = "\n".join(f"{label}: {count}" for label, count in blockers)
+            QMessageBox.warning(
+                self,
+                "Delete Blocked",
+                "This charter still has attached records and should not be deleted yet.\n\n"
+                f"{details}\n\n"
+                "Move or stage those items first, then try again.",
             )
             return
 
@@ -4406,6 +4629,22 @@ class CharterDetailDialog(QDialog):
         if reply == QMessageBox.StandardButton.Yes:
             try:
                 with DatabaseContext(self.db, auto_commit=True) as cur:
+                    cur.execute(
+                        "DELETE FROM charter_beverage_orders WHERE charter_id = %s",
+                        (self.charter_id,),
+                    )
+                    cur.execute(
+                        "DELETE FROM charter_beverages WHERE charter_id = %s",
+                        (self.charter_id,),
+                    )
+                    cur.execute(
+                        "DELETE FROM charter_charges WHERE charter_id = %s",
+                        (self.charter_id,),
+                    )
+                    cur.execute(
+                        "DELETE FROM charter_routes WHERE charter_id = %s",
+                        (self.charter_id,),
+                    )
                     cur.execute(
                         "DELETE FROM charters WHERE reserve_number = %s",
                         (self.reserve_number,),
@@ -4538,16 +4777,223 @@ class CharterDetailDialog(QDialog):
     def edit_order(self) -> None:
         """Edit selected order"""
         row = self.orders_table.currentRow()
-        if row >= 0:
-            # TODO: Open order edit dialog
-            pass
+        if row < 0:
+            QMessageBox.warning(
+                self, "Warning", "Please select an order item to edit."
+            )
+            return
+
+        item_cell = self.orders_table.item(row, 0)
+        qty_cell = self.orders_table.item(row, 1)
+        price_cell = self.orders_table.item(row, 2)
+        if item_cell is None:
+            QMessageBox.warning(
+                self, "Warning", "Selected row is missing item details."
+            )
+            return
+
+        item_line_id = item_cell.data(Qt.ItemDataRole.UserRole)
+        order_id = item_cell.data(Qt.ItemDataRole.UserRole + 1)
+        if not item_line_id or not order_id:
+            QMessageBox.warning(
+                self,
+                "Unavailable",
+                "This order line cannot be edited because its database"
+                " identifier is missing.",
+            )
+            return
+
+        item_name = item_cell.text() if item_cell else ""
+
+        try:
+            current_qty = float(qty_cell.text()) if qty_cell else 0.0
+        except Exception:
+            current_qty = 0.0
+
+        try:
+            raw_price = (price_cell.text() if price_cell else "0").replace(
+                "$", ""
+            ).replace(",", "")
+            current_price = float(raw_price or 0)
+        except Exception:
+            current_price = 0.0
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Edit Beverage Line")
+        layout = QVBoxLayout(dlg)
+        form = QFormLayout()
+
+        item_name_edit = QLineEdit(item_name)
+        item_name_edit.setReadOnly(True)
+
+        qty_spin = QDoubleSpinBox()
+        qty_spin.setDecimals(2)
+        qty_spin.setMinimum(0.01)
+        qty_spin.setMaximum(100000.00)
+        qty_spin.setValue(max(0.01, current_qty))
+
+        price_spin = QDoubleSpinBox()
+        price_spin.setPrefix("$")
+        price_spin.setDecimals(2)
+        price_spin.setMinimum(0.00)
+        price_spin.setMaximum(100000.00)
+        price_spin.setValue(max(0.0, current_price))
+
+        form.addRow("Item", item_name_edit)
+        form.addRow("Quantity", qty_spin)
+        form.addRow("Unit Price", price_spin)
+        layout.addLayout(form)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dlg.accept)
+        buttons.rejected.connect(dlg.reject)
+        layout.addWidget(buttons)
+
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        new_qty = float(qty_spin.value())
+        new_price = float(price_spin.value())
+        new_total = round(new_qty * new_price, 2)
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    UPDATE beverage_order_items
+                    SET quantity = %s,
+                        unit_price = %s,
+                        total = %s
+                    WHERE item_line_id = %s AND order_id = %s
+                    """,
+                    (new_qty, new_price, new_total, item_line_id, order_id),
+                )
+                if cur.rowcount == 0:
+                    QMessageBox.warning(
+                        self,
+                        "Not Found",
+                        "The selected beverage line no longer exists.",
+                    )
+                    return
+                self._recalculate_beverage_order_totals(cur, int(order_id))
+
+            QMessageBox.information(
+                self, "Success", "Beverage order line updated."
+            )
+            self.load_charter_data()
+        except Exception as e:
+            logger.error(f"Failed to edit beverage line: {e}")
+            QMessageBox.critical(
+                self, "Error", f"Failed to edit beverage line: {e}"
+            )
 
     def delete_order(self) -> None:
         """Delete selected order"""
         row = self.orders_table.currentRow()
-        if row >= 0:
-            # TODO: Delete from database
-            pass
+        if row < 0:
+            QMessageBox.warning(
+                self, "Warning", "Please select an order item to delete."
+            )
+            return
+
+        item_cell = self.orders_table.item(row, 0)
+        if item_cell is None:
+            QMessageBox.warning(
+                self, "Warning", "Selected row is missing item details."
+            )
+            return
+
+        item_line_id = item_cell.data(Qt.ItemDataRole.UserRole)
+        order_id = item_cell.data(Qt.ItemDataRole.UserRole + 1)
+        if not item_line_id or not order_id:
+            QMessageBox.warning(
+                self,
+                "Unavailable",
+                "This order line cannot be deleted because its database"
+                " identifier is missing.",
+            )
+            return
+
+        item_name = item_cell.text() or "selected item"
+        reply = QMessageBox.question(
+            self,
+            "Confirm Delete",
+            f"Delete beverage item '{item_name}' from this charter?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    DELETE FROM beverage_order_items
+                    WHERE item_line_id = %s AND order_id = %s
+                    """,
+                    (item_line_id, order_id),
+                )
+                if cur.rowcount == 0:
+                    QMessageBox.warning(
+                        self,
+                        "Not Found",
+                        "The selected beverage line no longer exists.",
+                    )
+                    return
+
+                cur.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM beverage_order_items
+                    WHERE order_id = %s
+                    """,
+                    (order_id,),
+                )
+                remaining = int((cur.fetchone() or [0])[0] or 0)
+                if remaining == 0:
+                    cur.execute(
+                        "DELETE FROM beverage_orders WHERE order_id = %s",
+                        (order_id,),
+                    )
+                else:
+                    self._recalculate_beverage_order_totals(cur, int(order_id))
+
+            QMessageBox.information(
+                self, "Success", "Beverage order line deleted."
+            )
+            self.load_charter_data()
+        except Exception as e:
+            logger.error(f"Failed to delete beverage line: {e}")
+            QMessageBox.critical(
+                self, "Error", f"Failed to delete beverage line: {e}"
+            )
+
+    def _recalculate_beverage_order_totals(self, cur, order_id: int) -> None:
+        """Keep beverage order header totals consistent with line-item edits."""
+        cur.execute(
+            """
+            SELECT COALESCE(SUM(total), 0)
+            FROM beverage_order_items
+            WHERE order_id = %s
+            """,
+            (order_id,),
+        )
+        subtotal = float((cur.fetchone() or [0])[0] or 0)
+        gst = round(subtotal * 0.05, 2)
+        grand_total = round(subtotal + gst, 2)
+        cur.execute(
+            """
+            UPDATE beverage_orders
+            SET subtotal = %s,
+                gst = %s,
+                total = %s
+            WHERE order_id = %s
+            """,
+            (subtotal, gst, grand_total, order_id),
+        )
 
     def add_payment(self) -> None:
         """Add new payment"""
@@ -4847,7 +5293,7 @@ class StandardDrillDownDialog(QDialog):
         record_copy = self.record_data.copy()
 
         # Show dialog to change identifier
-        dialog = DuplicateRecordDialog(
+        dialog = drill_down_dialogs.DuplicateRecordDialog(
             self.record_type, record_copy, parent=self
         )
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -4913,6 +5359,8 @@ class StandardDrillDownDialog(QDialog):
         """Save record and emit saved signal."""
         try:
             self.save_record_data()
+            if self.record_id:
+                self.load_record_data()
             QMessageBox.information(
                 self, "Success", f"{self.record_type} saved successfully."
             )

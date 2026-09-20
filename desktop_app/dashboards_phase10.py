@@ -1028,7 +1028,7 @@ class AlertManagementWidget(BaseReportWidget):
 
     def init_ui(self) -> None:
         layout = QVBoxLayout()
-        title = QLabel("🔔 Alert Management")
+        title = QLabel("🔔 Alerts")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 

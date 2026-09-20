@@ -2,7 +2,7 @@
 
 from datetime import datetime, time
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CharterRouteBase(BaseModel):
@@ -21,7 +21,7 @@ class CharterRouteBase(BaseModel):
     actual_distance_km: float | None = Field(None, ge=0)
     route_price: float | None = Field(None, ge=0)
     route_notes: str | None = None
-    route_status: str = Field(
+    route_status: str | None = Field(
         default="pending",
         pattern="^(pending|in_progress|completed|cancelled)$",
     )
@@ -58,8 +58,7 @@ class CharterRoute(CharterRouteBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CharterWithRoutes(BaseModel):
@@ -80,7 +79,6 @@ class CharterWithRoutes(BaseModel):
     total_route_price: float | None = None
 
     # Routes list
-    routes: list[CharterRoute] = []
+    routes: list[CharterRoute] = Field(default_factory=list)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

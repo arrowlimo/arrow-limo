@@ -49,13 +49,13 @@ class EnhancedVehicleListWidget(QWidget):
         back_btn.clicked.connect(self.go_back)
         breadcrumb_layout.addWidget(back_btn)
         breadcrumb_layout.addWidget(
-            QLabel("📍 Fleet Management › Vehicle List")
+            QLabel("📍 Fleet Operations › Vehicle List")
         )
         breadcrumb_layout.addStretch()
         layout.addLayout(breadcrumb_layout)
 
         # ===== TITLE =====
-        title = QLabel("🚗 Fleet Management")
+        title = QLabel("🚗 Fleet Operations")
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
 

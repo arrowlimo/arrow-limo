@@ -25,7 +25,7 @@ class RouteItem(BaseModel):
     @validator("type")
     def validate_type(cls, v):
         """Ensure route type is valid."""
-        valid_types = ["pickup", "dropo", "stop", "depart", "return"]
+        valid_types = ["pickup", "dropoff", "stop", "depart", "return"]
         if v.lower() not in valid_types:
             raise ValueError(f"route type must be one of {valid_types}")
         return v.lower()
@@ -56,7 +56,7 @@ class ChartRequest(BaseModel):
 
     # Customer Details
     client_name: str = Field(..., min_length=2, description="Customer name")
-    phone: str = Field(..., min_length=10, description="Phone number")
+    phone: str | None = Field(None, description="Phone number")
     email: str = Field(..., description="Email address")
     billing_address: str = Field(..., min_length=5, description="Billing address")
     city: str = Field(..., min_length=2, description="City")

@@ -1505,6 +1505,7 @@ class CalendarViewWidget(QWidget):
     def _show_charter_details(self, charter) -> None:
         """Open Charter Details dialog for the selected event."""
         reserve_number = charter.get("reserve_number")
+        charter_id = charter.get("charter_id")
         if not reserve_number:
             QMessageBox.information(
                 self,
@@ -1516,7 +1517,12 @@ class CalendarViewWidget(QWidget):
         try:
             from drill_down_widgets import CharterDetailDialog
 
-            dialog = CharterDetailDialog(self.db, reserve_number, self)
+            dialog = CharterDetailDialog(
+                self.db,
+                reserve_number,
+                self,
+                charter_id=charter_id,
+            )
             dialog.exec()
         except Exception as e:
             QMessageBox.warning(

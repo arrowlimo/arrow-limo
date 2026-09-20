@@ -1,5 +1,6 @@
 param(
     [string]$SourcePath = $PSScriptRoot,
+    [string]$SharedPayloadRoot = '',
     [string]$TargetRoot = "Y:\limo",
     [string]$IconPath = "E:\new shit\arrowyellow.ico",
     [bool]$LaunchApp = $false,
@@ -320,6 +321,13 @@ if ((-not $ForceInstall) -and ($RecentInstallGuardMinutes -gt 0) -and (Test-Path
             Update-InstallUi -Percent 100 -Status 'Recent successful install detected. Skipping duplicate run.'
             Write-Host "Recent successful install already completed at $lastReportWrite. Skipping duplicate run."
             Write-Host "Use -ForceInstall to reinstall immediately."
+            if ($LaunchApp) {
+                $startupBat = Join-Path $TargetRoot 'START_ARROW_LIMO.bat'
+                if (Test-Path $startupBat) {
+                    Start-Process $startupBat
+                    Write-Host "LaunchApp requested; started existing launcher after skip: $startupBat"
+                }
+            }
             Close-InstallUi
             Release-InstallerMutex
             Stop-Transcript | Out-Null
@@ -330,6 +338,7 @@ if ((-not $ForceInstall) -and ($RecentInstallGuardMinutes -gt 0) -and (Test-Path
 
 Set-Content -Path $script:ReportPath -Value "Arrow Limousine full install report" -Encoding ASCII
 Write-ReportLine "SourcePath=$SourcePath"
+Write-ReportLine "SharedPayloadRoot=$SharedPayloadRoot"
 Write-ReportLine "TargetRoot=$TargetRoot"
 
 $sourceExe = Join-Path $SourcePath 'ArrowLimousineApp.exe'
@@ -382,11 +391,37 @@ $payloadItems = Get-ChildItem -Path $SourcePath -Force -ErrorAction Stop |
 foreach ($item in $payloadItems) {
     $destination = Join-Path $TargetRoot $item.Name
     if ($item.PSIsContainer) {
-        Copy-Item -Path $item.FullName -Destination $destination -Recurse -Force
+        # Copy directory contents into the target folder (not the folder itself) to avoid nested duplicates.
+        if (-not (Test-Path $destination)) {
+            New-Item -ItemType Directory -Path $destination -Force | Out-Null
+        }
+
+        $legacyNestedPath = Join-Path $destination $item.Name
+        if (Test-Path $legacyNestedPath) {
+            Remove-Item -Path $legacyNestedPath -Recurse -Force -ErrorAction SilentlyContinue
+            Write-ReportLine "RemovedLegacyNestedPath=$legacyNestedPath"
+        }
+
+        Copy-Item -Path (Join-Path $item.FullName '*') -Destination $destination -Recurse -Force
     }
     else {
         Copy-Item -Path $item.FullName -Destination $destination -Force
     }
+}
+
+$sharedVenv = $null
+if (-not [string]::IsNullOrWhiteSpace($SharedPayloadRoot)) {
+    $sharedVenvCandidate = Join-Path $SharedPayloadRoot '.venv'
+    if (Test-Path $sharedVenvCandidate) {
+        $sharedVenv = $sharedVenvCandidate
+    }
+}
+
+$targetVenv = Join-Path $TargetRoot '.venv'
+if ($sharedVenv -and -not (Test-Path $targetVenv)) {
+    Update-InstallUi -Percent 55 -Status 'Restoring shared runtime (.venv)...'
+    Copy-Item -Path $sharedVenv -Destination $targetVenv -Recurse -Force
+    Write-ReportLine "RestoredSharedVenv=$sharedVenv"
 }
 
 $fullPayloadArchive = Join-Path $SourcePath 'ArrowLimoFullPayload.zip'
@@ -401,10 +436,19 @@ Write-ReportLine "CopiedPayloadItems=$($payloadItems.Count)"
 Write-ReportLine "CopiedExe=$targetExe"
 
 $startupBat = Join-Path $TargetRoot 'START_ARROW_LIMO.bat'
+$sharedArchiveRoot = ''
+if (-not [string]::IsNullOrWhiteSpace($SharedPayloadRoot)) {
+    $sharedArchiveCandidate = Join-Path $SharedPayloadRoot 'archive'
+    if (Test-Path $sharedArchiveCandidate) {
+        $sharedArchiveRoot = $sharedArchiveCandidate
+    }
+}
+
 $startupBatContent = @(
     '@echo off',
     'setlocal',
     'set "ROOT_DIR=%~dp0"',
+    ('set "ARROW_ARCHIVE_ROOT={0}"' -f $sharedArchiveRoot),
     'cd /d "%ROOT_DIR%"',
     'start "" "%ROOT_DIR%ArrowLimousineApp.exe"',
     'endlocal',
@@ -414,7 +458,7 @@ Set-Content -Path $startupBat -Value $startupBatContent -Encoding ASCII
 Write-ReportLine "CreatedStartupLauncher=$startupBat"
 
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $shortcutScript `
-    -AppPath $startupBat `
+    -AppPath $targetExe `
     -ShortcutName 'Arrow Limousine' `
     -IconPath $resolvedIconPath
 Write-ReportLine "ShortcutScript=completed"
@@ -459,8 +503,8 @@ if (-not $shortcutPath) {
 
 $shell = New-Object -ComObject WScript.Shell
 $lnk = $shell.CreateShortcut($shortcutPath)
-if ($lnk.TargetPath -ne $startupBat) {
-    throw "Shortcut target mismatch: expected $startupBat got $($lnk.TargetPath)"
+if ($lnk.TargetPath -ne $targetExe) {
+    throw "Shortcut target mismatch: expected $targetExe got $($lnk.TargetPath)"
 }
 Write-ReportLine "ShortcutVerified=$shortcutPath"
 Write-ReportLine "ShortcutIcon=$($lnk.IconLocation)"
@@ -475,9 +519,21 @@ Write-ReportLine "InstallVerification=passed"
 
 if ($LaunchApp) {
     Update-InstallUi -Percent 95 -Status 'Launching app...'
-    Start-Process $startupBat
+    Start-Process $targetExe
     Write-ReportLine "LaunchApp=started"
 }
+
+$postUpdateNoticePath = Join-Path $reportDir 'post_update_notice.txt'
+$installedVersion = 'unknown'
+$installedVersionPath = Join-Path $TargetRoot 'version.txt'
+if (Test-Path $installedVersionPath) {
+    $loadedInstalledVersion = (Get-Content -Path $installedVersionPath -Raw -ErrorAction SilentlyContinue).Trim()
+    if (-not [string]::IsNullOrWhiteSpace($loadedInstalledVersion)) {
+        $installedVersion = $loadedInstalledVersion
+    }
+}
+Set-Content -Path $postUpdateNoticePath -Value $installedVersion -Encoding ASCII
+Write-ReportLine "PostUpdateNotice=$postUpdateNoticePath (version=$installedVersion)"
 
 Write-ReportLine "RESULT=PASS"
 Update-InstallUi -Percent 100 -Status 'Install completed successfully.'
@@ -488,4 +544,3 @@ Close-InstallUi
 Show-InstallMessage -Message "Install complete.`r`nTarget: $TargetRoot`r`nReport: $script:ReportPath"
 Release-InstallerMutex
 Stop-Transcript | Out-Null
-

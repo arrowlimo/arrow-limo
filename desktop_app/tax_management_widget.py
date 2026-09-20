@@ -5,8 +5,9 @@ and year-end reconciliation
 Supports 2012-2025 with rollover tracking for GST, losses, and deductions
 """
 
+import csv
 import logging
-import subprocess
+from datetime import datetime
 import sys
 from pathlib import Path
 
@@ -28,6 +29,7 @@ from PyQt6.QtWidgets import (
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -39,6 +41,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from tax_return_tabs import PD7ATab, T1ReturnTab, T2ReturnTab
 
 logger = logging.getLogger(__name__)
 
@@ -109,8 +113,94 @@ def _load_tax_year_snapshot(cur, year) -> object:
         "payroll_cpp": float(payroll_row[1] or 0),
         "payroll_ei": float(payroll_row[2] or 0),
         "payroll_tax": float(payroll_row[3] or 0),
+        "paul_t1": _load_paul_t1_snapshot(cur, year),
         "gst_return": _load_tax_return_snapshot(cur, year, "gst"),
         "payroll_return": _load_tax_return_snapshot(cur, year, "payroll"),
+    }
+
+
+def _load_paul_t1_snapshot(cur, year) -> object:
+    """Load Paul's T4-backed T1 inputs for the selected year."""
+
+    cur.execute(
+        """
+        SELECT e.employee_id, COALESCE(e.full_name, '')
+        FROM employees e
+        WHERE COALESCE(e.full_name, '') ILIKE %s
+           OR (COALESCE(e.first_name, '') ILIKE 'Paul%%'
+               AND COALESCE(e.last_name, '') ILIKE 'Richard%%')
+        ORDER BY
+            CASE
+                WHEN COALESCE(e.full_name, '') ILIKE 'Paul Richard%%' THEN 0
+                WHEN COALESCE(e.full_name, '') ILIKE '%%Paul%%Richard%%' THEN 1
+                ELSE 2
+            END,
+            e.employee_id
+        LIMIT 1
+        """,
+        ("Paul Richard%",),
+    )
+    employee = cur.fetchone()
+    if not employee:
+        return None
+
+    employee_id, full_name = employee
+    cur.execute(
+        """
+        SELECT
+            COALESCE(box_14_employment_income, 0),
+            COALESCE(box_16_cpp_contributions, 0),
+            COALESCE(box_18_ei_premiums, 0),
+            COALESCE(box_22_income_tax, 0),
+            COALESCE(box_24_ei_insurable_earnings, 0),
+            COALESCE(box_26_cpp_pensionable_earnings, 0)
+        FROM employee_t4_records
+        WHERE employee_id = %s AND tax_year = %s
+        """,
+        (employee_id, year),
+    )
+    t4_row = cur.fetchone()
+    if not t4_row:
+        return {
+            "employee_id": employee_id,
+            "full_name": full_name,
+            "t4_employment_income": 0.0,
+            "t4_cpp": 0.0,
+            "t4_ei": 0.0,
+            "t4_income_tax": 0.0,
+            "t4_insurable_earnings": 0.0,
+            "t4_pensionable_earnings": 0.0,
+            "dividends": 0.0,
+            "other_income": 0.0,
+            "owner_draws": 0.0,
+            "total_t1_income": 0.0,
+        }
+
+    cur.execute(
+        """
+        SELECT COALESCE(SUM(COALESCE(owner_personal_amount, 0)), 0)
+        FROM receipts
+        WHERE EXTRACT(YEAR FROM receipt_date) = %s
+          AND COALESCE(owner_personal_amount, 0) > 0
+        """,
+        (year,),
+    )
+    owner_draws = float((cur.fetchone() or [0])[0] or 0)
+
+    t4_employment_income = float(t4_row[0] or 0)
+    return {
+        "employee_id": employee_id,
+        "full_name": full_name,
+        "t4_employment_income": t4_employment_income,
+        "t4_cpp": float(t4_row[1] or 0),
+        "t4_ei": float(t4_row[2] or 0),
+        "t4_income_tax": float(t4_row[3] or 0),
+        "t4_insurable_earnings": float(t4_row[4] or 0),
+        "t4_pensionable_earnings": float(t4_row[5] or 0),
+        "dividends": 0.0,
+        "other_income": 0.0,
+        "owner_draws": owner_draws,
+        "total_t1_income": t4_employment_income,
     }
 
 
@@ -193,12 +283,16 @@ class TaxYearDetailDialog(QDialog):
 
         # Tabs
         tabs = QTabWidget()
+        self.tabs = tabs
 
         tabs.addTab(self.create_income_tab(), "💰 Income & Revenue")
         tabs.addTab(self.create_expenses_tab(), "💸 Expenses")
         tabs.addTab(self.create_payroll_tab(), "👥 Payroll & T4s")
+        tabs.addTab(PD7ATab(self), "🧾 PD7A")
         tabs.addTab(self.create_gst_tab(), "📋 GST/HST")
         tabs.addTab(self.create_owner_tax_tab(), "👤 Owner Personal Tax")
+        tabs.addTab(T1ReturnTab(self), "🧾 T1 Return")
+        tabs.addTab(T2ReturnTab(self), "🏛️ T2 Return")
         tabs.addTab(self.create_forms_tab(), "📄 CRA Forms")
         tabs.addTab(
             self.create_rollovers_tab(), "🔄 Rollovers & Carryforwards"
@@ -291,7 +385,10 @@ class TaxYearDetailDialog(QDialog):
 
         # Adjustments
         adj_btn = QPushButton("➕ Add Revenue Adjustment")
-        adj_btn.clicked.connect(self.add_revenue_adjustment)
+        adj_btn.setEnabled(False)
+        adj_btn.setToolTip(
+            "Revenue adjustments must be entered in the source charter or ledger."
+        )
         layout.addWidget(adj_btn)
 
         widget.setLayout(layout)
@@ -364,17 +461,22 @@ class TaxYearDetailDialog(QDialog):
         self.expense_table.setHorizontalHeaderLabels(
             ["Date", "Vendor", "Category", "Amount", "GST", "Notes"]
         )
-        self.expense_table.doubleClicked.connect(self.edit_expense)
         layout.addWidget(self.expense_table)
 
         # Buttons
         btn_layout = QHBoxLayout()
         add_exp_btn = QPushButton("➕ Add Expense")
-        add_exp_btn.clicked.connect(self.add_expense)
+        add_exp_btn.setEnabled(False)
+        add_exp_btn.setToolTip(
+            "Expenses must be entered in Receipts & Invoices to preserve audit links."
+        )
         btn_layout.addWidget(add_exp_btn)
 
         recategorize_btn = QPushButton("🔄 Recategorize Selected")
-        recategorize_btn.clicked.connect(self.recategorize_expense)
+        recategorize_btn.setEnabled(False)
+        recategorize_btn.setToolTip(
+            "Recategorize the source receipt in Receipts & Invoices."
+        )
         btn_layout.addWidget(recategorize_btn)
 
         btn_layout.addStretch()
@@ -460,7 +562,6 @@ class TaxYearDetailDialog(QDialog):
                 "Actions",
             ]
         )
-        self.t4_table.doubleClicked.connect(self.edit_t4)
         layout.addWidget(self.t4_table)
 
         # Variances
@@ -480,7 +581,11 @@ class TaxYearDetailDialog(QDialog):
         btn_layout.addWidget(generate_t4_btn)
 
         validate_btn = QPushButton("✅ Validate Deductions")
-        validate_btn.clicked.connect(self.validate_payroll_deductions)
+        validate_btn.setEnabled(False)
+        validate_btn.setToolTip(
+            "CRA table validation is not implemented; review the calculated "
+            "deductions and variance table before filing."
+        )
         btn_layout.addWidget(validate_btn)
 
         recompute_payroll_btn = QPushButton("🔄 Recompute Payroll (save)")
@@ -492,6 +597,92 @@ class TaxYearDetailDialog(QDialog):
         btn_layout.addWidget(mark_payroll_btn)
         layout.addLayout(btn_layout)
 
+        widget.setLayout(layout)
+        return widget
+
+    def create_pd7a_tab(self) -> object:
+        """Tab 4: Monthly PD7A remittance entry and submission."""
+        widget = QWidget()
+        layout = QVBoxLayout()
+
+        title = QLabel("PD7A Source Deductions")
+        title.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        layout.addWidget(title)
+
+        form = QFormLayout()
+        self.pd7a_month = QComboBox()
+        self.pd7a_month.addItems([f"{m:02d}" for m in range(1, 13)])
+        self.pd7a_month.currentTextChanged.connect(self._load_pd7a_form)
+        form.addRow("Month:", self.pd7a_month)
+
+        self.pd7a_employee_count = QDoubleSpinBox()
+        self.pd7a_employee_count.setMaximum(99999)
+        form.addRow("Employee Count:", self.pd7a_employee_count)
+
+        self.pd7a_total_gross = QDoubleSpinBox()
+        self.pd7a_total_gross.setMaximum(99999999)
+        self.pd7a_total_gross.setPrefix("$")
+        form.addRow("Total Gross Payroll:", self.pd7a_total_gross)
+
+        self.pd7a_cpp_total = QDoubleSpinBox()
+        self.pd7a_cpp_total.setMaximum(99999999)
+        self.pd7a_cpp_total.setPrefix("$")
+        form.addRow("CPP Total:", self.pd7a_cpp_total)
+
+        self.pd7a_ei_total = QDoubleSpinBox()
+        self.pd7a_ei_total.setMaximum(99999999)
+        self.pd7a_ei_total.setPrefix("$")
+        form.addRow("EI Total:", self.pd7a_ei_total)
+
+        self.pd7a_income_tax = QDoubleSpinBox()
+        self.pd7a_income_tax.setMaximum(99999999)
+        self.pd7a_income_tax.setPrefix("$")
+        form.addRow("Income Tax Deducted:", self.pd7a_income_tax)
+
+        self.pd7a_total_due = QDoubleSpinBox()
+        self.pd7a_total_due.setMaximum(99999999)
+        self.pd7a_total_due.setPrefix("$")
+        self.pd7a_total_due.setReadOnly(True)
+        form.addRow("Total Remittance Due:", self.pd7a_total_due)
+
+        self.pd7a_adjusted = QDoubleSpinBox()
+        self.pd7a_adjusted.setMaximum(99999999)
+        self.pd7a_adjusted.setPrefix("$")
+        form.addRow("Adjusted Remittance:", self.pd7a_adjusted)
+
+        self.pd7a_status = QLabel("Draft")
+        self.pd7a_status.setStyleSheet("font-weight: bold; color: #1f2937;")
+        form.addRow("Status:", self.pd7a_status)
+        layout.addLayout(form)
+
+        self.pd7a_notes = QTextEdit()
+        self.pd7a_notes.setPlaceholderText("PD7A notes / filing reference / fixes")
+        self.pd7a_notes.setMaximumHeight(90)
+        layout.addWidget(self.pd7a_notes)
+
+        self.pd7a_month_table = self._create_line_table(
+            ["Month", "Employees", "Gross", "CPP", "EI", "Tax", "Due", "Adjusted", "Status"]
+        )
+        layout.addWidget(self.pd7a_month_table)
+
+        row_buttons = QHBoxLayout()
+        refresh_btn = QPushButton("Refresh")
+        refresh_btn.clicked.connect(self._load_pd7a_form)
+        row_buttons.addWidget(refresh_btn)
+
+        save_btn = QPushButton("Save Draft")
+        save_btn.clicked.connect(self.save_pd7a_return_draft)
+        row_buttons.addWidget(save_btn)
+
+        submit_btn = QPushButton("Record Manual Submission")
+        submit_btn.setStyleSheet("background-color: #7c2d12; color: white;")
+        submit_btn.clicked.connect(self.submit_pd7a_return)
+        row_buttons.addWidget(submit_btn)
+
+        row_buttons.addStretch()
+        layout.addLayout(row_buttons)
+
+        self._load_pd7a_form()
         widget.setLayout(layout)
         return widget
 
@@ -581,7 +772,7 @@ class TaxYearDetailDialog(QDialog):
         mark_gst_btn = QPushButton("✅ Mark GST Filed/Paid")
         mark_gst_btn.clicked.connect(self.mark_gst_filed)
         btn_layout.addWidget(mark_gst_btn)
-        generate_gst_btn = QPushButton("📄 Generate GST34 Form")
+        generate_gst_btn = QPushButton("📄 Export GST Filing Worksheet")
         generate_gst_btn.clicked.connect(self.generate_gst_form)
         btn_layout.addWidget(generate_gst_btn)
 
@@ -596,13 +787,14 @@ class TaxYearDetailDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        title = QLabel("Owner Personal Tax Management")
+        title = QLabel("Owner Personal Tax")
         title.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         layout.addWidget(title)
 
         # Warning
         warning = QLabel(
-            "⚠️ Tracking owner income to stay under non-filing threshold"
+            "⚠️ Reference only: basic personal amounts do not determine whether "
+            "a T1 return must be filed."
         )
         warning.setStyleSheet("color: orange; font-weight: bold;")
         layout.addWidget(warning)
@@ -614,7 +806,7 @@ class TaxYearDetailDialog(QDialog):
         self.federal_bpa = QDoubleSpinBox()
         self.federal_bpa.setMaximum(99999)
         self.federal_bpa.setPrefix("$")
-        self.federal_bpa.setValue(15000)  # 2025 federal BPA
+        self.federal_bpa.setValue(16129)
         threshold_form.addRow(
             "Federal Basic Personal Amount:", self.federal_bpa
         )
@@ -622,20 +814,22 @@ class TaxYearDetailDialog(QDialog):
         self.provincial_bpa = QDoubleSpinBox()
         self.provincial_bpa.setMaximum(99999)
         self.provincial_bpa.setPrefix("$")
-        self.provincial_bpa.setValue(17661)  # 2025 SK provincial BPA
+        self.provincial_bpa.setValue(22323)
         threshold_form.addRow(
-            "Provincial Basic Personal Amount (SK):", self.provincial_bpa
+            "Alberta Basic Personal Amount:", self.provincial_bpa
         )
 
         self.safe_threshold = QDoubleSpinBox()
         self.safe_threshold.setMaximum(99999)
         self.safe_threshold.setPrefix("$")
         self.safe_threshold.setReadOnly(True)
-        self.safe_threshold.setValue(15000)  # Use lower of federal/provincial
+        self.safe_threshold.setValue(16129)
         self.safe_threshold.setStyleSheet("font-weight: bold;")
         threshold_form.addRow(
-            "SAFE THRESHOLD (No Filing):", self.safe_threshold
+            "Lower Basic Personal Amount (Reference):", self.safe_threshold
         )
+        self.federal_bpa.valueChanged.connect(self._update_bpa_reference)
+        self.provincial_bpa.valueChanged.connect(self._update_bpa_reference)
 
         threshold_group.setLayout(threshold_form)
         layout.addWidget(threshold_group)
@@ -707,12 +901,740 @@ class TaxYearDetailDialog(QDialog):
         widget.setLayout(layout)
         return widget
 
+    def _ensure_t1_tables(self, cur) -> None:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS t1_return_metadata (
+                return_id SERIAL PRIMARY KEY,
+                tax_year INTEGER UNIQUE NOT NULL,
+                taxpayer_name TEXT NOT NULL,
+                sin TEXT,
+                status TEXT NOT NULL DEFAULT 'draft',
+                total_income NUMERIC,
+                total_tax NUMERIC,
+                refund_owing NUMERIC,
+                submission_reference TEXT,
+                submitted_by TEXT,
+                submitted_at TIMESTAMPTZ,
+                notes TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS t1_return_lines (
+                line_id SERIAL PRIMARY KEY,
+                return_id INTEGER NOT NULL REFERENCES t1_return_metadata(return_id)
+                    ON DELETE CASCADE,
+                line_number TEXT NOT NULL,
+                line_description TEXT NOT NULL,
+                amount NUMERIC NOT NULL DEFAULT 0,
+                notes TEXT,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE(return_id, line_number)
+            )
+            """
+        )
+
+    def _ensure_t2_tables(self, cur) -> None:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS t2_return_metadata (
+                return_id SERIAL PRIMARY KEY,
+                tax_year INTEGER UNIQUE NOT NULL,
+                corporation_name TEXT NOT NULL,
+                business_number TEXT,
+                fiscal_year_end DATE NOT NULL DEFAULT CURRENT_DATE,
+                status TEXT NOT NULL DEFAULT 'draft',
+                total_revenue NUMERIC,
+                total_expenses NUMERIC,
+                net_income NUMERIC,
+                taxable_income NUMERIC,
+                federal_tax NUMERIC,
+                provincial_tax NUMERIC,
+                total_tax NUMERIC,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS t2_schedule_data (
+                id SERIAL PRIMARY KEY,
+                return_id INTEGER NOT NULL REFERENCES t2_return_metadata(return_id)
+                    ON DELETE CASCADE,
+                schedule_number TEXT NOT NULL,
+                line_number TEXT NOT NULL,
+                line_description TEXT NOT NULL,
+                amount NUMERIC NOT NULL DEFAULT 0,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE(return_id, schedule_number, line_number)
+            )
+            """
+        )
+
+    def _create_line_table(self, columns: list[str]) -> QTableWidget:
+        table = QTableWidget()
+        table.setColumnCount(len(columns))
+        table.setHorizontalHeaderLabels(columns)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        return table
+
+    def _add_line_row(self, table: QTableWidget, values: list[str] | None = None) -> None:
+        row = table.rowCount()
+        table.insertRow(row)
+        values = values or []
+        for col in range(table.columnCount()):
+            item = QTableWidgetItem(str(values[col]) if col < len(values) else "")
+            table.setItem(row, col, item)
+
+    def _table_rows(self, table: QTableWidget) -> list[list[str]]:
+        rows: list[list[str]] = []
+        for row in range(table.rowCount()):
+            values: list[str] = []
+            for col in range(table.columnCount()):
+                item = table.item(row, col)
+                values.append((item.text() if item else "").strip())
+            if any(values):
+                rows.append(values)
+        return rows
+
+    def create_t1_tab(self) -> object:
+        widget = QWidget()
+        layout = QVBoxLayout()
+
+        title = QLabel("T1 Personal Return Entry")
+        title.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        layout.addWidget(title)
+
+        form = QFormLayout()
+        self.t1_taxpayer_name = QLineEdit("Paul Richard")
+        self.t1_sin = QLineEdit()
+        self.t1_t1_status = QLabel("Draft")
+        self.t1_t1_status.setStyleSheet("font-weight: bold; color: #1f2937;")
+        form.addRow("Taxpayer Name:", self.t1_taxpayer_name)
+        form.addRow("SIN:", self.t1_sin)
+        form.addRow("Status:", self.t1_t1_status)
+        layout.addLayout(form)
+
+        self.t1_lines_table = self._create_line_table(
+            ["Line #", "Description", "Amount", "Notes"]
+        )
+        layout.addWidget(self.t1_lines_table)
+
+        row_buttons = QHBoxLayout()
+        add_btn = QPushButton("Add Line")
+        add_btn.clicked.connect(
+            lambda: self._add_line_row(self.t1_lines_table, ["", "", "0.00", ""])
+        )
+        row_buttons.addWidget(add_btn)
+
+        remove_btn = QPushButton("Remove Selected")
+        remove_btn.clicked.connect(
+            lambda: self._delete_selected_rows(self.t1_lines_table)
+        )
+        row_buttons.addWidget(remove_btn)
+
+        save_btn = QPushButton("Save Draft")
+        save_btn.clicked.connect(self.save_t1_return_draft)
+        row_buttons.addWidget(save_btn)
+
+        submit_btn = QPushButton("Record Manual Submission")
+        submit_btn.setStyleSheet("background-color: #065f46; color: white;")
+        submit_btn.clicked.connect(self.submit_t1_return)
+        row_buttons.addWidget(submit_btn)
+
+        row_buttons.addStretch()
+        layout.addLayout(row_buttons)
+
+        self._load_t1_form()
+        widget.setLayout(layout)
+        return widget
+
+    def create_t2_tab(self) -> object:
+        widget = QWidget()
+        layout = QVBoxLayout()
+
+        title = QLabel("T2 Corporate Return Entry")
+        title.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        layout.addWidget(title)
+
+        form = QFormLayout()
+        self.t2_corp_name = QLineEdit("Arrow Limousine Ltd.")
+        self.t2_business_number = QLineEdit()
+        self.t2_return_status = QLabel("Draft")
+        self.t2_return_status.setStyleSheet("font-weight: bold; color: #1f2937;")
+        form.addRow("Corporation Name:", self.t2_corp_name)
+        form.addRow("Business Number:", self.t2_business_number)
+        form.addRow("Status:", self.t2_return_status)
+        layout.addLayout(form)
+
+        self.t2_schedule125_table = self._create_line_table(
+            ["Schedule", "Line #", "Description", "Amount", "Notes"]
+        )
+        self.t2_schedule100_table = self._create_line_table(
+            ["Schedule", "Line #", "Description", "Amount", "Notes"]
+        )
+        layout.addWidget(QLabel("Schedule 125"))
+        layout.addWidget(self.t2_schedule125_table)
+        layout.addWidget(QLabel("Schedule 100"))
+        layout.addWidget(self.t2_schedule100_table)
+
+        row_buttons = QHBoxLayout()
+        add_125 = QPushButton("Add 125 Line")
+        add_125.clicked.connect(
+            lambda: self._add_line_row(
+                self.t2_schedule125_table, ["125", "", "", "0.00", ""]
+            )
+        )
+        row_buttons.addWidget(add_125)
+
+        add_100 = QPushButton("Add 100 Line")
+        add_100.clicked.connect(
+            lambda: self._add_line_row(
+                self.t2_schedule100_table, ["100", "", "", "0.00", ""]
+            )
+        )
+        row_buttons.addWidget(add_100)
+
+        remove_btn = QPushButton("Remove Selected")
+        remove_btn.clicked.connect(
+            lambda: (
+                self._delete_selected_rows(self.t2_schedule125_table),
+                self._delete_selected_rows(self.t2_schedule100_table),
+            )
+        )
+        row_buttons.addWidget(remove_btn)
+
+        save_btn = QPushButton("Save Draft")
+        save_btn.clicked.connect(self.save_t2_return_draft)
+        row_buttons.addWidget(save_btn)
+
+        submit_btn = QPushButton("Record Manual Submission")
+        submit_btn.setStyleSheet("background-color: #0f766e; color: white;")
+        submit_btn.clicked.connect(self.submit_t2_return)
+        row_buttons.addWidget(submit_btn)
+
+        row_buttons.addStretch()
+        layout.addLayout(row_buttons)
+
+        self._load_t2_form()
+        widget.setLayout(layout)
+        return widget
+
+    def _ensure_pd7a_tables(self, cur) -> None:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS cra_pd7a_returns (
+                id SERIAL PRIMARY KEY,
+                reporting_year INTEGER NOT NULL,
+                reporting_month INTEGER NOT NULL,
+                employee_count INTEGER DEFAULT 0,
+                total_gross_payroll NUMERIC DEFAULT 0,
+                cpp_total NUMERIC DEFAULT 0,
+                ei_total NUMERIC DEFAULT 0,
+                income_tax_deducted NUMERIC DEFAULT 0,
+                total_remittance_due NUMERIC DEFAULT 0,
+                adjusted_remittance NUMERIC DEFAULT 0,
+                is_submitted BOOLEAN DEFAULT FALSE,
+                submission_date DATE,
+                submission_reference TEXT,
+                submitted_by TEXT,
+                filing_method TEXT,
+                notes TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(reporting_year, reporting_month)
+            )
+            """
+        )
+
+    def _pd7a_month_label(self, month: int) -> str:
+        return f"{month:02d}"
+
+    def _load_pd7a_form(self, *_args) -> None:
+        try:
+            month = int(self.pd7a_month.currentText()) if hasattr(self, "pd7a_month") else 1
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                self._ensure_pd7a_tables(cur)
+                cur.execute(
+                    """
+                    SELECT employee_count, total_gross_payroll, cpp_total,
+                           ei_total, income_tax_deducted, total_remittance_due,
+                           adjusted_remittance, is_submitted, submission_date,
+                           submission_reference, submitted_by, filing_method, notes
+                    FROM cra_pd7a_returns
+                    WHERE reporting_year = %s AND reporting_month = %s
+                    """,
+                    (self.year, month),
+                )
+                row = cur.fetchone()
+                if row:
+                    self.pd7a_employee_count.setValue(float(row[0] or 0))
+                    self.pd7a_total_gross.setValue(float(row[1] or 0))
+                    self.pd7a_cpp_total.setValue(float(row[2] or 0))
+                    self.pd7a_ei_total.setValue(float(row[3] or 0))
+                    self.pd7a_income_tax.setValue(float(row[4] or 0))
+                    self.pd7a_total_due.setValue(float(row[5] or 0))
+                    self.pd7a_adjusted.setValue(float(row[6] or 0))
+                    self.pd7a_status.setText(
+                        "Recorded submitted" if row[7] else "Draft"
+                    )
+                    self.pd7a_notes.setPlainText(row[12] or "")
+                else:
+                    self.pd7a_employee_count.setValue(0)
+                    self.pd7a_total_gross.setValue(0)
+                    self.pd7a_cpp_total.setValue(0)
+                    self.pd7a_ei_total.setValue(0)
+                    self.pd7a_income_tax.setValue(0)
+                    self.pd7a_total_due.setValue(0)
+                    self.pd7a_adjusted.setValue(0)
+                    self.pd7a_status.setText("Draft")
+                    self.pd7a_notes.setPlainText("")
+
+                cur.execute(
+                    """
+                    SELECT reporting_month, employee_count, total_gross_payroll,
+                           cpp_total, ei_total, income_tax_deducted,
+                           total_remittance_due, adjusted_remittance,
+                           is_submitted
+                    FROM cra_pd7a_returns
+                    WHERE reporting_year = %s
+                    ORDER BY reporting_month
+                    """,
+                    (self.year,),
+                )
+                rows = cur.fetchall()
+                self.pd7a_month_table.setRowCount(0)
+                for r in rows:
+                    self._add_line_row(
+                        self.pd7a_month_table,
+                        [
+                            self._pd7a_month_label(int(r[0] or 0)),
+                            str(int(r[1] or 0)),
+                            f"{float(r[2] or 0):.2f}",
+                            f"{float(r[3] or 0):.2f}",
+                            f"{float(r[4] or 0):.2f}",
+                            f"{float(r[5] or 0):.2f}",
+                            f"{float(r[6] or 0):.2f}",
+                            f"{float(r[7] or 0):.2f}",
+                            "Recorded submitted" if r[8] else "Draft",
+                        ],
+                    )
+        except Exception as exc:
+            logger.warning("Failed to load PD7A form: %s", exc)
+
+    def _save_pd7a_form(self, submitted: bool = False) -> None:
+        month = int(self.pd7a_month.currentText())
+        employee_count = int(self.pd7a_employee_count.value())
+        total_gross = float(self.pd7a_total_gross.value())
+        cpp_total = float(self.pd7a_cpp_total.value())
+        ei_total = float(self.pd7a_ei_total.value())
+        income_tax = float(self.pd7a_income_tax.value())
+        total_due = round(cpp_total + ei_total + income_tax, 2)
+        adjusted = float(self.pd7a_adjusted.value()) or total_due
+        notes = self.pd7a_notes.toPlainText().strip() or None
+
+        with DatabaseContext(self.db, auto_commit=True) as cur:
+            self._ensure_pd7a_tables(cur)
+            cur.execute(
+                """
+                INSERT INTO cra_pd7a_returns (
+                    reporting_year, reporting_month, employee_count,
+                    total_gross_payroll, cpp_total, ei_total,
+                    income_tax_deducted, total_remittance_due,
+                    adjusted_remittance, is_submitted, notes,
+                    created_at, updated_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                ON CONFLICT (reporting_year, reporting_month)
+                DO UPDATE SET
+                    employee_count = EXCLUDED.employee_count,
+                    total_gross_payroll = EXCLUDED.total_gross_payroll,
+                    cpp_total = EXCLUDED.cpp_total,
+                    ei_total = EXCLUDED.ei_total,
+                    income_tax_deducted = EXCLUDED.income_tax_deducted,
+                    total_remittance_due = EXCLUDED.total_remittance_due,
+                    adjusted_remittance = EXCLUDED.adjusted_remittance,
+                    is_submitted = EXCLUDED.is_submitted,
+                    notes = EXCLUDED.notes,
+                    updated_at = NOW()
+                """,
+                (
+                    self.year,
+                    month,
+                    employee_count,
+                    total_gross,
+                    cpp_total,
+                    ei_total,
+                    income_tax,
+                    total_due,
+                    adjusted,
+                    submitted,
+                    notes,
+                ),
+            )
+            if submitted:
+                cur.execute(
+                    """
+                    UPDATE cra_pd7a_returns
+                    SET submission_date = CURRENT_DATE,
+                        submission_reference = %s,
+                        submitted_by = %s,
+                        filing_method = %s,
+                        updated_at = NOW()
+                    WHERE reporting_year = %s AND reporting_month = %s
+                    """,
+                    (
+                        f"PD7A-{self.year}{month:02d}",
+                        "desktop_app",
+                        "manual",
+                        self.year,
+                        month,
+                    ),
+                )
+            self.pd7a_status.setText(
+                "Recorded submitted" if submitted else "Draft"
+            )
+            self._load_pd7a_form()
+
+    def save_pd7a_return_draft(self) -> None:
+        try:
+            self._save_pd7a_form(submitted=False)
+            QMessageBox.information(self, "Saved", "PD7A draft saved.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"Failed to save PD7A draft: {exc}")
+
+    def submit_pd7a_return(self) -> None:
+        try:
+            self._save_pd7a_form(submitted=True)
+            QMessageBox.information(
+                self,
+                "Submission Recorded",
+                "PD7A was recorded as manually submitted. No data was sent to CRA.",
+            )
+        except Exception as exc:
+            QMessageBox.critical(
+                self, "Error", f"Failed to record PD7A submission: {exc}"
+            )
+
+    def _delete_selected_rows(self, table: QTableWidget) -> None:
+        rows = sorted({idx.row() for idx in table.selectionModel().selectedRows()}, reverse=True)
+        for row in rows:
+            table.removeRow(row)
+
+    def _load_t1_form(self) -> None:
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                self._ensure_t1_tables(cur)
+                cur.execute(
+                    """
+                    SELECT return_id, taxpayer_name, COALESCE(sin, ''),
+                           COALESCE(status, 'draft')
+                    FROM t1_return_metadata
+                    WHERE tax_year = %s
+                    """,
+                    (self.year,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    self.t1_lines_table.setRowCount(0)
+                    self.t1_t1_status.setText("Not created yet")
+                    return
+
+                self.t1_taxpayer_name.setText(row[1] or "Paul Richard")
+                self.t1_sin.setText(row[2] or "")
+                self.t1_t1_status.setText((row[3] or "draft").title())
+
+                cur.execute(
+                    """
+                    SELECT line_number, line_description, amount, COALESCE(notes, '')
+                    FROM t1_return_lines
+                    WHERE return_id = %s
+                    ORDER BY line_number
+                    """,
+                    (row[0],),
+                )
+                lines = cur.fetchall()
+                self.t1_lines_table.setRowCount(0)
+                for line in lines:
+                    self._add_line_row(
+                        self.t1_lines_table,
+                        [line[0], line[1], f"{float(line[2] or 0):.2f}", line[3] or ""],
+                    )
+                if self.t1_lines_table.rowCount() == 0:
+                    self._add_line_row(self.t1_lines_table, ["10100", "Employment income", "0.00", ""])
+        except Exception as exc:
+            logger.warning("Failed to load T1 form: %s", exc)
+
+    def _load_t2_form(self) -> None:
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                self._ensure_t2_tables(cur)
+                cur.execute(
+                    """
+                    SELECT return_id, corporation_name, COALESCE(business_number, ''),
+                           COALESCE(status, 'draft')
+                    FROM t2_return_metadata
+                    WHERE tax_year = %s
+                    """,
+                    (self.year,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    self.t2_schedule125_table.setRowCount(0)
+                    self.t2_schedule100_table.setRowCount(0)
+                    self.t2_return_status.setText("Not created yet")
+                    return
+
+                self.t2_corp_name.setText(row[1] or "Arrow Limousine Ltd.")
+                self.t2_business_number.setText(row[2] or "")
+                self.t2_return_status.setText((row[3] or "draft").title())
+
+                cur.execute(
+                    """
+                    SELECT schedule_number, line_number, line_description, amount, COALESCE(notes, '')
+                    FROM t2_schedule_data
+                    WHERE return_id = %s
+                    ORDER BY schedule_number, line_number
+                    """,
+                    (row[0],),
+                )
+                self.t2_schedule125_table.setRowCount(0)
+                self.t2_schedule100_table.setRowCount(0)
+                for schedule, line_num, desc, amount, notes in cur.fetchall():
+                    target = self.t2_schedule125_table if str(schedule) == "125" else self.t2_schedule100_table
+                    self._add_line_row(
+                        target,
+                        [schedule, line_num, desc, f"{float(amount or 0):.2f}", notes or ""],
+                    )
+                if self.t2_schedule125_table.rowCount() == 0:
+                    self._add_line_row(self.t2_schedule125_table, ["125", "8000", "Charter revenue", "0.00", ""])
+                if self.t2_schedule100_table.rowCount() == 0:
+                    self._add_line_row(self.t2_schedule100_table, ["100", "1000-B", "Cash - Beginning", "0.00", ""])
+        except Exception as exc:
+            logger.warning("Failed to load T2 form: %s", exc)
+
+    def _save_t1_form(self, submitted: bool = False) -> None:
+        with DatabaseContext(self.db, auto_commit=True) as cur:
+            self._ensure_t1_tables(cur)
+            cur.execute(
+                """
+                SELECT return_id
+                FROM t1_return_metadata
+                WHERE tax_year = %s
+                """,
+                (self.year,),
+            )
+            row = cur.fetchone()
+            taxpayer_name = self.t1_taxpayer_name.text().strip() or "Paul Richard"
+            sin = self.t1_sin.text().strip() or None
+            lines = self._table_rows(self.t1_lines_table)
+            total_income = round(sum(float(r[2] or 0) for r in lines), 2)
+            if row:
+                return_id = row[0]
+                cur.execute(
+                    """
+                    UPDATE t1_return_metadata
+                    SET taxpayer_name = %s,
+                        sin = %s,
+                        status = %s,
+                        total_income = %s,
+                        updated_at = NOW()
+                    WHERE return_id = %s
+                    """,
+                    (taxpayer_name, sin, "submitted" if submitted else "draft", total_income, return_id),
+                )
+                cur.execute("DELETE FROM t1_return_lines WHERE return_id = %s", (return_id,))
+            else:
+                cur.execute(
+                    """
+                    INSERT INTO t1_return_metadata (
+                        tax_year, taxpayer_name, sin, status, total_income,
+                        created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+                    RETURNING return_id
+                    """,
+                    (self.year, taxpayer_name, sin, "submitted" if submitted else "draft", total_income),
+                )
+                return_id = cur.fetchone()[0]
+
+            for line in lines:
+                cur.execute(
+                    """
+                    INSERT INTO t1_return_lines (
+                        return_id, line_number, line_description, amount, notes, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, NOW())
+                    """,
+                    (return_id, line[0], line[1], float(line[2] or 0), line[3] if len(line) > 3 else None),
+                )
+
+            if submitted:
+                cur.execute(
+                    """
+                    UPDATE t1_return_metadata
+                    SET submitted_by = %s,
+                        submitted_at = NOW(),
+                        submission_reference = %s,
+                        updated_at = NOW()
+                    WHERE return_id = %s
+                    """,
+                    ("desktop_app", f"T1-{self.year}", return_id),
+                )
+            self.t1_t1_status.setText(
+                "Recorded submitted" if submitted else "Draft"
+            )
+
+    def _save_t2_form(self, submitted: bool = False) -> None:
+        with DatabaseContext(self.db, auto_commit=True) as cur:
+            self._ensure_t2_tables(cur)
+            cur.execute(
+                """
+                SELECT return_id
+                FROM t2_return_metadata
+                WHERE tax_year = %s
+                """,
+                (self.year,),
+            )
+            row = cur.fetchone()
+            corp_name = self.t2_corp_name.text().strip() or "Arrow Limousine Ltd."
+            bn = self.t2_business_number.text().strip() or None
+            lines_125 = self._table_rows(self.t2_schedule125_table)
+            lines_100 = self._table_rows(self.t2_schedule100_table)
+            all_lines = lines_125 + lines_100
+            revenue = round(
+                sum(float(line[3] or 0) for line in lines_125 if str(line[1]) in {"8000", "8299"}),
+                2,
+            )
+            expenses = round(
+                sum(float(line[3] or 0) for line in lines_125 if str(line[1]) not in {"8000", "8299"}),
+                2,
+            )
+            net_income = round(revenue - expenses, 2)
+            if row:
+                return_id = row[0]
+                cur.execute(
+                    """
+                    UPDATE t2_return_metadata
+                    SET corporation_name = %s,
+                        business_number = %s,
+                        status = %s,
+                        total_revenue = %s,
+                        total_expenses = %s,
+                        net_income = %s,
+                        updated_at = NOW()
+                    WHERE return_id = %s
+                    """,
+                    (
+                        corp_name,
+                        bn,
+                        "submitted" if submitted else "draft",
+                        revenue,
+                        expenses,
+                        net_income,
+                        return_id,
+                    ),
+                )
+                cur.execute("DELETE FROM t2_schedule_data WHERE return_id = %s", (return_id,))
+            else:
+                cur.execute(
+                    """
+                    INSERT INTO t2_return_metadata (
+                        tax_year, corporation_name, business_number, fiscal_year_end,
+                        status, total_revenue, total_expenses, net_income,
+                        created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                    RETURNING return_id
+                    """,
+                    (
+                        self.year,
+                        corp_name,
+                        bn,
+                        f"{self.year}-12-31",
+                        "submitted" if submitted else "draft",
+                        revenue,
+                        expenses,
+                        net_income,
+                    ),
+                )
+                return_id = cur.fetchone()[0]
+
+            for schedule, line_num, desc, amount, notes in all_lines:
+                cur.execute(
+                    """
+                    INSERT INTO t2_schedule_data (
+                        return_id, schedule_number, line_number, line_description, amount, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, NOW())
+                    """,
+                    (return_id, str(schedule), line_num, desc, float(amount or 0)),
+                )
+
+            if submitted:
+                cur.execute(
+                    """
+                    UPDATE t2_return_metadata
+                    SET status = 'submitted',
+                        total_revenue = %s,
+                        total_expenses = %s,
+                        net_income = %s,
+                        updated_at = NOW()
+                    WHERE return_id = %s
+                    """,
+                    (revenue, expenses, net_income, return_id),
+                )
+            self.t2_return_status.setText(
+                "Recorded submitted" if submitted else "Draft"
+            )
+
+    def save_t1_return_draft(self) -> None:
+        try:
+            self._save_t1_form(submitted=False)
+            QMessageBox.information(self, "Saved", "T1 draft saved.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"Failed to save T1 draft: {exc}")
+
+    def submit_t1_return(self) -> None:
+        try:
+            self._save_t1_form(submitted=True)
+            QMessageBox.information(
+                self,
+                "Submission Recorded",
+                "T1 was recorded as manually submitted. No data was sent to CRA.",
+            )
+        except Exception as exc:
+            QMessageBox.critical(
+                self, "Error", f"Failed to record T1 submission: {exc}"
+            )
+
+    def save_t2_return_draft(self) -> None:
+        try:
+            self._save_t2_form(submitted=False)
+            QMessageBox.information(self, "Saved", "T2 draft saved.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"Failed to save T2 draft: {exc}")
+
+    def submit_t2_return(self) -> None:
+        try:
+            self._save_t2_form(submitted=True)
+            QMessageBox.information(
+                self,
+                "Submission Recorded",
+                "T2 was recorded as manually submitted. No data was sent to CRA.",
+            )
+        except Exception as exc:
+            QMessageBox.critical(
+                self, "Error", f"Failed to record T2 submission: {exc}"
+            )
+
     def create_forms_tab(self) -> object:
         """Tab 6: CRA form generation and export"""
         widget = QWidget()
         layout = QVBoxLayout()
 
-        title = QLabel("CRA Forms & Filing")
+        title = QLabel("CRA Forms & Manual Filing Records")
         title.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         layout.addWidget(title)
 
@@ -729,12 +1651,13 @@ class TaxYearDetailDialog(QDialog):
 
         # Populate forms list
         forms = [
-            ("T4", "Statement of Remuneration Paid", "Ready"),
-            ("T4 Summary", "Summary of Remuneration Paid", "Ready"),
-            ("T4A", "Statement of Pension/Other Income", "Ready"),
-            ("GST34", "GST/HST Return for Registrants", "Ready"),
-            ("T2", "Corporation Income Tax Return", "Ready"),
-            ("PD7A", "Statement of Account - Source Deductions", "Ready"),
+            ("T1", "Personal Income Tax Return", "Editor"),
+            ("T4", "Statement of Remuneration Paid", "Editor"),
+            ("T4 Summary", "Summary of Remuneration Paid", "CSV Export"),
+            ("T4A", "Statement of Pension/Other Income", "Not implemented"),
+            ("GST34", "GST/HST Return for Registrants", "Worksheet"),
+            ("T2", "Corporation Income Tax Return", "Editor"),
+            ("PD7A", "Statement of Account - Source Deductions", "Editor"),
             ("T5018", "Statement of Contract Payments", "N/A"),
         ]
 
@@ -744,20 +1667,27 @@ class TaxYearDetailDialog(QDialog):
             self.forms_table.setItem(i, 1, QTableWidgetItem(desc))
             self.forms_table.setItem(i, 2, QTableWidgetItem(status))
 
-            generate_btn = QPushButton("Generate")
+            generate_btn = QPushButton("Open")
             generate_btn.clicked.connect(
                 lambda checked, f=form_name: self.generate_specific_form(f)
             )
+            if status in ("Not implemented", "N/A"):
+                generate_btn.setEnabled(False)
             self.forms_table.setCellWidget(i, 3, generate_btn)
 
         # Bulk actions
         bulk_layout = QHBoxLayout()
-        generate_all_btn = QPushButton("📄 Generate All Forms")
+        generate_all_btn = QPushButton("📄 Open Filing Editors")
         generate_all_btn.clicked.connect(self.generate_all_forms)
         bulk_layout.addWidget(generate_all_btn)
 
         export_xml_btn = QPushButton("📤 Export CRA XML")
         export_xml_btn.clicked.connect(self.export_cra_xml)
+        export_xml_btn.setEnabled(False)
+        export_xml_btn.setToolTip(
+            "Direct CRA XML export is not implemented; use the reviewed manual "
+            "filing worksheets and record the CRA confirmation afterward."
+        )
         bulk_layout.addWidget(export_xml_btn)
 
         bulk_layout.addStretch()
@@ -862,6 +1792,24 @@ class TaxYearDetailDialog(QDialog):
         try:
             with DatabaseContext(self.db, auto_commit=False) as cur:
                 snapshot = _load_tax_year_snapshot(cur, self.year)
+                cur.execute(
+                    """
+                    SELECT previous_loss_balance, gst_previous_balance,
+                           gst_previous_credit, federal_basic_personal_amount,
+                           provincial_basic_personal_amount
+                    FROM tax_year_settings
+                    WHERE tax_year = %s
+                    """,
+                    (self.year,),
+                )
+                settings = cur.fetchone()
+                if settings:
+                    self.prev_loss_balance.setValue(float(settings[0] or 0))
+                    self.gst_prev_balance.setValue(float(settings[1] or 0))
+                    self.gst_prev_credit.setValue(float(settings[2] or 0))
+                    self.federal_bpa.setValue(float(settings[3] or 0))
+                    self.provincial_bpa.setValue(float(settings[4] or 0))
+                    self._update_bpa_reference()
                 self._apply_tax_year_detail_snapshot(snapshot)
 
             # Variances
@@ -887,6 +1835,7 @@ class TaxYearDetailDialog(QDialog):
         payroll_cpp = snapshot["payroll_cpp"]
         payroll_ei = snapshot["payroll_ei"]
         payroll_tax = snapshot["payroll_tax"]
+        paul_t1 = snapshot.get("paul_t1") or {}
 
         self.charter_revenue.setValue(float(revenue))
         self.gst_included.setValue(gst_included)
@@ -922,6 +1871,7 @@ class TaxYearDetailDialog(QDialog):
         gst_net = gst_included - float(gst_paid)
         self.gst_net.setValue(gst_net)
         self.gst_current.setValue(gst_net)
+        self.gst_forward.setValue(self.gst_prev_credit.value() + gst_net)
 
         gst_return = snapshot["gst_return"]
         if gst_return:
@@ -937,12 +1887,38 @@ class TaxYearDetailDialog(QDialog):
             if gst_return["status"]:
                 self.gst_final.setStyleSheet("font-weight: bold; color: green;")
         else:
-            self.gst_final.setValue(gst_net)
+            self.gst_final.setValue(gst_net + self.gst_prev_balance.value())
 
         net_income = float(revenue) - float(expenses)
         self.net_income.setValue(net_income)
         if net_income < 0:
             self.current_loss.setValue(abs(net_income))
+        else:
+            self.current_loss.setValue(0)
+        self.total_loss_carryforward.setValue(
+            self.prev_loss_balance.value() + self.current_loss.value()
+        )
+
+        t1_income = float(paul_t1.get("total_t1_income") or 0)
+        self.owner_salary.setValue(float(paul_t1.get("t4_employment_income") or 0))
+        self.owner_dividends.setValue(float(paul_t1.get("dividends") or 0))
+        self.owner_other.setValue(float(paul_t1.get("other_income") or 0))
+        self.owner_total.setValue(t1_income)
+        self.owner_room.setValue(max(0.0, float(self.safe_threshold.value()) - t1_income))
+        if paul_t1:
+            self.owner_status_label.setText(
+                "Paul T1 linked to business T4 "
+                f"(employee {paul_t1.get('employee_id')}, "
+                f"T4 income ${float(paul_t1.get('t4_employment_income') or 0):,.2f}, "
+                f"owner draws tracked separately ${float(paul_t1.get('owner_draws') or 0):,.2f})"
+            )
+        else:
+            self.owner_status_label.setText("Paul T1 link not found in employees/T4 records.")
+
+    def _update_bpa_reference(self) -> None:
+        self.safe_threshold.setValue(
+            min(self.federal_bpa.value(), self.provincial_bpa.value())
+        )
 
     def load_variances(self, form_type: str, table: QTableWidget | None) -> None:
         """Load tax_variances for the given form_type into the provided"
@@ -1011,10 +1987,47 @@ class TaxYearDetailDialog(QDialog):
         )
 
     def save_year(self) -> None:
-        """Save changes to database"""
-        # Save adjustments, rollovers, etc.
-        QMessageBox.information(self, "Success", f"Tax year {self.year} saved")
-        self.saved.emit({"year": self.year})
+        """Persist editable year-level balances and thresholds."""
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO tax_year_settings (
+                        tax_year, previous_loss_balance, gst_previous_balance,
+                        gst_previous_credit, federal_basic_personal_amount,
+                        provincial_basic_personal_amount, owner_safe_threshold,
+                        updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                    ON CONFLICT (tax_year) DO UPDATE SET
+                        previous_loss_balance = EXCLUDED.previous_loss_balance,
+                        gst_previous_balance = EXCLUDED.gst_previous_balance,
+                        gst_previous_credit = EXCLUDED.gst_previous_credit,
+                        federal_basic_personal_amount =
+                            EXCLUDED.federal_basic_personal_amount,
+                        provincial_basic_personal_amount =
+                            EXCLUDED.provincial_basic_personal_amount,
+                        owner_safe_threshold = EXCLUDED.owner_safe_threshold,
+                        updated_at = NOW()
+                    """,
+                    (
+                        self.year,
+                        self.prev_loss_balance.value(),
+                        self.gst_prev_balance.value(),
+                        self.gst_prev_credit.value(),
+                        self.federal_bpa.value(),
+                        self.provincial_bpa.value(),
+                        self.safe_threshold.value(),
+                    ),
+                )
+            self.load_year_data()
+            QMessageBox.information(
+                self, "Saved", f"Tax year {self.year} settings saved."
+            )
+            self.saved.emit({"year": self.year})
+        except Exception as exc:
+            QMessageBox.critical(
+                self, "Error", f"Failed to save tax year settings: {exc}"
+            )
 
     # Stub methods for actions
     def add_revenue_adjustment(self) -> None:
@@ -1043,30 +2056,42 @@ class TaxYearDetailDialog(QDialog):
         )
 
     def generate_t4_slips(self) -> None:
-        """Generate T4 summary CSV (stub)"""
+        """Generate a T4 summary CSV for manual review and filing."""
         try:
-            script_path = str(_APP_ROOT / "scripts" / "cra" / "export_t4_stub.py")
-            output_path = str(_APP_ROOT / "reports" / f"T4_summary_{self.year}.csv")
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    script_path,
-                    "--period",
-                    str(self.year),
-                    "--output",
-                    output_path,
-                ],
-                capture_output=True,
-                text=True,
+            reports_dir = _APP_ROOT / "reports"
+            reports_dir.mkdir(parents=True, exist_ok=True)
+            output_path = reports_dir / f"T4_summary_{self.year}.csv"
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT e.full_name, e.t4_sin,
+                           COALESCE(t.box_14_employment_income,0),
+                           COALESCE(t.box_16_cpp_contributions,0),
+                           COALESCE(t.box_18_ei_premiums,0),
+                           COALESCE(t.box_22_income_tax,0)
+                    FROM employee_t4_records t
+                    JOIN employees e USING (employee_id)
+                    WHERE t.tax_year = %s
+                    ORDER BY e.full_name
+                    """,
+                    (self.year,),
+                )
+                rows = cur.fetchall()
+            with output_path.open("w", newline="", encoding="utf-8-sig") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(
+                    [
+                        "Employee", "SIN", "Box 14 Employment Income",
+                        "Box 16 CPP", "Box 18 EI", "Box 22 Income Tax",
+                    ]
+                )
+                writer.writerows(rows)
+            QMessageBox.information(
+                self,
+                "T4 Summary Exported",
+                f"Exported {len(rows)} T4 record(s) for manual filing review:\n"
+                f"{output_path}",
             )
-            if result.returncode == 0:
-                QMessageBox.information(
-                    self, "Success", f"T4 summary generated\n{result.stdout}"
-                )
-            else:
-                QMessageBox.critical(
-                    self, "Error", f"T4 generation failed:\n{result.stderr}"
-                )
         except Exception as e:
             QMessageBox.critical(
                 self, "Error", f"Failed to generate T4 summary: {e}"
@@ -1079,85 +2104,109 @@ class TaxYearDetailDialog(QDialog):
         )
 
     def recompute_payroll(self) -> None:
-        """Run compute_payroll script and persist results"""
+        """Recompute the annual payroll remittance and persist the result."""
         try:
-            script_path = str(_APP_ROOT / "scripts" / "cra" / "compute_payroll.py")
-            period = str(self.year)
-            result = subprocess.run(
-                [sys.executable, script_path, "--period", period, "--write"],
-                capture_output=True,
-                text=True,
+            self.load_year_data()
+            amount = (
+                self.total_cpp.value() * 2
+                + self.total_ei.value() * 2.4
+                + self.total_tax.value()
             )
-            if result.returncode == 0:
-                self.load_year_data()
-                QMessageBox.information(
-                    self,
-                    "Success",
-                    f"Payroll recomputed and saved for"
-                    f"{period}\n{result.stdout}",
-                )
-            else:
-                QMessageBox.critical(
-                    self,
-                    "Error",
-                    f"Payroll recompute failed:\n{result.stderr}",
-                )
+            self._save_calculated_return("payroll", amount)
+            self.load_year_data()
+            QMessageBox.information(
+                self,
+                "Payroll Recomputed",
+                f"Saved the {self.year} calculated payroll remittance: "
+                f"${amount:,.2f}",
+            )
         except Exception as e:
             QMessageBox.critical(
                 self, "Error", f"Failed to recompute payroll: {e}"
             )
 
     def generate_gst_form(self) -> None:
-        """Generate GST34 form"""
+        """Export a GST filing worksheet for manual CRA filing."""
         try:
-            script_path = str(_APP_ROOT / "scripts" / "cra" / "fill_cra_form.py")
-            period = f"{self.year}Q4"  # Full year or specific quarter
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    script_path,
-                    "--form",
-                    "gst",
-                    "--period",
-                    period,
-                    "--output",
-                    str(_APP_ROOT / "reports" / f"GST34_{self.year}.pdf"),
-                ],
-                capture_output=True,
-                text=True,
-            )
+            reports_dir = _APP_ROOT / "reports"
+            reports_dir.mkdir(parents=True, exist_ok=True)
+            output_path = reports_dir / f"GST_filing_worksheet_{self.year}.csv"
+            with output_path.open("w", newline="", encoding="utf-8-sig") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["Tax Year", self.year])
+                writer.writerow(["GST Collected", f"{self.gst_collected.value():.2f}"])
+                writer.writerow(["Input Tax Credits", f"{self.gst_paid.value():.2f}"])
+                writer.writerow(["Calculated Net GST", f"{self.gst_net.value():.2f}"])
+                writer.writerow(
+                    ["Previous Balance", f"{self.gst_prev_balance.value():.2f}"]
+                )
+                writer.writerow(["Amount Due", f"{self.gst_final.value():.2f}"])
             QMessageBox.information(
-                self, "Success", f"GST34 generated\n{result.stdout}"
+                self,
+                "GST Worksheet Exported",
+                "The worksheet was generated for manual filing; it was not "
+                f"submitted to CRA.\n{output_path}",
             )
         except Exception as e:
             QMessageBox.critical(
-                self, "Error", f"Failed to generate GST34: {e}"
+                self, "Error", f"Failed to generate GST filing worksheet: {e}"
             )
 
     def recompute_gst(self) -> None:
-        """Run compute_gst script and persist results"""
+        """Recompute annual GST and persist the calculated return."""
         try:
-            script_path = str(_APP_ROOT / "scripts" / "cra" / "compute_gst.py")
-            period = str(self.year)
-            result = subprocess.run(
-                [sys.executable, script_path, "--period", period, "--write"],
-                capture_output=True,
-                text=True,
+            self.load_year_data()
+            amount = self.gst_net.value() + self.gst_prev_balance.value()
+            self._save_calculated_return("gst", amount)
+            self.load_year_data()
+            QMessageBox.information(
+                self,
+                "GST Recomputed",
+                f"Saved the {self.year} calculated GST amount: ${amount:,.2f}",
             )
-            if result.returncode == 0:
-                self.load_year_data()
-                QMessageBox.information(
-                    self,
-                    "Success",
-                    f"GST recomputed and saved for {period}\n{result.stdout}",
-                )
-            else:
-                QMessageBox.critical(
-                    self, "Error", f"GST recompute failed:\n{result.stderr}"
-                )
         except Exception as e:
             QMessageBox.critical(
                 self, "Error", f"Failed to recompute GST: {e}"
+            )
+
+    def _save_calculated_return(self, form_type: str, amount: float) -> None:
+        with DatabaseContext(self.db, auto_commit=True) as cur:
+            cur.execute(
+                """
+                INSERT INTO tax_periods (
+                    label, period_type, start_date, end_date, year
+                ) VALUES (%s, 'annual', %s, %s, %s)
+                ON CONFLICT (label) DO UPDATE SET
+                    period_type = EXCLUDED.period_type,
+                    start_date = EXCLUDED.start_date,
+                    end_date = EXCLUDED.end_date,
+                    year = EXCLUDED.year
+                RETURNING id
+                """,
+                (
+                    str(self.year),
+                    datetime(self.year, 1, 1).date(),
+                    datetime(self.year, 12, 31).date(),
+                    self.year,
+                ),
+            )
+            period_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                INSERT INTO tax_returns (
+                    period_id, form_type, status, calculated_amount, updated_at
+                ) VALUES (%s, %s, 'calculated', %s, NOW())
+                ON CONFLICT (period_id, form_type) DO UPDATE SET
+                    calculated_amount = EXCLUDED.calculated_amount,
+                    status = CASE
+                        WHEN tax_returns.status IN
+                            ('filed','submitted','accepted','paid')
+                        THEN tax_returns.status
+                        ELSE 'calculated'
+                    END,
+                    updated_at = NOW()
+                """,
+                (period_id, form_type, amount),
             )
 
     def mark_return(self, form_type: str, default_amount: float = 0.0) -> None:
@@ -1214,21 +2263,35 @@ class TaxYearDetailDialog(QDialog):
         )
 
     def generate_specific_form(self, form_name) -> None:
-        """Generate a specific CRA form"""
-        QMessageBox.information(
-            self, "Info", f"Generate {form_name} (to be implemented)"
-        )
+        """Open the year-detail editor for the selected CRA form."""
+        try:
+            target_tabs = {
+                "PD7A": 3,
+                "GST34": 4,
+                "T1": 6,
+                "T2": 7,
+                "T4": 2,
+                "T4 Summary": 2,
+                "all": 8,
+            }
+            self.tabs.setCurrentIndex(target_tabs.get(form_name, 8))
+        except Exception as exc:
+            QMessageBox.critical(
+                self, "Error", f"Failed to open {form_name} editor: {exc}"
+            )
 
     def generate_all_forms(self) -> None:
-        """Generate all CRA forms for the year"""
-        QMessageBox.information(
-            self, "Info", "Generate all forms (to be implemented)"
-        )
+        """Open the current year editor for all available form tabs."""
+        self.generate_specific_form("all")
 
     def export_cra_xml(self) -> None:
-        """Export data in CRA XML format"""
+        """Explain the supported manual filing protocol."""
         QMessageBox.information(
-            self, "Info", "Export CRA XML (to be implemented)"
+            self,
+            "Manual Filing Only",
+            "Direct CRA XML export is not implemented. Generate and review the "
+            "filing worksheets, file through the authorized CRA channel, then "
+            "record the confirmation and filed amount here.",
         )
 
     def generate_forms(self) -> None:
@@ -1249,7 +2312,7 @@ class TaxManagementWidget(QWidget):
         layout = QVBoxLayout()
 
         # Title
-        title = QLabel("🏛️ CRA Tax Management System (2012-2025)")
+        title = QLabel("🏛️ CRA Tax System (2012-2025)")
         title.setStyleSheet(
             "font-size: 18px; font-weight: bold; color: #2c3e50;"
         )
@@ -1257,7 +2320,7 @@ class TaxManagementWidget(QWidget):
 
         # Instructions
         info = QLabel("""
-        <p>Manage tax years 2012-2025 with rollover tracking for GST, losses,
+        <p>Track tax years 2012-2025 with rollover tracking for GST, losses,
         and deductions.</p>
         <p><b>Double-click</b> a year for detailed view and form
         generation.</p>
@@ -1400,11 +2463,21 @@ class TaxManagementWidget(QWidget):
             payroll_status = payroll_return["status"] or payroll_status
             self.year_table.setItem(row_index, 5, QTableWidgetItem(f"${payroll:,.2f}"))
 
+        paul_t1 = snapshot.get("paul_t1") or {}
+        owner_income = float(paul_t1.get("total_t1_income") or 0)
+        owner_item = QTableWidgetItem(f"${owner_income:,.2f}")
+        if owner_income > 0:
+            owner_item.setBackground(QColor(220, 255, 220))
+        self.year_table.setItem(row_index, 9, owner_item)
+
         self.year_table.setItem(row_index, 6, QTableWidgetItem(payroll_status))
         self.year_table.setItem(row_index, 7, QTableWidgetItem(gst_status))
         self.year_table.setItem(row_index, 8, QTableWidgetItem("$0.00"))
-        self.year_table.setItem(row_index, 9, QTableWidgetItem("$0.00"))
-        self.year_table.setItem(row_index, 10, QTableWidgetItem("Review Required"))
+        self.year_table.setItem(
+            row_index,
+            10,
+            QTableWidgetItem("Paul T1 linked" if paul_t1 else "Review Required"),
+        )
 
     def open_year_detail(self, index) -> None:
         """Open detailed view for a tax year"""

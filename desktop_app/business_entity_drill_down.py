@@ -60,13 +60,13 @@ class BusinessEntityDialog(QDialog):
         super().__init__(parent)
         self.db = db
 
-        self.setWindowTitle("Business Entity Management - Arrow Limousine")
+        self.setWindowTitle("Business Entity - Arrow Limousine")
         self.setGeometry(50, 50, 1500, 950)
 
         layout = QVBoxLayout()
 
         # ===== COMPANY HEADER =====
-        header = QLabel("🏢 Arrow Limousine Management System")
+        header = QLabel("🏢 Arrow Limousine Desktop System")
         header.setStyleSheet(
             "font-size: 20px; font-weight: bold; color: #2c3e50;"
         )
@@ -857,48 +857,8 @@ class BusinessEntityDialog(QDialog):
                     margin = (profit / self.total_revenue.value()) * 100
                     self.profit_margin.setValue(margin)
 
-                # Load bank accounts
-                cur.execute("""
-                    SELECT DISTINCT account_number
-                    FROM banking_transactions
-                    WHERE account_number IS NOT NULL
-                """)
-                bank_rows = cur.fetchall()
-                self.bank_account_table.setRowCount(
-                    len(bank_rows) if bank_rows else 0
-                )
-                if bank_rows:
-                    for i, (acct_num,) in enumerate(bank_rows):
-                        bank_name = (
-                            "CIBC"
-                            if acct_num == "0228362"
-                            else (
-                                "Scotia"
-                                if acct_num == "903990106011"
-                                else "Unknown"
-                            )
-                        )
-                        acct_type = (
-                            "Primary" if acct_num == "0228362" else "Secondary"
-                        )
-                        self.bank_account_table.setItem(
-                            i, 0, QTableWidgetItem(bank_name)
-                        )
-                        self.bank_account_table.setItem(
-                            i, 1, QTableWidgetItem("Operating")
-                        )
-                        self.bank_account_table.setItem(
-                            i, 2, QTableWidgetItem(str(acct_num))
-                        )
-                        self.bank_account_table.setItem(
-                            i, 3, QTableWidgetItem("$0.00")
-                        )
-                        self.bank_account_table.setItem(
-                            i, 4, QTableWidgetItem("Active")
-                        )
-                        self.bank_account_table.setItem(
-                            i, 5, QTableWidgetItem(acct_type)
-                        )
+                self._load_bank_accounts(cur)
+                self._load_vendors(cur)
 
             # Load documents
             self.doc_list.addItem("📄 Articles of Incorporation.pdf")
@@ -916,6 +876,109 @@ class BusinessEntityDialog(QDialog):
         QMessageBox.information(
             self, "Success", "Business information saved successfully"
         )
+
+    def _load_bank_accounts(self, cur) -> None:
+        """Load bank account table from bank_accounts with a fallback to transactions."""
+        cur.execute(
+            """
+            SELECT account_name,
+                   account_type,
+                   account_number,
+                   is_active,
+                   notes
+            FROM bank_accounts
+            ORDER BY account_name
+        """
+        )
+        rows = cur.fetchall() or []
+
+        if rows:
+            self.bank_account_table.setRowCount(len(rows))
+            for i, (account_name, account_type, account_number, is_active, notes) in enumerate(rows):
+                self.bank_account_table.setItem(i, 0, QTableWidgetItem(str(account_name or "")))
+                self.bank_account_table.setItem(i, 1, QTableWidgetItem(str(account_type or "")))
+                self.bank_account_table.setItem(i, 2, QTableWidgetItem(str(account_number or "")))
+                self.bank_account_table.setItem(i, 3, QTableWidgetItem("$0.00"))
+                self.bank_account_table.setItem(
+                    i,
+                    4,
+                    QTableWidgetItem("Active" if is_active else "Inactive"),
+                )
+                self.bank_account_table.setItem(i, 5, QTableWidgetItem(str(notes or "")))
+            return
+
+        cur.execute(
+            """
+            SELECT DISTINCT account_number
+            FROM banking_transactions
+            WHERE account_number IS NOT NULL
+            ORDER BY account_number
+        """
+        )
+        bank_rows = cur.fetchall() or []
+        self.bank_account_table.setRowCount(len(bank_rows))
+        for i, (acct_num,) in enumerate(bank_rows):
+            self.bank_account_table.setItem(i, 0, QTableWidgetItem("Unknown"))
+            self.bank_account_table.setItem(i, 1, QTableWidgetItem("checking"))
+            self.bank_account_table.setItem(i, 2, QTableWidgetItem(str(acct_num)))
+            self.bank_account_table.setItem(i, 3, QTableWidgetItem("$0.00"))
+            self.bank_account_table.setItem(i, 4, QTableWidgetItem("Active"))
+            self.bank_account_table.setItem(i, 5, QTableWidgetItem(""))
+
+    def _load_vendors(self, cur) -> None:
+        """Load vendor accounts and summary values into vendor table."""
+        cur.execute(
+            """
+            SELECT va.account_id,
+                   COALESCE(va.display_name, va.canonical_vendor) AS vendor_name,
+                   COALESCE(va.default_category, '') AS category,
+                   COALESCE(va.contact_email, '') AS contact,
+                   COALESCE(va.payment_terms, '') AS payment_terms,
+                   COALESCE(va.status, 'active') AS status,
+                   COALESCE((
+                       SELECT SUM(CASE
+                           WHEN val.entry_type = 'INVOICE' THEN val.amount
+                           WHEN val.entry_type = 'ADJUSTMENT' THEN val.amount
+                           ELSE 0
+                       END)
+                       FROM vendor_account_ledger val
+                       WHERE val.account_id = va.account_id
+                   ), 0) AS ytd_spend,
+                   COALESCE((
+                       SELECT SUM(CASE
+                           WHEN val.entry_type = 'INVOICE' THEN val.amount
+                           WHEN val.entry_type = 'ADJUSTMENT' THEN val.amount
+                           WHEN val.entry_type = 'PAYMENT' THEN -val.amount
+                           ELSE 0
+                       END)
+                       FROM vendor_account_ledger val
+                       WHERE val.account_id = va.account_id
+                   ), 0) AS outstanding
+            FROM vendor_accounts va
+            ORDER BY vendor_name
+        """
+        )
+        rows = cur.fetchall() or []
+        self.vendor_table.setRowCount(len(rows))
+        for i, (
+            account_id,
+            vendor_name,
+            category,
+            contact,
+            payment_terms,
+            status,
+            ytd_spend,
+            outstanding,
+        ) in enumerate(rows):
+            name_item = QTableWidgetItem(str(vendor_name or ""))
+            name_item.setData(0x0100, int(account_id))
+            self.vendor_table.setItem(i, 0, name_item)
+            self.vendor_table.setItem(i, 1, QTableWidgetItem(str(category or "")))
+            self.vendor_table.setItem(i, 2, QTableWidgetItem(str(contact or "")))
+            self.vendor_table.setItem(i, 3, QTableWidgetItem(str(payment_terms or "")))
+            self.vendor_table.setItem(i, 4, QTableWidgetItem(f"${float(ytd_spend or 0):,.2f}"))
+            self.vendor_table.setItem(i, 5, QTableWidgetItem(f"${float(outstanding or 0):,.2f}"))
+            self.vendor_table.setItem(i, 6, QTableWidgetItem(str(status or "active").capitalize()))
 
     # ===== STUB METHODS =====
     def generate_report(self) -> None:
@@ -954,14 +1017,210 @@ class BusinessEntityDialog(QDialog):
         )
 
     def add_bank_account(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Add bank account (to be implemented)"
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Add Bank Account")
+        form = QFormLayout(dialog)
+
+        account_name = QLineEdit()
+        form.addRow("Account Name:", account_name)
+
+        institution_name = QLineEdit()
+        form.addRow("Institution:", institution_name)
+
+        account_number = QLineEdit()
+        form.addRow("Account #:", account_number)
+
+        account_type = QComboBox()
+        account_type.addItems(
+            [
+                "checking",
+                "savings",
+                "credit_card",
+                "line_of_credit",
+                "loan",
+                "investment",
+                "other",
+            ]
         )
+        form.addRow("Type:", account_type)
+
+        notes = QLineEdit()
+        notes.setPlaceholderText("Purpose or notes")
+        form.addRow("Purpose:", notes)
+
+        btn_row = QHBoxLayout()
+        save_btn = QPushButton("Save")
+        save_btn.clicked.connect(dialog.accept)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        btn_row.addStretch()
+        btn_row.addWidget(save_btn)
+        btn_row.addWidget(cancel_btn)
+        form.addRow(btn_row)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        account_name_val = account_name.text().strip()
+        institution_val = institution_name.text().strip()
+        account_num_val = account_number.text().strip()
+        if not account_name_val or not institution_val:
+            QMessageBox.warning(
+                self,
+                "Missing Required Fields",
+                "Account name and institution are required.",
+            )
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO bank_accounts
+                    (account_name, institution_name, account_number,
+                     account_type, is_active, notes, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, TRUE, %s, NOW(), NOW())
+                """,
+                    (
+                        account_name_val,
+                        institution_val,
+                        account_num_val or None,
+                        account_type.currentText(),
+                        notes.text().strip() or None,
+                    ),
+                )
+
+            self.load_business_data()
+            QMessageBox.information(self, "Success", "Bank account added.")
+        except Exception as e:
+            logger.error("Failed to add bank account: %s", e)
+            QMessageBox.critical(self, "Error", f"Failed to add account: {e}")
 
     def reconcile_account(self) -> None:
-        QMessageBox.information(
-            self, "Info", "Reconcile account (to be implemented)"
-        )
+        row = self.bank_account_table.currentRow()
+        if row < 0:
+            QMessageBox.information(
+                self,
+                "Select Account",
+                "Select a bank account row first.",
+            )
+            return
+
+        account_name_item = self.bank_account_table.item(row, 0)
+        account_number_item = self.bank_account_table.item(row, 2)
+        account_name = account_name_item.text().strip() if account_name_item else ""
+        account_number = account_number_item.text().strip() if account_number_item else ""
+        if not account_name and not account_number:
+            QMessageBox.warning(
+                self,
+                "Invalid Row",
+                "Selected row does not contain account information.",
+            )
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Reconcile Account")
+        form = QFormLayout(dialog)
+
+        statement_date = StandardDateEdit(prefer_month_text=True)
+        statement_date.setCalendarPopup(True)
+        form.addRow("Statement Date:", statement_date)
+
+        opening_balance = QDoubleSpinBox()
+        opening_balance.setMaximum(999999999)
+        opening_balance.setDecimals(2)
+        opening_balance.setPrefix("$")
+        form.addRow("Opening Balance:", opening_balance)
+
+        closing_balance = QDoubleSpinBox()
+        closing_balance.setMaximum(999999999)
+        closing_balance.setDecimals(2)
+        closing_balance.setPrefix("$")
+        form.addRow("Closing Balance:", closing_balance)
+
+        book_balance = QDoubleSpinBox()
+        book_balance.setMaximum(999999999)
+        book_balance.setDecimals(2)
+        book_balance.setPrefix("$")
+        form.addRow("Book Balance:", book_balance)
+
+        notes = QTextEdit()
+        notes.setMaximumHeight(90)
+        form.addRow("Notes:", notes)
+
+        btn_row = QHBoxLayout()
+        save_btn = QPushButton("Record Reconciliation")
+        save_btn.clicked.connect(dialog.accept)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        btn_row.addStretch()
+        btn_row.addWidget(save_btn)
+        btn_row.addWidget(cancel_btn)
+        form.addRow(btn_row)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        opening_val = float(opening_balance.value())
+        closing_val = float(closing_balance.value())
+        book_val = float(book_balance.value())
+        reconciled_delta = round(closing_val - book_val, 2)
+        status = "completed" if abs(reconciled_delta) < 0.01 else "pending"
+        account_label = account_name or account_number
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO bank_reconciliation
+                    (bank_account_name, statement_date, opening_balance,
+                     closing_balance, book_balance, reconciled_balance,
+                     reconciliation_status, reconciled_by, reconciled_date,
+                     notes, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s, NOW())
+                """,
+                    (
+                        account_label,
+                        statement_date.date().toPyDate(),
+                        opening_val,
+                        closing_val,
+                        book_val,
+                        reconciled_delta,
+                        status,
+                        "desktop_app",
+                        notes.toPlainText().strip() or None,
+                    ),
+                )
+
+                if account_number:
+                    cur.execute(
+                        """
+                        UPDATE banking_transactions
+                        SET reconciliation_status = %s,
+                            reconciled_at = NOW(),
+                            reconciled_by = %s,
+                            reconciliation_notes = %s,
+                            updated_at = NOW()
+                        WHERE account_number = %s
+                          AND transaction_date <= %s
+                    """,
+                        (
+                            "reconciled" if status == "completed" else "in_review",
+                            "desktop_app",
+                            notes.toPlainText().strip() or None,
+                            account_number,
+                            statement_date.date().toPyDate(),
+                        ),
+                    )
+
+            QMessageBox.information(
+                self,
+                "Reconciliation Saved",
+                f"Recorded reconciliation for {account_label} ({status}).",
+            )
+        except Exception as e:
+            logger.error("Failed to reconcile account: %s", e)
+            QMessageBox.critical(self, "Error", f"Failed to reconcile account: {e}")
 
     def add_loan(self) -> None:
         QMessageBox.information(self, "Info", "Add loan (to be implemented)")
@@ -980,12 +1239,163 @@ class BusinessEntityDialog(QDialog):
         )
 
     def add_vendor(self) -> None:
-        QMessageBox.information(self, "Info", "Add vendor (to be implemented)")
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Add Vendor")
+        form = QFormLayout(dialog)
+
+        canonical_vendor = QLineEdit()
+        form.addRow("Canonical Vendor:", canonical_vendor)
+
+        display_name = QLineEdit()
+        form.addRow("Display Name:", display_name)
+
+        category = QLineEdit()
+        category.setPlaceholderText("Fuel, Insurance, Maintenance...")
+        form.addRow("Category:", category)
+
+        payment_terms = QLineEdit()
+        payment_terms.setPlaceholderText("NET30")
+        form.addRow("Payment Terms:", payment_terms)
+
+        contact_email = QLineEdit()
+        form.addRow("Contact Email:", contact_email)
+
+        allows_splits = QComboBox()
+        allows_splits.addItems(["No", "Yes"])
+        form.addRow("Allows Splits:", allows_splits)
+
+        notes = QTextEdit()
+        notes.setMaximumHeight(90)
+        form.addRow("Notes:", notes)
+
+        btn_row = QHBoxLayout()
+        save_btn = QPushButton("Save")
+        save_btn.clicked.connect(dialog.accept)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        btn_row.addStretch()
+        btn_row.addWidget(save_btn)
+        btn_row.addWidget(cancel_btn)
+        form.addRow(btn_row)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        canonical_val = canonical_vendor.text().strip()
+        if not canonical_val:
+            QMessageBox.warning(
+                self,
+                "Missing Required Field",
+                "Canonical vendor name is required.",
+            )
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO vendor_accounts
+                    (canonical_vendor, display_name, payment_terms,
+                     contact_email, notes, status, default_category,
+                     allows_splits, created_at)
+                    VALUES (%s, %s, %s, %s, %s, 'active', %s, %s, NOW())
+                """,
+                    (
+                        canonical_val,
+                        display_name.text().strip() or None,
+                        payment_terms.text().strip() or None,
+                        contact_email.text().strip() or None,
+                        notes.toPlainText().strip() or None,
+                        category.text().strip() or None,
+                        allows_splits.currentText() == "Yes",
+                    ),
+                )
+
+            self.load_business_data()
+            QMessageBox.information(self, "Success", "Vendor added.")
+        except Exception as e:
+            logger.error("Failed to add vendor: %s", e)
+            QMessageBox.critical(self, "Error", f"Failed to add vendor: {e}")
 
     def view_vendor_transactions(self) -> None:
-        QMessageBox.information(
-            self, "Info", "View vendor transactions (to be implemented)"
+        row = self.vendor_table.currentRow()
+        if row < 0:
+            QMessageBox.information(
+                self,
+                "Select Vendor",
+                "Select a vendor row first.",
+            )
+            return
+
+        name_item = self.vendor_table.item(row, 0)
+        vendor_name = name_item.text().strip() if name_item else ""
+        account_id = name_item.data(0x0100) if name_item else None
+        if not account_id:
+            QMessageBox.warning(
+                self,
+                "Missing Vendor Account",
+                "Selected row is missing account metadata. Refresh and try again.",
+            )
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Vendor Transactions - {vendor_name}")
+        dialog.setGeometry(140, 120, 900, 500)
+        layout = QVBoxLayout(dialog)
+
+        tx_table = QTableWidget()
+        tx_table.setColumnCount(6)
+        tx_table.setHorizontalHeaderLabels(
+            ["Date", "Type", "Amount", "External Ref", "Source", "Notes"]
         )
+        tx_header = tx_table.horizontalHeader()
+        for col in range(6):
+            tx_header.setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(tx_table)
+
+        total_label = QLabel("Total: $0.00")
+        layout.addWidget(total_label)
+
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        layout.addWidget(close_btn)
+
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT entry_date, entry_type, amount,
+                           external_ref, source_table, notes
+                    FROM vendor_account_ledger
+                    WHERE account_id = %s
+                    ORDER BY entry_date DESC, ledger_id DESC
+                    LIMIT 300
+                """,
+                    (account_id,),
+                )
+                rows = cur.fetchall() or []
+
+            tx_table.setRowCount(len(rows))
+            running_total = 0.0
+            for i, (entry_date, entry_type, amount, external_ref, source_table, notes) in enumerate(rows):
+                amount_val = float(amount or 0)
+                running_total += amount_val
+                tx_table.setItem(i, 0, QTableWidgetItem(str(entry_date or "")))
+                tx_table.setItem(i, 1, QTableWidgetItem(str(entry_type or "")))
+                tx_table.setItem(i, 2, QTableWidgetItem(f"${amount_val:,.2f}"))
+                tx_table.setItem(i, 3, QTableWidgetItem(str(external_ref or "")))
+                tx_table.setItem(i, 4, QTableWidgetItem(str(source_table or "")))
+                tx_table.setItem(i, 5, QTableWidgetItem(str(notes or "")))
+
+            total_label.setText(f"Total Ledger Amount: ${running_total:,.2f}")
+            dialog.exec()
+        except Exception as e:
+            logger.error("Failed to load vendor transactions: %s", e)
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to load vendor transactions: {e}",
+            )
 
     def add_compliance_requirement(self) -> None:
         QMessageBox.information(

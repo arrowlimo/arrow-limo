@@ -103,7 +103,7 @@ class CustomReportBuilderWidget(BaseReportWidget):
                     "Driver Performance Scorecard",
                     "2024-10-20",
                     "Advanced",
-                    "Manager",
+                    "Lead",
                     12,
                     "2025-01-06",
                 ),
@@ -1500,7 +1500,7 @@ class ExportManagementWidget(BaseReportWidget):
 
     def init_ui(self) -> None:
         layout = QVBoxLayout()
-        title = QLabel("💾 Export Management")
+        title = QLabel("💾 Exports")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 

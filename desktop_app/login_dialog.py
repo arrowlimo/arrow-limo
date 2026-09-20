@@ -119,7 +119,7 @@ class LoginDialog(QDialog):
 
     def init_ui(self) -> None:
         """Build login form UI"""
-        self.setWindowTitle("Arrow Limousine Management System - Login")
+        self.setWindowTitle("Arrow Limousine Desktop System - Login")
         self.setFixedSize(560, 700)
         self.setModal(True)
         self.setWindowFlags(
@@ -226,7 +226,7 @@ class LoginDialog(QDialog):
 
         # Logo
         logo = QLabel()
-        logo_pixmap = QPixmap(r"L:\limo\photo\arrow.ico")
+        logo_pixmap = QPixmap(str(Path(__file__).with_name("icon.ico")))
         if not logo_pixmap.isNull():
             logo.setPixmap(
                 logo_pixmap.scaledToWidth(
@@ -649,10 +649,8 @@ class LoginDialog(QDialog):
 
         try:
             # Attempt authentication
-            print(f"[LOGIN DEBUG] Attempting login for: {username}")
             auth_user = self.login_manager.authenticate(username, password)
             self.auth_user = auth_user
-            print(f"[LOGIN DEBUG] Login successful for: {username}")
 
             # Save remember token if checked
             if self.remember_checkbox.isChecked():

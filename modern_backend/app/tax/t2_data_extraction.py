@@ -11,6 +11,8 @@ from decimal import Decimal
 
 import psycopg2
 
+from ..routers.year_end import _compute_payroll_summary
+
 
 class T2DataExtractor:
     """Extracts financial data from ALMS database for T2 returns."""
@@ -22,6 +24,23 @@ class T2DataExtractor:
     def get_connection(self):
         """Create database connection."""
         return psycopg2.connect(**self.conn_params)
+
+    def _fetch_charter_revenue_from_income_ledger(self, cur, tax_year: int) -> tuple[int, Decimal, Decimal]:
+        """Fetch canonical charter revenue from income_ledger only."""
+        cur.execute(
+            """
+            SELECT
+                COUNT(*) as payment_count,
+                COALESCE(SUM(gross_amount), 0) as charter_revenue,
+                COALESCE(SUM(gst_collected), 0) as charter_gst
+            FROM income_ledger
+            WHERE fiscal_year = %s
+              AND source_system = 'charter_payments'
+            """,
+            (tax_year,),
+        )
+        row = cur.fetchone() or (0, Decimal("0"), Decimal("0"))
+        return int(row[0] or 0), Decimal(str(row[1] or 0)), Decimal(str(row[2] or 0))
 
     def extract_revenue_data(self, tax_year: int) -> dict:
         """
@@ -35,47 +54,10 @@ class T2DataExtractor:
 
         try:
             # Canonical T2 revenue source: income_ledger populated from
-            # charter_payments.
-            cur.execute(
-                """
-                SELECT
-                    COUNT(*) as payment_count,
-                    COALESCE(SUM(gross_amount), 0) as charter_revenue,
-                    COALESCE(SUM(gst_collected), 0) as charter_gst
-                FROM income_ledger
-                WHERE fiscal_year = %s
-                  AND source_system = 'charter_payments'
-                """,
-                (tax_year,),
+            # charter_payments. Do not fall back to charters or banking credits.
+            charter_count, charter_revenue, charter_gst = self._fetch_charter_revenue_from_income_ledger(
+                cur, tax_year
             )
-
-            ledger_data = cur.fetchone()
-
-            if ledger_data and ledger_data[0] > 0:
-                charter_count = ledger_data[0]
-                charter_revenue = ledger_data[1] if ledger_data[1] is not None else Decimal("0")
-                charter_gst = ledger_data[2] if ledger_data[2] is not None else Decimal("0")
-            else:
-                # Fallback for environments where income_ledger has not yet
-                # been backfilled.
-                cur.execute(
-                    """
-                    SELECT
-                        COUNT(*) as payment_count,
-                        COALESCE(SUM(amount), 0) as charter_revenue
-                    FROM charter_payments
-                    WHERE EXTRACT(YEAR FROM payment_date) = %s
-                    """,
-                    (tax_year,),
-                )
-                fallback_data = cur.fetchone()
-                charter_count = fallback_data[0] if fallback_data else 0
-                charter_revenue = (
-                    fallback_data[1]
-                    if fallback_data and fallback_data[1] is not None
-                    else Decimal("0")
-                )
-                charter_gst = charter_revenue * Decimal("0.05") / Decimal("1.05")
 
             # Other income from receipts
             # Note: Skip this query for now, as most income comes from charters
@@ -224,6 +206,7 @@ class T2DataExtractor:
             has_personal_flag = "is_personal_purchase" in receipt_cols
             has_owner_personal_amount = "owner_personal_amount" in receipt_cols
             has_business_personal = "business_personal" in receipt_cols
+            has_gst_exempt = "gst_exempt" in receipt_cols
 
             select_cols = [
                 "r.receipt_id",
@@ -235,6 +218,10 @@ class T2DataExtractor:
                 "COALESCE(r.gross_amount, 0) AS gross_amount",
                 "COALESCE(r.gst_amount, 0) AS gst_amount",
             ]
+            if has_gst_exempt:
+                select_cols.append("COALESCE(r.gst_exempt, FALSE) AS gst_exempt")
+            else:
+                select_cols.append("FALSE AS gst_exempt")
 
             if has_exclude:
                 select_cols.append(
@@ -276,7 +263,8 @@ class T2DataExtractor:
 
             non_deductible_gl = {"3020", "5880", "2910", "2550", "2560"}
             risky_text = re.compile(
-                r"director|shareholder|loan|personal|owner\s*draw",
+                r"director|shareholder|loan|personal|owner\s*draw|"
+                r"related[-\s]*party|rpl|family\s*loan|owner\s*advance",
                 re.IGNORECASE,
             )
 
@@ -294,7 +282,8 @@ class T2DataExtractor:
                     vendor_name,
                     description,
                     gross_amount,
-                    _gst_amount,
+                    gst_amount,
+                    gst_exempt,
                     exclude_from_reports,
                     is_personal_purchase,
                     owner_personal_amount,
@@ -302,6 +291,8 @@ class T2DataExtractor:
                 ) = row
 
                 amount = Decimal(str(gross_amount or 0))
+                gst = Decimal(str(gst_amount or 0))
+                expense_after_itc = amount
                 deductible = amount
                 notes = []
 
@@ -326,12 +317,42 @@ class T2DataExtractor:
                 }:
                     deductible = Decimal("0")
                     notes.append("Non-expense account type")
-                elif gl_code == "6100":
-                    deductible = (amount * Decimal("0.5")).quantize(Decimal("0.01"))
+                elif gl_code == "5320":
+                    # CRA limits ITCs on meals to 50%, then limits the
+                    # remaining meal cost to a 50% income-tax deduction.
+                    meal_itc = (
+                        Decimal("0")
+                        if gst_exempt
+                        else min(
+                            max(gst, Decimal("0")) * Decimal("0.5"),
+                            max(amount, Decimal("0")),
+                        )
+                    )
+                    expense_after_itc = amount - meal_itc
+                    deductible = (
+                        expense_after_itc * Decimal("0.5")
+                    ).quantize(Decimal("0.01"))
+                    if meal_itc:
+                        notes.append("50% GST ITC excluded from expense")
                     notes.append("50% meals rule")
+                else:
+                    # Schedule 125 expenses exclude GST claimed as an ITC.
+                    # Never subtract a negative or implausibly large amount.
+                    claimable_gst = (
+                        Decimal("0")
+                        if gst_exempt
+                        else min(
+                            max(gst, Decimal("0")),
+                            max(amount, Decimal("0")),
+                        )
+                    )
+                    expense_after_itc = amount - claimable_gst
+                    deductible = expense_after_itc
+                    if claimable_gst:
+                        notes.append("GST ITC excluded from expense")
 
-                add_back = amount - deductible
-                total_book += amount
+                add_back = expense_after_itc - deductible
+                total_book += expense_after_itc
                 total_deductible += deductible
 
                 if risky_text.search(f"{vendor_name} {description}"):
@@ -358,7 +379,7 @@ class T2DataExtractor:
                     }
 
                 gl_agg[key]["count"] += 1
-                gl_agg[key]["book_amount"] += amount
+                gl_agg[key]["book_amount"] += expense_after_itc
                 gl_agg[key]["deductible_amount"] += deductible
                 gl_agg[key]["add_back_amount"] += add_back
                 for n in notes:
@@ -391,6 +412,15 @@ class T2DataExtractor:
 
         finally:
             cur.close()
+            conn.close()
+
+    def extract_payroll_data(self, tax_year: int) -> dict:
+        """Extract payroll, T4, and remittance summary for the tax year."""
+
+        conn = self.get_connection()
+        try:
+            return _compute_payroll_summary(conn, tax_year)
+        finally:
             conn.close()
 
     def extract_balance_sheet_data(self, fiscal_year_end: date) -> dict:
@@ -556,6 +586,7 @@ class T2DataExtractor:
         expenses = self.extract_expense_data(tax_year)
         deductibility = self.extract_t2_deductibility_analysis(tax_year)
         balance_sheet = self.extract_balance_sheet_data(fiscal_year_end)
+        payroll = self.extract_payroll_data(tax_year)
         net_income = self.calculate_net_income(tax_year)
         tax_rates = self.get_tax_rates(tax_year)
 
@@ -566,12 +597,14 @@ class T2DataExtractor:
             "expenses": expenses,
             "deductibility": deductibility,
             "balance_sheet": balance_sheet,
+            "payroll": payroll,
             "net_income": net_income,
             "tax_rates": tax_rates,
         }
 
         print(f"✓ Revenue data extracted: ${revenue['total_revenue']:,.2f}")
         print(f"✓ Expense data extracted: ${expenses['total_expenses']:,.2f}")
+        print(f"✓ Payroll data extracted: ${package['payroll']['gross_payroll']:,.2f}")
         print(f"✓ Net income calculated: ${net_income['net_income']:,.2f}")
         print(f"✓ Balance sheet as of {fiscal_year_end}")
         print(f"✓ Tax rates for {tax_year} loaded")

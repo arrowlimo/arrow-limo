@@ -308,13 +308,13 @@ class BeverageOrderingDialog(QDialog):
         self.system = BeverageOrderingSystem(db)
         self._suppress_cart_refresh = False
 
-        self.setWindowTitle("Beverage Order Management")
+        self.setWindowTitle("Beverage Orders")
         self.setGeometry(100, 100, 1400, 900)
 
         layout = QVBoxLayout()
 
         # Title
-        title = QLabel("🍾 Beverage Order Management")
+        title = QLabel("🍾 Beverage Orders")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 

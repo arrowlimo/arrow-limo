@@ -94,6 +94,17 @@ async def get_banking_receipt_reconciliation(
             receipt_gl_expr = "r.gl_account_code"
         else:
             receipt_gl_expr = "r.gl_code"
+        receipt_vendor_expr = (
+            "r.vendor_name"
+            if "vendor_name" in receipt_cols
+            else "r.vendor"
+            if "vendor" in receipt_cols
+            else "NULL::text"
+        )
+        receipt_gst_expr = "r.gst_amount" if "gst_amount" in receipt_cols else "0"
+        receipt_pst_expr = "r.pst_amount" if "pst_amount" in receipt_cols else "0"
+        receipt_category_expr = "r.category" if "category" in receipt_cols else "NULL::text"
+        receipt_type_expr = "r.receipt_type" if "receipt_type" in receipt_cols else "NULL::text"
 
         # Get unified view: banking left-joined to receipts
         query = f"""
@@ -104,13 +115,13 @@ async def get_banking_receipt_reconciliation(
                 COALESCE(bt.credit_amount, 0) as banking_credit,
                 bt.description,
                 r.receipt_id,
-                r.vendor_name,
+                {receipt_vendor_expr} as vendor_name,
                 {receipt_total_expr} as receipt_total,
-                r.gst_amount,
-                r.pst_amount,
-                r.category,
+                {receipt_gst_expr} as gst_amount,
+                {receipt_pst_expr} as pst_amount,
+                {receipt_category_expr} as category,
                 {receipt_gl_expr} as gl_code,
-                r.receipt_type,
+                {receipt_type_expr} as receipt_type,
                 CASE WHEN r.receipt_id IS NOT NULL THEN 1 ELSE 0 END as linked,
                 CASE WHEN r.receipt_id IS NOT NULL 
                      THEN ABS((COALESCE(bt.debit_amount,
@@ -270,19 +281,32 @@ async def update_receipt_field(
 ):
     """Update a receipt field inline from report"""
     try:
-        allowed_fields = [
-            "vendor_name",
-            "category",
-            "gl_code",
-            "receipt_type",
-            "gst_amount",
-            "pst_amount",
-        ]
-
-        if field not in allowed_fields:
-            raise ValueError(f"Field {field} not allowed")
-
         cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'receipts'
+            """
+        )
+        receipt_cols = {row[0] for row in cur.fetchall()}
+
+        field_map = {
+            "vendor_name": "vendor_name",
+            "category": "category",
+            "receipt_type": "receipt_type",
+            "gst_amount": "gst_amount",
+        }
+        if "pst_amount" in receipt_cols:
+            field_map["pst_amount"] = "pst_amount"
+        if "gl_code" in receipt_cols:
+            field_map["gl_code"] = "gl_code"
+        elif "gl_account_code" in receipt_cols:
+            field_map["gl_code"] = "gl_account_code"
+
+        column = field_map.get(field)
+        if not column:
+            raise ValueError(f"Field {field} not allowed")
 
         # Convert value type if needed
         if field in ["gst_amount", "pst_amount"]:
@@ -290,7 +314,7 @@ async def update_receipt_field(
 
         update_sql = f"""
             UPDATE receipts
-            SET {field} = %s
+            SET {column} = %s
             WHERE receipt_id = %s
         """
 

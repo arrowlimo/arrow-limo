@@ -35,6 +35,40 @@ GST_EXEMPT_GL_CODES = {
 }
 
 
+def _column_exists(cur, table: str, column: str) -> bool:
+    cur.execute(
+        """
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = %s AND column_name = %s
+        LIMIT 1
+        """,
+        (table, column),
+    )
+    return cur.fetchone() is not None
+
+
+def _relation_exists(cur, relation: str) -> bool:
+    cur.execute(
+        """
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = %s
+        UNION ALL
+        SELECT 1
+        FROM information_schema.views
+        WHERE table_schema = 'public' AND table_name = %s
+        LIMIT 1
+        """,
+        (relation, relation),
+    )
+    return cur.fetchone() is not None
+
+
+def _invoice_select_expr(cur) -> str:
+    return "invoice_number" if _column_exists(cur, "receipts", "invoice_number") else "NULL::text AS invoice_number"
+
+
 def _audit_actor(request: Request) -> AuditEventActor:
     user = getattr(request.state, "current_user", None) or {}
     return AuditEventActor(
@@ -200,16 +234,28 @@ def get_vendors():
     conn = get_connection()
     cur = conn.cursor()
 
-    # Use materialized view for better performance
-    cur.execute("""
-        SELECT name, canonical
-        FROM mv_vendor_list
-        LIMIT 5000
-    """)
-
-    vendors = []
-    for row in cur.fetchall():
-        vendors.append({"name": row[0], "canonical": row[1] if row[1] else row[0]})
+    if _relation_exists(cur, "mv_vendor_list"):
+        cur.execute(
+            """
+            SELECT name, canonical
+            FROM mv_vendor_list
+            LIMIT 5000
+            """
+        )
+        vendors = []
+        for row in cur.fetchall():
+            vendors.append({"name": row[0], "canonical": row[1] if row[1] else row[0]})
+    else:
+        cur.execute(
+            """
+            SELECT DISTINCT vendor_name
+            FROM receipts
+            WHERE vendor_name IS NOT NULL AND TRIM(vendor_name) <> ''
+            ORDER BY vendor_name
+            LIMIT 5000
+            """
+        )
+        vendors = [{"name": row[0], "canonical": row[0]} for row in cur.fetchall()]
 
     cur.close()
     return_connection(conn)
@@ -779,9 +825,11 @@ def get_receipts(
     conn = get_connection()
     cur = conn.cursor()
 
-    query = """
+    invoice_expr = _invoice_select_expr(cur)
+
+    query = f"""
          SELECT receipt_id, receipt_date, vendor_name, canonical_vendor,
-         invoice_number, gross_amount,
+            {invoice_expr}, gross_amount,
              gst_amount, gst_code, category, description, vehicle_id,
              fuel_amount,
              owner_personal_amount, gl_account_code, gl_account_name
@@ -840,10 +888,12 @@ def get_receipt(receipt_id: int):
     conn = get_connection()
     cur = conn.cursor()
 
+    invoice_expr = _invoice_select_expr(cur)
+
     cur.execute(
-        """
+        f"""
         SELECT receipt_id, receipt_date, vendor_name, canonical_vendor,
-        invoice_number, gross_amount,
+        {invoice_expr}, gross_amount,
                gst_amount, gst_code, category, description, vehicle_id,
                charter_id,
                employee_id, reserve_number, fuel_amount, owner_personal_amount,

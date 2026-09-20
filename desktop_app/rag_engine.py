@@ -24,7 +24,7 @@ try:
     CHROMADB_AVAILABLE = True
 except ImportError:
     CHROMADB_AVAILABLE = False
-    print("⚠️ ChromaDB not available - vector search disabled")
+    logger.info("ChromaDB not available - vector search disabled")
 
 
 class KnowledgeRetriever:

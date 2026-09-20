@@ -16,7 +16,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from db_error_handling import DatabaseContext
-from PyQt6.QtCore import QPointF, QRectF, QSettings, Qt, QUrl
+from PyQt6.QtCore import QPointF, QRectF, QSettings, Qt, QTimer, QUrl
 from PyQt6.QtGui import QColor, QDesktopServices, QFont, QPainter, QPen
 from PyQt6.QtWidgets import (
     QFrame,
@@ -27,7 +27,9 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QComboBox,
     QScrollArea,
+    QSizePolicy,
     QSpinBox,
     QTableWidget,
     QTableWidgetItem,
@@ -35,6 +37,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from ui_standards import create_page_header
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +173,7 @@ class MetricCard(QFrame):
         super().__init__(parent)
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setStyleSheet(
-            "QFrame { background: #f8fafc; border: 1px solid #dbe3ef; "
+            "QFrame { background: #edf4fb; border: 1px solid #cbd5e1; "
             "border-radius: 8px; }"
         )
         layout = QVBoxLayout(self)
@@ -210,6 +214,10 @@ class AccountingControlCenterWidget(QWidget):
         self._sequence_loaded_year: int | None = None
         self._tab_hooks_installed = False
         self._build_ui()
+        QTimer.singleShot(0, self._load_initial_data)
+
+    def _load_initial_data(self) -> None:
+        """Load the first dashboard state after construction completes."""
         self._load_sequence_state(int(self.year_spin.value()))
         self.refresh_dashboard()
 
@@ -227,18 +235,12 @@ class AccountingControlCenterWidget(QWidget):
         self.layout_main.setSpacing(10)
         scroll.setWidget(container)
 
-        header = QGroupBox()
-        header_layout = QVBoxLayout(header)
-        title = QLabel("<h2>🎯 Accounting Hub</h2>")
-        subtitle = QLabel(
+        header = create_page_header(
+            "🎯 Accounting Hub",
             "One screen for the way Arrow Limo actually works: charter cash, "
             "mixed banking, separate payroll, deductible receipts, and CRA "
-            "filing blockers."
+            "filing blockers.",
         )
-        subtitle.setWordWrap(True)
-        subtitle.setStyleSheet("color: #475569;")
-        header_layout.addWidget(title)
-        header_layout.addWidget(subtitle)
 
         controls = QHBoxLayout()
         controls.addWidget(QLabel("Year:"))
@@ -290,11 +292,10 @@ class AccountingControlCenterWidget(QWidget):
         nav_controls = QHBoxLayout()
         for label, tab_name in [
             ("Open Receipts", "💰 Receipts & Invoices"),
-            ("Open Vendor Invoices", "📋 Vendor Invoice Manager"),
+            ("Open Vendor Invoices", "📋 Vendor Invoices"),
             ("Open Payroll", "💵 Payroll Entry"),
             ("Open Remittances", "🧮 Payroll Remittances"),
-            ("Open GST", "🧮 GST Remittance"),
-            ("Open Tax", "🏛️ Tax Management"),
+            ("Open Tax", "🏛️ Tax"),
             ("Open Reports", "📊 Financial Reports"),
         ]:
             button = QPushButton(label)
@@ -306,14 +307,17 @@ class AccountingControlCenterWidget(QWidget):
             nav_controls.addWidget(button)
         nav_controls.addStretch()
 
-        header_layout.addLayout(controls)
-        header_layout.addLayout(fix_controls)
-        header_layout.addLayout(nav_controls)
         self.layout_main.addWidget(header)
+        self.layout_main.addLayout(controls)
+        self.layout_main.addLayout(fix_controls)
+        self.layout_main.addLayout(nav_controls)
 
         self.panel_tabs = QTabWidget()
-        self.panel_tabs.setMinimumHeight(560)
-        self.layout_main.addWidget(self.panel_tabs)
+        self.panel_tabs.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
+        )
+        self.layout_main.addWidget(self.panel_tabs, stretch=1)
 
         overview_panel = QWidget()
         overview_layout = QVBoxLayout(overview_panel)
@@ -378,7 +382,10 @@ class AccountingControlCenterWidget(QWidget):
             self._create_payroll_panel(), "Payroll Close"
         )
         self.panel_tabs.addTab(
-            self._create_gst_panel(), "GST Remittance"
+            self._create_manual_review_panel(), "Manual Review"
+        )
+        self.panel_tabs.tabBar().setTabTextColor(
+            self.panel_tabs.count() - 1, QColor("#b91c1c")
         )
 
         self.sequence_group = QGroupBox("Fix Sequence Tracker")
@@ -712,35 +719,351 @@ class AccountingControlCenterWidget(QWidget):
         layout.addWidget(self.payroll_table)
         return panel
 
-    def _create_gst_panel(self) -> QWidget:
-        """GST Remittance tracking panel for CRA payments"""
+    def _create_manual_review_panel(self) -> QWidget:
+        """Accounting drill-down for evidence-based items needing attention."""
         panel = QWidget()
         layout = QVBoxLayout(panel)
 
         summary = QLabel(
-            "GST remittance tracking: GST collected by period vs payments made to CRA. "
-            "Supports manual entry for payments at other banks and multi-bank tracking. "
-            "CRA requires 6-year record retention (Income Tax Act Section 230)."
+            "Red rows need evidence or accounting review. Double-click a "
+            "charter row to open the charter detail; payment and Square rows "
+            "show their source identifiers for reconciliation."
         )
         summary.setWordWrap(True)
-        summary.setStyleSheet("color: #475569;")
+        summary.setStyleSheet("color: #991b1b;")
         layout.addWidget(summary)
 
-        # Try to import and display GST manager
-        try:
-            from gst_remittance_manager import GSTRemittanceManager
-            gst_manager = GSTRemittanceManager(self)
-            layout.addWidget(gst_manager)
-        except Exception as e:
-            logger.warning(f"GST Remittance Manager not available: {e}")
-            error_label = QLabel(
-                f"GST Remittance Manager not available.\n\nError: {e}"
-            )
-            error_label.setStyleSheet("color: #dc2626;")
-            layout.addWidget(error_label)
+        controls = QHBoxLayout()
+        controls.addWidget(QLabel("Scope:"))
+        self.manual_review_scope = QComboBox()
+        self.manual_review_scope.addItem("All years", "all")
+        self.manual_review_scope.addItem("Through 2025", "through_2025")
+        self.manual_review_scope.addItem("Selected year", "selected_year")
+        self.manual_review_scope.currentIndexChanged.connect(
+            self._refresh_manual_review_panel
+        )
+        controls.addWidget(self.manual_review_scope)
 
-        layout.addStretch()
+        refresh_btn = QPushButton("Refresh Review List")
+        refresh_btn.clicked.connect(self._refresh_manual_review_panel)
+        controls.addWidget(refresh_btn)
+        controls.addStretch()
+        layout.addLayout(controls)
+
+        self.manual_review_count_label = QLabel("Manual review items: -")
+        self.manual_review_count_label.setStyleSheet(
+            "color: #b91c1c; font-weight: bold;"
+        )
+        layout.addWidget(self.manual_review_count_label)
+
+        self.manual_review_table = QTableWidget()
+        self.manual_review_table.setColumnCount(7)
+        self.manual_review_table.setHorizontalHeaderLabels(
+            [
+                "Priority",
+                "Area",
+                "Date",
+                "Charter / Source",
+                "Client / Counterparty",
+                "Amount",
+                "Issue Requiring Attention",
+            ]
+        )
+        self.manual_review_table.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
+        self.manual_review_table.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.manual_review_table.setAlternatingRowColors(True)
+        self.manual_review_table.setStyleSheet(
+            "QTableWidget::item { color: #b91c1c; "
+            "background-color: #fef2f2; }"
+            "QTableWidget::item:selected { color: #991b1b; "
+            "background-color: #fecaca; }"
+        )
+        self.manual_review_table.cellDoubleClicked.connect(
+            self._on_manual_review_row_activated
+        )
+        header = self.manual_review_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(self.manual_review_table)
         return panel
+
+    def _manual_review_date_clause(self) -> tuple[str, list[object]]:
+        scope = (
+            self.manual_review_scope.currentData()
+            if hasattr(self, "manual_review_scope")
+            else "all"
+        )
+        if scope == "through_2025":
+            return " AND c.charter_date < DATE '2026-01-01'", []
+        if scope == "selected_year":
+            return " AND EXTRACT(YEAR FROM c.charter_date) = %s", [
+                int(self.year_spin.value())
+            ]
+        return "", []
+
+    def _fetch_manual_review_rows(self) -> list[dict]:
+        date_clause, date_params = self._manual_review_date_clause()
+        rows: list[dict] = []
+        with DatabaseContext(self.db, auto_commit=False) as cur:
+            cur.execute(
+                """
+                SELECT p.payment_id, p.payment_date,
+                       COALESCE(p.amount, p.payment_amount, 0),
+                       COALESCE(p.payment_method, ''),
+                       COALESCE(p.square_payment_id, p.reference_number, '')
+                FROM payments p
+                WHERE p.charter_id IS NULL
+                   OR NOT EXISTS (
+                       SELECT 1 FROM charters c WHERE c.charter_id = p.charter_id
+                   )
+                ORDER BY p.payment_date, p.payment_id
+                """
+            )
+            for payment_id, payment_date, amount, method, source_id in cur.fetchall():
+                rows.append(
+                    {
+                        "priority": "HIGH",
+                        "area": "Payment Link",
+                        "date": str(payment_date or ""),
+                        "source": f"Payment #{payment_id}",
+                        "party": method or "Unknown method",
+                        "amount": float(amount or 0),
+                        "issue": (
+                            "Payment is not linked to a valid charter"
+                            + (f" | Square/ref: {source_id}" if source_id else "")
+                        ),
+                        "charter_id": None,
+                    }
+                )
+
+            cur.execute(
+                """
+                SELECT square_audit_id, square_payment_id,
+                       COALESCE(refund_date, square_created_timestamp::date),
+                       COALESCE(refund_amount_cents, 0) / 100.0,
+                       COALESCE(customer_email, customer_name, '')
+                FROM square_api_audit
+                WHERE COALESCE(has_refund, FALSE)
+                  AND (payment_id IS NULL OR charter_id IS NULL)
+                ORDER BY COALESCE(refund_date, square_created_timestamp::date),
+                         square_audit_id
+                """
+            )
+            for audit_id, payment_hash, event_date, amount, party in cur.fetchall():
+                rows.append(
+                    {
+                        "priority": "HIGH",
+                        "area": "Square Refund",
+                        "date": str(event_date or ""),
+                        "source": f"Refund audit #{audit_id}",
+                        "party": party or "Square customer unavailable",
+                        "amount": float(amount or 0),
+                        "issue": (
+                            "Refund needs source payment or charter linkage"
+                            f" | Hash: {payment_hash}"
+                        ),
+                        "charter_id": None,
+                    }
+                )
+
+            cur.execute(
+                """
+                SELECT square_audit_id, square_payment_id,
+                       COALESCE(dispute_created_date, square_created_timestamp::date),
+                       COALESCE(dispute_amount_received, 0),
+                       COALESCE(dispute_status, '')
+                FROM square_api_audit
+                WHERE COALESCE(has_dispute, FALSE)
+                  AND (payment_id IS NULL OR charter_id IS NULL)
+                ORDER BY COALESCE(dispute_created_date, square_created_timestamp::date),
+                         square_audit_id
+                """
+            )
+            for audit_id, payment_hash, event_date, amount, status in cur.fetchall():
+                rows.append(
+                    {
+                        "priority": "HIGH",
+                        "area": "Square Dispute",
+                        "date": str(event_date or ""),
+                        "source": f"Dispute audit #{audit_id}",
+                        "party": status or "Square status unavailable",
+                        "amount": float(amount or 0),
+                        "issue": (
+                            "Dispute needs source payment or charter linkage"
+                            f" | Hash: {payment_hash}"
+                        ),
+                        "charter_id": None,
+                    }
+                )
+
+            positive_sql = f"""
+                WITH posted AS (
+                    SELECT charter_id,
+                           SUM(COALESCE(amount, payment_amount, 0)) FILTER (
+                               WHERE LOWER(COALESCE(status, '')) = 'paid'
+                           ) AS amount
+                    FROM payments GROUP BY charter_id
+                ), fallback AS (
+                    SELECT c.charter_id, SUM(cp.amount) AS amount
+                    FROM charter_payments cp
+                    JOIN charters c
+                      ON cp.charter_id IN (c.charter_id::text, c.reserve_number)
+                    GROUP BY c.charter_id
+                ), charges AS (
+                    SELECT charter_id, SUM(amount) AS amount
+                    FROM charter_charges GROUP BY charter_id
+                )
+                SELECT c.charter_id, c.reserve_number, c.charter_date,
+                       COALESCE(c.client_display_name, ''),
+                       COALESCE(ch.amount, 0) - COALESCE(p.amount, f.amount, 0)
+                FROM charters c
+                LEFT JOIN posted p ON p.charter_id = c.charter_id
+                LEFT JOIN fallback f ON f.charter_id = c.charter_id
+                LEFT JOIN charges ch ON ch.charter_id = c.charter_id
+                WHERE COALESCE(c.cancelled, FALSE) = FALSE
+                  AND LOWER(COALESCE(c.status, '')) <> 'cancelled'
+                  AND c.client_display_name NOT ILIKE 'Demand Performance Productions'
+                  AND COALESCE(ch.amount, 0) > COALESCE(p.amount, f.amount, 0) + 0.01
+                  {date_clause}
+                ORDER BY c.charter_date, c.charter_id
+            """
+            cur.execute(positive_sql, tuple(date_params))
+            for charter_id, reserve, charter_date, client, amount in cur.fetchall():
+                rows.append(
+                    {
+                        "priority": "HIGH",
+                        "area": "Charter Balance",
+                        "date": str(charter_date or ""),
+                        "source": f"Reserve {reserve}",
+                        "party": client,
+                        "amount": float(amount or 0),
+                        "issue": "Positive balance cannot be corrected without review",
+                        "charter_id": int(charter_id),
+                    }
+                )
+
+            charter_sql = f"""
+                SELECT c.charter_id, c.reserve_number, c.charter_date,
+                       COALESCE(c.client_display_name, ''),
+                       CASE
+                           WHEN COALESCE(c.approved_hours, 0) <= 0
+                                AND c.employee_id IS NULL
+                                AND c.vehicle_id IS NULL THEN
+                               'Missing approved hours, driver, and vehicle'
+                           WHEN COALESCE(c.approved_hours, 0) <= 0
+                                AND c.employee_id IS NULL THEN
+                               'Missing approved hours and driver'
+                           WHEN COALESCE(c.approved_hours, 0) <= 0
+                                AND c.vehicle_id IS NULL THEN
+                               'Missing approved hours and vehicle'
+                           WHEN c.employee_id IS NULL
+                                AND c.vehicle_id IS NULL THEN
+                               'Missing driver and vehicle'
+                           WHEN COALESCE(c.approved_hours, 0) <= 0 THEN
+                               'Missing approved hours'
+                           WHEN c.employee_id IS NULL THEN 'Missing driver'
+                           ELSE 'Missing vehicle'
+                       END
+                FROM charters c
+                WHERE COALESCE(c.cancelled, FALSE) = FALSE
+                  AND LOWER(COALESCE(c.status, '')) <> 'cancelled'
+                  AND (
+                      COALESCE(c.approved_hours, 0) <= 0
+                      OR c.employee_id IS NULL
+                      OR c.vehicle_id IS NULL
+                  )
+                  {date_clause}
+                ORDER BY c.charter_date, c.charter_id
+            """
+            cur.execute(charter_sql, tuple(date_params))
+            for charter_id, reserve, charter_date, client, issue in cur.fetchall():
+                rows.append(
+                    {
+                        "priority": "MEDIUM",
+                        "area": "Charter Paperwork",
+                        "date": str(charter_date or ""),
+                        "source": f"Reserve {reserve}",
+                        "party": client,
+                        "amount": 0.0,
+                        "issue": issue,
+                        "charter_id": int(charter_id),
+                    }
+                )
+
+        return rows
+
+    def _refresh_manual_review_panel(self) -> None:
+        if not hasattr(self, "manual_review_table"):
+            return
+        try:
+            rows = self._fetch_manual_review_rows()
+        except Exception as exc:
+            logger.error("Failed loading manual review panel: %s", exc)
+            self.manual_review_count_label.setText(
+                f"Manual review load failed: {exc}"
+            )
+            return
+
+        rows.sort(
+            key=lambda row: (
+                self._priority_rank(row["priority"]),
+                row["date"],
+                row["area"],
+            )
+        )
+        self.manual_review_table.setRowCount(len(rows))
+        for row_index, row in enumerate(rows):
+            values = [
+                f"[{row['priority']}]",
+                row["area"],
+                row["date"],
+                row["source"],
+                row["party"],
+                self._money(row["amount"]),
+                row["issue"],
+            ]
+            for column, value in enumerate(values):
+                item = QTableWidgetItem(str(value))
+                item.setData(Qt.ItemDataRole.UserRole, row)
+                item.setForeground(QColor("#b91c1c"))
+                item.setBackground(QColor("#fef2f2"))
+                self.manual_review_table.setItem(row_index, column, item)
+
+        self.manual_review_count_label.setText(
+            f"Manual review items: {len(rows):,}"
+        )
+        self.manual_review_table.resizeColumnsToContents()
+
+    def _on_manual_review_row_activated(self, row: int, _column: int) -> None:
+        item = self.manual_review_table.item(row, 0)
+        payload = item.data(Qt.ItemDataRole.UserRole) if item else None
+        if not isinstance(payload, dict) or not payload.get("charter_id"):
+            return
+        try:
+            from drill_down_widgets import CharterDetailDialog
+
+            dialog = CharterDetailDialog(
+                self.db,
+                charter_id=int(payload["charter_id"]),
+                parent=self,
+            )
+            dialog.exec()
+        except Exception as exc:
+            logger.error("Failed opening manual review charter: %s", exc)
+            QMessageBox.warning(
+                self,
+                "Manual Review",
+                f"Could not open charter detail: {exc}",
+            )
 
     def _set_status(self, text: str, error: bool = False) -> None:
         self.status_label.setStyleSheet(
@@ -1049,7 +1372,7 @@ class AccountingControlCenterWidget(QWidget):
             "Open Receipts": "💰 Receipts & Invoices",
             "Open Remittances": "🧮 Payroll Remittances",
             "Open Reports": "📊 Financial Reports",
-            "Open Tax": "🏛️ Tax Management",
+            "Open Tax": "🏛️ Tax",
             "Open Payroll": "💵 Payroll Entry",
         }
         target = mapping.get(action_text)
@@ -1727,8 +2050,9 @@ class AccountingControlCenterWidget(QWidget):
                                      LIKE '%%personal%%'
                                      OR LOWER(COALESCE(description, '')) ~
                                         '(owner|shareholder|capital|'
-                                        'contribution|loan advance)'
-                                    THEN 'Personal/Owner Inflow'
+                                        'contribution|loan advance|'
+                                        'related party|rpl|family loan)'
+                                    THEN 'Related-party / Owner Funding'
                                 WHEN LOWER(COALESCE(description, '')) ~
                                       '(square|global|vcard|mcard|acard|'
                                       'card deposit|merchant)'
@@ -1762,8 +2086,8 @@ class AccountingControlCenterWidget(QWidget):
                         "Charter-Linked Settlement": (
                             "linked or reconciled to payment/charter"
                         ),
-                        "Personal/Owner Inflow": (
-                            "personal/owner/capital/loan markers"
+                        "Related-party / Owner Funding": (
+                            "personal/owner/shareholder/related-party markers"
                         ),
                         "Processor Settlement": (
                             "Square/card settlement markers"
@@ -1814,8 +2138,9 @@ class AccountingControlCenterWidget(QWidget):
                                      LIKE '%%personal%%'
                                      OR LOWER(COALESCE(description, '')) ~
                                         '(owner|shareholder|capital|'
-                                        'contribution|loan advance)'
-                                    THEN 'Personal/Owner Inflow'
+                                        'contribution|loan advance|'
+                                        'related party|rpl|family loan)'
+                                    THEN 'Related-party / Owner Funding'
                                 WHEN LOWER(COALESCE(description, '')) ~
                                       '(square|global|vcard|mcard|acard|'
                                       'card deposit|merchant)'
@@ -2772,6 +3097,8 @@ class AccountingControlCenterWidget(QWidget):
                 f"PD7A missing {rmt['pd7a_missing']:,}"
             ),
         )
+
+        self._refresh_manual_review_panel()
 
         self._latest_snapshot = {
             "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

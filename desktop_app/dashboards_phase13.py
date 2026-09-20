@@ -231,7 +231,7 @@ class InvoiceReceiptManagementWidget(BaseReportWidget):
 
     def init_ui(self) -> None:
         layout = QVBoxLayout()
-        title = QLabel("📄 Invoice & Receipt Management")
+        title = QLabel("📄 Invoice & Receipt Ops")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 
@@ -394,11 +394,11 @@ class InvoiceReceiptManagementWidget(BaseReportWidget):
                 self.table.setItem(idx, 7, QTableWidgetItem(due_str))
 
             logger.info(
-                "Invoice Management loaded %s invoices from database",
+                "Invoice ops loaded %s invoices from database",
                 len(rows),
             )
         except Exception as e:
-            logger.error(f"Invoice Management load error: {e}")
+            logger.error(f"Invoice ops load error: {e}")
             # Show error in table
             self.table.setRowCount(1)
             self.table.setItem(
@@ -483,7 +483,7 @@ class AccountSettingsWidget(BaseReportWidget):
                     "Email + SMS",
                     "Preferences",
                     "Active",
-                    "Manage",
+                    "Edit",
                 ),
             ]
 
@@ -699,7 +699,7 @@ class SubscriptionManagementWidget(BaseReportWidget):
 
     def init_ui(self) -> None:
         layout = QVBoxLayout()
-        title = QLabel("🔄 Subscription Management")
+        title = QLabel("🔄 Subscriptions")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 
@@ -741,7 +741,7 @@ class SubscriptionManagementWidget(BaseReportWidget):
                     "Yes",
                     "20 rides",
                     "14/20",
-                    "Manage",
+                    "Edit",
                 ),
                 (
                     "Jane Doe",
@@ -751,7 +751,7 @@ class SubscriptionManagementWidget(BaseReportWidget):
                     "Yes",
                     "Unlimited",
                     "87/∞",
-                    "Manage",
+                    "Edit",
                 ),
                 (
                     "Bob Johnson",
@@ -761,7 +761,7 @@ class SubscriptionManagementWidget(BaseReportWidget):
                     "Yes",
                     "5 rides",
                     "4/5",
-                    "Manage",
+                    "Edit",
                 ),
             ]
 
@@ -808,7 +808,7 @@ class CorporateAccountManagementWidget(BaseReportWidget):
 
     def init_ui(self) -> None:
         layout = QVBoxLayout()
-        title = QLabel("🏢 Corporate Account Management")
+        title = QLabel("🏢 Corporate Accounts")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 
@@ -850,7 +850,7 @@ class CorporateAccountManagementWidget(BaseReportWidget):
                     "$15,000",
                     "$3,200",
                     "Active",
-                    "Manage",
+                    "Edit",
                 ),
                 (
                     "Finance Group",
@@ -860,7 +860,7 @@ class CorporateAccountManagementWidget(BaseReportWidget):
                     "$10,000",
                     "$0",
                     "Active",
-                    "Manage",
+                    "Edit",
                 ),
                 (
                     "Startup Hub",
@@ -870,7 +870,7 @@ class CorporateAccountManagementWidget(BaseReportWidget):
                     "$5,000",
                     "$1,850",
                     "Active",
-                    "Manage",
+                    "Edit",
                 ),
             ]
 
@@ -917,7 +917,7 @@ class RecurringBookingManagementWidget(BaseReportWidget):
 
     def init_ui(self) -> None:
         layout = QVBoxLayout()
-        title = QLabel("📅 Recurring Booking Management")
+        title = QLabel("📅 Recurring Bookings")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 
@@ -1117,7 +1117,7 @@ class SupportTicketManagementWidget(BaseReportWidget):
 
     def init_ui(self) -> None:
         layout = QVBoxLayout()
-        title = QLabel("🎫 Support Ticket Management")
+        title = QLabel("🎫 Support Tickets")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 
@@ -1220,7 +1220,7 @@ class RatingReviewManagementWidget(BaseReportWidget):
 
     def init_ui(self) -> None:
         layout = QVBoxLayout()
-        title = QLabel("⭐ Rating & Review Management")
+        title = QLabel("⭐ Ratings & Reviews")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 

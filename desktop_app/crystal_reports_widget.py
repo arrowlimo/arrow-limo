@@ -531,19 +531,16 @@ class _ReportQueryThread(QThread):
                 + " ORDER BY order_date NULLS LAST,order_number LIMIT 5000",
                 params,
             )
+            rows = cur.fetchall()
             col_names = [d[0] for d in cur.description]
         items = []
-        while True:
-            rows = cur.fetchmany(500)
-            if not rows:
-                break
-            for row in rows:
-                rec = dict(zip(col_names, row))
-                if hasattr(rec.get("order_date"), "isoformat"):
-                    rec["order_date"] = rec["order_date"].isoformat()
-                for f in ("amount", "paid_amount", "balance"):
-                    rec[f] = float(rec.get(f) or 0)
-                items.append(rec)
+        for row in rows:
+            rec = dict(zip(col_names, row))
+            if hasattr(rec.get("order_date"), "isoformat"):
+                rec["order_date"] = rec["order_date"].isoformat()
+            for f in ("amount", "paid_amount", "balance"):
+                rec[f] = float(rec.get(f) or 0)
+            items.append(rec)
         return self._agg_ops(items)
 
     def _agg_ops(self, items) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:

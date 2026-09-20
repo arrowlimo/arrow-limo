@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
+from .year_end import refresh_draft_year_end_close
 
 router = APIRouter(prefix="/api/payroll-compliance", tags=["payroll-compliance"])
 
@@ -35,6 +36,11 @@ class PD7AUpsertRequest(BaseModel):
     total_remittance_due: float | None = None
     adjusted_remittance: float | None = None
     notes: str | None = None
+
+
+def _refresh_year_end_totals(conn, fiscal_years: set[int]) -> None:
+    for fiscal_year in sorted(fiscal_years):
+        refresh_draft_year_end_close(conn, fiscal_year)
 
 
 def _ensure_pd7a_audit_columns(conn):
@@ -182,6 +188,7 @@ async def upsert_pd7a(
             note="PD7A row upsert audit record",
         )
         record_audit_event(conn, event, ensure_storage=False, commit=False)
+        _refresh_year_end_totals(conn, {payload.year})
         conn.commit()
         return {"success": True, "year": payload.year, "month": payload.month}
     except Exception as exc:
@@ -329,6 +336,7 @@ async def update_pd7a_month(
             note="PD7A row update audit record",
         )
         record_audit_event(conn, event, ensure_storage=False, commit=False)
+        _refresh_year_end_totals(conn, {tax_year})
         conn.commit()
         return {"success": True, "year": tax_year, "month": tax_month}
     except HTTPException:
@@ -436,6 +444,7 @@ async def submit_pd7a_month(
             note="PD7A submission audit record",
         )
         record_audit_event(conn, event, ensure_storage=False, commit=False)
+        _refresh_year_end_totals(conn, {tax_year})
 
         conn.commit()
         return {

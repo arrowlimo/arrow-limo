@@ -46,6 +46,10 @@ from PyQt6.QtWidgets import (
 logger = logging.getLogger(__name__)
 
 PAYMENT_METHODS = ["CASH", "CHQ", "E-TRANSFER", "DIRECT_DEPOSIT", "OTHER"]
+BANK_LINK_PENDING = "PENDING_BANK_MATCH"
+BANK_LINK_LINKED = "LINKED"
+BANK_LINK_CASH = "CASH"
+BANK_LINK_UNLINKED = "UNLINKED"
 PAY_TYPES = [
     "REGULAR_PAY",
     "REIMBURSEMENT",
@@ -196,6 +200,129 @@ class _ReceiptPickerDialog(QDialog):
         self.accept()
 
 
+class _BankingTransactionPickerDialog(QDialog):
+    """Dialog to choose a banking transaction for employee pay linking."""
+
+    def __init__(self, conn, amount: float = 0.0, parent=None) -> None:
+        super().__init__(parent)
+        self.conn = conn
+        self.amount = float(amount or 0)
+        self.selected_transaction_id = None
+        self.selected_label = ""
+        self.setWindowTitle("Link Banking Transaction")
+        self.setMinimumWidth(820)
+        self._build_ui()
+
+    def _build_ui(self) -> None:
+        layout = QVBoxLayout(self)
+
+        filter_row = QHBoxLayout()
+        filter_row.addWidget(QLabel("Description:"))
+        self.desc_edit = QLineEdit()
+        self.desc_edit.setPlaceholderText("e.g. e-transfer, payroll, deposit")
+        filter_row.addWidget(self.desc_edit)
+
+        filter_row.addWidget(QLabel("Amount:"))
+        self.amount_spin = QDoubleSpinBox()
+        self.amount_spin.setRange(0, 999999.99)
+        self.amount_spin.setDecimals(2)
+        self.amount_spin.setValue(self.amount)
+        self.amount_spin.setPrefix("$")
+        self.amount_spin.setMaximumWidth(130)
+        filter_row.addWidget(self.amount_spin)
+
+        search_btn = QPushButton("🔍 Search")
+        search_btn.clicked.connect(self._search)
+        filter_row.addWidget(search_btn)
+        layout.addLayout(filter_row)
+
+        self.table = QTableWidget()
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels(
+            ["Tx ID", "Date", "Description", "Debit", "Credit", "Account"]
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeMode.Stretch
+        )
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.doubleClicked.connect(self._on_accept)
+        layout.addWidget(self.table)
+
+        btn_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        btn_box.accepted.connect(self._on_accept)
+        btn_box.rejected.connect(self.reject)
+        layout.addWidget(btn_box)
+
+        self._search()
+
+    def _search(self) -> None:
+        desc = (self.desc_edit.text() or "").strip()
+        amount = float(self.amount_spin.value() or 0)
+        params: list[object] = []
+        sql = [
+            "SELECT bt.transaction_id, bt.transaction_date,",
+            "       COALESCE(bt.description, ''),",
+            "       COALESCE(bt.debit_amount, 0),",
+            "       COALESCE(bt.credit_amount, 0),",
+            "       COALESCE(bt.account_number, '')",
+            "FROM banking_transactions bt",
+            "WHERE 1=1",
+        ]
+
+        if amount > 0:
+            sql.append(
+                "AND (ABS(COALESCE(bt.debit_amount, 0) - %s) <= 0.01 "
+                "OR ABS(COALESCE(bt.credit_amount, 0) - %s) <= 0.01)"
+            )
+            params.extend([amount, amount])
+
+        if desc:
+            sql.append("AND LOWER(COALESCE(bt.description, '')) LIKE LOWER(%s)")
+            params.append(f"%{desc}%")
+
+        sql.append("ORDER BY bt.transaction_date DESC, bt.transaction_id DESC LIMIT 300")
+
+        try:
+            with DatabaseContext(self.conn, auto_commit=False) as cur:
+                cur.execute("\n".join(sql), params)
+                rows = cur.fetchall()
+            self.table.setRowCount(len(rows))
+            for r, row in enumerate(rows):
+                tx_id, tx_date, tx_desc, debit, credit, account = row
+                self.table.setItem(r, 0, QTableWidgetItem(str(tx_id)))
+                self.table.setItem(r, 1, QTableWidgetItem(str(tx_date or "")))
+                self.table.setItem(r, 2, QTableWidgetItem(tx_desc or ""))
+                debit_item = QTableWidgetItem(f"${float(debit or 0):,.2f}" if float(debit or 0) else "")
+                debit_item.setTextAlignment(Qt.AlignmentFlag.AlignRight)
+                self.table.setItem(r, 3, debit_item)
+                credit_item = QTableWidgetItem(f"${float(credit or 0):,.2f}" if float(credit or 0) else "")
+                credit_item.setTextAlignment(Qt.AlignmentFlag.AlignRight)
+                self.table.setItem(r, 4, credit_item)
+                self.table.setItem(r, 5, QTableWidgetItem(account or ""))
+        except Exception as exc:
+            QMessageBox.warning(self, "Banking Search", f"Could not load banking transactions:\n{exc}")
+
+    def _on_accept(self) -> None:
+        row = self.table.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "No Selection", "Select a banking transaction first.")
+            return
+        tx_id = int(self.table.item(row, 0).text())
+        tx_date = self.table.item(row, 1).text()
+        tx_desc = self.table.item(row, 2).text()
+        debit = self.table.item(row, 3).text() or ""
+        credit = self.table.item(row, 4).text() or ""
+        self.selected_transaction_id = tx_id
+        self.selected_label = f"#{tx_id}  {tx_date}  {debit or credit}  {tx_desc[:50]}"
+        self.accept()
+
+
 # ---------------------------------------------------------------------------
 # Add / Edit transaction dialog
 # ---------------------------------------------------------------------------
@@ -221,6 +348,8 @@ class _PayTransactionDialog(QDialog):
         self.pay_period_id = pay_period_id
         self.existing = existing or {}
         self._receipt_id = self.existing.get("receipt_id")
+        self._banking_transaction_id = self.existing.get("banking_transaction_id")
+        self._bank_link_status = self.existing.get("bank_link_status") or BANK_LINK_UNLINKED
         self.setWindowTitle("Edit Payment" if existing else "Add Payment")
         self.setMinimumWidth(480)
         self._build_ui()
@@ -304,6 +433,31 @@ class _PayTransactionDialog(QDialog):
         receipt_container.setLayout(receipt_row)
         form.addRow(self.receipt_label, receipt_container)
 
+        # Banking link row (for paid-by-bank flows)
+        self.bank_label = QLabel("Banking Link:")
+        bank_row = QHBoxLayout()
+        self.bank_display = QLineEdit()
+        self.bank_display.setReadOnly(True)
+        self.bank_display.setPlaceholderText("No banking transaction linked")
+        if self._banking_transaction_id:
+            self.bank_display.setText(f"Banking Tx #{self._banking_transaction_id}")
+        bank_row.addWidget(self.bank_display)
+        pick_bank_btn = QPushButton("🏦 Pick…")
+        pick_bank_btn.setMaximumWidth(75)
+        pick_bank_btn.clicked.connect(self._pick_banking_transaction)
+        bank_row.addWidget(pick_bank_btn)
+        clear_bank_btn = QPushButton("✕")
+        clear_bank_btn.setMaximumWidth(30)
+        clear_bank_btn.setToolTip("Remove banking link")
+        clear_bank_btn.clicked.connect(self._clear_banking_transaction)
+        bank_row.addWidget(clear_bank_btn)
+        self.bank_auto_match_chk = QCheckBox("Auto-link on next banking update")
+        self.bank_auto_match_chk.setChecked(self._bank_link_status == BANK_LINK_PENDING)
+        bank_row.addWidget(self.bank_auto_match_chk)
+        bank_container = QWidget()
+        bank_container.setLayout(bank_row)
+        form.addRow(self.bank_label, bank_container)
+
         # Notes
         self.notes_edit = QLineEdit()
         self.notes_edit.setPlaceholderText("Optional notes")
@@ -328,6 +482,17 @@ class _PayTransactionDialog(QDialog):
         is_chq = self.method_combo.currentData() == "CHQ"
         self.chq_label.setVisible(is_chq)
         self.chq_edit.setVisible(is_chq)
+
+        method = self.method_combo.currentData()
+        is_cash = method == "CASH"
+        self.bank_label.setVisible(not is_cash)
+        self.bank_display.setVisible(not is_cash)
+        self.bank_auto_match_chk.setVisible(method in {"E-TRANSFER", "DIRECT_DEPOSIT"})
+
+        if is_cash:
+            self._banking_transaction_id = None
+            self.bank_display.clear()
+            self.bank_auto_match_chk.setChecked(False)
 
     def _on_type_changed(self) -> None:
         is_reimb = self.type_combo.currentData() == "REIMBURSEMENT"
@@ -389,6 +554,21 @@ class _PayTransactionDialog(QDialog):
         self._receipt_id = None
         self.receipt_display.clear()
 
+    def _pick_banking_transaction(self) -> None:
+        dlg = _BankingTransactionPickerDialog(
+            self.conn,
+            amount=self.amount_spin.value(),
+            parent=self,
+        )
+        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.selected_transaction_id:
+            self._banking_transaction_id = dlg.selected_transaction_id
+            self.bank_display.setText(dlg.selected_label)
+            self.bank_auto_match_chk.setChecked(False)
+
+    def _clear_banking_transaction(self) -> None:
+        self._banking_transaction_id = None
+        self.bank_display.clear()
+
     def _validate_and_accept(self) -> None:
         if self.amount_spin.value() <= 0:
             QMessageBox.warning(
@@ -398,6 +578,20 @@ class _PayTransactionDialog(QDialog):
         self.accept()
 
     def get_data(self) -> object:
+        method = self.method_combo.currentData()
+        if method == "CASH":
+            bank_link_status = BANK_LINK_CASH
+            banking_transaction_id = None
+        elif self._banking_transaction_id:
+            bank_link_status = BANK_LINK_LINKED
+            banking_transaction_id = self._banking_transaction_id
+        elif method in {"E-TRANSFER", "DIRECT_DEPOSIT"} and self.bank_auto_match_chk.isChecked():
+            bank_link_status = BANK_LINK_PENDING
+            banking_transaction_id = None
+        else:
+            bank_link_status = BANK_LINK_UNLINKED
+            banking_transaction_id = None
+
         return {
             "transaction_date": self.date_edit.date().toPyDate(),
             "amount": round(self.amount_spin.value(), 2),
@@ -405,6 +599,8 @@ class _PayTransactionDialog(QDialog):
             "cheque_number": self.chq_edit.text().strip() or None,
             "pay_type": self.type_combo.currentData(),
             "receipt_id": self._receipt_id,
+            "banking_transaction_id": banking_transaction_id,
+            "bank_link_status": bank_link_status,
             "notes": self.notes_edit.text().strip() or None,
         }
 
@@ -479,9 +675,9 @@ class EmployeePayLedgerWidget(QGroupBox):
 
         # --- Payments table ---
         self.table = QTableWidget()
-        self.table.setColumnCount(7)
+        self.table.setColumnCount(8)
         self.table.setHorizontalHeaderLabels(
-            ["Date", "Method", "CHQ #", "Type", "Amount", "Notes", "Receipt"]
+            ["Date", "Method", "CHQ #", "Type", "Amount", "Notes", "Receipt", "Bank Link"]
         )
         self.table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.ResizeToContents
@@ -543,15 +739,46 @@ class EmployeePayLedgerWidget(QGroupBox):
                         pay_type         VARCHAR(30) NOT NULL
                             DEFAULT 'REGULAR_PAY',
                         receipt_id       INTEGER,
+                        banking_transaction_id INTEGER,
+                        bank_link_status VARCHAR(30) NOT NULL DEFAULT 'UNLINKED',
+                        bank_matched_at TIMESTAMP,
                         notes            TEXT,
                         created_at       TIMESTAMP DEFAULT NOW(),
                         created_by       VARCHAR(60) DEFAULT 'desktop_app'
                     )
                 """)
+                cur.execute(
+                    "ALTER TABLE employee_pay_transactions "
+                    "ADD COLUMN IF NOT EXISTS banking_transaction_id INTEGER"
+                )
+                cur.execute(
+                    "ALTER TABLE employee_pay_transactions "
+                    "ADD COLUMN IF NOT EXISTS bank_link_status VARCHAR(30)"
+                )
+                cur.execute(
+                    "ALTER TABLE employee_pay_transactions "
+                    "ADD COLUMN IF NOT EXISTS bank_matched_at TIMESTAMP"
+                )
+                cur.execute(
+                    "UPDATE employee_pay_transactions "
+                    "SET bank_link_status = CASE "
+                    "  WHEN COALESCE(payment_method, '') = 'CASH' THEN 'CASH' "
+                    "  WHEN banking_transaction_id IS NOT NULL THEN 'LINKED' "
+                    "  ELSE 'UNLINKED' END "
+                    "WHERE COALESCE(bank_link_status, '') = ''"
+                )
                 cur.execute("""
                     CREATE INDEX IF NOT EXISTS idx_ept_emp_year
                     ON employee_pay_transactions(employee_id, fiscal_year)
                 """)
+                cur.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_ept_bank_tx "
+                    "ON employee_pay_transactions(banking_transaction_id)"
+                )
+                cur.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_ept_bank_status "
+                    "ON employee_pay_transactions(bank_link_status)"
+                )
         except Exception as exc:
             logger.warning(
                 f"Could not ensure employee_pay_transactions: {exc}"
@@ -596,7 +823,8 @@ class EmployeePayLedgerWidget(QGroupBox):
                         SELECT transaction_id, transaction_date,
                         payment_method,
                                cheque_number, pay_type, amount, notes,
-                               receipt_id
+                               receipt_id, banking_transaction_id,
+                               COALESCE(bank_link_status, 'UNLINKED')
                         FROM employee_pay_transactions
                         WHERE employee_id = %s AND fiscal_year = %s
                         ORDER BY transaction_date, transaction_id
@@ -610,7 +838,8 @@ class EmployeePayLedgerWidget(QGroupBox):
                             SELECT transaction_id, transaction_date,
                             payment_method,
                                    cheque_number, pay_type, amount, notes,
-                                   receipt_id
+                                receipt_id, banking_transaction_id,
+                                COALESCE(bank_link_status, 'UNLINKED')
                             FROM employee_pay_transactions
                             WHERE employee_id = %s
                               AND pay_period_id = %s
@@ -624,7 +853,8 @@ class EmployeePayLedgerWidget(QGroupBox):
                             SELECT transaction_id, transaction_date,
                             payment_method,
                                    cheque_number, pay_type, amount, notes,
-                                   receipt_id
+                                receipt_id, banking_transaction_id,
+                                COALESCE(bank_link_status, 'UNLINKED')
                             FROM employee_pay_transactions
                             WHERE employee_id = %s AND fiscal_year = %s
                             ORDER BY transaction_date, transaction_id
@@ -648,6 +878,8 @@ class EmployeePayLedgerWidget(QGroupBox):
                 amount,
                 notes,
                 receipt_id,
+                banking_transaction_id,
+                bank_link_status,
             ) = row
             amount_f = float(amount or 0)
             amounts.append(amount_f)
@@ -691,6 +923,18 @@ class EmployeePayLedgerWidget(QGroupBox):
             else:
                 rcpt_item = QTableWidgetItem("")
             self.table.setItem(r, 6, rcpt_item)
+
+            if banking_transaction_id:
+                bank_item = QTableWidgetItem(f"🏦 #{banking_transaction_id}")
+                bank_item.setForeground(QBrush(QColor("#0f766e")))
+            elif bank_link_status == BANK_LINK_PENDING:
+                bank_item = QTableWidgetItem("⏳ Pending Auto-Link")
+                bank_item.setForeground(QBrush(QColor("#b45309")))
+            elif bank_link_status == BANK_LINK_CASH:
+                bank_item = QTableWidgetItem("💵 Cash")
+            else:
+                bank_item = QTableWidgetItem("")
+            self.table.setItem(r, 7, bank_item)
 
         self._update_totals(amounts)
 
@@ -741,8 +985,9 @@ class EmployeePayLedgerWidget(QGroupBox):
                         (employee_id, fiscal_year, pay_period_id,
                          transaction_date, amount, payment_method,
                          cheque_number,
-                         pay_type, receipt_id, notes)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                         pay_type, receipt_id, banking_transaction_id,
+                         bank_link_status, notes)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                     (
                         self._employee_id,
@@ -754,6 +999,8 @@ class EmployeePayLedgerWidget(QGroupBox):
                         data["cheque_number"],
                         data["pay_type"],
                         data["receipt_id"],
+                        data["banking_transaction_id"],
+                        data["bank_link_status"],
                         data["notes"],
                     ),
                 )
@@ -779,7 +1026,8 @@ class EmployeePayLedgerWidget(QGroupBox):
                     """
                     SELECT transaction_id, transaction_date, amount,
                            payment_method, cheque_number, pay_type,
-                           receipt_id, notes
+                              receipt_id, banking_transaction_id,
+                              COALESCE(bank_link_status, 'UNLINKED'), notes
                     FROM employee_pay_transactions
                     WHERE transaction_id = %s
                 """,
@@ -801,7 +1049,9 @@ class EmployeePayLedgerWidget(QGroupBox):
             "cheque_number": rec[4],
             "pay_type": rec[5],
             "receipt_id": rec[6],
-            "notes": rec[7],
+            "banking_transaction_id": rec[7],
+            "bank_link_status": rec[8],
+            "notes": rec[9],
         }
         dlg = _PayTransactionDialog(
             self.db.conn if hasattr(self.db, "conn") else self.db,
@@ -825,6 +1075,12 @@ class EmployeePayLedgerWidget(QGroupBox):
                         cheque_number    = %s,
                         pay_type         = %s,
                         receipt_id       = %s,
+                        banking_transaction_id = %s,
+                        bank_link_status = %s,
+                        bank_matched_at  = CASE
+                            WHEN %s IS NOT NULL THEN NOW()
+                            ELSE bank_matched_at
+                        END,
                         notes            = %s
                     WHERE transaction_id = %s
                 """,
@@ -835,6 +1091,9 @@ class EmployeePayLedgerWidget(QGroupBox):
                         data["cheque_number"],
                         data["pay_type"],
                         data["receipt_id"],
+                        data["banking_transaction_id"],
+                        data["bank_link_status"],
+                        data["banking_transaction_id"],
                         data["notes"],
                         tx_id,
                     ),

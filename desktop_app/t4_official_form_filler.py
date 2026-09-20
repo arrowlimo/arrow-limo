@@ -5,6 +5,7 @@ employee data
 """
 
 import logging
+import os
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -193,6 +194,13 @@ class T4OfficialFormFiller:
                 candidates.append(
                     root / "archive" / "archive_20260418" / filename
                 )
+
+        external_archive_root = os.environ.get("ARROW_ARCHIVE_ROOT", "").strip()
+        if external_archive_root:
+            external_archive_path = Path(external_archive_root)
+            for filename in cls.TEMPLATE_FILENAMES:
+                candidates.append(external_archive_path / "archive_20260418" / filename)
+                candidates.append(external_archive_path / filename)
 
         seen = set()
         for candidate in candidates:

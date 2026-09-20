@@ -4,6 +4,7 @@ from datetime import date as dt_date
 from datetime import datetime as dt_datetime
 from datetime import timedelta
 from decimal import Decimal
+import re
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
@@ -11,6 +12,7 @@ from pydantic import BaseModel
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection, return_connection
+from .year_end import refresh_draft_year_end_close
 
 router = APIRouter(prefix="/api/receipts", tags=["receipts"])
 
@@ -62,6 +64,90 @@ def _load_receipt_snapshot(conn, receipt_id: int) -> dict | None:
         "banking_transaction_id": row[10],
         "created_at": row[11].isoformat() if row[11] else None,
     }
+
+
+def _receipt_rule_value(
+    match_field: str,
+    vendor_name: str | None,
+    description: str | None,
+    category: str | None,
+    payment_method: str | None,
+) -> str:
+    field = match_field.lower().strip()
+    if field in {"name", "supplier", "customer"}:
+        return vendor_name or ""
+    if field == "memo_description":
+        return description or ""
+    if field == "account_name":
+        return category or description or ""
+    if field == "transaction_type":
+        return payment_method or ""
+    if field == "employee":
+        return description or vendor_name or ""
+    return ""
+
+
+def _refresh_year_end_totals(conn, fiscal_years: set[int]) -> None:
+    for fiscal_year in sorted(fiscal_years):
+        refresh_draft_year_end_close(conn, fiscal_year)
+
+
+def _apply_accounting_rule(
+    conn,
+    vendor_name: str | None,
+    description: str | None,
+    category: str | None,
+    payment_method: str | None,
+) -> dict | None:
+    """Return the first active accounting rule that matches a receipt."""
+
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT rule_name, match_field, match_pattern, gl_code, account_type
+            FROM accounting_gl_rules
+            WHERE is_active = TRUE
+            ORDER BY sort_order, rule_id
+            """
+        )
+        rules = cur.fetchall()
+    except Exception:
+        cur.close()
+        return None
+
+    cur.close()
+    for rule_name, match_field, match_pattern, gl_code, account_type in rules:
+        candidate = _receipt_rule_value(
+            str(match_field or ""),
+            vendor_name,
+            description,
+            category,
+            payment_method,
+        )
+        if not candidate:
+            continue
+        try:
+            if re.search(str(match_pattern or ""), candidate, re.IGNORECASE):
+                return {
+                    "rule_name": rule_name,
+                    "match_field": match_field,
+                    "match_pattern": match_pattern,
+                    "gl_code": gl_code,
+                    "account_type": account_type,
+                }
+        except re.error as exc:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "invalid_accounting_rule_pattern",
+                    "rule_name": rule_name,
+                    "pattern": match_pattern,
+                    "message": str(exc),
+                },
+            ) from exc
+
+    return None
 
 
 # Pydantic Models
@@ -287,6 +373,17 @@ def create_receipt(receipt: ReceiptCreate, request: Request):
     cur = conn.cursor()
 
     try:
+        matched_rule = _apply_accounting_rule(
+            conn,
+            receipt.vendor,
+            receipt.description,
+            receipt.category,
+            receipt.payment_method,
+        )
+        gl_account_code = receipt.gl_account_code or receipt.category
+        if not gl_account_code and matched_rule:
+            gl_account_code = str(matched_rule["gl_code"] or "").strip() or None
+
         # Create receipt
         cur.execute(
             """
@@ -303,7 +400,7 @@ def create_receipt(receipt: ReceiptCreate, request: Request):
                 receipt.vendor,
                 receipt.amount,
                 receipt.gst,
-                receipt.gl_account_code or receipt.category,
+                gl_account_code,
                 receipt.category,
                 receipt.description,
                 receipt.vehicle_id,
@@ -331,11 +428,19 @@ def create_receipt(receipt: ReceiptCreate, request: Request):
                 after=audit_after,
                 evidence_links=[],
                 retention_until=dt_date.today() + timedelta(days=365 * 7),
-                note="Receipt created through API",
+                note=(
+                    "Receipt created through API"
+                    + (
+                        f"; auto-classified by rule {matched_rule['rule_name']}"
+                        if matched_rule and not receipt.gl_account_code
+                        else ""
+                    )
+                ),
             ),
             ensure_storage=False,
             commit=False,
         )
+        _refresh_year_end_totals(conn, {receipt.date.year})
         conn.commit()
         cur.close()
         return_connection(conn)
@@ -365,6 +470,28 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate, request: Request):
             return_connection(conn)
             raise HTTPException(status_code=404, detail="Receipt not found")
 
+        final_vendor = receipt.vendor if receipt.vendor is not None else before_snapshot["vendor"]
+        final_description = (
+            receipt.description if receipt.description is not None else before_snapshot["description"]
+        )
+        final_category = receipt.category if receipt.category is not None else before_snapshot["category"]
+        final_payment_method = before_snapshot["payment_method"]
+        if receipt.gl_account_code is not None:
+            final_gl_account_code = receipt.gl_account_code
+        else:
+            final_gl_account_code = before_snapshot["gl_account_code"]
+        matched_rule = None
+        if not final_gl_account_code:
+            matched_rule = _apply_accounting_rule(
+                conn,
+                final_vendor,
+                final_description,
+                final_category,
+                final_payment_method,
+            )
+            if matched_rule:
+                final_gl_account_code = str(matched_rule["gl_code"] or "").strip() or None
+
         # Build dynamic update query
         updates = []
         params = []
@@ -383,7 +510,7 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate, request: Request):
             params.append(receipt.gst)
         if receipt.gl_account_code is not None:
             updates.append("gl_account_code = %s")
-            params.append(receipt.gl_account_code)
+            params.append(receipt.gl_account_code or final_gl_account_code)
         if receipt.category is not None:
             updates.append("category = %s")
             params.append(receipt.category)
@@ -424,6 +551,14 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate, request: Request):
 
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")
+
+        if (
+            receipt.gl_account_code is None
+            and not before_snapshot.get("gl_account_code")
+            and final_gl_account_code
+        ):
+            updates.append("gl_account_code = %s")
+            params.append(final_gl_account_code)
 
         # AUTO-VERIFY: Mark receipt as reviewed when saved (unless explicitly
         # set to other status)
@@ -470,11 +605,26 @@ def update_receipt(receipt_id: int, receipt: ReceiptUpdate, request: Request):
                 after=after_snapshot,
                 evidence_links=[],
                 retention_until=dt_date.today() + timedelta(days=365 * 7),
-                note="Receipt updated through API",
+                note=(
+                    "Receipt updated through API"
+                    + (
+                        f"; auto-classified by rule {matched_rule['rule_name']}"
+                        if matched_rule
+                        else ""
+                    )
+                ),
             ),
             ensure_storage=False,
             commit=False,
         )
+        affected_years: set[int] = set()
+        before_date = before_snapshot.get("date")
+        if before_date:
+            affected_years.add(int(str(before_date)[:4]))
+        if receipt.date is not None:
+            affected_years.add(receipt.date.year)
+        if affected_years:
+            _refresh_year_end_totals(conn, affected_years)
         conn.commit()
         cur.close()
         return_connection(conn)
@@ -532,6 +682,9 @@ def delete_receipt(receipt_id: int, request: Request):
             ensure_storage=False,
             commit=False,
         )
+        before_date = before_snapshot.get("date")
+        if before_date:
+            _refresh_year_end_totals(conn, {int(str(before_date)[:4])})
         conn.commit()
         cur.close()
         return_connection(conn)
@@ -557,7 +710,7 @@ def get_expense_summary(start_date: dt_date | None = None, end_date: dt_date | N
         SELECT
             COALESCE(category, 'Uncategorized') as category,
             COUNT(*) as count,
-            SUM(amount) as total_amount,
+            SUM(gross_amount) as total_amount,
             SUM(COALESCE(gst_amount, 0)) as total_gst
         FROM receipts
         WHERE parent_receipt_id IS NULL

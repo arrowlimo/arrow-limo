@@ -147,15 +147,33 @@ def get_invoices(
             i.invoice_number,
             i.invoice_date,
             i.due_date,
-            (COALESCE(i.subtotal_taxable, 0) + COALESCE(i.subtotal_non_taxable, 0)) as amount,
-            COALESCE(i.gst_amount, 0) as gst,
-            COALESCE(i.invoice_total, 0) as total,
             CASE
+                WHEN COALESCE(c.cancelled, false) = true
+                  OR LOWER(COALESCE(c.status, '')) = 'cancelled'
+                THEN 0
+                ELSE (COALESCE(i.subtotal_taxable, 0) + COALESCE(i.subtotal_non_taxable, 0))
+            END as amount,
+            CASE
+                WHEN COALESCE(c.cancelled, false) = true
+                  OR LOWER(COALESCE(c.status, '')) = 'cancelled'
+                THEN 0
+                ELSE COALESCE(i.gst_amount, 0)
+            END as gst,
+            CASE
+                WHEN COALESCE(c.cancelled, false) = true
+                  OR LOWER(COALESCE(c.status, '')) = 'cancelled'
+                THEN 0
+                ELSE COALESCE(i.invoice_total, 0)
+            END as total,
+            CASE
+                WHEN COALESCE(c.cancelled, false) = true
+                  OR LOWER(COALESCE(c.status, '')) = 'cancelled'
+                THEN 'cancelled'
                 WHEN COALESCE(i.paid, false) = true OR LOWER(COALESCE(i.invoice_status, '')) = 'paid' THEN 'paid'
                 WHEN i.due_date < CURRENT_DATE THEN 'overdue'
                 ELSE 'unpaid'
             END as status,
-            NULL::date as paid_date,
+            i.paid_date,
             i.notes as description,
             i.created_at
         FROM invoices i
@@ -236,15 +254,33 @@ def get_invoice(invoice_id: int):
             i.invoice_number,
             i.invoice_date,
             i.due_date,
-            (COALESCE(i.subtotal_taxable, 0) + COALESCE(i.subtotal_non_taxable, 0)) as amount,
-            COALESCE(i.gst_amount, 0) as gst,
-            COALESCE(i.invoice_total, 0) as total,
             CASE
+                WHEN COALESCE(c.cancelled, false) = true
+                  OR LOWER(COALESCE(c.status, '')) = 'cancelled'
+                THEN 0
+                ELSE (COALESCE(i.subtotal_taxable, 0) + COALESCE(i.subtotal_non_taxable, 0))
+            END as amount,
+            CASE
+                WHEN COALESCE(c.cancelled, false) = true
+                  OR LOWER(COALESCE(c.status, '')) = 'cancelled'
+                THEN 0
+                ELSE COALESCE(i.gst_amount, 0)
+            END as gst,
+            CASE
+                WHEN COALESCE(c.cancelled, false) = true
+                  OR LOWER(COALESCE(c.status, '')) = 'cancelled'
+                THEN 0
+                ELSE COALESCE(i.invoice_total, 0)
+            END as total,
+            CASE
+                WHEN COALESCE(c.cancelled, false) = true
+                  OR LOWER(COALESCE(c.status, '')) = 'cancelled'
+                THEN 'cancelled'
                 WHEN COALESCE(i.paid, false) = true OR LOWER(COALESCE(i.invoice_status, '')) = 'paid' THEN 'paid'
                 WHEN i.due_date < CURRENT_DATE THEN 'overdue'
                 ELSE 'unpaid'
             END as status,
-            NULL::date as paid_date,
+            i.paid_date,
             i.notes as description,
             i.created_at
         FROM invoices i
@@ -292,13 +328,27 @@ def create_invoice(invoice: InvoiceCreate, request: Request):
 
     try:
         reserve_number = None
+        charter_cancelled = False
         if invoice.charter_id is not None:
             cur.execute(
-                "SELECT reserve_number FROM charters WHERE charter_id = %s",
+                """
+                SELECT reserve_number,
+                       COALESCE(cancelled, false) AS cancelled,
+                       LOWER(COALESCE(status, '')) AS status
+                FROM charters
+                WHERE charter_id = %s
+                """,
                 (invoice.charter_id,),
             )
             row = cur.fetchone()
-            reserve_number = row[0] if row else None
+            if row:
+                reserve_number = row[0]
+                charter_cancelled = bool(row[1]) or row[2] == "cancelled"
+
+        amount = Decimal("0") if charter_cancelled else invoice.amount
+        gst = Decimal("0") if charter_cancelled else invoice.gst
+        invoice_total = amount + gst
+        balance_due = Decimal("0") if charter_cancelled else invoice_total
 
         cur.execute(
             """
@@ -326,12 +376,12 @@ def create_invoice(invoice: InvoiceCreate, request: Request):
                 invoice.invoice_number,
                 invoice.invoice_date,
                 invoice.due_date,
-                invoice.amount,
-                invoice.gst,
+                amount,
+                gst,
                 Decimal("0"),
-                invoice.amount + invoice.gst,
+                invoice_total,
                 Decimal("0"),
-                invoice.amount + invoice.gst,
+                balance_due,
                 False,
                 "unpaid",
                 invoice.description,
@@ -521,10 +571,11 @@ def mark_invoice_paid(
             UPDATE invoices
             SET paid = true,
                 invoice_status = 'paid',
+                paid_date = %s,
                 finalized_at = COALESCE(finalized_at, %s)
             WHERE invoice_id = %s
         """,
-            (paid_date, invoice_id),
+            (paid_date, paid_date, invoice_id),
         )
 
         if cur.rowcount == 0:

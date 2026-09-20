@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import os
+import logging
 from datetime import date, datetime
 
 from PyQt6.QtCore import QDate, Qt
@@ -31,6 +32,8 @@ from PyQt6.QtWidgets import (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+logger = logging.getLogger(__name__)
 
 def _neon_conn() -> object:
     """Open a fresh Neon connection."""
@@ -539,12 +542,14 @@ class BeverageDispatchWidget(QWidget):
     # DB
     # ------------------------------------------------------------------
     def _get_conn(self) -> object:
-        """Get a database connection."""
-        if self.db is not None:
+        """Open a connection owned by this widget operation."""
+        if self.db is not None and hasattr(self.db, "config"):
             try:
-                return self.db.conn
+                import psycopg2
+
+                return psycopg2.connect(**dict(self.db.config))
             except Exception as _e:
-                logger.debug('Suppressed: %s', _e)
+                logger.warning("Configured beverage DB connection failed: %s", _e)
         return _neon_conn()
 
 

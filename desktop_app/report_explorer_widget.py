@@ -150,7 +150,7 @@ DEFAULT_REPORTS = [
     {
         "domain": "Operations",
         "category": "Fleet",
-        "name": "Fleet Management",
+        "name": "Fleet Operations",
         "class_name": "FleetManagementWidget",
     },
     {

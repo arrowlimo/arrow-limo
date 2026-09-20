@@ -6,7 +6,12 @@ from datetime import date as dateobj
 from decimal import Decimal
 
 import psycopg2
-from common_widgets import StandardDateEdit
+from common_widgets import (
+    PAYMENT_METHOD_CHOICES,
+    StandardDateEdit,
+    display_payment_method,
+    normalize_payment_method,
+)
 from PyQt6.QtCore import QDate
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -129,11 +134,17 @@ class SimpleReceiptEditor(QDialog):
         cat_form.addRow("Category:", self.category_edit)
 
         self.payment_method = QComboBox()
-        self.payment_method.addItems(
-            ["", "CASH", "CREDIT", "DEBIT", "CHEQUE", "TRANSFER", "OTHER"]
-        )
-        self.payment_method.setEditable(True)
+        self.payment_method.addItems(PAYMENT_METHOD_CHOICES)
         cat_form.addRow("Payment Method:", self.payment_method)
+
+        self.loan_account_label = QLabel()
+        self.loan_account_combo = QComboBox()
+        self._load_related_loan_accounts()
+        self.loan_account_label.setVisible(False)
+        self.loan_account_combo.setVisible(False)
+        self.payment_method.currentTextChanged.connect(
+            self._on_payment_method_changed
+        )
 
         layout.addWidget(cat_group)
 
@@ -172,8 +183,8 @@ class SimpleReceiptEditor(QDialog):
         self.business_personal = QCheckBox("Business/Personal")
         flags_layout.addWidget(self.business_personal)
 
-        self.verified_by_edit = QCheckBox("Verified")
-        flags_layout.addWidget(self.verified_by_edit)
+        verification_note = QLabel("Saving marks this receipt as Paper Verified")
+        flags_layout.addWidget(verification_note)
 
         flags_layout.addStretch()
         layout.addWidget(flags_group)
@@ -211,8 +222,8 @@ class SimpleReceiptEditor(QDialog):
                     category, gl_account_code, gl_account_name, payment_method,
                     banking_transaction_id, charter_id, vehicle_number,
                     employee_id,
-                    fuel_amount, business_personal, verified_by_edit, comment,
-                    odometer_reading
+                    fuel_amount, business_personal, comment, odometer_reading,
+                    pay_account
                 FROM receipts
                 WHERE receipt_id = %s
             """,
@@ -251,7 +262,9 @@ class SimpleReceiptEditor(QDialog):
                         self.gl_account_combo.setCurrentIndex(i)
                         break
 
-            self.payment_method.setCurrentText(row[9] or "")
+            self.payment_method.setCurrentText(
+                self._display_payment_method(row[9])
+            )
             self.banking_transaction_id.setText(
                 str(row[10]) if row[10] else ""
             )
@@ -272,11 +285,9 @@ class SimpleReceiptEditor(QDialog):
                     else False
                 )
             )
-            self.verified_by_edit.setChecked(
-                bool(row[16]) if row[16] is not None else False
-            )
-            self.comment.setPlainText(row[17] or "")
-            self.odometer_reading.setValue(int(row[18]) if row[18] else 0)
+            self.comment.setPlainText(row[16] or "")
+            self.odometer_reading.setValue(int(row[17]) if row[17] else 0)
+            self._set_related_loan_account(row[18])
 
             # Update field requirements based on loaded data
             self._update_field_requirements()
@@ -314,6 +325,75 @@ class SimpleReceiptEditor(QDialog):
             QMessageBox.warning(
                 self, "Error", f"Failed to load GL accounts:\n{e}"
             )
+
+    def _load_related_loan_accounts(self) -> None:
+        self.loan_account_combo.clear()
+        self.loan_account_combo.addItem("Select related loan account...", None)
+        cur = self.conn.cursor()
+        try:
+            cur.execute(
+                """
+                SELECT COALESCE(running_balance, 0)
+                FROM david_account_tracking
+                ORDER BY transaction_date DESC, id DESC
+                LIMIT 1
+                """
+            )
+            row = cur.fetchone()
+            balance = Decimal(str(row[0] if row else 0))
+            self.loan_account_combo.addItem(
+                f"Related Personal Loan — Balance ${balance:,.2f}",
+                "Related Personal Loan",
+            )
+        finally:
+            cur.close()
+
+    def _on_payment_method_changed(self, method: str) -> None:
+        is_loan = self._is_related_personal_loan(method)
+        if is_loan and self.loan_account_combo.currentIndex() == 0:
+            default_index = self.loan_account_combo.findData(
+                "Related Personal Loan"
+            )
+            if default_index >= 0:
+                self.loan_account_combo.setCurrentIndex(default_index)
+        elif not is_loan:
+            self.loan_account_combo.setCurrentIndex(0)
+
+    def _selected_loan_account(self) -> str | None:
+        if not self._is_related_personal_loan(self.payment_method.currentText()):
+            return None
+        return "Related Personal Loan"
+
+    def _set_related_loan_account(self, account_code) -> None:
+        code = str(account_code or "").strip()
+        if not code and self._is_related_personal_loan(
+            self.payment_method.currentText()
+        ):
+            code = "Related Personal Loan"
+        if code.lower() in {
+            "related_personal_loan",
+            "david richard",
+            "1090",
+        }:
+            code = "Related Personal Loan"
+        index = self.loan_account_combo.findData(code) if code else 0
+        self.loan_account_combo.setCurrentIndex(index if index >= 0 else 0)
+
+    @staticmethod
+    def _is_related_personal_loan(method: str | None) -> bool:
+        return (method or "").strip().lower() in {
+            "loan",
+            "related personal loan",
+            "rpl",
+        }
+
+    @classmethod
+    def _display_payment_method(cls, method: str | None) -> str:
+        return display_payment_method(method)
+
+    @classmethod
+    def _stored_payment_method(cls, method: str | None) -> str:
+        return normalize_payment_method(method)
 
     def _on_gl_code_changed(self) -> None:
         """Handle GL code changes to update field requirements."""
@@ -415,6 +495,19 @@ class SimpleReceiptEditor(QDialog):
                 if self.banking_transaction_id.text().strip()
                 else None
             )
+            pay_account = self._selected_loan_account()
+            if (
+                self._is_related_personal_loan(
+                    self.payment_method.currentText()
+                )
+                and not pay_account
+            ):
+                QMessageBox.warning(
+                    self,
+                    "Validation",
+                    "Select Related Personal Loan.",
+                )
+                return
 
             # Convert QDate to Python date
             receipt_date = self._qdate_to_python_date(
@@ -448,9 +541,19 @@ class SimpleReceiptEditor(QDialog):
                     employee_id = %s,
                     fuel_amount = %s,
                     business_personal = %s,
-                    verified_by_edit = %s,
                     comment = %s,
-                    odometer_reading = %s
+                    odometer_reading = %s,
+                    verified_by_edit = TRUE,
+                    verified_at = COALESCE(verified_at, NOW()),
+                    verified_by_user = COALESCE(verified_by_user, 'desktop_app'),
+                    is_paper_verified = TRUE,
+                    paper_verification_date =
+                        COALESCE(paper_verification_date, NOW()),
+                    verified = TRUE,
+                    verified_date = COALESCE(verified_date, NOW()),
+                    verified_by = COALESCE(verified_by, 'desktop_app'),
+                    pay_account = %s,
+                    updated_at = NOW()
                 WHERE receipt_id = %s
             """,
                 (
@@ -468,16 +571,19 @@ class SimpleReceiptEditor(QDialog):
                         if " - " in self.gl_account_combo.currentText()
                         else None
                     ),  # GL name
-                    self.payment_method.currentText().strip() or None,
+                    self._stored_payment_method(
+                        self.payment_method.currentText()
+                    ).strip()
+                    or None,
                     banking_id_val,
                     charter_id_val,
                     self.vehicle_number.text().strip() or None,
                     employee_id_val,
                     Decimal(str(self.fuel_amount.value())),
                     self.business_personal.isChecked(),
-                    self.verified_by_edit.isChecked(),
                     self.comment.toPlainText().strip() or None,
                     odometer_val,
+                    pay_account,
                     self.receipt_id,
                 ),
             )

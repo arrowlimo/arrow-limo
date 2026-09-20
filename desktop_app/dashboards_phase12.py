@@ -543,7 +543,7 @@ class UnifiedInventoryManagementWidget(BaseReportWidget):
 
     def init_ui(self) -> None:
         layout = QVBoxLayout()
-        title = QLabel("📦 Unified Inventory Management")
+        title = QLabel("📦 Unified Inventory")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 
@@ -1152,7 +1152,7 @@ class FranchiseIntegrationWidget(BaseReportWidget):
                 ),
                 (
                     "Arrow Downtown",
-                    "Manager",
+                    "Lead",
                     1247,
                     436500,
                     42,
@@ -1366,7 +1366,7 @@ class OperationsConsolidationWidget(BaseReportWidget):
                     "15%",
                     "100%",
                     "Done",
-                    "Fleet Manager",
+                    "Fleet Lead",
                 ),
                 (
                     "Dispatch",
@@ -1376,7 +1376,7 @@ class OperationsConsolidationWidget(BaseReportWidget):
                     "22%",
                     "100%",
                     "Done",
-                    "Ops Manager",
+                    "Ops Lead",
                 ),
                 (
                     "Accounting",
@@ -1389,14 +1389,14 @@ class OperationsConsolidationWidget(BaseReportWidget):
                     "CFO",
                 ),
                 (
-                    "Fuel Management",
+                    "Fuel Ops",
                     "Planning",
                     "All 4",
                     "$32,000/year",
                     "18%",
                     "0%",
                     "Q2 2025",
-                    "Fleet Manager",
+                    "Fleet Lead",
                 ),
             ]
 

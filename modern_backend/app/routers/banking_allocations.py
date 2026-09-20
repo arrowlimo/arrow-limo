@@ -116,6 +116,12 @@ def allocate_banking_to_receipts(
                 "debit_amount": debit_amount,
                 "total_allocations": total_alloc,
             }
+        receipt_ids = [a.receipt_id for a in req.allocations]
+        if len(receipt_ids) != len(set(receipt_ids)):
+            return {
+                "status": "error",
+                "error": "duplicate_receipt_allocation",
+            }
 
         # Apply idempotently
         for a in req.allocations:
@@ -138,8 +144,10 @@ def allocate_banking_to_receipts(
                     INSERT INTO banking_receipt_matching_ledger (
                         banking_transaction_id, receipt_id, match_date,
                         match_type, match_status, match_confidence, notes,
-                        created_by) VALUES (
-                        %s, %s, NOW(), %s, %s, %s, %s, %s)
+                        created_by, amount_allocated, allocation_date,
+                        allocation_type) VALUES (
+                        %s, %s, NOW(), %s, %s, %s, %s, %s,
+                        %s, NOW(), %s)
                     """,
                     (
                         transaction_id,
@@ -149,13 +157,26 @@ def allocate_banking_to_receipts(
                         ("exact" if abs(a.amount - debit_amount) < 0.01 else "partial"),
                         f"amount={a.amount:.2f}",
                         req.created_by,
+                        a.amount,
+                        "receipt",
                     ),
                 )
             else:
-                # Update notes to reflect latest amount
                 cur.execute(
-                    "UPDATE banking_receipt_matching_ledger SET notes=%s " "WHERE id=%s",
-                    (f"amount={a.amount: .2f} ", existing[0]),
+                    """
+                    UPDATE banking_receipt_matching_ledger
+                    SET notes = %s,
+                        amount_allocated = %s,
+                        allocation_date = NOW(),
+                        allocation_type = %s
+                    WHERE id = %s
+                    """,
+                    (
+                        f"amount={a.amount:.2f}",
+                        a.amount,
+                        "receipt",
+                        existing[0],
+                    ),
                 )
 
         ensure_audit_storage(conn)

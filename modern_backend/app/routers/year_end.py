@@ -22,6 +22,12 @@ class YearEndChecklistItem(BaseModel):
 class YearEndCloseRequest(BaseModel):
     fiscal_year: int = Field(ge=2000, le=2100)
     force: bool = False
+    finalize: bool = False
+    notes: str | None = Field(default=None, max_length=1000)
+
+
+class YearEndReopenRequest(BaseModel):
+    fiscal_year: int = Field(ge=2000, le=2100)
     notes: str | None = Field(default=None, max_length=1000)
 
 
@@ -197,62 +203,103 @@ def _compute_capital_gains(conn, fiscal_year: int) -> dict[str, Any]:
                     "gain": round(gain, 2),
                 }
             )
-        return {"capital_gains": round(total, 2), "items": items}
-
-    # Fallback on general ledger signal words.
-    if (
-        _has_column(conn, "general_ledger", "date")
-        and _has_column(conn, "general_ledger", "credit")
-        and _has_column(conn, "general_ledger", "debit")
-    ):
-        memo_col = (
-            "memo_description" if _has_column(conn, "general_ledger", "memo_description") else None
-        )
-        acct_name_col = (
-            "account_name" if _has_column(conn, "general_ledger", "account_name") else None
-        )
-        name_col = "name" if _has_column(conn, "general_ledger", "name") else None
-
-        predicates = []
-        if memo_col:
-            predicates.append(f"{memo_col} ILIKE '%%capital gain%%'")
-        if acct_name_col:
-            predicates.append(f"{acct_name_col} ILIKE '%%capital gain%%'")
-        if name_col:
-            predicates.append(f"{name_col} ILIKE '%%capital gain%%'")
-
-        if predicates:
-            with conn.cursor() as cur:
-                cur.execute(
-                    f"""
-                    SELECT id, date,
-                           COALESCE(credit, 0) - COALESCE(debit, 0) AS gain,
-                           COALESCE(account_name, '')
-                    FROM general_ledger
-                    WHERE date BETWEEN %s AND %s
-                      AND ({' OR '.join(predicates)})
-                    ORDER BY date, id
-                    LIMIT 500
-                    """,
-                    (start_date, end_date),
-                )
-                rows = cur.fetchall()
-            for r in rows:
-                gain = float(r[2] or 0.0)
-                total += gain
-                items.append(
-                    {
-                        "source": "general_ledger",
-                        "id": r[0],
-                        "date": str(r[1]),
-                        "gain": round(gain, 2),
-                        "account_name": r[3],
-                    }
-                )
-
     return {"capital_gains": round(total, 2), "items": items}
 
 
+def _compute_payroll_summary(conn, fiscal_year: int) -> dict[str, Any]:
+        """Summarize payroll, T4, and remittance balances for the fiscal year."""
+
+        summary = {
+            "gross_payroll": 0.0,
+            "t4_employment_income": 0.0,
+            "t4_employee_count": 0,
+            "pd7a_due": 0.0,
+            "pd7a_paid": 0.0,
+            "pd7a_outstanding": 0.0,
+            "payroll_remittances_paid": 0.0,
+            "payroll_entries_gross": 0.0,
+            "driver_payroll_gross": 0.0,
+        }
+
+        with conn.cursor() as cur:
+            if _has_column(conn, "driver_payroll", "year") and _has_column(conn, "driver_payroll", "gross_pay"):
+                cur.execute(
+                    """
+                    SELECT COALESCE(SUM(COALESCE(gross_pay, 0)), 0)
+                    FROM driver_payroll
+                    WHERE year = %s
+                    """,
+                    (fiscal_year,),
+                )
+                summary["driver_payroll_gross"] = float(cur.fetchone()[0] or 0.0)
+
+            if _has_column(conn, "payroll_entries", "year"):
+                cur.execute(
+                    """
+                    SELECT COALESCE(SUM(
+                        COALESCE(base_salary, 0)
+                        + COALESCE(bonus, 0)
+                        + COALESCE(gratuity, 0)
+                        + COALESCE(other_benefits, 0)
+                    ), 0)
+                    FROM payroll_entries
+                    WHERE year = %s
+                    """,
+                    (fiscal_year,),
+                )
+                summary["payroll_entries_gross"] = float(cur.fetchone()[0] or 0.0)
+
+            if _has_column(conn, "employee_t4_records", "tax_year") and _has_column(
+                conn, "employee_t4_records", "box_14_employment_income"
+            ):
+                cur.execute(
+                    """
+                    SELECT COUNT(*), COALESCE(SUM(COALESCE(box_14_employment_income, 0)), 0)
+                    FROM employee_t4_records
+                    WHERE tax_year = %s
+                    """,
+                    (fiscal_year,),
+                )
+                row = cur.fetchone()
+                summary["t4_employee_count"] = int(row[0] or 0)
+                summary["t4_employment_income"] = float(row[1] or 0.0)
+
+            if _has_column(conn, "cra_pd7a_returns", "reporting_year"):
+                cur.execute(
+                    """
+                    SELECT
+                        COALESCE(SUM(COALESCE(total_remittance_due, 0)), 0),
+                        COALESCE(SUM(COALESCE(adjusted_remittance, total_remittance_due, 0)), 0)
+                    FROM cra_pd7a_returns
+                    WHERE reporting_year = %s
+                    """,
+                    (fiscal_year,),
+                )
+                row = cur.fetchone()
+                summary["pd7a_due"] = float(row[0] or 0.0)
+                summary["pd7a_paid"] = float(row[1] or 0.0)
+
+            if _has_column(conn, "payroll_remittances", "fiscal_year"):
+                cur.execute(
+                    """
+                    SELECT COALESCE(SUM(COALESCE(payment_amount, 0)), 0)
+                    FROM payroll_remittances
+                    WHERE fiscal_year = %s
+                    """,
+                    (fiscal_year,),
+                )
+                summary["payroll_remittances_paid"] = float(cur.fetchone()[0] or 0.0)
+
+        summary["gross_payroll"] = round(
+            summary["driver_payroll_gross"] + summary["payroll_entries_gross"], 2
+        )
+        summary["pd7a_outstanding"] = round(
+            summary["pd7a_due"] - summary["payroll_remittances_paid"], 2
+        )
+        summary["available_after_payroll"] = round(
+            summary["gross_payroll"] - summary["pd7a_outstanding"], 2
+        )
+        return summary
 def _get_checklist(conn, fiscal_year: int) -> list[dict[str, Any]]:
     with conn.cursor() as cur:
         cur.execute(
@@ -361,6 +408,145 @@ def _insert_rollover_marker(conn, fiscal_year: int, net_income: float) -> dict[s
     }
 
 
+def _cleanup_year_end_artifacts(conn, fiscal_year: int) -> None:
+    """Remove prior auto-generated close artifacts for safe draft recalculation."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            DELETE FROM year_end_rollovers
+            WHERE fiscal_year = %s
+              AND COALESCE(metadata->>'source', '') IN (
+                  'year_end_close',
+                  'year_end_close_draft',
+                  'year_end_close_final'
+              )
+            """,
+            (fiscal_year,),
+        )
+
+        # Remove prior mirrored GL rollover line created by this close flow.
+        if _has_column(conn, "general_ledger", "transaction_type") and _has_column(
+            conn, "general_ledger", "num"
+        ):
+            cur.execute(
+                """
+                DELETE FROM general_ledger
+                WHERE transaction_type = 'year_end_rollover'
+                  AND num = %s
+                """,
+                (f"YE-{fiscal_year}",),
+            )
+
+
+def refresh_draft_year_end_close(conn, fiscal_year: int) -> dict[str, Any]:
+    """Recompute a draft year-end close after receipt mutations.
+
+    Finalized closes remain locked. Draft/open close rows are refreshed in place
+    so newly added receipts adjust the stored totals.
+    """
+
+    _ensure_tables(conn)
+    summary = _compute_summary(conn, fiscal_year)
+    gains = _compute_capital_gains(conn, fiscal_year)
+    payroll = _compute_payroll_summary(conn, fiscal_year)
+
+    try:
+        from .t2_returns import _refresh_t2_return_totals
+    except Exception:
+        _refresh_t2_return_totals = None
+    if _refresh_t2_return_totals is not None:
+        _refresh_t2_return_totals(conn, fiscal_year)
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT close_id, status
+            FROM year_end_closes
+            WHERE fiscal_year = %s
+            """,
+            (fiscal_year,),
+        )
+        row = cur.fetchone()
+
+    if row is None:
+        return {
+            "fiscal_year": fiscal_year,
+            "refreshed": False,
+            "reason": "no_close_record",
+            "summary": {
+                **summary,
+                "capital_gains": gains["capital_gains"],
+                "payroll": payroll,
+            },
+        }
+
+    status = (row[1] or "closed").strip().lower()
+    if status == "finalized_closed":
+        return {
+            "fiscal_year": fiscal_year,
+            "refreshed": False,
+            "reason": "finalized_locked",
+            "status": status,
+            "summary": {
+                **summary,
+                "capital_gains": gains["capital_gains"],
+                "payroll": payroll,
+            },
+        }
+
+    _cleanup_year_end_artifacts(conn, fiscal_year)
+    rollover = _insert_rollover_marker(conn, fiscal_year, summary["net_income"])
+
+    summary_json = json.dumps(
+        {
+            "summary": {
+                "total_revenue": summary["total_revenue"],
+                "total_expenses": summary["total_expenses"],
+                "net_income": summary["net_income"],
+            },
+            "capital_gains": gains["capital_gains"],
+            "payroll": payroll,
+        }
+    )
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE year_end_closes
+            SET total_revenue = %s,
+                total_expenses = %s,
+                net_income = %s,
+                retained_earnings_rollover = %s,
+                capital_gains = %s,
+                closed_at = NOW(),
+                summary_json = %s::jsonb
+            WHERE fiscal_year = %s
+            """,
+            (
+                summary["total_revenue"],
+                summary["total_expenses"],
+                summary["net_income"],
+                rollover["amount"],
+                gains["capital_gains"],
+                summary_json,
+                fiscal_year,
+            ),
+        )
+
+    return {
+        "fiscal_year": fiscal_year,
+        "refreshed": True,
+        "status": status,
+        "summary": {
+            **summary,
+            "capital_gains": gains["capital_gains"],
+            "payroll": payroll,
+            "retained_earnings_rollover": rollover["amount"],
+            "rollover_direction": rollover["direction"],
+        },
+    }
+
+
 def _audit_actor(request: Request) -> AuditEventActor:
     user = getattr(request.state, "current_user", None) or {}
     return AuditEventActor(
@@ -379,6 +565,7 @@ def get_year_end_summary(fiscal_year: int):
         return {
             "fiscal_year": fiscal_year,
             **_compute_summary(conn, fiscal_year),
+            "payroll": _compute_payroll_summary(conn, fiscal_year),
         }
     finally:
         return_connection(conn)
@@ -455,13 +642,14 @@ def get_year_end_status(fiscal_year: int):
         _ensure_tables(conn)
         summary = _compute_summary(conn, fiscal_year)
         gains = _compute_capital_gains(conn, fiscal_year)
+        payroll = _compute_payroll_summary(conn, fiscal_year)
         checklist_items = _get_checklist(conn, fiscal_year)
         checklist = _checklist_summary(checklist_items)
 
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT close_id, closed_at, total_revenue, total_expenses,
+                SELECT close_id, status, closed_at, total_revenue, total_expenses,
                        net_income, retained_earnings_rollover, capital_gains
                 FROM year_end_closes
                 WHERE fiscal_year = %s
@@ -471,18 +659,31 @@ def get_year_end_status(fiscal_year: int):
             row = cur.fetchone()
 
         if row:
+            status = row[1] or "closed"
+            current_summary = {
+                **summary,
+                "capital_gains": gains["capital_gains"],
+                "payroll": payroll,
+                "closed_at": row[2].isoformat() if hasattr(row[2], "isoformat") else None,
+            }
             return {
                 "fiscal_year": fiscal_year,
-                "status": "closed",
-                "message": f"Fiscal year {fiscal_year} is closed.",
+                "status": status,
+                "message": f"Fiscal year {fiscal_year} is {status}.",
                 "summary": {
-                    "total_revenue": float(row[2] or 0.0),
-                    "total_expenses": float(row[3] or 0.0),
-                    "net_income": float(row[4] or 0.0),
-                    "retained_earnings_rollover": float(row[5] or 0.0),
-                    "capital_gains": float(row[6] or 0.0),
-                    "closed_at": row[1].isoformat() if hasattr(row[1], "isoformat") else None,
+                    "total_revenue": float(row[3] or 0.0),
+                    "total_expenses": float(row[4] or 0.0),
+                    "net_income": float(row[5] or 0.0),
+                    "retained_earnings_rollover": float(row[6] or 0.0),
+                    "capital_gains": float(row[7] or 0.0),
+                    "closed_at": row[2].isoformat() if hasattr(row[2], "isoformat") else None,
                 },
+                "current_summary": current_summary,
+                "summary_matches_current": (
+                    round(float(row[3] or 0.0), 2) == current_summary["total_revenue"]
+                    and round(float(row[4] or 0.0), 2) == current_summary["total_expenses"]
+                    and round(float(row[5] or 0.0), 2) == current_summary["net_income"]
+                ),
                 "checklist": checklist,
             }
 
@@ -493,6 +694,7 @@ def get_year_end_status(fiscal_year: int):
             "summary": {
                 **summary,
                 "capital_gains": gains["capital_gains"],
+                "payroll": payroll,
                 "closed_at": None,
             },
             "checklist": checklist,
@@ -506,16 +708,21 @@ def execute_year_end_close(payload: YearEndCloseRequest, request: Request):
     conn = get_connection()
     try:
         _ensure_tables(conn)
-        ensure_audit_storage(conn)
         fiscal_year = payload.fiscal_year
 
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT close_id FROM year_end_closes WHERE fiscal_year = %s",
+                "SELECT close_id, status FROM year_end_closes WHERE fiscal_year = %s",
                 (fiscal_year,),
             )
-            if cur.fetchone() is not None:
-                raise HTTPException(status_code=400, detail="year_already_closed")
+            existing = cur.fetchone()
+            if existing is not None:
+                existing_status = (existing[1] or "closed").strip().lower()
+                if existing_status in {"closed", "finalized_closed"}:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="year_already_finalized",
+                    )
 
         checklist_items = _get_checklist(conn, fiscal_year)
         checklist = _checklist_summary(checklist_items)
@@ -531,7 +738,10 @@ def execute_year_end_close(payload: YearEndCloseRequest, request: Request):
 
         summary = _compute_summary(conn, fiscal_year)
         gains = _compute_capital_gains(conn, fiscal_year)
+        payroll = _compute_payroll_summary(conn, fiscal_year)
+        _cleanup_year_end_artifacts(conn, fiscal_year)
         rollover = _insert_rollover_marker(conn, fiscal_year, summary["net_income"])
+        close_status = "finalized_closed" if payload.finalize else "draft_closed"
 
         with conn.cursor() as cur:
             summary_json = json.dumps(
@@ -551,11 +761,24 @@ def execute_year_end_close(payload: YearEndCloseRequest, request: Request):
                     net_income, retained_earnings_rollover, capital_gains,
                     notes, executed_by, closed_at, summary_json
                 )
-                VALUES (%s, 'closed', %s, %s, %s, %s, %s, %s, %s, NOW(), %s::jsonb)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s::jsonb)
+                ON CONFLICT (fiscal_year)
+                DO UPDATE SET
+                    status = EXCLUDED.status,
+                    total_revenue = EXCLUDED.total_revenue,
+                    total_expenses = EXCLUDED.total_expenses,
+                    net_income = EXCLUDED.net_income,
+                    retained_earnings_rollover = EXCLUDED.retained_earnings_rollover,
+                    capital_gains = EXCLUDED.capital_gains,
+                    notes = EXCLUDED.notes,
+                    executed_by = EXCLUDED.executed_by,
+                    closed_at = NOW(),
+                    summary_json = EXCLUDED.summary_json
                 RETURNING close_id, closed_at
                 """,
                 (
                     fiscal_year,
+                    close_status,
                     summary["total_revenue"],
                     summary["total_expenses"],
                     summary["net_income"],
@@ -568,43 +791,48 @@ def execute_year_end_close(payload: YearEndCloseRequest, request: Request):
             )
             row = cur.fetchone()
 
-        event = AuditEvent(
-            module="year_end",
-            entity_type="year_end_close",
-            entity_id=str(fiscal_year),
-            action="year_end_closed",
-            source="api",
-            correlation_id=request.headers.get("X-Request-ID"),
-            actor=_audit_actor(request),
-            before={
-                "status": "open",
-                "force": payload.force,
-            },
-            after={
-                "status": "closed",
-                "summary": {
-                    **summary,
-                    "capital_gains": gains["capital_gains"],
-                    "retained_earnings_rollover": rollover["amount"],
+        if payload.finalize:
+            ensure_audit_storage(conn)
+            event = AuditEvent(
+                module="year_end",
+                entity_type="year_end_close",
+                entity_id=str(fiscal_year),
+                action="year_end_finalized",
+                source="api",
+                correlation_id=request.headers.get("X-Request-ID"),
+                actor=_audit_actor(request),
+                before={
+                    "status": "draft_closed" if existing is not None else "open",
+                    "force": payload.force,
                 },
-                "notes": payload.notes,
-            },
-            evidence_links=[
-                f"year_end_closes:{fiscal_year}",
-                f"year_end_rollovers:{rollover['rollover_id']}",
-            ],
-            retention_until=datetime(fiscal_year + 6, 12, 31).date(),
-            note="Year-end close audit record",
-        )
-        record_audit_event(conn, event, ensure_storage=False, commit=False)
+                after={
+                    "status": close_status,
+                    "summary": {
+                        **summary,
+                        "capital_gains": gains["capital_gains"],
+                        "payroll": payroll,
+                        "retained_earnings_rollover": rollover["amount"],
+                    },
+                    "notes": payload.notes,
+                },
+                evidence_links=[
+                    f"year_end_closes:{fiscal_year}",
+                    f"year_end_rollovers:{rollover['rollover_id']}",
+                ],
+                retention_until=datetime(fiscal_year + 6, 12, 31).date(),
+                note="Year-end finalization audit record",
+            )
+            record_audit_event(conn, event, ensure_storage=False, commit=False)
         conn.commit()
 
+        result_label = "finalized" if payload.finalize else "draft-closed"
         return {
-            "status": "closed",
-            "message": f"Fiscal year {fiscal_year} closed successfully.",
+            "status": close_status,
+            "message": f"Fiscal year {fiscal_year} {result_label} successfully.",
             "summary": {
                 **summary,
                 "capital_gains": gains["capital_gains"],
+                "payroll": payroll,
                 "retained_earnings_rollover": rollover["amount"],
                 "rollover_direction": rollover["direction"],
                 "closed_at": row[1].isoformat() if hasattr(row[1], "isoformat") else None,
@@ -620,6 +848,54 @@ def execute_year_end_close(payload: YearEndCloseRequest, request: Request):
         return_connection(conn)
 
 
+@router.post("/reopen")
+def reopen_year_end(payload: YearEndReopenRequest):
+    conn = get_connection()
+    try:
+        _ensure_tables(conn)
+        fiscal_year = payload.fiscal_year
+
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT status FROM year_end_closes WHERE fiscal_year = %s",
+                (fiscal_year,),
+            )
+            row = cur.fetchone()
+
+        if row is None:
+            return {
+                "status": "open",
+                "message": f"Fiscal year {fiscal_year} is already open.",
+            }
+
+        status = (row[0] or "closed").strip().lower()
+        if status in {"closed", "finalized_closed"}:
+            raise HTTPException(
+                status_code=400,
+                detail="finalized_close_locked",
+            )
+
+        _cleanup_year_end_artifacts(conn, fiscal_year)
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM year_end_closes WHERE fiscal_year = %s",
+                (fiscal_year,),
+            )
+        conn.commit()
+        return {
+            "status": "open",
+            "message": f"Fiscal year {fiscal_year} reopened from draft.",
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as exc:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"year_end_reopen_failed: {exc}") from exc
+    finally:
+        return_connection(conn)
+
+
 @router.get("/report/{fiscal_year}")
 def get_year_end_report(fiscal_year: int):
     conn = get_connection()
@@ -627,6 +903,7 @@ def get_year_end_report(fiscal_year: int):
         _ensure_tables(conn)
         summary = _compute_summary(conn, fiscal_year)
         gains = _compute_capital_gains(conn, fiscal_year)
+        payroll = _compute_payroll_summary(conn, fiscal_year)
         checklist_items = _get_checklist(conn, fiscal_year)
         checklist = _checklist_summary(checklist_items)
 
@@ -678,6 +955,7 @@ def get_year_end_report(fiscal_year: int):
             "summary": {
                 **summary,
                 "capital_gains": gains["capital_gains"],
+                "payroll": payroll,
             },
             "capital_gains": gains,
             "checklist": {

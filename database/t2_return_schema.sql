@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS t2_schedule_data (
     schedule_id SERIAL PRIMARY KEY,
     return_id INT NOT NULL,
     schedule_number VARCHAR(10) NOT NULL, -- '1', '3', '4', '8', '50', '100', '125'
-    line_number VARCHAR(20) NOT NULL,     -- e.g., '8000', '8299', '9369'
+    line_number VARCHAR(100) NOT NULL,    -- e.g., '8000', '8299', '9369', or a full intake line code
     line_description TEXT,
     amount DECIMAL(15,2),
     calculation_notes TEXT,

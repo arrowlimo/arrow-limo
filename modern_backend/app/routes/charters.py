@@ -37,6 +37,49 @@ from app.schemas.booking import (
 
 router = APIRouter()
 
+RESERVE_SEQUENCE_MAX_AHEAD = 10000
+
+
+def _next_reserve_number(db: Session) -> str:
+    """Generate a safe next reserve number and auto-correct sequence drift."""
+    max_existing = int(
+        db.execute(
+            text(
+                "SELECT COALESCE(MAX(CAST(reserve_number AS BIGINT)), 0) "
+                "FROM charters WHERE reserve_number ~ '^[0-9]+$'"
+            )
+        ).scalar()
+        or 0
+    )
+
+    try:
+        seq_value = int(db.execute(text("SELECT nextval('reserve_number_seq')")).scalar() or 0)
+    except Exception:
+        seq_value = 0
+
+    if seq_value <= 0:
+        next_value = max_existing + 1
+    elif max_existing > 0 and seq_value > (max_existing + RESERVE_SEQUENCE_MAX_AHEAD):
+        next_value = max_existing + 1
+    else:
+        next_value = max(seq_value, max_existing + 1)
+
+    # Keep sequence aligned with issued numbers for future inserts.
+    db.execute(text("SELECT setval('reserve_number_seq', :value, true)"), {"value": next_value})
+
+    for _ in range(50):
+        reserve_number = f"{int(next_value):06d}"
+        exists = db.execute(
+            text("SELECT 1 FROM charters WHERE reserve_number = :reserve_number LIMIT 1"),
+            {"reserve_number": reserve_number},
+        ).first()
+        if not exists:
+            return reserve_number
+        next_value += 1
+        db.execute(text("SELECT setval('reserve_number_seq', :value, true)"), {"value": next_value})
+
+    return f"{int(next_value):06d}"
+
 
 # =============================================================================
 # ENDPOINT 1: POST /api/charters - Create New Charter Booking
@@ -67,19 +110,15 @@ async def create_charter(request: ChartRequest, db: Session = Depends(get_db)):
     """
     try:
         # ===== STEP 1: Validate or create customer =====
-        customer = (
-            db.query(Customer)
-            .filter(
-                Customer.client_name == request.client_name,
-                Customer.phone == request.phone,
-            )
-            .first()
-        )
+        customer_query = db.query(Customer).filter(Customer.client_name == request.client_name)
+        if request.phone:
+            customer_query = customer_query.filter(Customer.phone == request.phone)
+        customer = customer_query.first()
 
         if not customer:
             customer = Customer(
                 client_name=request.client_name,
-                phone=request.phone,
+                phone=request.phone or None,
                 email=request.email,
                 billing_address=request.billing_address,
                 city=request.city,
@@ -134,11 +173,8 @@ async def create_charter(request: ChartRequest, db: Session = Depends(get_db)):
         db.add(charter)
         db.flush()  # Get charter_id
 
-        # ===== STEP 5: Generate reserve_number using database sequence =====
-        # PostgreSQL sequence: SELECT nextval('reserve_number_seq')
-        result = db.execute(text("SELECT nextval('reserve_number_seq')"))
-        seq_value = result.scalar()
-        reserve_number = f"{seq_value:06d}"  # Zero-padded to 6 digits (e.g., "019233")
+        # ===== STEP 5: Generate reserve_number with sequence drift protection =====
+        reserve_number = _next_reserve_number(db)
 
         charter.reserve_number = reserve_number
         db.add(charter)

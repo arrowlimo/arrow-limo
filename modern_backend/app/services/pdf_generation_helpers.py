@@ -12,7 +12,7 @@ DEFAULT_CONFIRMATION_TEMPLATE = (
     "Thank you for choosing Arrow Limousine & Sedan Services Ltd. "
     "We have reserved the following transportation for you.\n\n"
     "Date for the Reservation: {{charter_date}}    "
-    "Arrival Time: {{pickup_time}}    Predicted End Time: {{dropoff_time}}\n\n"
+    "Starting at: {{pickup_time}}    Predicted End Time: {{dropoff_time}}\n\n"
     "Type of Vehicle: {{vehicle_type}}\n\n"
     "Itinerary:\n{{itinerary}}\n\n"
     "Please review the details above and contact our office with any questions. "
@@ -149,6 +149,38 @@ def _render_confirmation_template_body(charter_data: dict[str, Any] | None) -> s
     template = _normalize_template_text(_load_active_confirmation_template())
     if not charter_data:
         return template
+    return _render_confirmation_template_text(template, charter_data)
+
+
+def _format_confirmation_date(value: Any) -> str:
+    if not value:
+        return ""
+    try:
+        parsed = value
+        if not hasattr(parsed, "strftime"):
+            parsed = datetime.fromisoformat(str(value)[:10])
+        return f"{parsed.strftime('%B')} {parsed.day}, {parsed.year}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _format_confirmation_time(value: Any) -> str:
+    if not value:
+        return ""
+    try:
+        parsed = value
+        if not hasattr(parsed, "strftime"):
+            raw = str(value).strip()
+            parsed = datetime.strptime(raw[:8], "%H:%M:%S" if raw.count(":") >= 2 else "%H:%M")
+        return parsed.strftime("%I:%M %p").lstrip("0")
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _render_confirmation_template_text(
+    template: str,
+    charter_data: dict[str, Any],
+) -> str:
 
     def _value(*keys: str) -> str:
         for key in keys:
@@ -156,11 +188,11 @@ def _render_confirmation_template_body(charter_data: dict[str, Any] | None) -> s
                 return str(charter_data.get(key))
         return ""
 
-    client_name = _value("client_name", "client_display_name", "company_name")
+    client_name = _value("client_display_name", "client_name", "company_name")
     reserve_number = _value("reservation_number", "reserve_number", "charter_id")
-    charter_date = _value("charter_date")
-    pickup_time = _value("pickup_time", "actual_pickup_time")
-    dropoff_time = _value("dropoff_time", "actual_dropoff_time")
+    charter_date = _format_confirmation_date(_value("charter_date"))
+    pickup_time = _format_confirmation_time(_value("pickup_time", "actual_pickup_time"))
+    dropoff_time = _format_confirmation_time(_value("dropoff_time", "actual_dropoff_time"))
     vehicle = _value(
         "vehicle_type",
         "requested_vehicle_type",
@@ -178,9 +210,13 @@ def _render_confirmation_template_body(charter_data: dict[str, Any] | None) -> s
             stop_time = route.get("stop_time") or route.get("pickup_time") or route.get("dropoff_time") or ""
             event_type = route.get("event_type_label") or route.get("event_type_code") or "Stop"
             if addr:
-                piece = f"{event_type}: {addr}"
+                normalized_addr = str(addr).strip()
+                narrative = normalized_addr.lower().startswith(
+                    ("leave ", "arrive ", "return ", "depart ")
+                )
+                piece = normalized_addr if narrative else f"{event_type}: {normalized_addr}"
                 if stop_time:
-                    piece += f" @ {stop_time}"
+                    piece += f" @ {_format_confirmation_time(stop_time)}"
                 parts.append(piece)
         itinerary = "\n".join(parts)
 
@@ -199,6 +235,43 @@ def _render_confirmation_template_body(charter_data: dict[str, Any] | None) -> s
     for key, value in replacements.items():
         rendered = rendered.replace(f"{{{{{key}}}}}", str(value).strip())
     return rendered.strip()
+
+
+def _render_confirmation_template_sections(
+    charter_data: dict[str, Any],
+) -> tuple[str, str]:
+    """Return editable prose around the generator-owned reservation details."""
+    template = _normalize_template_text(_load_active_confirmation_template())
+    blocks = [block.strip() for block in re.split(r"\n\s*\n", template) if block.strip()]
+    intro_blocks: list[str] = []
+    closing_blocks: list[str] = []
+    reached_details = False
+    reached_itinerary = False
+    detail_tokens = (
+        "{{charter_date}}",
+        "{{pickup_time}}",
+        "{{dropoff_time}}",
+        "{{vehicle_type}}",
+    )
+
+    for index, block in enumerate(blocks):
+        if index == 0 and block.lower().startswith("dear "):
+            continue
+        if "{{itinerary}}" in block:
+            reached_details = True
+            reached_itinerary = True
+            continue
+        if any(token in block for token in detail_tokens):
+            reached_details = True
+            continue
+        if reached_itinerary:
+            closing_blocks.append(block)
+        elif not reached_details:
+            intro_blocks.append(block)
+
+    intro = _render_confirmation_template_text("\n\n".join(intro_blocks), charter_data)
+    closing = _render_confirmation_template_text("\n\n".join(closing_blocks), charter_data)
+    return intro, closing
 
 
 def _render_quote_template_body(charter_data: dict[str, Any] | None) -> str:
@@ -265,33 +338,51 @@ def _load_docx_policy_sections() -> list[tuple[str, str]]:
         root = Path(__file__).resolve().parents[3]
         template_path = root / "forms" / "templates" / "confirmationletter.docx"
         document = Document(str(template_path))
-        paragraphs = [p.text.strip() for p in document.paragraphs]
-        start = next(
-            (i for i, text in enumerate(paragraphs) if text.lower() == "policies & terms"),
-            None,
-        )
-        if start is None:
-            return []
-
-        sections: list[tuple[str, list[str]]] = []
+        sections: list[tuple[str, str]] = []
         current_heading = ""
         current_body: list[str] = []
-        heading_pattern = re.compile(r"^(?:\d+\.\s+|non-refundable retainer)", re.IGNORECASE)
-        for text in paragraphs[start + 1 :]:
+        in_policies = False
+        known_normal_headings = {
+            "Alcohol Regulations",
+            "Safe driving policy",
+        }
+
+        def flush() -> None:
+            nonlocal current_heading, current_body
+            if current_heading:
+                sections.append((current_heading, "\n".join(current_body).strip()))
+            current_heading = ""
+            current_body = []
+
+        for paragraph in document.paragraphs:
+            text = (paragraph.text or "").strip()
             if not text:
                 continue
-            if text.lower().startswith("sincerely"):
+            if text == "Policies & Terms":
+                in_policies = True
+                continue
+            if not in_policies:
+                continue
+            if text.startswith("We appreciate your business."):
                 break
-            if heading_pattern.match(text):
-                if current_heading:
-                    sections.append((current_heading, current_body))
+
+            if text.endswith(" Out-of-Town Charters"):
+                body_text = text[: -len(" Out-of-Town Charters")].strip()
+                if body_text:
+                    current_body.append(body_text)
+                flush()
+                current_heading = "Out-of-Town Charters"
+                continue
+
+            style_name = (getattr(paragraph.style, "name", "") or "").strip()
+            is_heading = style_name.startswith("Heading") or text in known_normal_headings
+            if is_heading:
+                flush()
                 current_heading = text
-                current_body = []
             elif current_heading:
                 current_body.append(text)
-        if current_heading:
-            sections.append((current_heading, current_body))
-        return [(heading, "\n".join(body)) for heading, body in sections]
+        flush()
+        return sections
     except Exception:
         return []
 

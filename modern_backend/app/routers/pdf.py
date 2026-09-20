@@ -530,6 +530,8 @@ def _apply_pdf_field_aliases(charter_data: dict[str, Any]) -> dict[str, Any]:
         )
     if not charter_data.get("driver_name"):
         charter_data["driver_name"] = charter_data.get("driver")
+    if not charter_data.get("vehicle_type"):
+        charter_data["vehicle_type"] = charter_data.get("vehicle_type_requested")
     return charter_data
 
 
@@ -1214,17 +1216,45 @@ def get_employee_t4_pdf(
     _ensure_employee_self_or_privileged(current_user or {}, employee_id)
 
     with cursor() as cur:
+        sin_select = (
+            "sin"
+            if _column_exists(cur, "employees", "sin")
+            else "t4_sin"
+            if _column_exists(cur, "employees", "t4_sin")
+            else "NULL::text AS sin"
+        )
+        address_select = (
+            "address"
+            if _column_exists(cur, "employees", "address")
+            else "address_line1"
+            if _column_exists(cur, "employees", "address_line1")
+            else "NULL::text AS address"
+        )
+        city_select = "city" if _column_exists(cur, "employees", "city") else "NULL::text AS city"
+        province_select = (
+            "province"
+            if _column_exists(cur, "employees", "province")
+            else "NULL::text AS province"
+        )
+        postal_select = (
+            "postal_code"
+            if _column_exists(cur, "employees", "postal_code")
+            else "zip_code"
+            if _column_exists(cur, "employees", "zip_code")
+            else "NULL::text AS postal_code"
+        )
+
         # Get employee information
         cur.execute(
-            """
+            f"""
             SELECT
                 employee_id,
                 full_name,
-                sin,
-                address,
-                city,
-                province,
-                postal_code
+                {sin_select},
+                {address_select},
+                {city_select},
+                {province_select},
+                {postal_select}
             FROM employees
             WHERE employee_id = %s
             """,
@@ -1235,11 +1265,29 @@ def get_employee_t4_pdf(
         if not employee_row:
             raise HTTPException(status_code=404, detail=f"Employee {employee_id} not found")
 
-        employee_data = dict(employee_row)
+        employee_columns = [d[0] for d in (cur.description or [])]
+        employee_data = dict(zip(employee_columns, employee_row, strict=False))
+
+        ei_insurable_expr = (
+            "ei_insurable_earnings"
+            if _column_exists(cur, "driver_payroll", "ei_insurable_earnings")
+            else "0::numeric"
+        )
+        cpp_pensionable_expr = (
+            "cpp_pensionable_earnings"
+            if _column_exists(cur, "driver_payroll", "cpp_pensionable_earnings")
+            else "0::numeric"
+        )
+        commission_expr = (
+            "commission" if _column_exists(cur, "driver_payroll", "commission") else "0::numeric"
+        )
+        union_dues_expr = (
+            "union_dues" if _column_exists(cur, "driver_payroll", "union_dues") else "0::numeric"
+        )
 
         # Get T4 data from payroll
         cur.execute(
-            """
+            f"""
             SELECT
                 COALESCE(
                     SUM(
@@ -1254,18 +1302,18 @@ def get_employee_t4_pdf(
                 COALESCE(SUM(cpp), 0) as box16,
                 COALESCE(SUM(ei), 0) as box18,
                 COALESCE(SUM(tax), 0) as box22,
-                COALESCE(SUM(CASE WHEN ei_insurable_earnings > 0 THEN
-                ei_insurable_earnings ELSE GREATEST(
+                COALESCE(SUM(CASE WHEN COALESCE({ei_insurable_expr}, 0) > 0 THEN
+                {ei_insurable_expr} ELSE GREATEST(
                     COALESCE(gross_pay, 0) - COALESCE(expense_reimbursement, 0),
                     0
                 ) END), 0) as box24,
-                COALESCE(SUM(CASE WHEN cpp_pensionable_earnings > 0 THEN
-                cpp_pensionable_earnings ELSE GREATEST(
+                COALESCE(SUM(CASE WHEN COALESCE({cpp_pensionable_expr}, 0) > 0 THEN
+                {cpp_pensionable_expr} ELSE GREATEST(
                     COALESCE(gross_pay, 0) - COALESCE(expense_reimbursement, 0),
                     0
                 ) END), 0) as box26,
-                COALESCE(SUM(commission), 0) as box44,
-                COALESCE(SUM(union_dues), 0) as box52
+                COALESCE(SUM({commission_expr}), 0) as box44,
+                COALESCE(SUM({union_dues_expr}), 0) as box52
             FROM driver_payroll
             WHERE employee_id = %s AND year = %s
             """,
@@ -1286,7 +1334,8 @@ def get_employee_t4_pdf(
                 "box52": 0.00,
             }
         else:
-            t4_data = dict(t4_row)
+            t4_columns = [d[0] for d in (cur.description or [])]
+            t4_data = dict(zip(t4_columns, t4_row, strict=False))
 
     # Generate T4 PDF
     try:
@@ -1317,17 +1366,45 @@ def preview_employee_t4_pdf(
     _ensure_employee_self_or_privileged(current_user or {}, employee_id)
 
     with cursor() as cur:
+        sin_select = (
+            "sin"
+            if _column_exists(cur, "employees", "sin")
+            else "t4_sin"
+            if _column_exists(cur, "employees", "t4_sin")
+            else "NULL::text AS sin"
+        )
+        address_select = (
+            "address"
+            if _column_exists(cur, "employees", "address")
+            else "address_line1"
+            if _column_exists(cur, "employees", "address_line1")
+            else "NULL::text AS address"
+        )
+        city_select = "city" if _column_exists(cur, "employees", "city") else "NULL::text AS city"
+        province_select = (
+            "province"
+            if _column_exists(cur, "employees", "province")
+            else "NULL::text AS province"
+        )
+        postal_select = (
+            "postal_code"
+            if _column_exists(cur, "employees", "postal_code")
+            else "zip_code"
+            if _column_exists(cur, "employees", "zip_code")
+            else "NULL::text AS postal_code"
+        )
+
         # Get employee information
         cur.execute(
-            """
+            f"""
             SELECT
                 employee_id,
                 full_name,
-                sin,
-                address,
-                city,
-                province,
-                postal_code
+                {sin_select},
+                {address_select},
+                {city_select},
+                {province_select},
+                {postal_select}
             FROM employees
             WHERE employee_id = %s
             """,
@@ -1338,11 +1415,29 @@ def preview_employee_t4_pdf(
         if not employee_row:
             raise HTTPException(status_code=404, detail=f"Employee {employee_id} not found")
 
-        employee_data = dict(employee_row)
+        employee_columns = [d[0] for d in (cur.description or [])]
+        employee_data = dict(zip(employee_columns, employee_row, strict=False))
+
+        ei_insurable_expr = (
+            "ei_insurable_earnings"
+            if _column_exists(cur, "driver_payroll", "ei_insurable_earnings")
+            else "0::numeric"
+        )
+        cpp_pensionable_expr = (
+            "cpp_pensionable_earnings"
+            if _column_exists(cur, "driver_payroll", "cpp_pensionable_earnings")
+            else "0::numeric"
+        )
+        commission_expr = (
+            "commission" if _column_exists(cur, "driver_payroll", "commission") else "0::numeric"
+        )
+        union_dues_expr = (
+            "union_dues" if _column_exists(cur, "driver_payroll", "union_dues") else "0::numeric"
+        )
 
         # Get T4 data from payroll
         cur.execute(
-            """
+            f"""
             SELECT
                 COALESCE(
                     SUM(
@@ -1357,18 +1452,18 @@ def preview_employee_t4_pdf(
                 COALESCE(SUM(cpp), 0) as box16,
                 COALESCE(SUM(ei), 0) as box18,
                 COALESCE(SUM(tax), 0) as box22,
-                COALESCE(SUM(CASE WHEN ei_insurable_earnings > 0 THEN
-                ei_insurable_earnings ELSE GREATEST(
+                COALESCE(SUM(CASE WHEN COALESCE({ei_insurable_expr}, 0) > 0 THEN
+                {ei_insurable_expr} ELSE GREATEST(
                     COALESCE(gross_pay, 0) - COALESCE(expense_reimbursement, 0),
                     0
                 ) END), 0) as box24,
-                COALESCE(SUM(CASE WHEN cpp_pensionable_earnings > 0 THEN
-                cpp_pensionable_earnings ELSE GREATEST(
+                COALESCE(SUM(CASE WHEN COALESCE({cpp_pensionable_expr}, 0) > 0 THEN
+                {cpp_pensionable_expr} ELSE GREATEST(
                     COALESCE(gross_pay, 0) - COALESCE(expense_reimbursement, 0),
                     0
                 ) END), 0) as box26,
-                COALESCE(SUM(commission), 0) as box44,
-                COALESCE(SUM(union_dues), 0) as box52
+                COALESCE(SUM({commission_expr}), 0) as box44,
+                COALESCE(SUM({union_dues_expr}), 0) as box52
             FROM driver_payroll
             WHERE employee_id = %s AND year = %s
             """,
@@ -1388,7 +1483,8 @@ def preview_employee_t4_pdf(
                 "box52": 0.00,
             }
         else:
-            t4_data = dict(t4_row)
+            t4_columns = [d[0] for d in (cur.description or [])]
+            t4_data = dict(zip(t4_columns, t4_row, strict=False))
 
     # Generate T4 PDF
     try:

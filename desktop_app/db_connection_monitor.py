@@ -8,6 +8,7 @@ connection issues.
 """
 
 import logging
+import time
 
 import psycopg2
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
@@ -41,24 +42,41 @@ class DatabaseConnectionMonitor(QObject):
         self.is_online = True  # Assume online at start
         self.last_error = None
         self.warning_shown = False  # Track if warning dialog has been shown
+        self.failure_count = 0
+        self.first_failure_at = None
 
         # Setup timer for periodic checks
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_connection)
 
-    def start_monitoring(self) -> None:
-        """Start periodic connection health checks"""
-        logger.info(
-            f"Starting database connection monitoring (interval:"
-            f"{self.check_interval_ms}ms)"
-        )
+    def start_monitoring(self, *, periodic=True) -> None:
+        """Verify connectivity once and optionally start periodic checks."""
         self.check_connection()  # Initial check
-        self.timer.start(self.check_interval_ms)
+        if periodic:
+            logger.info(
+                "Starting periodic database connection monitoring "
+                "(interval: %sms)",
+                self.check_interval_ms,
+            )
+            self.timer.start(self.check_interval_ms)
+        else:
+            logger.info(
+                "Periodic database checks disabled; reconnecting on demand"
+            )
+            self.timer.stop()
 
     def stop_monitoring(self) -> None:
         """Stop monitoring"""
         logger.info("Stopping database connection monitoring")
         self.timer.stop()
+
+    def _run_health_check(self) -> None:
+        cur = self.db.get_cursor()
+        try:
+            cur.execute("SELECT 1")
+            cur.fetchone()
+        finally:
+            cur.close()
 
     def check_connection(self) -> None:
         """
@@ -66,13 +84,18 @@ class DatabaseConnectionMonitor(QObject):
         Emits signals if status changes.
         """
         try:
-            # Try a simple query — use get_cursor() so auto-reconnect fires
-            cur = self.db.get_cursor()
-            cur.execute("SELECT 1")
-            cur.fetchone()
-            cur.close()
+            try:
+                self._run_health_check()
+            except (psycopg2.OperationalError, psycopg2.InterfaceError):
+                if not hasattr(self.db, "_reconnect"):
+                    raise
+                logger.info("Database connection is stale; reconnecting")
+                self.db._reconnect()
+                self._run_health_check()
 
             # Connection is good
+            self.failure_count = 0
+            self.first_failure_at = None
             if not self.is_online:
                 # Connection was restored
                 logger.info("✅ Database connection restored")
@@ -86,8 +109,22 @@ class DatabaseConnectionMonitor(QObject):
             # Connection error - check if connection is closed
             error_msg = str(e).lower()
 
+            self.failure_count += 1
+            if self.first_failure_at is None:
+                self.first_failure_at = time.monotonic()
+
+            # Debounce transient connection blips. Only transition to offline
+            # after repeated failed checks.
+            if self.is_online and self.failure_count < 2:
+                logger.warning(
+                    "Transient DB connection failure (%s): %s",
+                    self.failure_count,
+                    e,
+                )
+                return
+
             if self.is_online:
-                # Connection just went down
+                # Connection confirmed down after repeated checks
                 logger.error(f"❌ Database connection lost: {e}")
                 self.is_online = False
                 self.last_error = str(e)
@@ -122,6 +159,13 @@ class DatabaseConnectionMonitor(QObject):
             # Reconnect attempt failed or other unexpected error — treat as
             # offline so status bar and warning dialog are updated correctly
             logger.warning(f"Connection check error: {e}")
+            self.failure_count += 1
+            if self.first_failure_at is None:
+                self.first_failure_at = time.monotonic()
+
+            if self.is_online and self.failure_count < 2:
+                return
+
             if self.is_online:
                 self.is_online = False
                 self.last_error = str(e)

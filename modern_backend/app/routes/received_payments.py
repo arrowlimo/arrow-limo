@@ -15,6 +15,21 @@ from ..db import get_connection
 router = APIRouter(prefix="/api/received-payments", tags=["Received Payments"])
 
 
+def _extract_note_field(notes: str | None, prefixes: tuple[str, ...]) -> str | None:
+    """Extract first matching note field value by prefix."""
+    if not notes:
+        return None
+    for raw_line in notes.splitlines():
+        line = raw_line.strip()
+        lower_line = line.lower()
+        for prefix in prefixes:
+            lower_prefix = prefix.lower()
+            if lower_line.startswith(lower_prefix):
+                value = line[len(prefix) :].strip()
+                return value or None
+    return None
+
+
 # ============================================================================
 # PYDANTIC MODELS
 # ============================================================================
@@ -93,26 +108,21 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
     "etc.)"""
 
     conn = get_connection()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur = conn.cursor()
 
     try:
-        # Validate charter exists if provided
-        if payment.charter_id:
-            cur.execute(
-                "SELECT charter_id FROM charters WHERE charter_id = %s",
-                (payment.charter_id,),
-            )
-            if not cur.fetchone():
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Charter {payment.charter_id} not found",
-                )
+        resolved_charter_id, resolved_reserve = _resolve_charter_reference(
+            cur,
+            payment.charter_id,
+            payment.reserve_number,
+        )
 
         # Insert payment
         cur.execute(
             """
             INSERT INTO payments (
                 charter_id,
+                reserve_number,
                 amount,
                 payment_date,
                 payment_method,
@@ -120,12 +130,13 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
                 notes,
                 last_updated
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, NOW()
+                %s, %s, %s, %s, %s, %s, %s, NOW()
             )
             RETURNING payment_id, created_at
         """,
             (
-                payment.charter_id,
+                resolved_charter_id,
+                resolved_reserve,
                 payment.amount,
                 payment.payment_date,
                 payment.payment_method,
@@ -135,8 +146,8 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
         )
 
         result = cur.fetchone()
-        payment_id = result["payment_id"]
-        created_at = result["created_at"]
+        payment_id = result[0]
+        created_at = result[1]
 
         # If it's a cheque, also record in banking_transactions for
         # reconciliation
@@ -162,6 +173,7 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
                     NOW(),
                     NOW()
                 )
+                RETURNING transaction_id
             """,
                 (
                     payment.payment_date,
@@ -169,6 +181,15 @@ async def record_received_payment(payment: ReceivedPaymentCreate):
                     payment.amount,
                     payment.payer_name,
                 ),
+            )
+            banking_transaction_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                UPDATE payments
+                SET banking_transaction_id = %s
+                WHERE payment_id = %s
+                """,
+                (banking_transaction_id, payment_id),
             )
 
         conn.commit()
@@ -259,7 +280,7 @@ async def search_received_payments(
                 p.charter_id,
                 'payment' as deposit_type,
                 p.created_at,
-                c.reserve_number,
+                COALESCE(c.reserve_number, p.reserve_number) AS reserve_number,
                 c.client_display_name as customer_name,
                 c.charter_date as charter_date,
                 COALESCE(c.total_amount_due, c.grand_total, c.subtotal) as charter_amount
@@ -275,14 +296,15 @@ async def search_received_payments(
 
         payments = []
         for row in results:
-            # Extract payer name from notes
-            payer_name = "Unknown"
-            if row["notes"]:
-                lines = row["notes"].split("\n")
-                for line in lines:
-                    if line.startswith("Payer:"):
-                        payer_name = line.replace("Payer:", "").strip()
-                        break
+            payer_name = _extract_note_field(row["notes"], ("Payer:",)) or "Unknown"
+            bank_name = _extract_note_field(
+                row["notes"],
+                (
+                    "Bank:",
+                    "Bank Name:",
+                    "Financial Institution:",
+                ),
+            )
 
             payments.append(
                 ReceivedPaymentResponse(
@@ -292,7 +314,7 @@ async def search_received_payments(
                     payment_method=row["payment_method"],
                     payer_name=payer_name,
                     cheque_number=row["cheque_number"],
-                    bank_name=None,  # TODO: Extract from notes if needed
+                    bank_name=bank_name,
                     charter_id=row["charter_id"],
                     reserve_number=row["reserve_number"],
                     notes=row["notes"],
@@ -328,6 +350,21 @@ async def update_received_payment(payment_id: int, update: ReceivedPaymentUpdate
     cur = conn.cursor()
 
     try:
+        cur.execute(
+            """
+            SELECT notes, payment_key, charter_id, reserve_number
+            FROM payments
+            WHERE payment_id = %s
+            """,
+            (payment_id,),
+        )
+        existing_payment = cur.fetchone()
+        if not existing_payment:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Payment {payment_id} not found",
+            )
+
         # Build UPDATE clause
         update_fields = []
         params = []
@@ -348,13 +385,33 @@ async def update_received_payment(payment_id: int, update: ReceivedPaymentUpdate
             update_fields.append("payment_key = %s")
             params.append(update.cheque_number)
 
-        if update.charter_id is not None:
+        resolved_charter_id = existing_payment[2]
+        resolved_reserve = existing_payment[3]
+        if update.charter_id is not None or update.reserve_number is not None:
+            resolved_charter_id, resolved_reserve = _resolve_charter_reference(
+                cur,
+                update.charter_id,
+                update.reserve_number,
+            )
             update_fields.append("charter_id = %s")
-            params.append(update.charter_id)
+            params.append(resolved_charter_id)
+            update_fields.append("reserve_number = %s")
+            params.append(resolved_reserve)
 
-        if update.notes is not None:
+        if (
+            update.payer_name is not None
+            or update.bank_name is not None
+            or update.reserve_number is not None
+            or update.notes is not None
+        ):
             update_fields.append("notes = %s")
-            params.append(update.notes)
+            params.append(
+                _updated_notes(
+                    existing_payment[0],
+                    update,
+                    resolved_reserve,
+                )
+            )
 
         update_fields.append("last_updated = NOW()")
 
@@ -404,6 +461,28 @@ async def delete_received_payment(payment_id: int):
     cur = conn.cursor()
 
     try:
+        # Detach dependent links first so legacy "used" payments
+        # (e.g., escrow transfers) can still be deleted safely.
+        cur.execute(
+            """
+            UPDATE income_ledger
+            SET payment_id = NULL
+            WHERE payment_id = %s
+            """,
+            (payment_id,),
+        )
+        detached_income_rows = cur.rowcount or 0
+
+        cur.execute(
+            """
+            UPDATE square_etransfer_reconciliation
+            SET square_payment_id = NULL
+            WHERE square_payment_id = %s
+            """,
+            (payment_id,),
+        )
+        detached_recon_rows = cur.rowcount or 0
+
         cur.execute(
             """
             DELETE FROM payments
@@ -424,8 +503,13 @@ async def delete_received_payment(payment_id: int):
             "success": True,
             "message": f"Payment ${result[1]:.2f} deleted",
             "payment_id": result[0],
+            "detached_income_ledger_rows": int(detached_income_rows),
+            "detached_reconciliation_rows": int(detached_recon_rows),
         }
 
+    except HTTPException:
+        conn.rollback()
+        raise
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
@@ -455,4 +539,81 @@ def _build_notes(payment: ReceivedPaymentCreate) -> str:
     if payment.notes:
         parts.append(f"Notes: {payment.notes}")
 
+    return "\n".join(parts)
+
+
+def _resolve_charter_reference(
+    cur,
+    charter_id: int | None,
+    reserve_number: str | None,
+) -> tuple[int | None, str | None]:
+    """Resolve either charter key and guarantee both persisted keys agree."""
+    reserve_number = (reserve_number or "").strip() or None
+    if charter_id is None and reserve_number is None:
+        return None, None
+
+    if charter_id is not None:
+        cur.execute(
+            """
+            SELECT charter_id, reserve_number
+            FROM charters
+            WHERE charter_id = %s
+            """,
+            (charter_id,),
+        )
+    else:
+        cur.execute(
+            """
+            SELECT charter_id, reserve_number
+            FROM charters
+            WHERE reserve_number = %s
+            """,
+            (reserve_number,),
+        )
+    row = cur.fetchone()
+    if not row:
+        identifier = charter_id if charter_id is not None else reserve_number
+        raise HTTPException(
+            status_code=404,
+            detail=f"Charter {identifier} not found",
+        )
+    if reserve_number is not None and str(row[1]) != reserve_number:
+        raise HTTPException(
+            status_code=400,
+            detail="charter_id and reserve_number identify different charters",
+        )
+    return int(row[0]), str(row[1])
+
+
+def _updated_notes(
+    existing_notes: str | None,
+    update: ReceivedPaymentUpdate,
+    reserve_number: str | None,
+) -> str:
+    """Rebuild structured received-payment notes without dropping metadata."""
+    payer_name = (
+        update.payer_name
+        if update.payer_name is not None
+        else _extract_note_field(existing_notes, ("Payer:",))
+    )
+    bank_name = (
+        update.bank_name
+        if update.bank_name is not None
+        else _extract_note_field(
+            existing_notes,
+            ("Bank:", "Bank Name:", "Financial Institution:"),
+        )
+    )
+    free_notes = (
+        update.notes
+        if update.notes is not None
+        else _extract_note_field(existing_notes, ("Notes:",))
+    )
+    parts = [f"Payer: {payer_name or 'Unknown'}"]
+    if bank_name:
+        parts.append(f"Bank: {bank_name}")
+    if reserve_number:
+        parts.append(f"Reserve #: {reserve_number}")
+    if free_notes:
+        parts.append(f"Notes: {free_notes}")
     return "\n".join(parts)

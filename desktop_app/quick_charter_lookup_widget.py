@@ -125,7 +125,7 @@ class QuickCharterLookupWidget(QWidget):
         grid.addWidget(QLabel("Status:"), 0, 6)
         self.status_combo = QComboBox()
         self.status_combo.addItems(
-            ["All", "pending", "booked", "completed", "cancelled", "closed"]
+            ["All", "pending", "booked", "closed", "cancelled"]
         )
         self.status_combo.setMaximumWidth(130)
         self.status_combo.currentTextChanged.connect(self.on_filter_changed)
@@ -235,6 +235,22 @@ class QuickCharterLookupWidget(QWidget):
             self.results_table.SelectionMode.SingleSelection
         )
 
+    def _safe_rollback(self) -> None:
+        """Best-effort rollback for shared DB wrappers after a failed query."""
+        try:
+            if hasattr(self.db, "rollback"):
+                self.db.rollback()
+        except Exception as _e:
+            logger.debug("Suppressed: %s", _e)
+
+    def _apply_cursor_timeouts(self, cur) -> None:
+        """Set conservative server-side timeouts so UI queries cannot hang forever."""
+        try:
+            cur.execute("SET statement_timeout = 30000")
+            cur.execute("SET lock_timeout = 15000")
+        except Exception as _e:
+            logger.debug("Suppressed: %s", _e)
+
     def insert_top_action_widget(self, widget: QWidget) -> None:
         """Insert an action widget into the quick-lookup top row."""
         if widget is None:
@@ -275,6 +291,7 @@ class QuickCharterLookupWidget(QWidget):
         try:
             if hasattr(self.db, "cursor"):
                 with DatabaseContext(self.db, auto_commit=False) as cur:
+                    self._apply_cursor_timeouts(cur)
                     cur.execute(
                         """
                         SELECT COALESCE(reserve_number, CAST(charter_id AS TEXT))
@@ -293,6 +310,7 @@ class QuickCharterLookupWidget(QWidget):
                     password=os.getenv("DB_PASSWORD", "***REDACTED***"),
                 )
                 with DatabaseContext(conn, auto_commit=False) as cur:
+                    self._apply_cursor_timeouts(cur)
                     cur.execute(
                         """
                         SELECT COALESCE(reserve_number, CAST(charter_id AS TEXT))
@@ -309,6 +327,7 @@ class QuickCharterLookupWidget(QWidget):
             completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
             self.charter_input.setCompleter(completer)
         except Exception as e:
+            self._safe_rollback()
             logger.error(f"Error loading autocomplete: {e}")
             print(f"Error loading autocomplete: {e}")
 
@@ -316,6 +335,7 @@ class QuickCharterLookupWidget(QWidget):
         """Load driver and vehicle filter values."""
         try:
             with DatabaseContext(self.db, auto_commit=False) as cur:
+                self._apply_cursor_timeouts(cur)
                 cur.execute(
                     "SELECT DISTINCT driver FROM charters WHERE driver IS NOT NULL AND driver != '' ORDER BY driver"
                 )
@@ -354,6 +374,7 @@ class QuickCharterLookupWidget(QWidget):
                 self.vehicle_combo.addItems(["All"] + vehicles)
                 self.vehicle_combo.blockSignals(False)
         except Exception as e:
+            self._safe_rollback()
             logger.error(f"Failed to load charter filters: {e}")
             QMessageBox.warning(self, "Error", f"Failed to load charter filters: {e}")
 
@@ -383,6 +404,7 @@ class QuickCharterLookupWidget(QWidget):
         try:
             if hasattr(self.db, "cursor"):
                 with DatabaseContext(self.db, auto_commit=False) as cur:
+                    self._apply_cursor_timeouts(cur)
                     cur.execute(
                         """
                         SELECT charter_id, reserve_number, charter_date,
@@ -401,6 +423,7 @@ class QuickCharterLookupWidget(QWidget):
                 password=os.getenv("DB_PASSWORD", "***REDACTED***"),
             )
             with DatabaseContext(conn, auto_commit=False) as cur:
+                self._apply_cursor_timeouts(cur)
                 cur.execute(
                     """
                     SELECT charter_id, reserve_number, charter_date,
@@ -413,6 +436,7 @@ class QuickCharterLookupWidget(QWidget):
                 )
                 return cur.fetchone()
         except Exception as e:
+            self._safe_rollback()
             logger.error(f"_fetch_exact_charter failed: {e}")
             return None
 
@@ -423,6 +447,7 @@ class QuickCharterLookupWidget(QWidget):
         """Apply filters and populate results table."""
         try:
             with DatabaseContext(self.db, auto_commit=False) as cur:
+                self._apply_cursor_timeouts(cur)
                 where_clauses = []
                 params = []
 
@@ -547,6 +572,7 @@ class QuickCharterLookupWidget(QWidget):
 
             self.status_line.setText(f"{len(rows)} result(s) found")
         except Exception as e:
+            self._safe_rollback()
             logger.error(f"Failed to load filtered charters: {e}")
             QMessageBox.warning(self, "Error", f"Failed to load charters: {e}")
 
@@ -600,6 +626,7 @@ class QuickCharterLookupWidget(QWidget):
             try:
                 if hasattr(self.db, "cursor"):
                     with DatabaseContext(self.db, auto_commit=False) as cur:
+                        self._apply_cursor_timeouts(cur)
                         cur.execute(
                             """
                             SELECT id, item_name, quantity,
@@ -625,6 +652,7 @@ class QuickCharterLookupWidget(QWidget):
                         ]
                         existing_beverages = [dict(zip(cols, row)) for row in cur.fetchall()]
             except Exception as e:
+                self._safe_rollback()
                 logger.warning(f"Could not load existing beverages: {e}")
 
             from PyQt6.QtWidgets import QDialog
@@ -647,6 +675,7 @@ class QuickCharterLookupWidget(QWidget):
         try:
             if hasattr(self.db, "cursor"):
                 with DatabaseContext(self.db, auto_commit=True) as cur:
+                    self._apply_cursor_timeouts(cur)
                     cur.execute(
                         "DELETE FROM charter_beverages WHERE charter_id = %s",
                         (charter_id,),
@@ -670,5 +699,6 @@ class QuickCharterLookupWidget(QWidget):
                             ),
                         )
         except Exception as e:
+            self._safe_rollback()
             logger.error(f"_save_beverages failed: {e}")
             raise

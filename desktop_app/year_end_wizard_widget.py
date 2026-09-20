@@ -108,7 +108,7 @@ def _info_box(text: str, bg: str = "#dbeafe") -> QLabel:
     lbl = QLabel(text)
     lbl.setWordWrap(True)
     lbl.setStyleSheet(
-        f"background:{bg}; padding:10px; border-radius:5px;"
+        f"background:{bg}; padding:10px; border-radius:5px; font-size:10.5pt;"
         " margin-bottom:8px;"
     )
     return lbl
@@ -159,6 +159,14 @@ class _CompanyInfoStep(QWidget):
         self._load()
 
     def _build_ui(self):
+        self.setStyleSheet(
+            "QGroupBox { color:#172033; font-size:11pt; font-weight:600; }"
+            "QLabel { color:#24324a; font-size:10.5pt; }"
+            "QLineEdit { color:#172033; background:#ffffff; border:1px solid #9fb3c8;"
+            "  font-size:11pt; min-height:30px; padding:4px 6px; }"
+            "QLineEdit:disabled, QLineEdit:read-only { color:#334155; background:#f8fafc; }"
+            "QPushButton { font-size:10.5pt; min-height:32px; }"
+        )
         outer = QVBoxLayout(self)
         outer.addWidget(_h("Company Information Verification"))
         outer.addWidget(_info_box(
@@ -170,7 +178,7 @@ class _CompanyInfoStep(QWidget):
         form = QFormLayout()
         form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         form.setHorizontalSpacing(14)
-        form.setVerticalSpacing(8)
+        form.setVerticalSpacing(10)
         for field_name, label, placeholder in self.FIELDS:
             inp = QLineEdit()
             inp.setPlaceholderText(placeholder)
@@ -356,10 +364,12 @@ class _AuditChecksStep(QWidget):
              "GL Unbalanced Transactions",
              "General Ledger", "HIGH",
              f"""SELECT COUNT(*) FROM (
-                   SELECT transaction_id, SUM(amount) AS net
+                   SELECT transaction_id,
+                          SUM(COALESCE(debit,0) - COALESCE(credit,0)) AS net
                    FROM general_ledger
                    WHERE transaction_date BETWEEN '{jan1}' AND '{dec31}'
-                   GROUP BY transaction_id HAVING ABS(SUM(amount)) > 0.005
+                   GROUP BY transaction_id
+                   HAVING ABS(SUM(COALESCE(debit,0) - COALESCE(credit,0))) > 0.005
                  ) t""",
              "All transactions balance"),
             ("receipts_missing_gl",
@@ -377,7 +387,8 @@ class _AuditChecksStep(QWidget):
                     JOIN pay_periods pp ON epm.pay_period_id=pp.pay_period_id
                     WHERE EXTRACT(YEAR FROM pp.pay_date)={year}),0)
                  - COALESCE(
-                   (SELECT SUM(employment_income) FROM employee_t4_records
+                   (SELECT SUM(box_14_employment_income)
+                    FROM employee_t4_records
                     WHERE tax_year={year}),0)
                  ) > 1""",
              "T4 totals match pay master"),
@@ -385,7 +396,7 @@ class _AuditChecksStep(QWidget):
              "Employees Missing SIN",
              "Payroll / T4", "HIGH",
              """SELECT COUNT(*) FROM employees
-                WHERE (sin IS NULL OR TRIM(sin)='')
+                WHERE (t4_sin IS NULL OR TRIM(t4_sin)='')
                   AND employment_status='active'""",
              "All active employees have SIN"),
             ("t4_count",
@@ -398,21 +409,26 @@ class _AuditChecksStep(QWidget):
              "CRA Remittances Recorded",
              "Remittances", "MEDIUM",
              f"""SELECT COUNT(*) FROM cra_pd7a_returns
-                 WHERE tax_year={year}""",
+                 WHERE reporting_year={year}""",
              "PD7A records exist"),
             ("bank_unreconciled",
              "Unreconciled Bank Transactions",
              "Banking", "MEDIUM",
              f"""SELECT COUNT(*) FROM banking_transactions
-                 WHERE (reconciled IS NULL OR reconciled=false)
+                 WHERE COALESCE(reconciliation_status, 'unreconciled')
+                       NOT IN ('reconciled', 'matched', 'payroll', 'transfer',
+                               'duplicate', 'MANUAL_CLASSIFIED')
                    AND transaction_date BETWEEN '{jan1}' AND '{dec31}'""",
              "All bank transactions reconciled"),
             ("gst_filed",
              "GST Filing Records",
              "GST / HST", "MEDIUM",
-             f"""SELECT COUNT(*) FROM tax_remittances
-                 WHERE tax_type='GST'
-                   AND period_start >= '{jan1}' AND period_end <= '{dec31}'""",
+             f"""SELECT COUNT(*)
+                 FROM tax_returns tr
+                 JOIN tax_periods tp ON tp.id = tr.period_id
+                 WHERE LOWER(tr.form_type) = 'gst'
+                   AND LOWER(tr.status) IN ('filed','submitted','accepted','paid')
+                   AND tp.start_date >= '{jan1}' AND tp.end_date <= '{dec31}'""",
              "GST filings recorded"),
         ]
 
@@ -449,8 +465,8 @@ class _AuditChecksStep(QWidget):
                     "key": key,
                     "title": title,
                     "category": category,
-                    "severity": "INFO",
-                    "result": f"Check skipped: {exc}",
+                    "severity": "HIGH",
+                    "result": f"Check failed: {exc}",
                 })
         return results
 
@@ -541,6 +557,7 @@ class _T4PayrollStep(QWidget):
     def _load(self):
         year = self.tax_year
         self.load_btn.setEnabled(False)
+        load_errors: list[str] = []
 
         # ── T4 slips ──────────────────────────────────────────────────────────
         t4_rows = []
@@ -548,12 +565,12 @@ class _T4PayrollStep(QWidget):
             with DatabaseContext(self.db, auto_commit=False) as cur:
                 cur.execute(
                     """
-                    SELECT e.full_name, e.sin,
-                           COALESCE(t.employment_income,0),
-                           COALESCE(t.cpp_contributions,0),
-                           COALESCE(t.ei_premiums,0),
-                           COALESCE(t.income_tax_deducted,0),
-                           COALESCE(t.status,'draft')
+                    SELECT e.full_name, e.t4_sin,
+                           COALESCE(t.box_14_employment_income,0),
+                           COALESCE(t.box_16_cpp_contributions,0),
+                           COALESCE(t.box_18_ei_premiums,0),
+                           COALESCE(t.box_22_income_tax,0),
+                           'prepared'
                     FROM employee_t4_records t
                     JOIN employees e USING (employee_id)
                     WHERE t.tax_year = %s
@@ -563,7 +580,7 @@ class _T4PayrollStep(QWidget):
                 )
                 t4_rows = cur.fetchall()
         except Exception as exc:
-            self.summary_lbl.setText(f"T4 load error: {exc}")
+            load_errors.append(f"T4: {exc}")
 
         self.t4_table.setRowCount(0)
         total_income = 0.0
@@ -588,20 +605,22 @@ class _T4PayrollStep(QWidget):
             with DatabaseContext(self.db, auto_commit=False) as cur:
                 cur.execute(
                     """
-                    SELECT month_number,
-                           COALESCE(cpp_employee_total,0)+COALESCE(cpp_employer_total,0),
-                           COALESCE(ei_employee_total,0)+COALESCE(ei_employer_total,0),
-                           COALESCE(income_tax_total,0),
+                    SELECT reporting_month,
+                           COALESCE(cpp_employee_contributions,0)
+                               + COALESCE(cpp_employer_contributions,0),
+                           COALESCE(ei_employee_premiums,0)
+                               + COALESCE(ei_employer_premiums,0),
+                           COALESCE(income_tax_deducted,0),
                            COALESCE(total_remittance_due,0)
                     FROM cra_pd7a_returns
-                    WHERE tax_year = %s
-                    ORDER BY month_number
+                    WHERE reporting_year = %s
+                    ORDER BY reporting_month
                     """,
                     (year,),
                 )
                 pd_rows = cur.fetchall()
-        except Exception:
-            pass
+        except Exception as exc:
+            load_errors.append(f"PD7A: {exc}")
 
         import calendar
         self.pd_table.setRowCount(0)
@@ -618,14 +637,17 @@ class _T4PayrollStep(QWidget):
                 self.pd_table.setItem(row, col, QTableWidgetItem(val))
 
         slip_count = len(t4_rows)
-        self.summary_lbl.setText(
+        summary = (
             f"{'✅' if slip_count > 0 else '⚠️ '}  "
             f"{slip_count} T4 slip(s)  |  "
             f"Total employment income: ${total_income:,.2f}  |  "
             f"{len(pd_rows)} PD7A month(s) on record"
         )
+        if load_errors:
+            summary += "\nLoad errors: " + " | ".join(load_errors)
+        self.summary_lbl.setText(summary)
         self.summary_lbl.setStyleSheet(
-            "color:#16a34a; font-weight:bold;" if slip_count > 0
+            "color:#16a34a; font-weight:bold;" if slip_count > 0 and not load_errors
             else "color:#dc2626; font-weight:bold;"
         )
         self.load_btn.setEnabled(True)
@@ -707,13 +729,13 @@ class _T2PrepStep(QWidget):
             with DatabaseContext(self.db, auto_commit=False) as cur:
                 cur.execute(
                     """
-                    SELECT gl_account_code,
-                           MAX(gl_account_name) AS acct_name,
-                           SUM(amount) AS net
+                    SELECT account_number,
+                           MAX(account_name) AS acct_name,
+                           SUM(COALESCE(debit,0) - COALESCE(credit,0)) AS net
                     FROM general_ledger
                     WHERE transaction_date BETWEEN %s AND %s
-                    GROUP BY gl_account_code
-                    ORDER BY gl_account_code
+                    GROUP BY account_number
+                    ORDER BY account_number
                     """,
                     (jan1, dec31),
                 )
@@ -838,8 +860,10 @@ class _AccountantBundleStep(QWidget):
         with DatabaseContext(self.db, auto_commit=False) as cur:
             if label == "General Ledger":
                 cur.execute(
-                    """SELECT transaction_date, gl_account_code, gl_account_name,
-                              description, amount, reference_number
+                    """SELECT transaction_date, account_number, account_name,
+                              memo_description,
+                              COALESCE(debit,0) - COALESCE(credit,0),
+                              num
                        FROM general_ledger
                        WHERE transaction_date BETWEEN %s AND %s
                        ORDER BY transaction_date, transaction_id""",
@@ -851,35 +875,40 @@ class _AccountantBundleStep(QWidget):
 
             elif label == "Trial Balance":
                 cur.execute(
-                    """SELECT gl_account_code, MAX(gl_account_name), SUM(amount)
+                    """SELECT account_number, MAX(account_name),
+                              SUM(COALESCE(debit,0) - COALESCE(credit,0))
                        FROM general_ledger
                        WHERE transaction_date BETWEEN %s AND %s
-                       GROUP BY gl_account_code
-                       ORDER BY gl_account_code""",
+                       GROUP BY account_number
+                       ORDER BY account_number""",
                     (jan1, dec31),
                 )
                 return cur.fetchall(), ["GL Code","Account Name","Net Balance"]
 
             elif label == "Income Statement":
                 cur.execute(
-                    """SELECT gl_account_code, MAX(gl_account_name),
-                              MAX(account_category), SUM(amount)
+                    """SELECT account_number, MAX(account_name),
+                              MAX(account_type),
+                              SUM(COALESCE(debit,0) - COALESCE(credit,0))
                        FROM general_ledger
                        WHERE transaction_date BETWEEN %s AND %s
-                       GROUP BY gl_account_code
-                       ORDER BY gl_account_code""",
+                         AND LOWER(COALESCE(account_type,'')) IN
+                             ('income','expense','cost of goods sold',
+                              'other income','other expense')
+                       GROUP BY account_number
+                       ORDER BY account_number""",
                     (jan1, dec31),
                 )
                 return cur.fetchall(), ["GL Code","Account","Category","Net Amount"]
 
             elif label == "T4 Summary":
                 cur.execute(
-                    """SELECT e.full_name, e.sin,
-                              COALESCE(t.employment_income,0),
-                              COALESCE(t.cpp_contributions,0),
-                              COALESCE(t.ei_premiums,0),
-                              COALESCE(t.income_tax_deducted,0),
-                              COALESCE(t.status,'draft')
+                    """SELECT e.full_name, e.t4_sin,
+                              COALESCE(t.box_14_employment_income,0),
+                              COALESCE(t.box_16_cpp_contributions,0),
+                              COALESCE(t.box_18_ei_premiums,0),
+                              COALESCE(t.box_22_income_tax,0),
+                              'prepared'
                        FROM employee_t4_records t
                        JOIN employees e USING (employee_id)
                        WHERE t.tax_year = %s
@@ -893,14 +922,16 @@ class _AccountantBundleStep(QWidget):
 
             elif label == "PD7A Remittances":
                 cur.execute(
-                    """SELECT month_number,
-                              COALESCE(cpp_employee_total,0)+COALESCE(cpp_employer_total,0),
-                              COALESCE(ei_employee_total,0)+COALESCE(ei_employer_total,0),
-                              COALESCE(income_tax_total,0),
+                    """SELECT reporting_month,
+                              COALESCE(cpp_employee_contributions,0)
+                                  + COALESCE(cpp_employer_contributions,0),
+                              COALESCE(ei_employee_premiums,0)
+                                  + COALESCE(ei_employer_premiums,0),
+                              COALESCE(income_tax_deducted,0),
                               COALESCE(total_remittance_due,0)
                        FROM cra_pd7a_returns
-                       WHERE tax_year = %s
-                       ORDER BY month_number""",
+                       WHERE reporting_year = %s
+                       ORDER BY reporting_month""",
                     (year,),
                 )
                 return cur.fetchall(), [
@@ -909,7 +940,7 @@ class _AccountantBundleStep(QWidget):
 
             elif label == "Payroll Ledger":
                 cur.execute(
-                    """SELECT e.full_name, pp.pay_period_number,
+                    """SELECT e.full_name, pp.period_number,
                               COALESCE(epm.gross_pay,0),
                               COALESCE(epm.federal_tax,0),
                               COALESCE(epm.provincial_tax,0),
@@ -920,7 +951,7 @@ class _AccountantBundleStep(QWidget):
                        JOIN employees e USING (employee_id)
                        JOIN pay_periods pp ON epm.pay_period_id=pp.pay_period_id
                        WHERE EXTRACT(YEAR FROM pp.pay_date)=%s
-                       ORDER BY e.full_name, pp.pay_period_number""",
+                       ORDER BY e.full_name, pp.period_number""",
                     (year,),
                 )
                 return cur.fetchall(), [
@@ -930,46 +961,51 @@ class _AccountantBundleStep(QWidget):
 
             elif label == "GST Summary":
                 cur.execute(
-                    """SELECT period_start, period_end, tax_type,
-                              COALESCE(amount_collected,0),
-                              COALESCE(itc_claimed,0),
-                              COALESCE(net_remittance,0)
-                       FROM tax_remittances
-                       WHERE tax_type='GST'
-                         AND period_start >= %s AND period_end <= %s
-                       ORDER BY period_start""",
-                    (jan1, dec31),
+                    """SELECT make_date(tax_year, gst_period_month, 1),
+                              (make_date(tax_year, gst_period_month, 1)
+                                  + INTERVAL '1 month - 1 day')::date,
+                              remittance_status,
+                              COALESCE(gst_amount_collected,0),
+                              COALESCE(payment_amount,0),
+                              reference_number
+                       FROM gst_remittance_payments
+                       WHERE tax_year = %s
+                       ORDER BY gst_period_month""",
+                    (year,),
                 )
                 return cur.fetchall(), [
-                    "Period Start","Period End","Type",
-                    "Collected","ITC Claimed","Net Remittance"
+                    "Period Start","Period End","Status",
+                    "GST Collected","Payment Amount","Reference"
                 ]
 
             elif label == "Balance Sheet":
                 cur.execute(
-                    """SELECT gl_account_code, MAX(gl_account_name),
-                              MAX(account_type), SUM(amount)
+                    """SELECT account_number, MAX(account_name),
+                              MAX(account_type),
+                              SUM(COALESCE(debit,0) - COALESCE(credit,0))
                        FROM general_ledger
                        WHERE transaction_date <= %s
-                         AND account_type IN ('asset','liability','equity',
-                                              'Asset','Liability','Equity')
-                       GROUP BY gl_account_code
-                       ORDER BY gl_account_code""",
+                         AND LOWER(COALESCE(account_type,'')) IN
+                             ('asset','liability','equity')
+                       GROUP BY account_number
+                       ORDER BY account_number""",
                     (dec31,),
                 )
                 return cur.fetchall(), ["GL Code","Account","Type","Balance"]
 
             elif label == "WCB Annual":
                 cur.execute(
-                    """SELECT year, COALESCE(total_premiums,0),
-                              COALESCE(insurable_earnings,0),
-                              COALESCE(status,'')
+                    """SELECT year, COALESCE(premium_amount,0),
+                              COALESCE(assessable_payroll,0),
+                              COALESCE(confirmation_number,'')
                        FROM wcb_annual_returns
                        WHERE year = %s
                        ORDER BY year""",
                     (year,),
                 )
-                return cur.fetchall(), ["Year","Premiums","Insurable Earnings","Status"]
+                return cur.fetchall(), [
+                    "Year","Premiums","Assessable Payroll","Confirmation Number"
+                ]
 
         return [], ["No Data"]
 
@@ -1212,7 +1248,11 @@ class _ArchiveNotesStep(QWidget):
                 )
                 pay_row = cur.fetchone()
                 cur.execute(
-                    "SELECT COALESCE(SUM(total_remittance_due),0) FROM cra_pd7a_returns WHERE tax_year=%s",
+                    """
+                    SELECT COALESCE(SUM(total_remittance_due),0)
+                    FROM cra_pd7a_returns
+                    WHERE reporting_year=%s
+                    """,
                     (year,),
                 )
                 remit_row = cur.fetchone()
@@ -1294,7 +1334,7 @@ class YearEndWizardWidget(QWidget):
         hb_lay.addStretch()
 
         self.year_combo = QComboBox()
-        self.year_combo.setStyleSheet("background:white; padding:3px; font-size:11pt;")
+        self.year_combo.setStyleSheet("background:white; padding:4px 6px; font-size:12pt;")
         current_year = date.today().year - 1  # default: last calendar year
         for y in range(current_year, current_year - 8, -1):
             self.year_combo.addItem(str(y), y)
@@ -1315,7 +1355,7 @@ class YearEndWizardWidget(QWidget):
         nav_lay.setSpacing(4)
 
         nav_lay.addWidget(QLabel(
-            "<b style='color:#1e3a5f; font-size:11pt;'>Steps</b>"
+            "<b style='color:#1e3a5f; font-size:12pt;'>Steps</b>"
         ))
         nav_lay.addWidget(_separator())
 
@@ -1326,9 +1366,10 @@ class YearEndWizardWidget(QWidget):
             btn.setToolTip(desc)
             btn.setStyleSheet(
                 "QPushButton { text-align:left; padding:8px 10px; border:none;"
-                "  border-radius:4px; font-size:10pt; }"
+                "  border-radius:4px; font-size:11pt; color:#24324a; }"
                 "QPushButton:checked { background:#1d4ed8; color:white; font-weight:bold; }"
                 "QPushButton:hover:!checked { background:#dbeafe; }"
+                "QPushButton:disabled { color:#52657d; background:#e7eef6; }"
             )
             btn.clicked.connect(lambda _, idx=i: self._goto_step(idx))
             nav_lay.addWidget(btn)
@@ -1340,7 +1381,7 @@ class YearEndWizardWidget(QWidget):
         self.progress_lbl = QLabel()
         self.progress_lbl.setWordWrap(True)
         self.progress_lbl.setStyleSheet(
-            "color:#1e40af; font-size:9pt; padding:4px;"
+            "color:#1e40af; font-size:10.5pt; padding:4px;"
         )
         nav_lay.addWidget(self.progress_lbl)
         body_splitter.addWidget(nav_widget)
@@ -1353,18 +1394,18 @@ class YearEndWizardWidget(QWidget):
 
         # Footer nav buttons
         footer = QWidget()
-        footer.setStyleSheet("background:#f8fafc; border-top:1px solid #e2e8f0;")
+        footer.setStyleSheet("background:#edf4fb; border-top:1px solid #cbd5e1;")
         f_lay = QHBoxLayout(footer)
         f_lay.setContentsMargins(16, 8, 16, 8)
         self.back_btn = QPushButton("◀  Back")
         self.back_btn.clicked.connect(lambda: self._goto_step(self._current_step - 1))
         self.next_btn = QPushButton("Next  ▶")
         self.next_btn.setStyleSheet(
-            "background:#1d4ed8; color:white; font-weight:bold; padding:6px 20px;"
+            "background:#1d4ed8; color:white; font-weight:bold; padding:6px 20px; font-size:10.5pt;"
         )
         self.next_btn.clicked.connect(lambda: self._goto_step(self._current_step + 1))
         self.step_lbl = QLabel()
-        self.step_lbl.setStyleSheet("color:#64748b; font-size:10pt;")
+        self.step_lbl.setStyleSheet("color:#64748b; font-size:10.5pt;")
         f_lay.addWidget(self.back_btn)
         f_lay.addStretch()
         f_lay.addWidget(self.step_lbl)

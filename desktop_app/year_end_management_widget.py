@@ -589,7 +589,7 @@ class YearEndManagementWidget(QWidget):
 
     def _build_header(self, root: QVBoxLayout) -> None:
         title = QLabel(
-            "Year-End Management System (T1/T2/T4 + Reconciliation)"
+            "Year-End System (T1/T2/T4 + Reconciliation)"
         )
         title.setStyleSheet("font-size: 16px; font-weight: bold;")
         subtitle = QLabel(
@@ -1226,7 +1226,7 @@ class YearEndManagementWidget(QWidget):
             value_key="transaction_id",
             parse_value=int,
             navigate=lambda: self._navigate_accounting_subtab(
-                "🏦 Enhanced Banking Manager"
+                "🏦 Enhanced Banking"
             ),
             loader=lambda txn_id: bool(
                 win

@@ -17,6 +17,7 @@ import smtplib
 import ssl
 from datetime import datetime
 from email.message import EmailMessage
+from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -29,6 +30,7 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
     QDoubleSpinBox,
+    QDateEdit,
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
@@ -45,6 +47,8 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
 )
+
+from pypdf import PdfReader, PdfWriter
 
 _MIXIN_DIR = Path(__file__).resolve().parent
 project_root = str(_MIXIN_DIR.parent)
@@ -63,7 +67,7 @@ class CharterPdfMixin:
         actions = {
             1: self.print_confirmation,
             2: self.print_single_invoice,
-            3: self.open_multi_invoice_selection_dialog,
+            3: self.open_bulk_print_selection_dialog,
             4: self.print_run_sheet,
             5: self.print_blank_run_sheet,
             6: self.print_beverage_dispatch_order,
@@ -120,7 +124,8 @@ class CharterPdfMixin:
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Outlook Email Search - {customer_email}")
         dialog.setMinimumWidth(800)
-        dialog.setMinimumHeight(600)
+        dialog.resize(900, 560)
+        dialog.setSizeGripEnabled(True)
 
         layout = QVBoxLayout()
 
@@ -2323,9 +2328,26 @@ class CharterPdfMixin:
                 charge_type_text = (charge_type or '').strip()
                 charge_type_lower = charge_type_text.lower()
                 desc_text = (description or '').strip()
+                desc_text_lower = desc_text.lower()
                 # Strip internal calc metadata tags (e.g. "[calc:Flat:600.0]") from display labels.
                 import re as _re
                 desc_text = _re.sub(r'\s*\[calc:[^\]]+\]', '', desc_text).strip()
+                desc_text_lower = desc_text.lower()
+                is_direct_paid_gratuity = (
+                    ('gratuit' in desc_text_lower or 'gratuit' in charge_type_lower)
+                    and (
+                        'paid direct' in desc_text_lower
+                        or 'direct paid' in desc_text_lower
+                        or 'direct gratuity' in desc_text_lower
+                        or 'direct to driver' in desc_text_lower
+                        or charge_type_lower in (
+                            'gratuity_direct',
+                            'direct_gratuity',
+                            'gratuity_paid_direct',
+                            'gratuity_direct_paid',
+                        )
+                    )
+                )
                 # Skip individual beverage rows — replaced by beverage_summary.
                 if charge_type_lower == 'beverage':
                     continue
@@ -2340,14 +2362,19 @@ class CharterPdfMixin:
                         # double-counting on the invoice display.
                         continue
                     has_beverage_summary = True
+                display_charge_type = charge_type_text
+                if is_direct_paid_gratuity:
+                    if 'no gst' not in desc_text_lower:
+                        desc_text = f"{desc_text} (No GST)"
+                    display_charge_type = 'No GST'
                 charge_items.append({
                     'description': desc_text,
                     'amount': amount_val,
                     'rate': rate_val,
-                    'charge_type': charge_type_text,
+                    'charge_type': display_charge_type,
                     'sequence': int(sequence or 0),
                 })
-                if 'gratuit' in desc_text.lower() or 'gratuit' in charge_type_lower:
+                if 'gratuit' in desc_text_lower or 'gratuit' in charge_type_lower:
                     gratuity_sum += amount_val
                 else:
                     service_sum += amount_val
@@ -2410,15 +2437,40 @@ class CharterPdfMixin:
             for amount, method, payment_date, notes, reference in payment_rows:
                 amount_val = float(amount or 0)
                 payments_total_detail += amount_val
+                reason_label = ""
+                payment_key_text = (reference or "").strip()
+                if payment_key_text:
+                    try:
+                        import re as _re
+
+                        type_match = _re.search(r"\[TYPE:([^\]]+)\]", payment_key_text, flags=_re.IGNORECASE)
+                        if type_match:
+                            reason_label = (type_match.group(1) or "").strip()
+                    except Exception:
+                        reason_label = ""
+
+                if not reason_label:
+                    method_key = (method or "").strip().lower()
+                    notes_key = (notes or "").strip().lower()
+                    if "nrr" in method_key or "retainer" in method_key or "nrr" in notes_key:
+                        reason_label = "NRR Retainer"
+                    elif amount_val < 0 or "refund" in method_key or "refund" in notes_key:
+                        reason_label = "Refund"
+                    elif "deposit" in method_key or "deposit" in notes_key:
+                        reason_label = "Deposit"
+                    else:
+                        reason_label = "Payment"
+
                 payments_detail.append({
                     'amount': amount_val,
+                    'reason': reason_label,
                     'method': (method or '').strip(),
                     'payment_date': payment_date,
                     'notes': (notes or '').strip(),
                     'reference': (reference or '').strip(),
                 })
 
-            if payments_total_detail > 0:
+            if payment_rows:
                 paid_amount = payments_total_detail
 
             # Fetch individual beverage line items for invoice display
@@ -2634,7 +2686,8 @@ class CharterPdfMixin:
         pay_y = charge_y - 0.52 * inch
         c.setFont("Helvetica", 8.5)
         c.drawString(0.85 * inch, pay_y, "Date")
-        c.drawString(1.75 * inch, pay_y, "Method")
+        c.drawString(1.95 * inch, pay_y, "Reason")
+        c.drawString(3.55 * inch, pay_y, "Method")
         c.drawRightString(7.75 * inch, pay_y, "Amount")
         c.line(0.85 * inch, pay_y - 0.05 * inch, 7.75 * inch, pay_y - 0.05 * inch)
 
@@ -2644,10 +2697,12 @@ class CharterPdfMixin:
             for payment in payment_rows[:6]:
                 pdate = payment.get("payment_date")
                 pdate_text = pdate.strftime("%b %d, %Y") if hasattr(pdate, "strftime") else str(pdate or "")
+                reason = (payment.get("reason") or "").strip()
                 method = _fmt_method_r(payment.get("method") or "")
                 amt = float(payment.get("amount") or 0)
                 c.drawString(0.85 * inch, pay_y, pdate_text)
-                c.drawString(1.75 * inch, pay_y, method[:22])
+                c.drawString(1.95 * inch, pay_y, reason[:18])
+                c.drawString(3.55 * inch, pay_y, method[:16])
                 c.drawRightString(7.75 * inch, pay_y, f"${amt:,.2f}")
                 pay_y -= 0.18 * inch
         else:
@@ -2666,7 +2721,10 @@ class CharterPdfMixin:
         c.line(0.85 * inch, y + 0.08 * inch, 7.75 * inch, y + 0.08 * inch)
         c.setFont("Helvetica-Bold", 10)
         amount_due_val = float(invoice_packet.get('amount_due') or 0)
-        if amount_due_val <= 0.005:
+        if amount_due_val < -0.005:
+            c.drawString(0.85 * inch, y, "CREDIT ON ACCOUNT:")
+            c.drawRightString(7.75 * inch, y, f"${abs(amount_due_val):,.2f}")
+        elif amount_due_val <= 0.005:
             c.drawCentredString(4.30 * inch, y, "*** PAID IN FULL  \u2014  Thank you! ***")
         else:
             c.drawString(0.85 * inch, y, "BALANCE DUE:")
@@ -2845,9 +2903,11 @@ class CharterPdfMixin:
         c.setFont("Helvetica-Bold", 9)
         c.drawString(left_x, pay_section_y, "PAYMENTS RECEIVED")
         date_col = left_x + 0.02 * inch
-        method_col = left_x + 1.10 * inch
+        reason_col = left_x + 1.20 * inch
+        method_col = left_x + 2.90 * inch
         c.setFont("Helvetica", 8)
         c.drawString(date_col, pay_section_y - 0.16 * inch, "Date")
+        c.drawString(reason_col, pay_section_y - 0.16 * inch, "Reason")
         c.drawString(method_col, pay_section_y - 0.16 * inch, "Method")
         c.drawRightString(amount_col_x, pay_section_y - 0.16 * inch, "Amount")
         c.setLineWidth(0.4)
@@ -2857,10 +2917,12 @@ class CharterPdfMixin:
         payment_items = invoice_packet.get("payment_items") or []
         for payment in payment_items[:8]:
             pdate_text = _fmt_pdate(payment.get("payment_date"))
+            reason = (payment.get("reason") or "").strip()
             method = _fmt_method(payment.get("method") or "")
             amt = float(payment.get("amount") or 0)
             c.drawString(date_col, payment_y, pdate_text)
-            c.drawString(method_col, payment_y, method[:26])
+            c.drawString(reason_col, payment_y, reason[:18])
+            c.drawString(method_col, payment_y, method[:14])
             c.drawRightString(amount_col_x, payment_y, f"${amt:,.2f}")
             payment_y -= 0.16 * inch
         if not payment_items:
@@ -2880,7 +2942,10 @@ class CharterPdfMixin:
         c.setLineWidth(0.9)
         c.line(left_x, balance_y + 0.16 * inch, amount_col_x, balance_y + 0.16 * inch)
         c.setFont("Helvetica-Bold", 10)
-        if amount_due <= 0.005:
+        if amount_due < -0.005:
+            c.drawString(label_col_x, balance_y, "CREDIT ON ACCOUNT:")
+            c.drawRightString(amount_col_x, balance_y, f"${abs(amount_due):,.2f}")
+        elif amount_due <= 0.005:
             c.drawCentredString(width / 2, balance_y, "*** PAID IN FULL  —  Thank you! ***")
         else:
             c.drawString(label_col_x, balance_y, "BALANCE DUE:")
@@ -3395,64 +3460,208 @@ class CharterPdfMixin:
                 QMessageBox.warning(self, "Marker Warning", f"Email opened but could not mark sent status:\n{e}")
 
 
+    def _merge_pdf_bytes(self, pdf_documents: list[bytes]) -> bytes:
+        """Merge multiple PDF byte strings into one PDF byte string."""
+        writer = PdfWriter()
+        for pdf_bytes in pdf_documents:
+            if not pdf_bytes:
+                continue
+            reader = PdfReader(BytesIO(pdf_bytes))
+            for page in reader.pages:
+                writer.add_page(page)
+        buffer = BytesIO()
+        writer.write(buffer)
+        return buffer.getvalue()
 
-    def open_multi_invoice_selection_dialog(self) -> None:
-        """Main print-menu flow: select client charters and print/save/email together."""
-        if not self.charter_id:
+
+    def _build_simple_lines_pdf(self, title: str, lines: list[str], landscape_mode: bool = False) -> bytes:
+        """Build a simple text PDF for bulk-print packs."""
+        from reportlab.lib.pagesizes import landscape, letter
+        from reportlab.pdfgen import canvas
+
+        page_size = landscape(letter) if landscape_mode else letter
+        buffer = BytesIO()
+        pdf = canvas.Canvas(buffer, pagesize=page_size)
+        width, height = page_size
+        left_margin = 0.6 * 72
+        top = height - 0.7 * 72
+        bottom_margin = 0.6 * 72
+        line_height = 10
+
+        pdf.setTitle(title)
+        pdf.setFont("Helvetica-Bold", 13)
+        pdf.drawString(left_margin, top, title)
+        pdf.setFont("Helvetica", 9)
+
+        y = top - 18
+        for line in lines:
+            text = str(line or "")
+            if not text:
+                y -= line_height
+                continue
+            while len(text) > 105:
+                pdf.drawString(left_margin, y, text[:105])
+                y -= line_height
+                text = text[105:]
+                if y < bottom_margin:
+                    pdf.showPage()
+                    pdf.setFont("Helvetica", 9)
+                    y = top - 10
+            pdf.drawString(left_margin, y, text)
+            y -= line_height
+            if y < bottom_margin:
+                pdf.showPage()
+                pdf.setFont("Helvetica", 9)
+                y = top - 10
+
+        pdf.save()
+        return buffer.getvalue()
+
+
+
+    def open_bulk_print_selection_dialog(self, charter_ids: list[int] | None = None) -> None:
+        """Main print-menu flow: select charters and bulk print/save/email together."""
+        if not self.charter_id and not charter_ids:
             QMessageBox.warning(self, "No Charter", "Load/save a charter first")
             return
 
         cur = self.db.get_cursor()
         try:
-            cur.execute(
-                """
-                SELECT c.client_id, COALESCE(cl.company_name, cl.client_name, cl.name, 'Client')
-                FROM charters c
-                LEFT JOIN clients cl ON cl.client_id = c.client_id
-                WHERE c.charter_id = %s
-                """,
-                (self.charter_id,),
-            )
-            head = cur.fetchone()
-            if not head or not head[0]:
-                QMessageBox.warning(self, "No Client", "Current charter has no client assigned")
-                return
+            if charter_ids:
+                unique_ids = []
+                seen_ids = set()
+                for raw_id in charter_ids:
+                    try:
+                        charter_id_value = int(raw_id)
+                    except Exception:
+                        continue
+                    if charter_id_value <= 0 or charter_id_value in seen_ids:
+                        continue
+                    seen_ids.add(charter_id_value)
+                    unique_ids.append(charter_id_value)
+                if not unique_ids:
+                    QMessageBox.warning(self, "No Charter", "Select at least one charter first")
+                    return
 
-            client_id, client_name = head
-            cur.execute(
-                """
-                SELECT charter_id,
-                       reserve_number,
-                       charter_date,
-                       COALESCE(total_amount_due, grand_total, 0) AS total_charges,
-                       GREATEST(COALESCE(amount_paid, 0), COALESCE(paid_amount, 0)) AS paid,
-                       COALESCE(booking_notes, notes, '') AS notes_blob
-                FROM charters
-                WHERE client_id = %s
-                ORDER BY charter_date DESC, reserve_number DESC
-                LIMIT 500
-                """,
-                (client_id,),
-            )
+                placeholders = ", ".join(["%s"] * len(unique_ids))
+                cur.execute(
+                    f"""
+                    SELECT charter_id,
+                           reserve_number,
+                           charter_date,
+                           COALESCE(total_amount_due, grand_total, 0) AS total_charges,
+                           GREATEST(COALESCE(amount_paid, 0), COALESCE(paid_amount, 0)) AS paid,
+                           COALESCE(booking_notes, notes, '') AS notes_blob
+                    FROM charters
+                    WHERE charter_id IN ({placeholders})
+                    ORDER BY charter_date DESC, reserve_number DESC
+                    """,
+                    unique_ids,
+                )
+                client_name = "Selected Charters"
+            else:
+                cur.execute(
+                    """
+                    SELECT c.client_id, COALESCE(cl.company_name, cl.client_name, cl.name, 'Client')
+                    FROM charters c
+                    LEFT JOIN clients cl ON cl.client_id = c.client_id
+                    WHERE c.charter_id = %s
+                    """,
+                    (self.charter_id,),
+                )
+                head = cur.fetchone()
+                if not head or not head[0]:
+                    QMessageBox.warning(self, "No Client", "Current charter has no client assigned")
+                    return
+
+                client_id, client_name = head
+                cur.execute(
+                    """
+                    SELECT charter_id,
+                           reserve_number,
+                           charter_date,
+                           COALESCE(total_amount_due, grand_total, 0) AS total_charges,
+                           GREATEST(COALESCE(amount_paid, 0), COALESCE(paid_amount, 0)) AS paid,
+                           COALESCE(booking_notes, notes, '') AS notes_blob
+                    FROM charters
+                    WHERE client_id = %s
+                    ORDER BY charter_date DESC, reserve_number DESC
+                    LIMIT 500
+                    """,
+                    (client_id,),
+                )
             rows = cur.fetchall()
             if not rows:
                 QMessageBox.information(self, "No Charters", "No charters found for this client")
                 return
 
+            def _coerce_row_date(value):
+                if hasattr(value, "year") and hasattr(value, "month") and hasattr(value, "day"):
+                    return value
+                try:
+                    text = str(value or "").strip()
+                    if not text:
+                        return None
+                    return datetime.fromisoformat(text[:10]).date()
+                except Exception:
+                    return None
+
             dialog = QDialog(self)
-            dialog.setWindowTitle(f"Print Multi Invoice - {client_name}")
+            if charter_ids:
+                dialog.setWindowTitle(f"Bulk Print Selected Charters - {len(rows)} Found")
+            else:
+                dialog.setWindowTitle(f"Bulk Print - {client_name}")
             dialog.setGeometry(120, 120, 980, 620)
             root = QVBoxLayout(dialog)
 
-            info = QLabel("Select charter invoices to print/save/email as one multi invoice")
+            info = QLabel("Select charters to print/save/email as a combined bulk document pack")
             root.addWidget(info)
+
+            filter_row = QHBoxLayout()
+            filter_row.addWidget(QLabel("From:"))
+            date_from = QDateEdit()
+            date_from.setCalendarPopup(True)
+            date_from.setDisplayFormat("yyyy-MM-dd")
+            date_from.setDate(QDate.currentDate().addMonths(-1))
+            date_from.setMaximumWidth(120)
+            filter_row.addWidget(date_from)
+
+            filter_row.addWidget(QLabel("To:"))
+            date_to = QDateEdit()
+            date_to.setCalendarPopup(True)
+            date_to.setDisplayFormat("yyyy-MM-dd")
+            date_to.setDate(QDate.currentDate().addMonths(2))
+            date_to.setMaximumWidth(120)
+            filter_row.addWidget(date_to)
+
+            filter_row.addWidget(QLabel("Weekday:"))
+            weekday_combo = QComboBox()
+            weekday_combo.addItems([
+                "All Days",
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday",
+            ])
+            weekday_combo.setMaximumWidth(130)
+            filter_row.addWidget(weekday_combo)
+
+            this_week_btn = QPushButton("This Week")
+            filter_row.addWidget(this_week_btn)
+
+            reset_filter_btn = QPushButton("Reset Filters")
+            filter_row.addWidget(reset_filter_btn)
+            filter_row.addStretch()
+            root.addLayout(filter_row)
 
             table = QTableWidget()
             table.setColumnCount(8)
             table.setHorizontalHeaderLabels([
                 "Select", "Reserve #", "Date", "Total", "Paid", "Due", "Invoice Sent", "Sent Date"
             ])
-            table.setRowCount(len(rows))
             table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
             table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
             table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
@@ -3464,26 +3673,83 @@ class CharterPdfMixin:
             table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
             table.horizontalHeader().setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
 
-            for i, row in enumerate(rows):
+            all_rows = []
+            for row in rows:
                 cid, reserve, cdate, total, paid, notes_blob = row
                 total = float(total or 0)
                 paid = float(paid or 0)
                 due = total - paid
-                clean_notes, markers = self._extract_internal_delivery_markers(notes_blob or "")
+                _clean_notes, markers = self._extract_internal_delivery_markers(notes_blob or "")
                 inv_sent_date = markers.get("INVOICE_SENT", "")
+                all_rows.append(
+                    {
+                        "cid": int(cid),
+                        "reserve": str(reserve or ""),
+                        "date_raw": cdate,
+                        "date_obj": _coerce_row_date(cdate),
+                        "total": total,
+                        "paid": paid,
+                        "due": due,
+                        "inv_sent_date": inv_sent_date,
+                    }
+                )
 
-                sel = QTableWidgetItem("")
-                sel.setFlags(sel.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-                sel.setCheckState(Qt.CheckState.Unchecked)
-                sel.setData(Qt.ItemDataRole.UserRole, int(cid))
-                table.setItem(i, 0, sel)
-                table.setItem(i, 1, QTableWidgetItem(str(reserve or "")))
-                table.setItem(i, 2, QTableWidgetItem(str(cdate or "")))
-                table.setItem(i, 3, QTableWidgetItem(f"${total:,.2f}"))
-                table.setItem(i, 4, QTableWidgetItem(f"${paid:,.2f}"))
-                table.setItem(i, 5, QTableWidgetItem(f"${due:,.2f}"))
-                table.setItem(i, 6, QTableWidgetItem("Yes" if inv_sent_date else "No"))
-                table.setItem(i, 7, QTableWidgetItem(inv_sent_date))
+            def render_rows() -> None:
+                date_from_val = date_from.date().toPyDate()
+                date_to_val = date_to.date().toPyDate()
+                weekday_idx = weekday_combo.currentIndex()
+                weekday_filter = weekday_idx - 1
+
+                visible_rows = []
+                for row_data in all_rows:
+                    row_date = row_data["date_obj"]
+                    if row_date is not None and (row_date < date_from_val or row_date > date_to_val):
+                        continue
+                    if weekday_filter >= 0 and row_date is not None and row_date.weekday() != weekday_filter:
+                        continue
+                    visible_rows.append(row_data)
+
+                table.setRowCount(len(visible_rows))
+                for i, row_data in enumerate(visible_rows):
+                    sel = QTableWidgetItem("")
+                    sel.setFlags(sel.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                    sel.setCheckState(Qt.CheckState.Unchecked)
+                    sel.setData(Qt.ItemDataRole.UserRole, int(row_data["cid"]))
+                    table.setItem(i, 0, sel)
+                    table.setItem(i, 1, QTableWidgetItem(row_data["reserve"]))
+                    table.setItem(i, 2, QTableWidgetItem(str(row_data["date_raw"] or "")))
+                    table.setItem(i, 3, QTableWidgetItem(f"${row_data['total']:,.2f}"))
+                    table.setItem(i, 4, QTableWidgetItem(f"${row_data['paid']:,.2f}"))
+                    table.setItem(i, 5, QTableWidgetItem(f"${row_data['due']:,.2f}"))
+                    table.setItem(i, 6, QTableWidgetItem("Yes" if row_data["inv_sent_date"] else "No"))
+                    table.setItem(i, 7, QTableWidgetItem(row_data["inv_sent_date"]))
+
+                table.resizeRowsToContents()
+
+            def apply_filters() -> None:
+                render_rows()
+
+            def set_this_week() -> None:
+                today = QDate.currentDate()
+                monday = today.addDays(-(today.dayOfWeek() - 1))
+                sunday = monday.addDays(6)
+                date_from.setDate(monday)
+                date_to.setDate(sunday)
+                weekday_combo.setCurrentIndex(0)
+                render_rows()
+
+            date_from.dateChanged.connect(lambda *_: apply_filters())
+            date_to.dateChanged.connect(lambda *_: apply_filters())
+            weekday_combo.currentIndexChanged.connect(lambda *_: apply_filters())
+            this_week_btn.clicked.connect(set_this_week)
+            reset_filter_btn.clicked.connect(lambda: (
+                date_from.setDate(QDate.currentDate().addMonths(-1)),
+                date_to.setDate(QDate.currentDate().addMonths(2)),
+                weekday_combo.setCurrentIndex(0),
+                render_rows(),
+            ))
+
+            render_rows()
 
             root.addWidget(table)
 
@@ -3499,8 +3765,12 @@ class CharterPdfMixin:
             select_all_btn = QPushButton("Select All")
             clear_btn = QPushButton("Clear")
             print_btn = QPushButton("Print Selected")
-            save_btn = QPushButton("Save Multi Invoice PDF")
-            save_consolidated_btn = QPushButton("Save Consolidated Multi Invoice")
+            save_btn = QPushButton("Save Invoice Pack PDF")
+            save_consolidated_btn = QPushButton("Save Consolidated Invoice Pack")
+            confirmation_btn = QPushButton("Print Confirmations")
+            run_sheet_btn = QPushButton("Print Run Sheets")
+            sign_btn = QPushButton("Print Airport Signs")
+            beverage_pack_btn = QPushButton("Print Beverage Pack")
             email_btn = QPushButton("Email Selected")
             mark_sent_btn = QPushButton("Mark Selected Sent Today")
             close_btn = QPushButton("Close")
@@ -3511,6 +3781,10 @@ class CharterPdfMixin:
             btns.addWidget(print_btn)
             btns.addWidget(save_btn)
             btns.addWidget(save_consolidated_btn)
+            btns.addWidget(confirmation_btn)
+            btns.addWidget(run_sheet_btn)
+            btns.addWidget(sign_btn)
+            btns.addWidget(beverage_pack_btn)
             btns.addWidget(email_btn)
             btns.addWidget(mark_sent_btn)
             btns.addWidget(close_btn)
@@ -3567,20 +3841,230 @@ class CharterPdfMixin:
                 except Exception as e:
                     QMessageBox.critical(dialog, "Update Error", f"Failed to update sent marker:\n{e}")
 
+            def _load_confirmation_pdf(cid: int) -> bytes | None:
+                try:
+                    from modern_backend.app.routers.pdf import _load_charter_pdf_data
+                    from modern_backend.app.services.pdf_generator import generate_confirmation_letter_pdf
+
+                    data = _load_charter_pdf_data(cid)
+                    return generate_confirmation_letter_pdf(data)
+                except Exception as e:
+                    logger.debug("Suppressed confirmation pack entry %s: %s", cid, e)
+                    return None
+
+            def _load_run_sheet_pdf(cid: int) -> bytes | None:
+                try:
+                    from modern_backend.app.routers.pdf import _load_charter_pdf_data
+                    from modern_backend.app.services.pdf_generator import generate_charter_pdf
+
+                    data = _load_charter_pdf_data(cid)
+                    return generate_charter_pdf(data)
+                except Exception as e:
+                    logger.debug("Suppressed run sheet pack entry %s: %s", cid, e)
+                    return None
+
+            def _load_airport_sign_pdf(cid: int) -> bytes | None:
+                try:
+                    from modern_backend.app.routers.pdf import _load_charter_basic_context
+
+                    ctx = _load_charter_basic_context(cid)
+                    client_name = str(ctx.get("client_name") or "GUEST").strip() or "GUEST"
+                    reserve = str(ctx.get("reserve_number") or cid)
+                    lines = [
+                        f"RESERVE: {reserve}",
+                        "",
+                        "ARROW LIMOUSINE",
+                        "",
+                        client_name.upper(),
+                        "",
+                        f"DATE: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                    ]
+                    return self._build_simple_lines_pdf("Airport Sign", lines)
+                except Exception as e:
+                    logger.debug("Suppressed airport sign pack entry %s: %s", cid, e)
+                    return None
+
+            def _load_beverage_pack_pdf(cid: int) -> bytes | None:
+                try:
+                    from modern_backend.app.routers.pdf import _load_charter_basic_context, _load_charter_beverage_snapshot
+
+                    ctx = _load_charter_basic_context(cid)
+                    items = _load_charter_beverage_snapshot(cid)
+                    reserve = str(ctx.get("reserve_number") or cid)
+                    client_name = str(ctx.get("client_name") or "")
+                    driver_name = str(ctx.get("driver_name") or "")
+                    vehicle = str(ctx.get("vehicle") or "")
+
+                    dispatch_lines = [
+                        f"Charter ID: {cid}",
+                        f"Reserve: {reserve}",
+                        f"Client: {client_name}",
+                        f"Driver: {driver_name}",
+                        f"Vehicle: {vehicle}",
+                        "",
+                        "Beverage Dispatch Order (internal costs)",
+                        "",
+                    ]
+                    total_cost = 0.0
+                    for item in items:
+                        name = str(item.get("item_name") or "")
+                        qty = int(float(item.get("quantity") or 0))
+                        unit_cost = float(item.get("unit_our_cost") or 0.0)
+                        line_cost = float(item.get("line_cost") or (qty * unit_cost))
+                        total_cost += line_cost
+                        dispatch_lines.append(
+                            f"[ ] {name} | Qty {qty} | Cost ${unit_cost:.2f} | Total ${line_cost:.2f}"
+                        )
+                    dispatch_lines.extend(["", f"TOTAL COST TO PURCHASE: ${total_cost:.2f}"])
+
+                    guest_lines = [
+                        f"Invoice #: {reserve}B",
+                        f"Reserve: {reserve}",
+                        f"Client: {client_name}",
+                        "",
+                        "Guest Beverage Invoice",
+                        "",
+                    ]
+                    subtotal = 0.0
+                    gst_total = 0.0
+                    for item in items:
+                        name = str(item.get("item_name") or "")
+                        qty = int(float(item.get("quantity") or 0))
+                        each = float(item.get("unit_price_charged") or 0.0)
+                        line_total = float(item.get("line_amount_charged") or (qty * each))
+                        subtotal += line_total
+                        gst_total += (line_total * 0.05 / 1.05) if line_total else 0.0
+                        guest_lines.append(f"{name} | Qty {qty} | Price ${each:.2f} | Line ${line_total:.2f}")
+                    guest_lines.extend([
+                        "",
+                        f"Subtotal (before GST): ${subtotal - gst_total:.2f}",
+                        f"GST included (5%): ${gst_total:.2f}",
+                        f"TOTAL DUE: ${subtotal:.2f}",
+                    ])
+
+                    manifest_lines = [
+                        f"Charter ID: {cid}",
+                        f"Reserve: {reserve}",
+                        f"Client: {client_name}",
+                        f"Driver: {driver_name}",
+                        f"Vehicle: {vehicle}",
+                        "",
+                        "Driver Beverage Manifest (check items as loaded)",
+                        "",
+                    ]
+                    if items:
+                        for idx, item in enumerate(items, start=1):
+                            name = str(item.get("item_name") or "")
+                            qty = int(float(item.get("quantity") or 0))
+                            manifest_lines.append(f"[ ] {idx}. {name}  Qty: {qty}")
+                    else:
+                        manifest_lines.append("No beverage items found for this charter.")
+                    manifest_lines.extend([
+                        "",
+                        "Driver Name (Print): ______________________________",
+                        "Driver Signature: _________________________________",
+                    ])
+
+                    list_lines = [
+                        f"Charter ID: {cid}",
+                        f"Reserve: {reserve}",
+                        f"Client: {client_name}",
+                        "",
+                        "Client Beverage List",
+                        "",
+                    ]
+                    if items:
+                        for item in items:
+                            name = str(item.get("item_name") or "")
+                            qty = int(float(item.get("quantity") or 0))
+                            each = float(item.get("unit_price_charged") or 0.0)
+                            line_total = float(item.get("line_amount_charged") or (qty * each))
+                            list_lines.append(
+                                f"{name} | Qty {qty} | Price ${each:.2f} | Total ${line_total:.2f}"
+                            )
+                    else:
+                        list_lines.append("No beverage items found for this charter.")
+
+                    pack_parts = [
+                        self._build_simple_lines_pdf(f"Beverage Dispatch Order - {reserve}", dispatch_lines),
+                        self._build_simple_lines_pdf(f"Guest Beverage Invoice - {reserve}", guest_lines),
+                        self._build_simple_lines_pdf(f"Driver Beverage Manifest - {reserve}", manifest_lines),
+                        self._build_simple_lines_pdf(f"Client Beverage List - {reserve}", list_lines),
+                    ]
+                    return self._merge_pdf_bytes(pack_parts)
+                except Exception as e:
+                    logger.debug("Suppressed beverage pack entry %s: %s", cid, e)
+                    return None
+
+            def _open_pdf_pack(title: str, pdf_documents: list[bytes]) -> None:
+                if not pdf_documents:
+                    QMessageBox.information(dialog, "No Data", f"No PDFs could be generated for {title}.")
+                    return
+                packed = self._merge_pdf_bytes(pdf_documents)
+                self._open_pdf_bytes(packed, title)
+
+            def do_print_confirmations() -> None:
+                ids = selected_ids()
+                if not ids:
+                    QMessageBox.information(dialog, "No Selection", "Select at least one charter")
+                    return
+                _open_pdf_pack(
+                    f"Confirmation_Pack_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    [pdf for cid in ids if (pdf := _load_confirmation_pdf(cid))],
+                )
+
+            def do_print_run_sheets() -> None:
+                ids = selected_ids()
+                if not ids:
+                    QMessageBox.information(dialog, "No Selection", "Select at least one charter")
+                    return
+                _open_pdf_pack(
+                    f"Run_Sheet_Pack_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    [pdf for cid in ids if (pdf := _load_run_sheet_pdf(cid))],
+                )
+
+            def do_print_airport_signs() -> None:
+                ids = selected_ids()
+                if not ids:
+                    QMessageBox.information(dialog, "No Selection", "Select at least one charter")
+                    return
+                _open_pdf_pack(
+                    f"Airport_Sign_Pack_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    [pdf for cid in ids if (pdf := _load_airport_sign_pdf(cid))],
+                )
+
+            def do_print_beverage_pack() -> None:
+                ids = selected_ids()
+                if not ids:
+                    QMessageBox.information(dialog, "No Selection", "Select at least one charter")
+                    return
+                _open_pdf_pack(
+                    f"Beverage_Pack_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    [pdf for cid in ids if (pdf := _load_beverage_pack_pdf(cid))],
+                )
+
             select_all_btn.clicked.connect(lambda: do_select_all(Qt.CheckState.Checked))
             clear_btn.clicked.connect(lambda: do_select_all(Qt.CheckState.Unchecked))
             print_btn.clicked.connect(do_print)
             save_btn.clicked.connect(do_save)
             save_consolidated_btn.clicked.connect(do_save_consolidated)
+            confirmation_btn.clicked.connect(do_print_confirmations)
+            run_sheet_btn.clicked.connect(do_print_run_sheets)
+            sign_btn.clicked.connect(do_print_airport_signs)
+            beverage_pack_btn.clicked.connect(do_print_beverage_pack)
             email_btn.clicked.connect(do_email)
             mark_sent_btn.clicked.connect(do_mark_sent)
             close_btn.clicked.connect(dialog.accept)
 
             dialog.exec()
         except Exception as e:
-            QMessageBox.critical(self, "Multi-Invoice Error", f"Failed to open multi-invoice flow:\n{e}")
+            QMessageBox.critical(self, "Bulk Print Error", f"Failed to open bulk print flow:\n{e}")
         finally:
             cur.close()
+
+    def open_multi_invoice_selection_dialog(self, charter_ids: list[int] | None = None) -> None:
+        """Backward-compatible alias for legacy callers."""
+        self.open_bulk_print_selection_dialog(charter_ids)
 
 
 
@@ -3768,5 +4252,3 @@ class CharterPdfMixin:
                 self, "PDF Error",
                 f"Failed to generate blank run sheet:\n{e}\n\n"
                 f"{traceback.format_exc()[:500]}")
-
-

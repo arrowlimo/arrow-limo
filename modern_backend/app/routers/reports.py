@@ -1,5 +1,3 @@
-import csv
-import io
 import tempfile
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -9,145 +7,30 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse
 from psycopg2 import sql
-from pydantic import BaseModel, Field
 
 from ..audit.engine import ensure_audit_storage, record_audit_event
-from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import cursor, get_connection, return_connection
+from .report_helpers import (
+    AccountingRuleUpsert,
+    LedgerReclassifyRequest,
+    ReceiptGLReclassifyRequest,
+    _audit_actor,
+    _build_legacy_ops_select,
+    _ensure_accounting_rules_table,
+    _first_existing_column,
+    _load_rule_snapshot,
+    _parse_iso_date,
+    _to_csv_response,
+    _validate_rule_field,
+    _write_cursor_rows_to_csv,
+)
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 
-class AccountingRuleUpsert(BaseModel):
-    rule_name: str = Field(min_length=2, max_length=120)
-    match_field: str = Field(min_length=2, max_length=64)
-    match_pattern: str = Field(min_length=1, max_length=255)
-    gl_code: str = Field(min_length=1, max_length=32)
-    account_type: str | None = Field(default=None, max_length=64)
-    sort_order: int = Field(default=100, ge=0, le=10000)
-    is_active: bool = True
-
-
-class ReceiptGLReclassifyRequest(BaseModel):
-    receipt_ids: list[int] = Field(min_length=1)
-    gl_code: str = Field(min_length=1, max_length=32)
-
-
-class LedgerReclassifyRequest(BaseModel):
-    ledger_ids: list[int] = Field(min_length=1)
-    gl_code: str | None = Field(default=None, max_length=32)
-    account_name: str | None = Field(default=None, max_length=255)
-    account_type: str | None = Field(default=None, max_length=64)
-
-
-def _ensure_accounting_rules_table(conn) -> None:
-    """Create accounting rules table lazily so CRUD endpoints are usable."""
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS accounting_gl_rules (
-                rule_id SERIAL PRIMARY KEY,
-                rule_name TEXT UNIQUE NOT NULL,
-                match_field TEXT NOT NULL,
-                match_pattern TEXT NOT NULL,
-                gl_code TEXT NOT NULL,
-                account_type TEXT NULL,
-                sort_order INTEGER NOT NULL DEFAULT 100,
-                is_active BOOLEAN NOT NULL DEFAULT TRUE,
-                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-            )
-            """
-        )
-        cur.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_accounting_gl_rules_sort
-            ON accounting_gl_rules (is_active, sort_order, rule_id)
-            """
-        )
-    conn.commit()
-
-
-def _validate_rule_field(match_field: str) -> None:
-    allowed = {
-        "name",
-        "memo_description",
-        "account_name",
-        "supplier",
-        "customer",
-        "employee",
-        "transaction_type",
-    }
-    if match_field not in allowed:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "invalid_match_field",
-                "allowed": sorted(allowed),
-            },
-        )
-
-
-def _audit_actor(request: Request | None) -> AuditEventActor:
-    if request is None:
-        return AuditEventActor(actor_type="system", username="system")
-    username = request.headers.get("X-User-Name") or request.headers.get("X-User")
-    role = request.headers.get("X-User-Role")
-    user_id = request.headers.get("X-User-Id")
-    if not username:
-        username = request.headers.get("X-Forwarded-User")
-    return AuditEventActor(
-        actor_type="user" if username else "service",
-        user_id=user_id,
-        username=username,
-        role=role,
-    )
-
-
-def _load_rule_snapshot(conn, rule_id: int) -> dict[str, Any] | None:
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT rule_id, rule_name, match_field, match_pattern,
-                   gl_code, account_type, sort_order, is_active,
-                   created_at, updated_at
-            FROM accounting_gl_rules
-            WHERE rule_id = %s
-            """,
-            (rule_id,),
-        )
-        row = cur.fetchone()
-    if not row:
-        return None
-    return {
-        "rule_id": int(row[0]),
-        "rule_name": row[1],
-        "match_field": row[2],
-        "match_pattern": row[3],
-        "gl_code": row[4],
-        "account_type": row[5],
-        "sort_order": int(row[6] or 0),
-        "is_active": bool(row[7]),
-        "created_at": row[8].isoformat() if hasattr(row[8], "isoformat") else None,
-        "updated_at": row[9].isoformat() if hasattr(row[9], "isoformat") else None,
-    }
-
-
-def _write_cursor_rows_to_csv(cur, writer: Any, chunk_size: int = 5000) -> int:
-    """Write cursor rows in chunks to avoid loading entire result sets."""
-    total_rows = 0
-    while True:
-        batch = cur.fetchmany(chunk_size)
-        if not batch:
-            break
-        writer.writerows(batch)
-        total_rows += len(batch)
-    return total_rows
-
-
 @router.get("/export")
 def export(
-    type: str = Query(..., regex="^(booking-trends|revenue-summary|driver-hours)$"),
+    type: str = Query(..., pattern="^(booking-trends|revenue-summary|driver-hours)$"),
     format: str = "csv",
     start_date: str | None = None,
     end_date: str | None = None,
@@ -203,161 +86,14 @@ def export(
     )
 
 
-def _parse_iso_date(value: str | None, fallback: datetime | None = None) -> datetime | None:
-    """Safe ISO date parser with optional fallback."""
-    if not value:
-        return fallback
-    try:
-        return datetime.fromisoformat(value)
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail="invalid_date_format") from exc
-
-
-def _has_column(conn, table: str, column: str) -> bool:
-    """Check if a column exists before building dynamic queries."""
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT 1 FROM information_schema.columns
-            WHERE table_schema = 'public'
-              AND table_name = %s
-              AND column_name = %s
-            LIMIT 1
-            """,
-            (table, column),
-        )
-        return cur.fetchone() is not None
-
-
-def _first_existing_column(conn, table: str, candidates: list[str]) -> str | None:
-    """Return first existing column name from candidates, else None."""
-    for col in candidates:
-        if _has_column(conn, table, col):
-            return col
-    return None
-
-
-def _charter_text_expr(col_name: str | None, fallback: str = "") -> str:
-    if col_name:
-        return f"COALESCE(c.{col_name}::text, '')"
-    return f"'{fallback}'"
-
-
-def _charter_numeric_expr(col_name: str | None, fallback: str = "0") -> str:
-    if col_name:
-        return f"COALESCE(c.{col_name}::numeric, {fallback})"
-    return fallback
-
-
-def _build_legacy_ops_select(conn) -> tuple[str, str | None]:
-    """Build a schema-tolerant SELECT for legacy ops style report rows."""
-    reserve_col = _first_existing_column(
-        conn, "charters", ["reserve_number", "reserve_no", "order_number"]
-    )
-    date_col = _first_existing_column(
-        conn,
-        "charters",
-        ["pickup_date", "charter_date", "order_date", "created_at"],
-    )
-    amount_col = _first_existing_column(
-        conn,
-        "charters",
-        ["total_amount_due", "amount", "total", "quoted_amount"],
-    )
-    paid_col = _first_existing_column(conn, "charters", ["paid_amount", "total_paid"])
-
-    destination_col = _first_existing_column(
-        conn,
-        "charters",
-        ["dropoff_address", "destination"],
-    )
-    passenger_col = _first_existing_column(
-        conn,
-        "charters",
-        ["client_display_name", "passenger_name", "client_name"],
-    )
-    bill_to_col = _first_existing_column(
-        conn,
-        "charters",
-        ["bill_to", "client_display_name", "client_name"],
-    )
-    account_number_col = _first_existing_column(conn, "charters", ["account_number"])
-    account_type_col = _first_existing_column(conn, "charters", ["account_type"])
-    agency_number_col = _first_existing_column(conn, "charters", ["agency_number"])
-    payment_type_col = _first_existing_column(conn, "charters", ["payment_type", "payment_method"])
-    profit_center_col = _first_existing_column(conn, "charters", ["profit_center"])
-    driver_col = _first_existing_column(conn, "charters", ["driver_name", "driver"])
-    vehicle_col = _first_existing_column(conn, "charters", ["vehicle", "vehicle_number"])
-    vehicle_type_col = _first_existing_column(
-        conn,
-        "charters",
-        ["vehicle_type_requested", "vehicle_type", "vehicle_description"],
-    )
-    run_type_col = _first_existing_column(conn, "charters", ["run_type", "charter_type"])
-    status_col = _first_existing_column(conn, "charters", ["status"])
-    sales_person_col = _first_existing_column(
-        conn,
-        "charters",
-        ["sales_person", "taken_by", "booked_by", "created_by"],
-    )
-    taken_by_col = _first_existing_column(conn, "charters", ["taken_by", "booked_by", "created_by"])
-    group_number_col = _first_existing_column(conn, "charters", ["group_number", "group_no"])
-    _date_expr = f"c.{date_col}::date" if date_col else "NULL::date"
-
-    select_sql = f"""
-        SELECT
-            {_charter_text_expr(reserve_col)} AS order_number,
-            {_date_expr} AS order_date,
-            {_charter_text_expr(destination_col)} AS destination,
-            {_charter_text_expr(passenger_col)} AS passenger_name,
-            {_charter_text_expr(bill_to_col)} AS bill_to,
-            {_charter_text_expr(account_number_col)} AS account_number,
-            {_charter_text_expr(account_type_col)} AS account_type,
-            {_charter_text_expr(agency_number_col)} AS agency_number,
-            {_charter_text_expr(payment_type_col)} AS payment_type,
-            {_charter_text_expr(profit_center_col)} AS profit_center,
-            {_charter_text_expr(driver_col)} AS driver,
-            {_charter_text_expr(vehicle_col)} AS vehicle,
-            {_charter_text_expr(vehicle_type_col)} AS vehicle_type,
-            {_charter_text_expr(run_type_col)} AS run_type,
-            {_charter_text_expr(status_col)} AS status,
-            {_charter_text_expr(sales_person_col)} AS sales_person,
-            {_charter_text_expr(taken_by_col)} AS taken_by,
-            {_charter_text_expr(group_number_col)} AS group_number,
-            {_charter_numeric_expr(amount_col)} AS amount,
-            {_charter_numeric_expr(paid_col)} AS paid_amount,
-            ({_charter_numeric_expr(amount_col)}
-             - {_charter_numeric_expr(paid_col)}) AS balance
-        FROM charters c
-    """
-
-    return select_sql, date_col
-
-
-def _to_csv_response(rows: list[dict[str, Any]], filename: str) -> Response:
-    headers = [] if not rows else list(rows[0].keys())
-
-    buffer = io.StringIO()
-    writer = csv.writer(buffer)
-    if headers:
-        writer.writerow(headers)
-        for row in rows:
-            writer.writerow([row.get(h, "") for h in headers])
-    data = buffer.getvalue()
-    buffer.close()
-    return Response(
-        content=data,
-        media_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
 
 
 @router.get("/legacy-ops")
 def legacy_ops_report(
-    report_family: str = Query("manifest", regex="^(manifest|reserve_list|sales_summary)$"),
+    report_family: str = Query("manifest", pattern="^(manifest|reserve_list|sales_summary)$"),
     group_by: str = Query(
         "none",
-        regex=(
+        pattern=(
             "^(none|account_number|account_type|agency_number"
             "|bill_to|destination|driver|group_number"
             "|order_date|order_number|passenger_name"
@@ -371,7 +107,7 @@ def legacy_ops_report(
     include_cancelled: bool = True,
     limit: int = Query(2000, ge=1, le=50000),
     offset: int = Query(0, ge=0),
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
 ):
     """Schema-tolerant dataset endpoint for legacy Crystal ops reports.
 
@@ -512,10 +248,10 @@ def legacy_ops_report(
 def long_trip_report(
     start_date: str | None = None,
     end_date: str | None = None,
-    group_by: str = Query("none", regex="^(none|driver|vehicle|order_date|destination)$"),
+    group_by: str = Query("none", pattern="^(none|driver|vehicle|order_date|destination)$"),
     include_cancelled: bool = True,
     limit: int = Query(2000, ge=1, le=50000),
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
 ):
     """Long-trip report -- charters with is_out_of_town or total_kms > 0."""
     end_dt = _parse_iso_date(end_date, datetime.now())
@@ -659,10 +395,10 @@ def invoiced_charges_report(
     end_date: str | None = None,
     group_by: str = Query(
         "none",
-        regex="^(none|charge_type|category|account_number|reserve_number)$",
+        pattern="^(none|charge_type|category|account_number|reserve_number)$",
     ),
     limit: int = Query(5000, ge=1, le=100000),
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
 ):
     """Charter charges detail report (charter_charges JOIN charters)."""
     end_dt = _parse_iso_date(end_date, datetime.now())
@@ -756,10 +492,10 @@ def driver_pay_report(
     end_date: str | None = None,
     group_by: str = Query(
         "none",
-        regex="^(none|driver|order_date|driver_paid|run_type|vehicle)$",
+        pattern="^(none|driver|order_date|driver_paid|run_type|vehicle)$",
     ),
     limit: int = Query(2000, ge=1, le=50000),
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
 ):
     """Driver pay report from charter pay columns."""
     end_dt = _parse_iso_date(end_date, datetime.now())
@@ -883,12 +619,12 @@ def driver_pay_report(
 def fleet_report(
     group_by: str = Query(
         "none",
-        regex=(
+        pattern=(
             "^(none|operational_status|vehicle_type|vehicle_category"
             "|lifecycle_status|fuel_type)$"
         ),
     ),
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
 ):
     """Fleet status report from the vehicles table."""
     with cursor() as cur:
@@ -943,10 +679,10 @@ def fleet_report(
 def client_activity_report(
     start_date: str | None = None,
     end_date: str | None = None,
-    group_by: str = Query("none", regex="^(none|account_number|company_name|run_type)$"),
+    group_by: str = Query("none", pattern="^(none|account_number|company_name|run_type)$"),
     include_cancelled: bool = True,
     limit: int = Query(5000, ge=1, le=50000),
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
 ):
     """Charter activity per client/account (charters LEFT JOIN clients)."""
     end_dt = _parse_iso_date(end_date, datetime.now())
@@ -1066,9 +802,9 @@ def client_activity_report(
 def payment_list_report(
     start_date: str | None = None,
     end_date: str | None = None,
-    group_by: str = Query("none", regex="^(none|payment_method|source|client_name)$"),
+    group_by: str = Query("none", pattern="^(none|payment_method|source|client_name)$"),
     limit: int = Query(10000, ge=1, le=100000),
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
 ):
     """All charter payments within a date range (charter_payments table)."""
     end_dt = _parse_iso_date(end_date, datetime.now())
@@ -1134,10 +870,10 @@ def payment_list_report(
 
 @router.get("/aged-receivables")
 def aged_receivables_report(
-    group_by: str = Query("none", regex="^(none|age_bracket|account_number|driver)$"),
+    group_by: str = Query("none", pattern="^(none|age_bracket|account_number|driver)$"),
     include_cancelled: bool = True,
     limit: int = Query(5000, ge=1, le=50000),
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
 ):
     """Unpaid charters, aging brackets — all-time, no date filter."""
     conn = get_connection()
@@ -1257,12 +993,12 @@ def income_summary_report(
     end_date: str | None = None,
     group_by: str = Query(
         "none",
-        regex=(
+        pattern=(
             "^(none|revenue_category|fiscal_year|fiscal_quarter" "|payment_method|source_system)$"
         ),
     ),
     limit: int = Query(10000, ge=1, le=100000),
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
 ):
     """Income ledger summary report (income_ledger table)."""
     end_dt = _parse_iso_date(end_date, datetime.now())
@@ -1348,11 +1084,11 @@ def short_trip_report(
     end_date: str | None = None,
     group_by: str = Query(
         "none",
-        regex="^(none|driver|vehicle|order_date|run_type|account_number)$",
+        pattern="^(none|driver|vehicle|order_date|run_type|account_number)$",
     ),
     include_cancelled: bool = True,
     limit: int = Query(5000, ge=1, le=50000),
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
 ):
     """Short/local trips (is_out_of_town=false AND total_kms=0)."""
     end_dt = _parse_iso_date(end_date, datetime.now())
@@ -1665,9 +1401,102 @@ def bank_reconciliation(
     }
 
 
+@router.get("/cash-crossover-reconciliation")
+def cash_crossover_reconciliation(
+    start_date: str | None = None,
+    end_date: str | None = None,
+    max_rows: int = Query(1000, ge=50, le=5000),
+):
+    """Drill-down view for the live cash crossover reconciliation table."""
+    end_dt = _parse_iso_date(end_date, datetime.now())
+    start_dt = _parse_iso_date(start_date, end_dt - timedelta(days=365))
+
+    with cursor() as cur:
+        cur.execute(
+            """
+            SELECT
+                reconciliation_id,
+                source_table,
+                source_id,
+                row_type,
+                flow_direction,
+                source_date,
+                source_amount,
+                payment_method,
+                source_category,
+                funding_source,
+                classification_basis,
+                charter_id,
+                reserve_number,
+                banking_transaction_id,
+                cash_box_transaction_id,
+                gl_account_code,
+                gl_account_name,
+                receipt_source,
+                created_from_banking,
+                is_driver_reimbursement,
+                reconciliation_status,
+                confidence,
+                created_at,
+                updated_at
+            FROM cash_crossover_reconciliation
+            WHERE source_date BETWEEN %s AND %s
+            ORDER BY source_date, reconciliation_id
+            LIMIT %s
+            """,
+            (start_dt.date(), end_dt.date(), max_rows),
+        )
+        rows = cur.fetchall()
+
+    items = [
+        {
+            "reconciliation_id": r[0],
+            "source_table": r[1],
+            "source_id": r[2],
+            "row_type": r[3],
+            "flow_direction": r[4],
+            "source_date": str(r[5]),
+            "source_amount": float(r[6] or 0),
+            "payment_method": r[7],
+            "source_category": r[8],
+            "funding_source": r[9],
+            "classification_basis": r[10],
+            "charter_id": r[11],
+            "reserve_number": r[12],
+            "banking_transaction_id": r[13],
+            "cash_box_transaction_id": r[14],
+            "gl_account_code": r[15],
+            "gl_account_name": r[16],
+            "receipt_source": r[17],
+            "created_from_banking": r[18],
+            "is_driver_reimbursement": r[19],
+            "reconciliation_status": r[20],
+            "confidence": float(r[21] or 0),
+            "created_at": r[22].isoformat() if r[22] else None,
+            "updated_at": r[23].isoformat() if r[23] else None,
+        }
+        for r in rows
+    ]
+
+    total_in = round(sum(i["source_amount"] for i in items if i["flow_direction"] == "in"), 2)
+    total_out = round(sum(i["source_amount"] for i in items if i["flow_direction"] == "out"), 2)
+
+    return {
+        "start_date": str(start_dt.date()),
+        "end_date": str(end_dt.date()),
+        "count": len(items),
+        "totals": {
+            "in": total_in,
+            "out": total_out,
+            "net": round(total_in - total_out, 2),
+        },
+        "items": items,
+    }
+
+
 @router.get("/pl-summary")
 def pl_summary(
-    granularity: str = Query("month", regex="^(year|quarter|month)$"),
+    granularity: str = Query("month", pattern="^(year|quarter|month)$"),
     start_date: str | None = None,
     end_date: str | None = None,
 ):
@@ -1769,7 +1598,7 @@ def vehicle_performance(
                     f"""
                     SELECT vehicle_id,
                            COUNT(*) AS trips,
-                           COALESCE(SUM(gross_amount), 0) AS revenue
+                          COALESCE(SUM(total_amount_due), 0) AS revenue
                     FROM charters
                     WHERE {charter_date_col} BETWEEN %s AND %s
                     GROUP BY vehicle_id
@@ -1789,12 +1618,12 @@ def vehicle_performance(
                     SELECT vehicle_id,
                            COALESCE(SUM(gross_amount), 0) AS total_expense,
                            COALESCE(SUM(
-                               CASE WHEN description ILIKE '%maint%'
+                               CASE WHEN description ILIKE '%%maint%%'
                                     OR category ILIKE 'maintenance%%'
                                THEN gross_amount ELSE 0 END
                            ), 0) AS maintenance,
                            COALESCE(SUM(
-                               CASE WHEN description ILIKE '%insur%'
+                               CASE WHEN description ILIKE '%%insur%%'
                                     OR category ILIKE 'insurance%%'
                                THEN gross_amount ELSE 0 END
                            ), 0) AS insurance
@@ -1916,6 +1745,8 @@ def driver_costs(
             if id_col == "employee_id"
             else ""
         )
+        name_expr = "COALESCE(e.full_name, '')" if id_col == "employee_id" else "''"
+        name_group = "e.full_name" if id_col == "employee_id" else "''"
 
         if not id_col:
             raise HTTPException(status_code=400, detail="driver_payroll_missing_driver_id")
@@ -1923,14 +1754,14 @@ def driver_costs(
         with conn.cursor() as cur:
             cur.execute(
                 f"""
-                SELECT {id_col}, COALESCE(e.full_name, '') AS name,
+                  SELECT dp.{id_col}, {name_expr} AS name,
                        COUNT(*) AS payruns,
                        COALESCE(SUM({_net_col}), 0) AS total_cost,
                        COALESCE(SUM({_gross_col}), 0) AS gross_total
                 FROM driver_payroll dp
                 {name_join}
                 WHERE pay_date BETWEEN %s AND %s
-                GROUP BY {id_col}, name
+                  GROUP BY dp.{id_col}, {name_group}
                 ORDER BY total_cost DESC
                 """,
                 (start_dt.date(), end_dt.date()),
@@ -1990,19 +1821,27 @@ def driver_monthly_costs(
         if not id_col:
             raise HTTPException(status_code=400, detail="driver_payroll_missing_driver_id")
 
+        name_join = (
+            "LEFT JOIN employees e ON e.employee_id = dp.employee_id"
+            if id_col == "employee_id"
+            else ""
+        )
+        name_expr = "COALESCE(e.full_name, '')" if id_col == "employee_id" else "''"
+        name_group = "e.full_name" if id_col == "employee_id" else "''"
+
         with conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT DATE_TRUNC('month', pay_date) AS period,
-                       {id_col},
-                       COALESCE(e.full_name, '') AS name,
+                       dp.{id_col},
+                       {name_expr} AS name,
                        COUNT(*) AS payruns,
                        COALESCE(SUM(net_pay), 0) AS total_cost,
                        COALESCE(SUM(gross_pay), 0) AS gross_total
                 FROM driver_payroll dp
-                LEFT JOIN employees e ON e.employee_id = dp.employee_id
+                {name_join}
                 WHERE pay_date BETWEEN %s AND %s
-                GROUP BY period, {id_col}, name
+                GROUP BY period, dp.{id_col}, {name_group}
                 ORDER BY period, name
                 """,
                 (start_dt.date(), end_dt.date()),
@@ -2051,7 +1890,7 @@ def vehicle_insurance_yearly(years: int = Query(5, ge=1, le=15)):
                 SELECT vehicle_id,
                        EXTRACT(YEAR FROM {date_col}) AS yr,
                        COALESCE(
-                           SUM(CASE WHEN description ILIKE '%insur%'
+                           SUM(CASE WHEN description ILIKE '%%insur%%'
                                THEN gross_amount ELSE 0 END),
                            0
                        ) AS insurance_cost
@@ -2109,16 +1948,16 @@ def vehicle_damage_summary(
 
         with conn.cursor() as cur:
             cur.execute(
-                """
+                                f"""
                 SELECT vehicle_id,
                        COUNT(*) AS damage_count,
                        COALESCE(SUM(gross_amount), 0) AS damage_total
                 FROM receipts
                 WHERE ({date_col} BETWEEN %s AND %s)
-                  AND (description ILIKE '%damage%'
-                    OR description ILIKE '%claim%'
-                    OR description ILIKE '%collision%'
-                    OR description ILIKE '%accident%')
+                                    AND (description ILIKE '%%damage%%'
+                                        OR description ILIKE '%%claim%%'
+                                        OR description ILIKE '%%collision%%'
+                                        OR description ILIKE '%%accident%%')
                 GROUP BY vehicle_id
                 ORDER BY damage_total DESC
                 """,
@@ -2153,7 +1992,7 @@ def vehicle_damage_summary(
 def pl_categories(
     start_date: str | None = None,
     end_date: str | None = None,
-    granularity: str = Query("month", regex="^(year|quarter|month)$"),
+    granularity: str = Query("month", pattern="^(year|quarter|month)$"),
 ):
     """P&L grouped by account_name and period."""
     end_dt = _parse_iso_date(end_date, datetime.now())
@@ -2251,7 +2090,7 @@ def vehicle_revenue(
                 f"""
                 SELECT vehicle_id,
                        COUNT(*) AS trips,
-                       COALESCE(SUM(gross_amount), 0) AS revenue
+                      COALESCE(SUM(total_amount_due), 0) AS revenue
                 FROM charters
                 WHERE {charter_date_col} BETWEEN %s AND %s
                 GROUP BY vehicle_id
@@ -2323,7 +2162,7 @@ def driver_revenue_vs_pay(
             cur.execute(
                 f"""
                   SELECT {driver_col},
-                      COALESCE(SUM(gross_amount), 0) AS revenue,
+                                            COALESCE(SUM(total_amount_due), 0) AS revenue,
                       COUNT(*) AS trips
                 FROM charters
                 WHERE {date_col} BETWEEN %s AND %s
@@ -2529,22 +2368,22 @@ def fleet_maintenance_summary(
                 SELECT vehicle_id,
                        COALESCE(SUM(gross_amount), 0) AS total_expense,
                        COALESCE(SUM(
-                           CASE WHEN description ILIKE '%maint%'
+                           CASE WHEN description ILIKE '%%maint%%'
                                 OR category ILIKE 'maintenance%%'
                            THEN gross_amount ELSE 0 END
                        ), 0) AS maintenance,
                        COALESCE(SUM(
-                           CASE WHEN description ILIKE '%repair%'
+                           CASE WHEN description ILIKE '%%repair%%'
                            THEN gross_amount ELSE 0 END
                        ), 0) AS repairs,
                        COALESCE(SUM(
-                           CASE WHEN description ILIKE '%insur%'
+                           CASE WHEN description ILIKE '%%insur%%'
                                 OR category ILIKE 'insurance%%'
                            THEN gross_amount ELSE 0 END
                        ), 0) AS insurance,
                        COALESCE(SUM(
-                           CASE WHEN description ILIKE '%damage%'
-                                OR description ILIKE '%claim%'
+                           CASE WHEN description ILIKE '%%damage%%'
+                                OR description ILIKE '%%claim%%'
                            THEN gross_amount ELSE 0 END
                        ), 0) AS damage
                 FROM receipts
@@ -2610,7 +2449,7 @@ def cra_audit_export(
     import zipfile
     from decimal import Decimal
 
-    from defusedxml import ElementTree as ET
+    import xml.etree.ElementTree as ET
 
     def prettify_xml(elem):
         """Return a pretty-printed XML string"""
@@ -2643,7 +2482,7 @@ def cra_audit_export(
             # Export accounts if not transactions-only
             if export_type != "transactions":
                 cur.execute(
-                    """
+                    f"""
                     SELECT DISTINCT
                         account_name, account, account_full_name,
                         account_number, account_type
@@ -2681,7 +2520,7 @@ def cra_audit_export(
 
                 # Export vendors
                 cur.execute(
-                    """
+                    f"""
                     SELECT DISTINCT
                         supplier,
                         COUNT(*) as transaction_count,
@@ -2724,7 +2563,7 @@ def cra_audit_export(
 
                 # Export employees
                 cur.execute(
-                    """
+                    f"""
                     SELECT DISTINCT
                         employee,
                         COUNT(*) as transaction_count,
@@ -2820,7 +2659,7 @@ def cra_audit_export(
             # Export transactions if not summary-only
             if export_type != "summary":
                 cur.execute(
-                    """
+                    f"""
                     SELECT
                         id, date, transaction_type, num,
                         name, account_name, account,
@@ -2925,11 +2764,14 @@ Generated via Arrow Limousine Reports Dashboard
                     zipf.write(file, file.name)
                 zipf.write(tmppath / "README.txt", "README.txt")
 
-            # Return ZIP file
-            return FileResponse(
-                path=str(zip_path),
+            # Return ZIP bytes so response is valid after temp dir cleanup.
+            with open(zip_path, "rb") as f:
+                zip_bytes = f.read()
+
+            return Response(
+                content=zip_bytes,
                 media_type="application/zip",
-                filename=zip_filename,
+                headers={"Content-Disposition": f'attachment; filename="{zip_filename}"'},
             )
 
     finally:

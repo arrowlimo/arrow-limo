@@ -14,7 +14,7 @@ from enhanced_receipts_import_export import (
     EnhancedReceiptsImportExport,
 )
 from print_export_helper import PrintExportHelper
-from PyQt6.QtCore import QDate, Qt, pyqtSlot
+from PyQt6.QtCore import QDate, Qt, QTimer, pyqtSlot
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -123,6 +123,10 @@ class EnhancedBankingManager(QWidget):
         ]
         self.visible_columns = self.all_columns.copy()
         self._build_ui()
+        QTimer.singleShot(0, self._load_initial_data)
+
+    def _load_initial_data(self) -> None:
+        """Load initial account and transaction data after construction."""
         self._load_accounts()
         self._load_transactions()
 
@@ -285,6 +289,13 @@ class EnhancedBankingManager(QWidget):
         )
         add_btn.clicked.connect(self._add_transaction)
         actions.addWidget(add_btn)
+
+        import_stmt_btn = QPushButton("🏦 Import Bank Statements")
+        import_stmt_btn.setStyleSheet(
+            "background-color: #1565C0; color: white; font-weight: bold;"
+        )
+        import_stmt_btn.clicked.connect(self._open_statement_import)
+        actions.addWidget(import_stmt_btn)
 
         mark_verified_btn = QPushButton("☑ Mark Paper Verified")
         mark_verified_btn.setStyleSheet(
@@ -1396,6 +1407,20 @@ class EnhancedBankingManager(QWidget):
                 logger.debug('Suppressed: %s', _e)
             QMessageBox.critical(
                 self, "Save Error", f"Failed to save changes:\n{e}"
+            )
+
+    @pyqtSlot()
+    def _open_statement_import(self) -> None:
+        """Open the bank statement import folder verification dialog."""
+        try:
+            from bank_statement_import_dialog import BankStatementImportDialog
+
+            dialog = BankStatementImportDialog(self.conn, self)
+            dialog.exec()
+        except Exception as e:
+            logger.exception("Failed to open bank statement import")
+            QMessageBox.critical(
+                self, "Error", f"Failed to open statement import:\n{e}"
             )
 
     @pyqtSlot()

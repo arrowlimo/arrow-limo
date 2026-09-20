@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from ..audit.engine import ensure_audit_storage, record_audit_event
 from ..audit.schemas import AuditEvent, AuditEventActor
 from ..db import get_connection
+from .year_end import refresh_draft_year_end_close
 
 router = APIRouter(prefix="/api/payroll", tags=["payroll-entries"])
 
@@ -24,6 +25,11 @@ def _audit_actor(request: Request | None) -> AuditEventActor:
         username=username,
         role=role,
     )
+
+
+def _refresh_year_end_totals(conn, fiscal_years: set[int]) -> None:
+    for fiscal_year in sorted(fiscal_years):
+        refresh_draft_year_end_close(conn, fiscal_year)
 
 
 def _load_payroll_entry_snapshot(conn, entry_id: int) -> dict | None:
@@ -239,6 +245,7 @@ def create_entry(
             commit=False,
         )
 
+        _refresh_year_end_totals(conn, {payload.year})
         conn.commit()
         return {"status": "created", "id": int(row[0])}
     except Exception as exc:
@@ -326,6 +333,7 @@ def update_entry(
             commit=False,
         )
 
+        _refresh_year_end_totals(conn, {before_snapshot["year"], payload.year})
         conn.commit()
         return {"status": "updated", "id": entry_id}
     except HTTPException:
@@ -375,6 +383,7 @@ def delete_entry(
             commit=False,
         )
 
+        _refresh_year_end_totals(conn, {before_snapshot["year"]})
         conn.commit()
         return {"status": "deleted", "id": entry_id}
     except HTTPException:

@@ -7,6 +7,7 @@ import logging
 
 from client_drill_down import ClientDetailDialog
 from db_error_handling import DatabaseContext
+from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -37,15 +38,26 @@ class EnhancedClientListWidget(QWidget):
     - Double-click opens ClientDetailDialog
     """
 
-    def __init__(self, db, parent=None) -> None:
+    def __init__(self, db, parent=None, payment_mode: bool = False) -> None:
         super().__init__(parent)
         self.db = db
         self._data_loaded = False
+        self._is_refreshing = False
+        self.payment_mode = payment_mode
+
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.setInterval(250)
+        self._refresh_timer.timeout.connect(self.refresh)
 
         layout = QVBoxLayout()
 
         # ===== TITLE =====
-        title = QLabel("👥 Client Management")
+        title = QLabel(
+            "💳 Client Payments"
+            if self.payment_mode
+            else "👥 Clients"
+        )
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
 
@@ -57,7 +69,7 @@ class EnhancedClientListWidget(QWidget):
         self.name_filter.setPlaceholderText(
             "Client name, company, or contact..."
         )
-        self.name_filter.textChanged.connect(self.refresh)
+        self.name_filter.textChanged.connect(self._schedule_refresh)
         filter_layout.addWidget(self.name_filter)
 
         filter_layout.addWidget(QLabel("Status:"))
@@ -65,11 +77,11 @@ class EnhancedClientListWidget(QWidget):
         self.status_filter.addItems(
             ["All", "Active", "Inactive", "Suspended", "VIP"]
         )
-        self.status_filter.currentTextChanged.connect(self.refresh)
+        self.status_filter.currentTextChanged.connect(self._schedule_refresh)
         filter_layout.addWidget(self.status_filter)
 
         self.balance_filter = QCheckBox("Show Outstanding Balance Only")
-        self.balance_filter.stateChanged.connect(self.refresh)
+        self.balance_filter.stateChanged.connect(self._schedule_refresh)
         filter_layout.addWidget(self.balance_filter)
 
         filter_layout.addStretch()
@@ -110,6 +122,10 @@ class EnhancedClientListWidget(QWidget):
         edit_btn.clicked.connect(self.edit_client)
         button_layout.addWidget(edit_btn)
 
+        payment_btn = QPushButton("💳 Open Payments")
+        payment_btn.clicked.connect(self.open_payment_management)
+        button_layout.addWidget(payment_btn)
+
         suspend_btn = QPushButton("🚫 Suspend Selected")
         suspend_btn.clicked.connect(self.suspend_client)
         button_layout.addWidget(suspend_btn)
@@ -136,28 +152,50 @@ class EnhancedClientListWidget(QWidget):
             self.refresh()
             self._data_loaded = True
 
+    def _schedule_refresh(self) -> None:
+        """Debounce filter-driven refreshes to keep typing responsive."""
+        self._refresh_timer.start()
+
     def refresh(self) -> None:
         """Reload client list with filters"""
+        if self._is_refreshing:
+            return
+        self._is_refreshing = True
         try:
             with DatabaseContext(self.db, auto_commit=False) as cur:
                 # Build query with filters
                 query = """
+                    WITH charter_totals AS (
+                        SELECT
+                            c.client_id,
+                            COALESCE(SUM(c.total_amount_due), 0) AS total_revenue,
+                            MAX(c.charter_date) AS last_charter
+                        FROM charters c
+                        WHERE c.client_id IS NOT NULL
+                        GROUP BY c.client_id
+                    ),
+                    payment_totals AS (
+                        SELECT
+                            c.client_id,
+                            COALESCE(SUM(p.amount), 0) AS total_paid
+                        FROM charters c
+                        LEFT JOIN charter_payments p ON p.charter_id = c.charter_id::text
+                        WHERE c.client_id IS NOT NULL
+                        GROUP BY c.client_id
+                    )
                     SELECT
                         cl.client_id,
                         cl.company_name,
                         cl.client_name,
                         cl.primary_phone,
                         cl.email,
-                        COALESCE(SUM(c.total_amount_due), 0) as total_revenue,
-                        COALESCE(SUM(c.total_amount_due) - SUM(
-                            (SELECT COALESCE(SUM(p.amount), 0)
-                             FROM payments p
-                             WHERE p.reserve_number = c.reserve_number)),
-                             0) as outstanding,
-                        MAX(c.charter_date) as last_charter,
+                        COALESCE(ct.total_revenue, 0) as total_revenue,
+                        COALESCE(ct.total_revenue, 0) - COALESCE(pt.total_paid, 0) as outstanding,
+                        ct.last_charter as last_charter,
                         'Active' as status
                     FROM clients cl
-                    LEFT JOIN charters c ON c.client_id = cl.client_id
+                    LEFT JOIN charter_totals ct ON ct.client_id = cl.client_id
+                    LEFT JOIN payment_totals pt ON pt.client_id = cl.client_id
                     WHERE 1=1
                 """
                 params = []
@@ -177,27 +215,13 @@ class EnhancedClientListWidget(QWidget):
                     # In real implementation, check actual status column
                     pass
 
-                query += """
-                    GROUP BY cl.client_id, cl.company_name, cl.client_name,
-                    cl.primary_phone, cl.email
-                """
-
                 # Balance filter
                 if self.balance_filter.isChecked():
                     query += """
-                        HAVING COALESCE(
-                            SUM(c.total_amount_due) - SUM(
-                                (
-                                    SELECT COALESCE(SUM(p.amount), 0)
-                                    FROM payments p
-                                    WHERE p.reserve_number = c.reserve_number
-                                )
-                            ),
-                            0
-                        ) > 0
+                        AND (COALESCE(ct.total_revenue, 0) - COALESCE(pt.total_paid, 0)) > 0
                     """
 
-                query += " ORDER BY cl.company_name"
+                query += " ORDER BY COALESCE(cl.company_name, cl.client_name) LIMIT 2000"
 
                 cur.execute(query, params)
                 rows = cur.fetchall()
@@ -217,8 +241,9 @@ class EnhancedClientListWidget(QWidget):
                         status,
                     ) in enumerate(rows):
                         self.table.setItem(i, 0, QTableWidgetItem(str(cid)))
+                        display_name = str(company or contact or "")
                         self.table.setItem(
-                            i, 1, QTableWidgetItem(str(company or ""))
+                            i, 1, QTableWidgetItem(display_name)
                         )
                         self.table.setItem(
                             i, 2, QTableWidgetItem(str(contact or ""))
@@ -259,13 +284,27 @@ class EnhancedClientListWidget(QWidget):
         except Exception as e:
             logger.error(f"Failed to load clients: {e}")
             QMessageBox.critical(self, "Error", f"Failed to load clients: {e}")
+        finally:
+            self._is_refreshing = False
 
     def open_detail(self, index) -> None:
         """Open client detail dialog on double-click"""
         row = index.row()
         client_id = int(self.table.item(row, 0).text())
 
-        dialog = ClientDetailDialog(self.db, client_id, self)
+        start_tab = 2 if self.payment_mode else 0
+        dialog = ClientDetailDialog(self.db, client_id, self, start_tab=start_tab)
+        dialog.saved.connect(lambda data: self.refresh())
+        dialog.exec()
+
+    def open_payment_management(self) -> None:
+        """Open selected client directly to the Payments tab."""
+        current_row = self.table.currentRow()
+        if current_row < 0:
+            QMessageBox.warning(self, "Warning", "Please select a client first")
+            return
+        client_id = int(self.table.item(current_row, 0).text())
+        dialog = ClientDetailDialog(self.db, client_id, self, start_tab=2)
         dialog.saved.connect(lambda data: self.refresh())
         dialog.exec()
 
@@ -280,7 +319,8 @@ class EnhancedClientListWidget(QWidget):
         current_row = self.table.currentRow()
         if current_row >= 0:
             client_id = int(self.table.item(current_row, 0).text())
-            dialog = ClientDetailDialog(self.db, client_id, self)
+            start_tab = 2 if self.payment_mode else 0
+            dialog = ClientDetailDialog(self.db, client_id, self, start_tab=start_tab)
             dialog.saved.connect(lambda data: self.refresh())
             dialog.exec()
         else:

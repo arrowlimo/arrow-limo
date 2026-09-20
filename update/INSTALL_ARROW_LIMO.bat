@@ -4,6 +4,7 @@ setlocal
 set "SCRIPT_DIR=%~dp0"
 set "DISPATCHER=%SCRIPT_DIR%update_dispatcher.ps1"
 set "ARROW_LIMO_NO_PAUSE=1"
+for %%I in ("%SCRIPT_DIR%..") do set "SOURCE_ROOT=%%~fI"
 
 REM Pre-flight: check for nested limo folder
 if exist "Y:\limo\limo" (
@@ -24,7 +25,7 @@ if not exist "Y:\" (
 )
 
 echo Starting Arrow Limousine install/update (delta mode)...
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%DISPATCHER%" -SourcePath "%SCRIPT_DIR%" -TargetRoot "Y:\limo" -NoElevation -ShowUi:$false -RunSmokeTest:$true -LaunchApp:$false -FullClean:$false
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '%DISPATCHER%' -SourcePath '%SOURCE_ROOT%' -TargetRoot 'Y:\limo' -NoElevation -ShowUi:$false -RunSmokeTest:$true -LaunchApp:$false -FullClean:$false"
 
 set "EXITCODE=%ERRORLEVEL%"
 

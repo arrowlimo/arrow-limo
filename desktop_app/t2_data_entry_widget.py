@@ -1,6 +1,6 @@
 """
 T2 Corporation Tax Return - Historical Data Entry Widget
-Enter T2 data line-by-line from paper forms (2007-2025)
+Enter T2 data line-by-line from paper forms (2006-2011)
 """
 
 import logging
@@ -44,7 +44,7 @@ class T2DataEntryWidget(QWidget):
     needing to enter individual receipts/banking transactions.
 
     Features:
-    - Enter by tax year (2007-2025)
+    - Enter by tax year (2006-2011)
     - Line-by-line schedule entry
     - Auto-calculate taxable income and tax owing
     - Store in database for audit trail
@@ -69,6 +69,7 @@ class T2DataEntryWidget(QWidget):
         self.current_return_id = None
         self.latest_deductibility_analysis = None
         self.init_ui()
+        self._ensure_deductibility_tables()
         self.load_tax_years()
 
     def init_ui(self) -> None:
@@ -798,13 +799,78 @@ class T2DataEntryWidget(QWidget):
         return spin
 
     def load_tax_years(self) -> None:
-        """Load available tax years (2007-2025)"""
-        current_year = QDate.currentDate().year()
-        for year in range(2007, current_year + 1):
+        """Load available historical tax years (2006-2011)."""
+        for year in range(2006, 2012):
             self.year_combo.addItem(str(year))
-        self.year_combo.setCurrentText(
-            str(current_year - 1)
-        )  # Default to previous year
+        self.year_combo.setCurrentText("2011")
+
+    def _ensure_tax_rate_for_year(self, conn, tax_year: int) -> None:
+        """Ensure a corporate tax-rate row exists for a historical T2 year."""
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "SELECT 1 FROM corporate_tax_rates WHERE tax_year = %s",
+                (tax_year,),
+            )
+            if cur.fetchone():
+                return
+
+            cur.execute(
+                """
+                SELECT federal_small_business_rate,
+                       federal_general_rate,
+                       alberta_small_business_rate,
+                       alberta_general_rate,
+                       small_business_limit,
+                       gst_rate,
+                       notes
+                FROM corporate_tax_rates
+                WHERE tax_year = (
+                    SELECT MAX(tax_year)
+                    FROM corporate_tax_rates
+                )
+                """
+            )
+            template = cur.fetchone()
+            if not template:
+                template = (
+                    0.1100,
+                    0.1500,
+                    0.0300,
+                    0.1000,
+                    500000.00,
+                    0.0500,
+                    "Historical fallback rate",
+                )
+
+            cur.execute(
+                """
+                INSERT INTO corporate_tax_rates (
+                    tax_year,
+                    federal_small_business_rate,
+                    federal_general_rate,
+                    alberta_small_business_rate,
+                    alberta_general_rate,
+                    small_business_limit,
+                    gst_rate,
+                    notes
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    tax_year,
+                    template[0],
+                    template[1],
+                    template[2],
+                    template[3],
+                    template[4],
+                    template[5],
+                    template[6],
+                ),
+            )
+            conn.commit()
+        finally:
+            cur.close()
 
     def load_return_data(self) -> None:
         """Load existing T2 return data for selected year"""
@@ -837,15 +903,15 @@ class T2DataEntryWidget(QWidget):
                     # Set business number
                     if row[2]:
                         self.business_number.setText(row[2])
-                    if row[10]:
-                        status_text = str(row[10]).strip().title()
+                    if row[9]:
+                        status_text = str(row[9]).strip().title()
                         status_index = self.filing_status.findText(status_text)
                         if status_index >= 0:
                             self.filing_status.setCurrentIndex(status_index)
                     else:
                         self.filing_status.setCurrentText("Draft")
-                    if row[11]:
-                        self.filing_date.setDate(QDate(row[11]))
+                    if row[10]:
+                        self.filing_date.setDate(QDate(row[10]))
 
                     self.load_schedule_data()
                     self.refresh_summary()
@@ -878,6 +944,7 @@ class T2DataEntryWidget(QWidget):
 
         # Check if return already exists
         try:
+            self._ensure_tax_rate_for_year(self.db, tax_year)
             with DatabaseContext(self.db, auto_commit=True) as cur:
                 cur.execute(
                     "SELECT return_id FROM t2_return_metadata WHERE tax_year"
@@ -1454,6 +1521,61 @@ class T2DataEntryWidget(QWidget):
                     f"Failed to run deductibility analysis:\n{e}",
                 )
             return None
+
+    def _ensure_deductibility_tables(self) -> None:
+        """Create the T2 deductibility snapshot tables used by this screen."""
+        with DatabaseContext(self.db, auto_commit=True) as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS t2_deductibility_audit (
+                    audit_id SERIAL PRIMARY KEY,
+                    return_id INTEGER NOT NULL UNIQUE
+                        REFERENCES t2_return_metadata(return_id) ON DELETE CASCADE,
+                    tax_year INTEGER NOT NULL,
+                    total_book_expenses NUMERIC(14, 2) NOT NULL DEFAULT 0,
+                    total_deductible_expenses NUMERIC(14, 2) NOT NULL DEFAULT 0,
+                    total_add_back NUMERIC(14, 2) NOT NULL DEFAULT 0,
+                    warning_count INTEGER NOT NULL DEFAULT 0,
+                    high_warning_count INTEGER NOT NULL DEFAULT 0,
+                    analysis_version VARCHAR(20) NOT NULL DEFAULT 'v1',
+                    created_by VARCHAR(100),
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS t2_deductibility_audit_gl (
+                    audit_gl_id SERIAL PRIMARY KEY,
+                    audit_id INTEGER NOT NULL
+                        REFERENCES t2_deductibility_audit(audit_id)
+                        ON DELETE CASCADE,
+                    gl_code VARCHAR(50),
+                    account_name TEXT,
+                    transaction_count INTEGER NOT NULL DEFAULT 0,
+                    book_amount NUMERIC(14, 2) NOT NULL DEFAULT 0,
+                    deductible_amount NUMERIC(14, 2) NOT NULL DEFAULT 0,
+                    add_back_amount NUMERIC(14, 2) NOT NULL DEFAULT 0,
+                    notes TEXT
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS t2_deductibility_audit_warning (
+                    warning_id SERIAL PRIMARY KEY,
+                    audit_id INTEGER NOT NULL
+                        REFERENCES t2_deductibility_audit(audit_id)
+                        ON DELETE CASCADE,
+                    severity VARCHAR(20),
+                    receipt_id INTEGER,
+                    gl_code VARCHAR(50),
+                    vendor TEXT,
+                    message TEXT NOT NULL
+                )
+                """
+            )
 
     def _save_deductibility_snapshot(self, analysis) -> None:
         """Persist the latest deductibility analysis for this T2 return."""

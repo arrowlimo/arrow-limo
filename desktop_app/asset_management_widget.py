@@ -1117,8 +1117,6 @@ add_photo_to_asset({asset_id}, r'{file_path}', '{description}', 'contract')""",
             )
             if os.path.exists(report_path):
                 # Use os.startfile for security (avoid shell injection)
-                import os
-
                 os.startfile(report_path)
                 QMessageBox.information(
                     self, "Success", "Audit report generated and opened"

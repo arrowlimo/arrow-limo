@@ -22,7 +22,7 @@ from db_error_handling import DatabaseContext
 from psycopg2 import sql
 from psycopg2.errors import UndefinedTable
 from PyQt6.QtCore import QDate, QLocale, Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QBrush, QColor
 from PyQt6.QtWidgets import (
     QAbstractSpinBox,
     QCalendarWidget,
@@ -59,6 +59,7 @@ class DriverCalendarWidget(QWidget):
         self._charter_columns = None
         self._init_ui()
         self._ensure_submission_dir()
+        self._highlight_charter_dates()
         self.load_day_events(QDate.currentDate())
 
     def _driver_logs_table_exists(self) -> bool:
@@ -205,6 +206,9 @@ class DriverCalendarWidget(QWidget):
         self.calendar = QCalendarWidget()
         self.calendar.setGridVisible(True)
         self.calendar.selectionChanged.connect(self._on_date_changed)
+        self.calendar.currentPageChanged.connect(
+            lambda _y, _m: self._highlight_charter_dates()
+        )
         left_layout.addWidget(self.calendar)
         left.setLayout(left_layout)
         splitter.addWidget(left)
@@ -271,8 +275,12 @@ class DriverCalendarWidget(QWidget):
         self.print_btn.clicked.connect(self._print_charter)
         self.driver_form_btn = QPushButton("✍️ Driver Entry Form")
         self.driver_form_btn.clicked.connect(self._open_driver_form)
+        self.reassign_btn = QPushButton("🔄 Reassign Driver/Vehicle")
+        self.reassign_btn.clicked.connect(self._open_reassign_dialog)
+        self.reassign_btn.setEnabled(False)
         action_layout.addWidget(self.print_btn)
         action_layout.addWidget(self.driver_form_btn)
+        action_layout.addWidget(self.reassign_btn)
         form.addRow(action_layout)
 
         box.setLayout(form)
@@ -287,6 +295,45 @@ class DriverCalendarWidget(QWidget):
 
     def _on_date_changed(self) -> None:
         self.load_day_events(self.calendar.selectedDate())
+
+    def _highlight_charter_dates(self) -> None:
+        """Highlight calendar dates that have active charters."""
+        try:
+            year_month = self.calendar.selectedDate()
+            start_date = QDate(year_month.year(), year_month.month(), 1)
+            # Get last day of month
+            if year_month.month() == 12:
+                end_date = QDate(year_month.year() + 1, 1, 1).addDays(-1)
+            else:
+                end_date = QDate(
+                    year_month.year(), year_month.month() + 1, 1
+                ).addDays(-1)
+
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT DISTINCT charter_date
+                    FROM charters
+                    WHERE charter_date >= %s AND charter_date <= %s
+                        AND (status IS NULL OR status NOT IN
+                            ('cancelled','no-show'))
+                """,
+                    (start_date.toPyDate(), end_date.toPyDate()),
+                )
+                charter_dates = {str(row[0]) for row in cur.fetchall() if row[0]}
+
+            # Highlight each charter date
+            for date_str in charter_dates:
+                date_obj = QDate.fromString(date_str, "yyyy-MM-dd")
+                if not date_obj.isValid():
+                    continue
+                fmt = self.calendar.dateTextFormat(QDate())
+                fmt.setFontWeight(QFont.Weight.Bold)
+                fmt.setBackground(QBrush(QColor(173, 216, 230)))  # Light blue
+                fmt.setForeground(QBrush(QColor(0, 51, 102)))  # Dark blue text
+                self.calendar.setDateTextFormat(date_obj, fmt)
+        except Exception as e:
+            logger.error("Failed to highlight charter dates: %s", e)
 
     def _resolve_do_time_expr(self) -> str:
         """Resolve the SQL expression used for Do Time based on schema."""
@@ -471,12 +518,14 @@ class DriverCalendarWidget(QWidget):
     def _load_selected_charter(self) -> None:
         items = self.day_table.selectedItems()
         if not items:
+            self.reassign_btn.setEnabled(False)
             return
         row = self.day_table.row(items[0])
         reserve = self.day_table.item(row, 0).text()
         charter_id = self.day_table.item(row, 1).text()
         self.detail_reserve.setText(reserve)
         self.detail_charter_id.setText(charter_id)
+        self.reassign_btn.setEnabled(bool(charter_id))
         # Fill the rest from table directly
         self.detail_customer.setText(
             self.day_table.item(row, 2).text()
@@ -606,8 +655,132 @@ class DriverCalendarWidget(QWidget):
         dlg = DriverEntryDialog(reserve, self.submission_dir, self.db, self)
         dlg.exec()
 
+    def _open_reassign_dialog(self) -> None:
+        charter_id_text = self.detail_charter_id.text().strip()
+        reserve = self.detail_reserve.text().strip()
+        if not charter_id_text:
+            QMessageBox.information(self, "Reassign", "Select a charter first.")
+            return
+        try:
+            charter_id = int(charter_id_text)
+        except ValueError:
+            return
+        dlg = ReassignDriverDialog(
+            charter_id, reserve, self.db, self
+        )
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            self.load_day_events(self.calendar.selectedDate())
+
+
+class ReassignDriverDialog(QDialog):
+    """Quick-change driver and/or vehicle for a charter from the calendar."""
+
+    def __init__(self, charter_id: int, reserve: str, db, parent=None) -> None:
+        super().__init__(parent)
+        self.charter_id = charter_id
+        self.db = db
+        self.setWindowTitle(f"Reassign Driver/Vehicle — Charter {reserve}")
+        self.setMinimumWidth(380)
+        self._init_ui()
+
+    def _init_ui(self) -> None:
+        from PyQt6.QtWidgets import QComboBox, QDialogButtonBox, QFormLayout
+        layout = QFormLayout(self)
+
+        # Current values
+        self._current_employee_id = None
+        self._current_vehicle_id = None
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    "SELECT employee_id, vehicle_id FROM charters"
+                    " WHERE charter_id = %s", (self.charter_id,)
+                )
+                row = cur.fetchone()
+                if row:
+                    self._current_employee_id, self._current_vehicle_id = row
+        except Exception:
+            pass
+
+        # Driver combo
+        self.driver_combo = QComboBox()
+        self.driver_combo.addItem("— No change —", -1)
+        self.driver_combo.addItem("(Unassign driver)", None)
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    "SELECT employee_id, full_name FROM employees"
+                    " WHERE COALESCE(is_active, TRUE) = TRUE"
+                    " ORDER BY full_name"
+                )
+                for eid, name in cur.fetchall():
+                    self.driver_combo.addItem(name or str(eid), eid)
+                    if eid == self._current_employee_id:
+                        self.driver_combo.setCurrentIndex(
+                            self.driver_combo.count() - 1
+                        )
+        except Exception:
+            pass
+
+        # Vehicle combo
+        self.vehicle_combo = QComboBox()
+        self.vehicle_combo.addItem("— No change —", -1)
+        self.vehicle_combo.addItem("(Unassign vehicle)", None)
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    "SELECT vehicle_id, vehicle_number FROM vehicles"
+                    " ORDER BY vehicle_number"
+                )
+                for vid, vnum in cur.fetchall():
+                    self.vehicle_combo.addItem(vnum or str(vid), vid)
+                    if vid == self._current_vehicle_id:
+                        self.vehicle_combo.setCurrentIndex(
+                            self.vehicle_combo.count() - 1
+                        )
+        except Exception:
+            pass
+
+        layout.addRow("Driver:", self.driver_combo)
+        layout.addRow("Vehicle:", self.vehicle_combo)
+
+        btns = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        btns.accepted.connect(self._save)
+        btns.rejected.connect(self.reject)
+        layout.addRow(btns)
+
+    def _save(self) -> None:
+        updates = {}
+        driver_val = self.driver_combo.currentData()
+        vehicle_val = self.vehicle_combo.currentData()
+        # -1 sentinel means "no change"
+        if driver_val != -1:
+            updates["employee_id"] = driver_val
+        if vehicle_val != -1:
+            updates["vehicle_id"] = vehicle_val
+        if not updates:
+            self.accept()
+            return
+        try:
+            set_clause = ", ".join(f"{k} = %s" for k in updates)
+            vals = list(updates.values()) + [self.charter_id]
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    f"UPDATE charters SET {set_clause},"
+                    f" updated_at = NOW() WHERE charter_id = %s",
+                    vals,
+                )
+            self.accept()
+        except Exception as e:
+            QMessageBox.warning(self, "Save Error", str(e))
+
 
 class DriverEntryDialog(QDialog):
+    """Driver log entry dialog for a selected reserve."""
+
     def __init__(
         self, reserve_number: str, submission_dir: str, db=None, parent=None
     ) -> None:

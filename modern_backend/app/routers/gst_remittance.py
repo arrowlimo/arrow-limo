@@ -288,8 +288,8 @@ async def list_gst_remittances(
                 "banking_institution": row[7],
                 "reference_number": row[8],
                 "remittance_status": row[10],
-                "notes": row[12],
-                "created_at": str(row[15]),
+                "notes": row[11],
+                "created_at": str(row[13]),
             }
             for row in rows
         ]

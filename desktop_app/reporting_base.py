@@ -28,6 +28,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ui_standards import create_page_header
+
 
 class BaseReportWidget(QWidget):
     """Reusable report widget with a standard toolbar and table helpers."""
@@ -72,6 +74,15 @@ class BaseReportWidget(QWidget):
         self.summary_label.setStyleSheet("color: gray; font-size: 11px;")
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(8)
+        layout.addWidget(
+            create_page_header(
+                self.title,
+                "Use the toolbar, filter row, and table below to review, "
+                "export, or print this report.",
+            )
+        )
         layout.addWidget(self._build_toolbar())
         layout.addLayout(self._build_filter_row())
         layout.addWidget(self.table)
@@ -297,7 +308,7 @@ class BaseReportWidget(QWidget):
     def export_pdf(self) -> None:
         """Export to PDF with professional formatting"""
         try:
-            from PyQt6.QtGui import QPageSize, QTextDocument
+            from PyQt6.QtGui import QPageLayout, QPageSize, QTextDocument
             from PyQt6.QtPrintSupport import QPrinter
 
             path, _ = QFileDialog.getSaveFileName(
@@ -309,11 +320,13 @@ class BaseReportWidget(QWidget):
             printer = QPrinter(QPrinter.PrinterMode.HighResolution)
             printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
             printer.setOutputFileName(path)
-            printer.setPageSize(QPageSize(QPageSize.PageSizeId.Letter))
 
             html = self._table_to_html_enhanced()
             doc = QTextDocument()
             doc.setHtml(html)
+
+            # Keep print text readable: minimal margins + choose Letter/Legal by content height.
+            self._apply_auto_page_layout(printer, doc)
             doc.print(printer)
 
             QMessageBox.information(self, "Success", f"PDF saved to {path}")
@@ -358,6 +371,9 @@ class BaseReportWidget(QWidget):
                 html = self._table_to_html_enhanced()
                 doc = QTextDocument()
                 doc.setHtml(html)
+
+                # Auto-pick Letter/Legal so long reports use 14in height instead of text shrink.
+                self._apply_auto_page_layout(printer, doc)
                 doc.print(printer)
 
             preview.paintRequested.connect(handle_paint_request)
@@ -365,6 +381,27 @@ class BaseReportWidget(QWidget):
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Print failed: {e}")
+
+    def _apply_auto_page_layout(self, printer, doc) -> None:
+        """Set minimal margins and auto-select Letter/Legal based on content height."""
+        from PyQt6.QtCore import QMarginsF
+        from PyQt6.QtGui import QPageLayout, QPageSize
+
+        # Minimal, readable defaults.
+        margin_mm = 5.0
+        letter = QPageSize(QPageSize.PageSizeId.Letter)
+        legal = QPageSize(QPageSize.PageSizeId.Legal)
+
+        base_layout = QPageLayout(letter, QPageLayout.Orientation.Portrait, QMarginsF(margin_mm, margin_mm, margin_mm, margin_mm), QPageLayout.Unit.Millimeter)
+        printer.setPageLayout(base_layout)
+
+        # Compare document height in points against printable Letter height.
+        doc_height_pts = float(doc.size().height())
+        letter_printable_height_pts = float(base_layout.paintRectPixels(72).height())
+
+        if doc_height_pts > letter_printable_height_pts:
+            legal_layout = QPageLayout(legal, QPageLayout.Orientation.Portrait, QMarginsF(margin_mm, margin_mm, margin_mm, margin_mm), QPageLayout.Unit.Millimeter)
+            printer.setPageLayout(legal_layout)
 
     def _table_to_html(self) -> object:
         """Convert table to HTML"""

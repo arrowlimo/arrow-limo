@@ -2,6 +2,7 @@
 Payroll remittance reconciliation widget.
 
 Provides a monthly CRA + WCB due/paid variance view with drill-down details
+                        e.employee_id,
 from employee payroll records.
 """
 
@@ -9,6 +10,7 @@ import logging
 from datetime import date
 
 from db_error_handling import DatabaseContext
+from print_export_helper import PrintExportHelper
 from PyQt6.QtCore import QDate, Qt
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -43,6 +45,7 @@ class PayrollRemittancesWidget(QWidget):
         self._month_rows = {}
         self._build_ui()
         self._ensure_payroll_remittances_table()
+        self._ensure_employee_flag_overrides_table()
         self.year_spin.setValue(QDate.currentDate().year())
         self.refresh_data()
 
@@ -60,9 +63,33 @@ class PayrollRemittancesWidget(QWidget):
         self.year_spin.setRange(2011, 2035)
         controls.addWidget(self.year_spin)
 
+        controls.addWidget(QLabel("Quarter:"))
+        self.quarter_combo = QComboBox()
+        self.quarter_combo.addItems(["Q1", "Q2", "Q3", "Q4"])
+        controls.addWidget(self.quarter_combo)
+
         refresh_btn = QPushButton("Refresh")
         refresh_btn.clicked.connect(self.refresh_data)
         controls.addWidget(refresh_btn)
+
+        quarter_btn = QPushButton("Load Quarter Verification")
+        quarter_btn.setToolTip(
+            "Show quarter totals + employee flags for CRA filing checks"
+        )
+        quarter_btn.clicked.connect(self.load_quarter_verification)
+        controls.addWidget(quarter_btn)
+
+        print_month_btn = QPushButton("Print Month Contributions")
+        print_month_btn.clicked.connect(self.print_month_contributions)
+        controls.addWidget(print_month_btn)
+
+        print_quarter_btn = QPushButton("Print Quarter Contributions")
+        print_quarter_btn.clicked.connect(self.print_quarter_contributions)
+        controls.addWidget(print_quarter_btn)
+
+        print_flags_btn = QPushButton("Print Employee Flags")
+        print_flags_btn.clicked.connect(self.print_employee_flags)
+        controls.addWidget(print_flags_btn)
 
         sync_btn = QPushButton("Sync Calculated Month")
         sync_btn.setToolTip(
@@ -94,9 +121,9 @@ class PayrollRemittancesWidget(QWidget):
         )
         controls.addWidget(open_payroll_btn)
 
-        open_tax_btn = QPushButton("Open Tax Management")
+        open_tax_btn = QPushButton("Open Tax")
         open_tax_btn.clicked.connect(
-            lambda: self._jump_to_accounting_subtab("🏛️ Tax Management")
+            lambda: self._jump_to_accounting_subtab("🏛️ Tax")
         )
         controls.addWidget(open_tax_btn)
 
@@ -179,7 +206,7 @@ class PayrollRemittancesWidget(QWidget):
         detail_group = QGroupBox("Month Detail (Employee + Pay Period)")
         detail_layout = QVBoxLayout(detail_group)
         self.detail_table = QTableWidget()
-        self.detail_table.setColumnCount(8)
+        self.detail_table.setColumnCount(10)
         self.detail_table.setHorizontalHeaderLabels(
             [
                 "Employee",
@@ -190,11 +217,16 @@ class PayrollRemittancesWidget(QWidget):
                 "Tax",
                 "CRA Due",
                 "Net Pay",
+                "Work Status",
+                "Flags",
             ]
         )
         self.detail_table.setAlternatingRowColors(True)
         self.detail_table.setEditTriggers(
             QTableWidget.EditTrigger.NoEditTriggers
+        )
+        self.detail_table.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
         )
         detail_layout.addWidget(self.detail_table)
         bottom.addWidget(detail_group, stretch=3)
@@ -243,8 +275,92 @@ class PayrollRemittancesWidget(QWidget):
         save_btn.clicked.connect(self.save_selected_month)
         edit_form.addRow(save_btn)
 
+        self.override_work_status_combo = QComboBox()
+        self.override_work_status_combo.addItems(
+            ["(auto)", "WORKED", "NONE"]
+        )
+        edit_form.addRow("Override Work Status", self.override_work_status_combo)
+
+        self.override_ei_combo = QComboBox()
+        self.override_ei_combo.addItems(
+            ["(auto)", "EI_EXEMPT", "NOT_EXEMPT"]
+        )
+        edit_form.addRow("Override EI", self.override_ei_combo)
+
+        self.override_owner_combo = QComboBox()
+        self.override_owner_combo.addItems(
+            ["(auto)", "OWNER_DEFERRED", "NOT_DEFERRED"]
+        )
+        edit_form.addRow("Override Owner", self.override_owner_combo)
+
+        self.override_note_input = QLineEdit()
+        self.override_note_input.setPlaceholderText(
+            "Audit note for override"
+        )
+        edit_form.addRow("Override Note", self.override_note_input)
+
+        override_row = QHBoxLayout()
+        month_override_btn = QPushButton("Apply Month Override")
+        month_override_btn.clicked.connect(self.apply_month_override)
+        override_row.addWidget(month_override_btn)
+
+        quarter_override_btn = QPushButton("Apply Quarter Override")
+        quarter_override_btn.clicked.connect(self.apply_quarter_override)
+        override_row.addWidget(quarter_override_btn)
+
+        clear_override_btn = QPushButton("Clear Override")
+        clear_override_btn.clicked.connect(self.clear_selected_override)
+        override_row.addWidget(clear_override_btn)
+        edit_form.addRow(override_row)
+
         bottom.addWidget(edit_group, stretch=2)
         layout.addLayout(bottom)
+
+        quarter_group = QGroupBox("Quarterly CRA Verification")
+        quarter_layout = QVBoxLayout(quarter_group)
+
+        quarter_totals = QHBoxLayout()
+        self.q_cpp_total = QLabel("CPP: $0.00")
+        self.q_ei_total = QLabel("EI: $0.00")
+        self.q_tax_total = QLabel("Tax: $0.00")
+        self.q_cra_total = QLabel("CRA Due: $0.00")
+        self.q_wcb_total = QLabel("WCB Due: $0.00")
+        for lbl in [
+            self.q_cpp_total,
+            self.q_ei_total,
+            self.q_tax_total,
+            self.q_cra_total,
+            self.q_wcb_total,
+        ]:
+            lbl.setStyleSheet("font-weight: bold;")
+            quarter_totals.addWidget(lbl)
+        quarter_totals.addStretch(1)
+        quarter_layout.addLayout(quarter_totals)
+
+        self.quarter_table = QTableWidget()
+        self.quarter_table.setColumnCount(8)
+        self.quarter_table.setHorizontalHeaderLabels(
+            [
+                "Employee",
+                "Quarter Gross",
+                "CPP Emp",
+                "EI Emp",
+                "Tax",
+                "CRA Due",
+                "Work Status",
+                "Flags",
+            ]
+        )
+        self.quarter_table.setAlternatingRowColors(True)
+        self.quarter_table.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
+        self.quarter_table.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        quarter_layout.addWidget(self.quarter_table)
+
+        layout.addWidget(quarter_group)
 
         self.status_label = QLabel("")
         self.status_label.setStyleSheet("color: #2563eb; font-weight: bold;")
@@ -392,6 +508,227 @@ class PayrollRemittancesWidget(QWidget):
                     """)
         except Exception as exc:
             logger.warning(f"Could not ensure cra_pd7a_returns table: {exc}")
+
+    def _ensure_employee_flag_overrides_table(self) -> None:
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS payroll_employee_flag_overrides (
+                        override_id SERIAL PRIMARY KEY,
+                        fiscal_year INTEGER NOT NULL,
+                        scope_kind TEXT NOT NULL CHECK (scope_kind IN ('month', 'quarter')),
+                        scope_value INTEGER NOT NULL,
+                        employee_id INTEGER NOT NULL REFERENCES employees(employee_id),
+                        work_status_override TEXT NULL,
+                        ei_exempt_override BOOLEAN NULL,
+                        owner_deferred_override BOOLEAN NULL,
+                        note TEXT NULL,
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        updated_at TIMESTAMP DEFAULT NOW(),
+                        created_by TEXT,
+                        UNIQUE (fiscal_year, scope_kind, scope_value, employee_id)
+                    )
+                    """
+                )
+        except Exception as exc:
+            logger.warning("Could not ensure payroll employee overrides table: %s", exc)
+
+    def _load_overrides(
+        self, year: int, scope_kind: str, scope_value: int
+    ) -> dict[int, dict]:
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT employee_id, work_status_override,
+                           ei_exempt_override, owner_deferred_override, note
+                    FROM payroll_employee_flag_overrides
+                    WHERE fiscal_year = %s
+                      AND scope_kind = %s
+                      AND scope_value = %s
+                    """,
+                    (year, scope_kind, scope_value),
+                )
+                rows = cur.fetchall()
+            return {
+                int(r[0]): {
+                    "work_status_override": r[1],
+                    "ei_exempt_override": r[2],
+                    "owner_deferred_override": r[3],
+                    "note": r[4] or "",
+                }
+                for r in rows
+            }
+        except Exception as exc:
+            logger.error("Failed loading overrides: %s", exc)
+            return {}
+
+    def _override_values_from_inputs(self) -> tuple[str | None, bool | None, bool | None, str | None]:
+        work_val = self.override_work_status_combo.currentText()
+        ei_val = self.override_ei_combo.currentText()
+        owner_val = self.override_owner_combo.currentText()
+        note_val = self.override_note_input.text().strip() or None
+
+        work_override = None if work_val == "(auto)" else work_val
+        if ei_val == "(auto)":
+            ei_override = None
+        else:
+            ei_override = ei_val == "EI_EXEMPT"
+
+        if owner_val == "(auto)":
+            owner_override = None
+        else:
+            owner_override = owner_val == "OWNER_DEFERRED"
+
+        return work_override, ei_override, owner_override, note_val
+
+    def _selected_employee_id_from_table(self, table: QTableWidget) -> int | None:
+        row = table.currentRow()
+        if row < 0:
+            return None
+        item = table.item(row, 0)
+        if not item:
+            return None
+        emp_id = item.data(Qt.ItemDataRole.UserRole)
+        return int(emp_id) if emp_id else None
+
+    def _save_override(self, scope_kind: str, scope_value: int, employee_id: int) -> None:
+        year = int(self.year_spin.value())
+        work_override, ei_override, owner_override, note_val = self._override_values_from_inputs()
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO payroll_employee_flag_overrides (
+                        fiscal_year, scope_kind, scope_value, employee_id,
+                        work_status_override, ei_exempt_override,
+                        owner_deferred_override, note, updated_at, created_by
+                    ) VALUES (
+                        %s, %s, %s, %s,
+                        %s, %s, %s, %s, NOW(), 'desktop_app'
+                    )
+                    ON CONFLICT (fiscal_year, scope_kind, scope_value, employee_id)
+                    DO UPDATE SET
+                        work_status_override = EXCLUDED.work_status_override,
+                        ei_exempt_override = EXCLUDED.ei_exempt_override,
+                        owner_deferred_override = EXCLUDED.owner_deferred_override,
+                        note = EXCLUDED.note,
+                        updated_at = NOW()
+                    """,
+                    (
+                        year,
+                        scope_kind,
+                        scope_value,
+                        employee_id,
+                        work_override,
+                        ei_override,
+                        owner_override,
+                        note_val,
+                    ),
+                )
+            self._set_status(
+                f"Saved {scope_kind} override for employee #{employee_id}."
+            )
+        except Exception as exc:
+            logger.error("Failed to save override: %s", exc)
+            QMessageBox.critical(
+                self,
+                "Override Save Error",
+                f"Failed to save override:\n{exc}",
+            )
+
+    def apply_month_override(self) -> None:
+        employee_id = self._selected_employee_id_from_table(self.detail_table)
+        if not employee_id:
+            QMessageBox.information(
+                self,
+                "Month Override",
+                "Select an employee row in Month Detail first.",
+            )
+            return
+
+        row = self.month_table.currentRow()
+        if row < 0 or not self.month_table.item(row, 0):
+            QMessageBox.information(
+                self,
+                "Month Override",
+                "Select a month first.",
+            )
+            return
+
+        month = int(self.month_table.item(row, 0).text())
+        self._save_override("month", month, employee_id)
+        self._load_month_employee_detail(int(self.year_spin.value()), month)
+        self.load_quarter_verification()
+
+    def apply_quarter_override(self) -> None:
+        employee_id = self._selected_employee_id_from_table(self.quarter_table)
+        if not employee_id:
+            QMessageBox.information(
+                self,
+                "Quarter Override",
+                "Select an employee row in Quarterly Verification first.",
+            )
+            return
+
+        quarter = int(self.quarter_combo.currentIndex() + 1)
+        self._save_override("quarter", quarter, employee_id)
+        self.load_quarter_verification()
+
+    def clear_selected_override(self) -> None:
+        year = int(self.year_spin.value())
+        month_row = self.month_table.currentRow()
+        month = (
+            int(self.month_table.item(month_row, 0).text())
+            if month_row >= 0 and self.month_table.item(month_row, 0)
+            else None
+        )
+        quarter = int(self.quarter_combo.currentIndex() + 1)
+
+        employee_id = self._selected_employee_id_from_table(self.detail_table)
+        scope_kind = "month"
+        scope_value = month
+        if not employee_id:
+            employee_id = self._selected_employee_id_from_table(self.quarter_table)
+            scope_kind = "quarter"
+            scope_value = quarter
+
+        if not employee_id or not scope_value:
+            QMessageBox.information(
+                self,
+                "Clear Override",
+                "Select an employee row in Month Detail or Quarter table first.",
+            )
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    DELETE FROM payroll_employee_flag_overrides
+                    WHERE fiscal_year = %s
+                      AND scope_kind = %s
+                      AND scope_value = %s
+                      AND employee_id = %s
+                    """,
+                    (year, scope_kind, int(scope_value), int(employee_id)),
+                )
+            self._set_status(
+                f"Cleared {scope_kind} override for employee #{employee_id}."
+            )
+        except Exception as exc:
+            logger.error("Failed to clear override: %s", exc)
+            QMessageBox.critical(
+                self,
+                "Clear Override Error",
+                f"Failed to clear override:\n{exc}",
+            )
+
+        if month:
+            self._load_month_employee_detail(year, month)
+        self.load_quarter_verification()
 
     def _load_cra_calculated_by_month(self, year: int) -> object:
         data = {
@@ -679,6 +1016,34 @@ class PayrollRemittancesWidget(QWidget):
             self.month_table.selectRow(0)
             self._on_month_selected(0, 0)
 
+        self.load_quarter_verification()
+
+    def _employee_flag_expressions(self) -> tuple[str, str]:
+        """Return SQL expressions for EI exemption and owner deferred flags."""
+        ecols = self._get_columns("employees")
+        if "employee_number" in ecols:
+            ei_exempt_expr = (
+                "CASE WHEN LOWER(COALESCE(e.employee_number, '')) IN"
+                " ('dr09', 'dr100') THEN TRUE ELSE FALSE END"
+            )
+        else:
+            ei_exempt_expr = "FALSE"
+
+        wcols = self._get_columns("employee_work_classifications")
+        if {"employee_id", "is_active", "salary_deferred"} <= wcols:
+            owner_deferred_expr = (
+                "EXISTS ("
+                " SELECT 1 FROM employee_work_classifications wc"
+                " WHERE wc.employee_id = e.employee_id"
+                "   AND COALESCE(wc.is_active, TRUE) = TRUE"
+                "   AND COALESCE(wc.salary_deferred, 0) > 0"
+                ")"
+            )
+        else:
+            owner_deferred_expr = "FALSE"
+
+        return ei_exempt_expr, owner_deferred_expr
+
     def _load_month_employee_detail(self, year: int, month: int) -> None:
         self.detail_table.setRowCount(0)
         pay_master_cols = self._get_columns("employee_pay_master")
@@ -713,31 +1078,54 @@ class PayrollRemittancesWidget(QWidget):
                 "' ' || COALESCE(e.last_name, ''))"
             )
         else:
-            name_expr = "('EMP ' || epm.employee_id::text)"
+            name_expr = "('EMP ' || e.employee_id::text)"
+
+        ei_exempt_expr, owner_deferred_expr = self._employee_flag_expressions()
 
         try:
             with DatabaseContext(self.db, auto_commit=False) as cur:
                 cur.execute(
                     f"""
+                    WITH month_pay AS (
+                        SELECT
+                            epm.employee_id,
+                            COALESCE(MAX(pp.period_number), 0) AS period_number,
+                            COALESCE(SUM(epm.gross_pay), 0) AS gross,
+                            COALESCE(SUM(epm.cpp_employee), 0) AS cpp_employee,
+                            COALESCE(SUM(epm.ei_employee), 0) AS ei_employee,
+                            COALESCE(SUM({tax_expr}), 0) AS tax,
+                            COALESCE(SUM(epm.cpp_employee), 0)
+                                + COALESCE(SUM({cpp_employer_expr}), 0)
+                                + COALESCE(SUM(epm.ei_employee), 0)
+                                + COALESCE(SUM({ei_employer_expr}), 0)
+                                + COALESCE(SUM({tax_expr}), 0) AS cra_due,
+                            COALESCE(SUM(epm.net_pay), 0) AS net_pay,
+                            COUNT(*) AS row_count
+                        FROM employee_pay_master epm
+                        JOIN pay_periods pp ON pp.pay_period_id = epm.pay_period_id
+                        WHERE EXTRACT(YEAR FROM pp.pay_date) = %s
+                          AND EXTRACT(MONTH FROM pp.pay_date) = %s
+                        GROUP BY epm.employee_id
+                    )
                     SELECT
+                        e.employee_id,
                         {name_expr} AS employee_name,
-                        COALESCE(pp.period_number, 0) AS period_number,
-                        COALESCE(epm.gross_pay, 0) AS gross,
-                        COALESCE(epm.cpp_employee, 0) AS cpp_employee,
-                        COALESCE(epm.ei_employee, 0) AS ei_employee,
-                        COALESCE({tax_expr}, 0) AS tax,
-                        COALESCE(epm.cpp_employee, 0)
-                            + COALESCE({cpp_employer_expr}, 0)
-                            + COALESCE(epm.ei_employee, 0)
-                            + COALESCE({ei_employer_expr}, 0)
-                            + COALESCE({tax_expr}, 0) AS cra_due,
-                        COALESCE(epm.net_pay, 0) AS net_pay
-                    FROM employee_pay_master epm
-                    JOIN pay_periods pp ON pp.pay_period_id = epm.pay_period_id
-                    LEFT JOIN employees e ON e.employee_id = epm.employee_id
-                    WHERE EXTRACT(YEAR FROM pp.pay_date) = %s
-                      AND EXTRACT(MONTH FROM pp.pay_date) = %s
-                    ORDER BY period_number, employee_name
+                        COALESCE(mp.period_number, 0) AS period_number,
+                        COALESCE(mp.gross, 0) AS gross,
+                        COALESCE(mp.cpp_employee, 0) AS cpp_employee,
+                        COALESCE(mp.ei_employee, 0) AS ei_employee,
+                        COALESCE(mp.tax, 0) AS tax,
+                        COALESCE(mp.cra_due, 0) AS cra_due,
+                        COALESCE(mp.net_pay, 0) AS net_pay,
+                        CASE WHEN COALESCE(mp.row_count, 0) = 0
+                             THEN 'NONE'
+                             ELSE 'WORKED' END AS work_status,
+                        {ei_exempt_expr} AS ei_exempt,
+                        {owner_deferred_expr} AS owner_deferred
+                    FROM employees e
+                    LEFT JOIN month_pay mp ON mp.employee_id = e.employee_id
+                    WHERE COALESCE(e.employment_status, 'active') <> 'inactive'
+                    ORDER BY work_status DESC, employee_name
                     """,
                     (year, month),
                 )
@@ -746,12 +1134,59 @@ class PayrollRemittancesWidget(QWidget):
             logger.error(f"Failed loading month employee detail: {exc}")
             return
 
+        overrides = self._load_overrides(year, "month", month)
+
         self.detail_table.setRowCount(len(rows))
         for idx, row in enumerate(rows):
-            name, period, gross, cpp_emp, ei_emp, tax, cra_due, net_pay = row
-            self.detail_table.setItem(
-                idx, 0, QTableWidgetItem(str(name or ""))
-            )
+            (
+                employee_id,
+                name,
+                period,
+                gross,
+                cpp_emp,
+                ei_emp,
+                tax,
+                cra_due,
+                net_pay,
+                work_status,
+                ei_exempt,
+                owner_deferred,
+            ) = row
+
+            override = overrides.get(int(employee_id))
+            if override:
+                if override.get("work_status_override"):
+                    work_status = str(override["work_status_override"])
+                if override.get("ei_exempt_override") is not None:
+                    ei_exempt = bool(override["ei_exempt_override"])
+                if override.get("owner_deferred_override") is not None:
+                    owner_deferred = bool(override["owner_deferred_override"])
+
+            gross_f = self._safe_float(gross)
+            cpp_f = self._safe_float(cpp_emp)
+            ei_f = self._safe_float(ei_emp)
+            tax_f = self._safe_float(tax)
+            cra_f = self._safe_float(cra_due)
+            net_f = self._safe_float(net_pay)
+
+            if str(work_status or "").upper() == "NONE":
+                gross_f = cpp_f = ei_f = tax_f = cra_f = net_f = 0.0
+            elif ei_exempt:
+                cra_f = max(0.0, cra_f - (ei_f * 2.4))
+                ei_f = 0.0
+
+            flags = []
+            if ei_exempt:
+                flags.append("EI_EXEMPT")
+            if owner_deferred:
+                flags.append("OWNER_DEFERRED")
+            if override:
+                flags.append("OVERRIDE")
+                if override.get("note"):
+                    flags.append(f"NOTE:{override.get('note')}")
+            name_item = QTableWidgetItem(str(name or ""))
+            name_item.setData(Qt.ItemDataRole.UserRole, int(employee_id))
+            self.detail_table.setItem(idx, 0, name_item)
             self.detail_table.setItem(
                 idx,
                 1,
@@ -760,23 +1195,227 @@ class PayrollRemittancesWidget(QWidget):
                 ),
             )
             self.detail_table.setItem(
-                idx, 2, QTableWidgetItem(f"${self._safe_float(gross): ,.2f} ")
+                idx, 2, QTableWidgetItem(f"${gross_f:,.2f}")
             )
             self.detail_table.setItem(
-                idx, 3, QTableWidgetItem(f"${self._safe_float(cpp_emp):,.2f}")
+                idx, 3, QTableWidgetItem(f"${cpp_f:,.2f}")
             )
             self.detail_table.setItem(
-                idx, 4, QTableWidgetItem(f"${self._safe_float(ei_emp):,.2f}")
+                idx, 4, QTableWidgetItem(f"${ei_f:,.2f}")
             )
             self.detail_table.setItem(
-                idx, 5, QTableWidgetItem(f"${self._safe_float(tax):,.2f}")
+                idx, 5, QTableWidgetItem(f"${tax_f:,.2f}")
             )
             self.detail_table.setItem(
-                idx, 6, QTableWidgetItem(f"${self._safe_float(cra_due):,.2f}")
+                idx, 6, QTableWidgetItem(f"${cra_f:,.2f}")
             )
             self.detail_table.setItem(
-                idx, 7, QTableWidgetItem(f"${self._safe_float(net_pay):,.2f}")
+                idx, 7, QTableWidgetItem(f"${net_f:,.2f}")
             )
+            self.detail_table.setItem(
+                idx, 8, QTableWidgetItem(str(work_status or ""))
+            )
+            self.detail_table.setItem(
+                idx, 9, QTableWidgetItem(", ".join(flags) if flags else "-")
+            )
+
+    def load_quarter_verification(self) -> None:
+        year = int(self.year_spin.value())
+        quarter = int(self.quarter_combo.currentIndex() + 1)
+        month_start = (quarter - 1) * 3 + 1
+        month_end = month_start + 2
+
+        pay_master_cols = self._get_columns("employee_pay_master")
+        if not pay_master_cols:
+            self.quarter_table.setRowCount(0)
+            return
+
+        cpp_employer_expr = (
+            "COALESCE(epm.cpp_employer, 0)"
+            if "cpp_employer" in pay_master_cols
+            else "COALESCE(epm.cpp_employee, 0)"
+        )
+        ei_employer_expr = (
+            "COALESCE(epm.ei_employer, 0)"
+            if "ei_employer" in pay_master_cols
+            else "ROUND(COALESCE(epm.ei_employee, 0) * 1.4, 2)"
+        )
+        tax_expr = (
+            "COALESCE(epm.total_income_tax, 0)"
+            if "total_income_tax" in pay_master_cols
+            else (
+                "COALESCE(epm.federal_tax, 0) + "
+                "COALESCE(epm.provincial_tax, 0)"
+            )
+        )
+
+        ecols = self._get_columns("employees")
+        if "full_name" in ecols:
+            name_expr = "COALESCE(e.full_name, '')"
+        elif {"first_name", "last_name"} <= ecols:
+            name_expr = (
+                "TRIM(COALESCE(e.first_name, '') || "
+                "' ' || COALESCE(e.last_name, ''))"
+            )
+        else:
+            name_expr = "('EMP ' || e.employee_id::text)"
+
+        ei_exempt_expr, owner_deferred_expr = self._employee_flag_expressions()
+
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    f"""
+                    WITH q_pay AS (
+                        SELECT
+                            epm.employee_id,
+                            COALESCE(SUM(epm.gross_pay), 0) AS gross,
+                            COALESCE(SUM(epm.cpp_employee), 0) AS cpp_employee,
+                            COALESCE(SUM(epm.ei_employee), 0) AS ei_employee,
+                            COALESCE(SUM({tax_expr}), 0) AS tax,
+                            COALESCE(SUM(epm.cpp_employee), 0)
+                                + COALESCE(SUM({cpp_employer_expr}), 0)
+                                + COALESCE(SUM(epm.ei_employee), 0)
+                                + COALESCE(SUM({ei_employer_expr}), 0)
+                                + COALESCE(SUM({tax_expr}), 0) AS cra_due,
+                            COUNT(*) AS row_count
+                        FROM employee_pay_master epm
+                        JOIN pay_periods pp ON pp.pay_period_id = epm.pay_period_id
+                        WHERE EXTRACT(YEAR FROM pp.pay_date) = %s
+                          AND EXTRACT(MONTH FROM pp.pay_date) BETWEEN %s AND %s
+                        GROUP BY epm.employee_id
+                    )
+                    SELECT
+                        e.employee_id,
+                        {name_expr} AS employee_name,
+                        COALESCE(q.gross, 0) AS gross,
+                        COALESCE(q.cpp_employee, 0) AS cpp_employee,
+                        COALESCE(q.ei_employee, 0) AS ei_employee,
+                        COALESCE(q.tax, 0) AS tax,
+                        COALESCE(q.cra_due, 0) AS cra_due,
+                        CASE WHEN COALESCE(q.row_count, 0) = 0
+                             THEN 'NONE'
+                             ELSE 'WORKED' END AS work_status,
+                        {ei_exempt_expr} AS ei_exempt,
+                        {owner_deferred_expr} AS owner_deferred
+                    FROM employees e
+                    LEFT JOIN q_pay q ON q.employee_id = e.employee_id
+                    WHERE COALESCE(e.employment_status, 'active') <> 'inactive'
+                    ORDER BY work_status DESC, employee_name
+                    """,
+                    (year, month_start, month_end),
+                )
+                rows = cur.fetchall()
+        except Exception as exc:
+            logger.error(f"Failed loading quarterly verification: {exc}")
+            self.quarter_table.setRowCount(0)
+            return
+
+        overrides = self._load_overrides(year, "quarter", quarter)
+
+        self.quarter_table.setRowCount(len(rows))
+
+        q_cpp = 0.0
+        q_ei = 0.0
+        q_tax = 0.0
+        q_cra = 0.0
+        for idx, row in enumerate(rows):
+            (
+                employee_id,
+                name,
+                gross,
+                cpp_emp,
+                ei_emp,
+                tax,
+                cra_due,
+                work_status,
+                ei_exempt,
+                owner_deferred,
+            ) = row
+
+            override = overrides.get(int(employee_id))
+            if override:
+                if override.get("work_status_override"):
+                    work_status = str(override["work_status_override"])
+                if override.get("ei_exempt_override") is not None:
+                    ei_exempt = bool(override["ei_exempt_override"])
+                if override.get("owner_deferred_override") is not None:
+                    owner_deferred = bool(override["owner_deferred_override"])
+
+            gross_f = self._safe_float(gross)
+            cpp_f = self._safe_float(cpp_emp)
+            ei_f = self._safe_float(ei_emp)
+            tax_f = self._safe_float(tax)
+            cra_f = self._safe_float(cra_due)
+
+            if str(work_status or "").upper() == "NONE":
+                gross_f = cpp_f = ei_f = tax_f = cra_f = 0.0
+            elif ei_exempt:
+                cra_f = max(0.0, cra_f - (ei_f * 2.4))
+                ei_f = 0.0
+
+            flags = []
+            if ei_exempt:
+                flags.append("EI_EXEMPT")
+            if owner_deferred:
+                flags.append("OWNER_DEFERRED")
+            if override:
+                flags.append("OVERRIDE")
+                if override.get("note"):
+                    flags.append(f"NOTE:{override.get('note')}")
+
+            q_cpp += cpp_f
+            q_ei += ei_f
+            q_tax += tax_f
+            q_cra += cra_f
+
+            q_name_item = QTableWidgetItem(str(name or ""))
+            q_name_item.setData(Qt.ItemDataRole.UserRole, int(employee_id))
+            self.quarter_table.setItem(idx, 0, q_name_item)
+            self.quarter_table.setItem(idx, 1, QTableWidgetItem(f"${gross_f:,.2f}"))
+            self.quarter_table.setItem(idx, 2, QTableWidgetItem(f"${cpp_f:,.2f}"))
+            self.quarter_table.setItem(idx, 3, QTableWidgetItem(f"${ei_f:,.2f}"))
+            self.quarter_table.setItem(idx, 4, QTableWidgetItem(f"${tax_f:,.2f}"))
+            self.quarter_table.setItem(idx, 5, QTableWidgetItem(f"${cra_f:,.2f}"))
+            self.quarter_table.setItem(idx, 6, QTableWidgetItem(str(work_status or "")))
+            self.quarter_table.setItem(
+                idx,
+                7,
+                QTableWidgetItem(", ".join(flags) if flags else "-"),
+            )
+
+        # Quarter WCB derived from the already-loaded monthly map.
+        q_wcb = 0.0
+        for m in range(month_start, month_end + 1):
+            q_wcb += self._safe_float(
+                self._month_rows.get(m, {}).get("wcb", {}).get("due")
+            )
+
+        self.q_cpp_total.setText(f"CPP: ${q_cpp:,.2f}")
+        self.q_ei_total.setText(f"EI: ${q_ei:,.2f}")
+        self.q_tax_total.setText(f"Tax: ${q_tax:,.2f}")
+        self.q_cra_total.setText(f"CRA Due: ${q_cra:,.2f}")
+        self.q_wcb_total.setText(f"WCB Due: ${q_wcb:,.2f}")
+
+    def print_month_contributions(self) -> None:
+        month_row = self.month_table.currentRow()
+        month_text = "All Months"
+        if month_row >= 0 and self.month_table.item(month_row, 0):
+            month_text = f"Month {self.month_table.item(month_row, 0).text()}"
+        title = (
+            f"Payroll Contribution Summary {self.year_spin.value()} - {month_text}"
+        )
+        PrintExportHelper.print_table(self.detail_table, title, self)
+
+    def print_quarter_contributions(self) -> None:
+        quarter = self.quarter_combo.currentIndex() + 1
+        title = f"Payroll Contribution Summary {self.year_spin.value()} - Q{quarter}"
+        PrintExportHelper.print_table(self.quarter_table, title, self)
+
+    def print_employee_flags(self) -> None:
+        quarter = self.quarter_combo.currentIndex() + 1
+        title = f"Employee Status Flags {self.year_spin.value()} - Q{quarter}"
+        PrintExportHelper.print_table(self.quarter_table, title, self)
 
     def _on_month_selected(self, row: int, _column: int) -> None:
         month_item = self.month_table.item(row, 0)

@@ -11,6 +11,7 @@ actions
 """
 
 import logging
+import os
 import re
 from datetime import datetime, time, timedelta
 
@@ -23,6 +24,7 @@ from PyQt6.QtCore import QDate, Qt, pyqtSlot
 from PyQt6.QtGui import QBrush, QColor, QFont
 from PyQt6.QtWidgets import (
     QCalendarWidget,
+    QComboBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -85,7 +87,65 @@ class DispatcherCalendarWidget(QWidget):
             lambda: self._load_day(self.calendar.selectedDate())
         )
         self.calendar.clicked.connect(self._load_day)
+        self.calendar.currentPageChanged.connect(
+            lambda _year, _month: self._highlight_charter_dates()
+        )
         left_layout.addWidget(self.calendar)
+
+        todo_box = QGroupBox("Daily To-Do (Selected Date)")
+        todo_layout = QVBoxLayout()
+        self.todo_list = QListWidget()
+        self.todo_list.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        self.todo_list.customContextMenuRequested.connect(
+            self._show_todo_context_menu
+        )
+        todo_layout.addWidget(self.todo_list)
+
+        todo_actions = QHBoxLayout()
+        self.btn_add_selected_todo = QPushButton("➕ Add Selected To-Do")
+        self.btn_complete_todo = QPushButton("✅ Complete Selected")
+        self.btn_delete_todo = QPushButton("🗑️ Delete Selected")
+        self.btn_post_todo_outlook = QPushButton("📌 Post To-Do to Outlook")
+        self.btn_add_selected_todo.clicked.connect(self._add_selected_to_todo)
+        self.btn_complete_todo.clicked.connect(self._verify_selected_task)
+        self.btn_delete_todo.clicked.connect(self._delete_selected_task)
+        self.btn_post_todo_outlook.clicked.connect(
+            self._post_selected_todo_to_outlook_task
+        )
+        todo_actions.addWidget(self.btn_add_selected_todo)
+        todo_actions.addWidget(self.btn_complete_todo)
+        todo_actions.addWidget(self.btn_delete_todo)
+        todo_actions.addWidget(self.btn_post_todo_outlook)
+        todo_layout.addLayout(todo_actions)
+        todo_box.setLayout(todo_layout)
+        left_layout.addWidget(todo_box)
+
+        main_todo_box = QGroupBox("Main To-Do (All Open)")
+        main_todo_layout = QVBoxLayout()
+        self.main_todo_list = QListWidget()
+        self.main_todo_list.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        self.main_todo_list.customContextMenuRequested.connect(
+            self._show_todo_context_menu
+        )
+        main_todo_layout.addWidget(self.main_todo_list)
+
+        main_actions = QHBoxLayout()
+        self.btn_main_complete = QPushButton("✅ Complete")
+        self.btn_main_delete = QPushButton("🗑️ Delete")
+        self.btn_main_post = QPushButton("📌 Post Outlook")
+        self.btn_main_complete.clicked.connect(self._verify_selected_task)
+        self.btn_main_delete.clicked.connect(self._delete_selected_task)
+        self.btn_main_post.clicked.connect(self._post_selected_todo_to_outlook_task)
+        main_actions.addWidget(self.btn_main_complete)
+        main_actions.addWidget(self.btn_main_delete)
+        main_actions.addWidget(self.btn_main_post)
+        main_todo_layout.addLayout(main_actions)
+        main_todo_box.setLayout(main_todo_layout)
+        left_layout.addWidget(main_todo_box)
 
         # Load initial month's charter dates
         self._highlight_charter_dates()
@@ -126,13 +186,91 @@ class DispatcherCalendarWidget(QWidget):
         )
         right_layout.addWidget(self.day_table)
 
-        actions = QHBoxLayout()
-        self.btn_create_task = QPushButton("➕ Create Task")
-        self.btn_verify_task = QPushButton("✅ Mark Task Done")
-        self.btn_prepayment = QPushButton("⚠️ Prepayment Check")
-        self.btn_sync_parse = QPushButton("⬇️ Parse Outlook (Review)")
+        actions_top = QHBoxLayout()
+        actions_bottom = QHBoxLayout()
+        actions_stack = QVBoxLayout()
+
+        self.btn_create_task = QPushButton("➕ Create\nTask")
+        self.btn_verify_task = QPushButton("✅ Complete\nTask")
+        self.btn_prepayment = QPushButton("⚠️ Check\nPayment")
+        self.btn_sync_parse = QPushButton("⬇️ Compare\nArrow to ALMS")
         self.btn_update_calendar = QPushButton(
-            "🔄 Update Calendar (Individual)"
+            f"🔄 Sync\nArrow Calendar\n({self._calendar_sync_scope_label()})"
+        )
+        self.btn_post_arrow_new = QPushButton("📤 Post to\nArrow Calendar")
+        self.btn_post_outlook_task = QPushButton("📌 Post\nArrow Task")
+        self.btn_add_and_post_task = QPushButton("⚡ To-Do +\nOutlook Task")
+        self.btn_add_and_post_all = QPushButton("🚀 To-Do + Task\n+ Arrow Calendar")
+        self.combo_combined_mode = QComboBox()
+        self.combo_combined_mode.addItem(
+            "To-Do + Task",
+            "TODO_TASK",
+        )
+        self.combo_combined_mode.addItem(
+            "To-Do + Arrow",
+            "TODO_ARROW",
+        )
+        self.combo_combined_mode.addItem(
+            "To-Do + Task + Arrow",
+            "TODO_TASK_ARROW",
+        )
+        self.btn_run_combined_mode = QPushButton("▶ Run\nSelected")
+
+        for _btn in (
+            self.btn_create_task,
+            self.btn_verify_task,
+            self.btn_prepayment,
+            self.btn_sync_parse,
+            self.btn_update_calendar,
+            self.btn_post_arrow_new,
+            self.btn_post_outlook_task,
+            self.btn_add_and_post_task,
+            self.btn_add_and_post_all,
+            self.btn_run_combined_mode,
+        ):
+            _btn.setMinimumWidth(110)
+            _btn.setMinimumHeight(56)
+
+        self.btn_create_task.setToolTip(
+            "Create a dispatch task from selected charter row.\n"
+            "Adds item to daily and main to-do lists."
+        )
+        self.btn_verify_task.setToolTip(
+            "Mark the selected task as done.\n"
+            "Completed tasks are removed from open list."
+        )
+        self.btn_prepayment.setToolTip(
+            "Validate payment status before dispatch.\n"
+            "Use for pre-run payment checks."
+        )
+        self.btn_sync_parse.setToolTip(
+            "Compare Arrow calendar events against ALMS bookings.\n"
+            "Use after edits or external calendar changes."
+        )
+        self.btn_update_calendar.setToolTip(
+            "Review and apply selected charter updates to Arrow Calendar.\n"
+            f"Forward scope: {self._calendar_sync_scope_label()}.\n"
+            "Approvals are handled one event at a time."
+        )
+        self.btn_post_arrow_new.setToolTip(
+            "Post selected charter row to Arrow Calendar.\n"
+            "Creates/updates matching calendar entry."
+        )
+        self.btn_post_outlook_task.setToolTip(
+            "Create Arrow task from selected charter row.\n"
+            "Useful for reminders and follow-ups."
+        )
+        self.btn_add_and_post_task.setToolTip(
+            "Add selected row to To-Do and post Outlook task.\n"
+            "Two-step action in one click."
+        )
+        self.btn_add_and_post_all.setToolTip(
+            "Add To-Do, post Outlook task, and post Arrow Calendar.\n"
+            "Full combined action for selected row."
+        )
+        self.btn_run_combined_mode.setToolTip(
+            "Run currently selected combined mode for chosen rows.\n"
+            "Mode is selected in the adjacent dropdown."
         )
         self.btn_create_task.clicked.connect(self._create_task)
         self.btn_verify_task.clicked.connect(self._verify_selected_task)
@@ -141,16 +279,47 @@ class DispatcherCalendarWidget(QWidget):
         self.btn_update_calendar.clicked.connect(
             self._update_calendar_individual_approval
         )
-        actions.addWidget(self.btn_create_task)
-        actions.addWidget(self.btn_verify_task)
-        actions.addWidget(self.btn_prepayment)
-        actions.addWidget(self.btn_sync_parse)
-        actions.addWidget(self.btn_update_calendar)
-        right_layout.addLayout(actions)
+        self.btn_post_arrow_new.clicked.connect(
+            self._post_selected_row_to_outlook
+        )
+        self.btn_post_outlook_task.clicked.connect(
+            self._post_selected_row_to_outlook_task
+        )
+        self.btn_add_and_post_task.clicked.connect(
+            self._add_selected_to_todo_and_post_outlook_task
+        )
+        self.btn_add_and_post_all.clicked.connect(
+            self._add_selected_to_todo_post_task_and_calendar
+        )
+        self.btn_run_combined_mode.clicked.connect(
+            self._run_selected_combined_action
+        )
+        actions_top.addWidget(self.btn_create_task)
+        actions_top.addWidget(self.btn_verify_task)
+        actions_top.addWidget(self.btn_prepayment)
+        actions_top.addWidget(self.btn_sync_parse)
+        actions_top.addWidget(self.btn_update_calendar)
+        actions_top.addWidget(self.btn_post_arrow_new)
+
+        actions_bottom.addWidget(self.btn_post_outlook_task)
+        actions_bottom.addWidget(self.btn_add_and_post_task)
+        actions_bottom.addWidget(self.btn_add_and_post_all)
+        actions_bottom.addWidget(self.combo_combined_mode)
+        actions_bottom.addWidget(self.btn_run_combined_mode)
+
+        actions_stack.addLayout(actions_top)
+        actions_stack.addLayout(actions_bottom)
+        right_layout.addLayout(actions_stack)
 
         box = QGroupBox("Tasks for Selected Date")
         box_layout = QVBoxLayout()
         self.task_list = QListWidget()
+        self.task_list.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        self.task_list.customContextMenuRequested.connect(
+            self._show_todo_context_menu
+        )
         box_layout.addWidget(self.task_list)
         box.setLayout(box_layout)
         right_layout.addWidget(box)
@@ -245,7 +414,7 @@ class DispatcherCalendarWidget(QWidget):
         return w
 
     def _highlight_charter_dates(self) -> None:
-        """Highlight dates that have charters in the current month"""
+        """Highlight dates that have charters and non-charter staff work."""
         try:
             year_month = self.calendar.selectedDate()
             start_date = QDate(year_month.year(), year_month.month(), 1)
@@ -269,22 +438,43 @@ class DispatcherCalendarWidget(QWidget):
                     (start_date.toPyDate(), end_date.toPyDate()),
                 )
 
-                # Highlight each date with charters
-                self.calendar.dateTextFormat(QDate())
-                charter_format = self.calendar.dateTextFormat(QDate())
-                charter_format.setBackground(
-                    QBrush(QColor(173, 216, 230))
-                )  # Light blue
-                charter_format.setFontWeight(QFont.Weight.Bold)
-
+                charter_dates = set()
                 for row in cur.fetchall():
                     if row[0]:
-                        # Convert database date to QDate
-                        date_obj = QDate.fromString(str(row[0]), "yyyy-MM-dd")
-                        if date_obj.isValid():
-                            self.calendar.setDateTextFormat(
-                                date_obj, charter_format
-                            )
+                        charter_dates.add(str(row[0]))
+
+                staff_dates = set()
+                scols = self._cols("employee_work_schedule")
+                if {"work_date", "status"} <= scols:
+                    cur.execute(
+                        """
+                        SELECT DISTINCT work_date
+                        FROM employee_work_schedule
+                        WHERE work_date >= %s AND work_date <= %s
+                          AND COALESCE(status, 'SCHEDULED') <> 'CANCELLED'
+                        """,
+                        (start_date.toPyDate(), end_date.toPyDate()),
+                    )
+                    for row in cur.fetchall():
+                        if row[0]:
+                            staff_dates.add(str(row[0]))
+
+                # Highlight each date with source-aware color.
+                all_dates = charter_dates | staff_dates
+                for date_str in all_dates:
+                    date_obj = QDate.fromString(date_str, "yyyy-MM-dd")
+                    if not date_obj.isValid():
+                        continue
+                    fmt = self.calendar.dateTextFormat(QDate())
+                    fmt.setFontWeight(QFont.Weight.Bold)
+                    if date_str in charter_dates and date_str in staff_dates:
+                        fmt.setBackground(QBrush(QColor("#dbeafe")))
+                        fmt.setForeground(QBrush(QColor("#065f46")))
+                    elif date_str in charter_dates:
+                        fmt.setBackground(QBrush(QColor(173, 216, 230)))
+                    else:
+                        fmt.setBackground(QBrush(QColor("#dcfce7")))
+                    self.calendar.setDateTextFormat(date_obj, fmt)
         except Exception as e:
             logger.error("Failed to highlight charter dates: %s", e)
 
@@ -662,6 +852,7 @@ class DispatcherCalendarWidget(QWidget):
             )
 
             general_events = []
+            staff_events = []
             with DatabaseContext(self.db, auto_commit=False) as cur:
                 cur.execute(
                     f"""
@@ -706,7 +897,52 @@ class DispatcherCalendarWidget(QWidget):
                         "Skipping calendar_events load for day view: %s", ge
                     )
 
-            self.day_table.setRowCount(len(rows) + len(general_events))
+                # Include non-charter staff schedule entries for the day.
+                scols = self._cols("employee_work_schedule")
+                if {
+                    "schedule_id",
+                    "employee_id",
+                    "work_date",
+                    "role_type",
+                    "task_name",
+                    "start_time",
+                    "end_time",
+                    "scheduled_hours",
+                    "pay_type",
+                    "rate_amount",
+                    "status",
+                    "notes",
+                } <= scols:
+                    cur.execute(
+                        """
+                        SELECT
+                            s.schedule_id,
+                            COALESCE(e.full_name, ''),
+                            COALESCE(s.role_type, 'OTHER'),
+                            COALESCE(s.task_name, ''),
+                            TO_CHAR(s.start_time, 'HH24:MI'),
+                            TO_CHAR(s.end_time, 'HH24:MI'),
+                            COALESCE(s.scheduled_hours, 0),
+                            COALESCE(s.pay_type, 'HOURLY'),
+                            COALESCE(s.rate_amount, 0),
+                            COALESCE(s.status, 'SCHEDULED'),
+                            COALESCE(s.notes, '')
+                        FROM employee_work_schedule s
+                        LEFT JOIN employees e ON s.employee_id = e.employee_id
+                        WHERE s.work_date = %s
+                          AND COALESCE(s.status, 'SCHEDULED') <> 'CANCELLED'
+                        ORDER BY s.start_time NULLS LAST, s.schedule_id
+                        """,
+                        (date_py,),
+                    )
+                    staff_events = cur.fetchall()
+
+            # Pre-load driver double-booking conflicts for this date
+            conflict_reserves = self._find_driver_conflicts_for_date(date_py)
+
+            self.day_table.setRowCount(
+                len(rows) + len(general_events) + len(staff_events)
+            )
             self.task_list.clear()
 
             # load tasks for date (convert back to string for task file lookup)
@@ -719,7 +955,78 @@ class DispatcherCalendarWidget(QWidget):
                     f"[{t.get('status', 'open')}] {t.get('text', '')}"
                     f"(reserve {t.get('reserve_number', '')})"
                 )
+                item.setData(Qt.ItemDataRole.UserRole, int(t.get("id") or 0))
+                item.setData(Qt.ItemDataRole.UserRole + 1, t.get("date") or "")
+                item.setData(
+                    Qt.ItemDataRole.UserRole + 2,
+                    t.get("reserve_number") or "",
+                )
+                item.setData(Qt.ItemDataRole.UserRole + 3, t.get("text") or "")
+                item.setData(Qt.ItemDataRole.UserRole + 4, t.get("status") or "open")
                 self.task_list.addItem(item)
+                if hasattr(self, "todo_list") and self.todo_list is not None:
+                    clone = QListWidgetItem(item.text())
+                    clone.setData(
+                        Qt.ItemDataRole.UserRole,
+                        item.data(Qt.ItemDataRole.UserRole),
+                    )
+                    clone.setData(
+                        Qt.ItemDataRole.UserRole + 1,
+                        item.data(Qt.ItemDataRole.UserRole + 1),
+                    )
+                    clone.setData(
+                        Qt.ItemDataRole.UserRole + 2,
+                        item.data(Qt.ItemDataRole.UserRole + 2),
+                    )
+                    clone.setData(
+                        Qt.ItemDataRole.UserRole + 3,
+                        item.data(Qt.ItemDataRole.UserRole + 3),
+                    )
+                    clone.setData(
+                        Qt.ItemDataRole.UserRole + 4,
+                        item.data(Qt.ItemDataRole.UserRole + 4),
+                    )
+                    self.todo_list.addItem(clone)
+
+            if hasattr(self, "main_todo_list") and self.main_todo_list is not None:
+                self.main_todo_list.clear()
+                all_open = [
+                    t
+                    for t in self._read_tasks()
+                    if str(t.get("status") or "open").lower() != "done"
+                ]
+                all_open.sort(
+                    key=lambda t: (
+                        str(t.get("date") or ""),
+                        int(t.get("id") or 0),
+                    )
+                )
+                for t in all_open:
+                    main_item = QListWidgetItem(
+                        f"[{t.get('date', '')}] {t.get('text', '')} "
+                        f"(reserve {t.get('reserve_number', '')})"
+                    )
+                    main_item.setData(
+                        Qt.ItemDataRole.UserRole,
+                        int(t.get("id") or 0),
+                    )
+                    main_item.setData(
+                        Qt.ItemDataRole.UserRole + 1,
+                        t.get("date") or "",
+                    )
+                    main_item.setData(
+                        Qt.ItemDataRole.UserRole + 2,
+                        t.get("reserve_number") or "",
+                    )
+                    main_item.setData(
+                        Qt.ItemDataRole.UserRole + 3,
+                        t.get("text") or "",
+                    )
+                    main_item.setData(
+                        Qt.ItemDataRole.UserRole + 4,
+                        t.get("status") or "open",
+                    )
+                    self.main_todo_list.addItem(main_item)
 
             for r, row in enumerate(rows):
                 data = dict(zip(select_cols, row)) if select_cols else {}
@@ -757,7 +1064,8 @@ class DispatcherCalendarWidget(QWidget):
                     cal_notes = ""
 
                 alerts = self._alerts_for_row(
-                    status, driver, vehicle, date_str, reserve
+                    status, driver, vehicle, date_str, reserve,
+                    conflict_reserves,
                 )
 
                 # Expiration warning for quotes
@@ -928,6 +1236,52 @@ class DispatcherCalendarWidget(QWidget):
                 if notes:
                     items[10].setToolTip(notes)
 
+            # Append non-charter staff work schedule rows.
+            start_row = len(rows) + len(general_events)
+            for idx, item in enumerate(staff_events):
+                (
+                    _schedule_id,
+                    employee_name,
+                    role_type,
+                    task_name,
+                    start_time,
+                    end_time,
+                    scheduled_hours,
+                    pay_type,
+                    rate_amount,
+                    status,
+                    notes,
+                ) = item
+                row_ix = start_row + idx
+
+                est_pay = (
+                    float(scheduled_hours or 0.0) * float(rate_amount or 0.0)
+                    if str(pay_type or "").upper() == "HOURLY"
+                    else float(rate_amount or 0.0)
+                )
+                alerts = f"Est ${est_pay:,.2f} ({pay_type})"
+
+                staff_items = [
+                    QTableWidgetItem(""),
+                    QTableWidgetItem(str(task_name or "")),
+                    QTableWidgetItem("Staff Work"),
+                    QTableWidgetItem(""),
+                    QTableWidgetItem(str(start_time or "")),
+                    QTableWidgetItem(str(end_time or "")),
+                    QTableWidgetItem(""),
+                    QTableWidgetItem(str(role_type or "")),
+                    QTableWidgetItem(str(employee_name or "")),
+                    QTableWidgetItem(str(status or "SCHEDULED")),
+                    QTableWidgetItem("👷"),
+                    QTableWidgetItem(alerts),
+                ]
+                for c, it in enumerate(staff_items):
+                    self.day_table.setItem(row_ix, c, it)
+
+                self._paint_row_except_outlook(row_ix, QColor("#ecfdf5"))
+                if notes:
+                    staff_items[10].setToolTip(str(notes))
+
                 # General events get a subtle neutral tint.
                 self._paint_row_except_outlook(row_ix, QColor("#f1f3f5"))
         except Exception as e:
@@ -1025,7 +1379,8 @@ class DispatcherCalendarWidget(QWidget):
             return ""
 
     def _alerts_for_row(
-        self, status, driver_disp, vehicle_disp, date_str, reserve
+        self, status, driver_disp, vehicle_disp, date_str, reserve,
+        conflict_reserves: set | None = None,
     ) -> str:
         alerts = []
         if not driver_disp:
@@ -1034,6 +1389,8 @@ class DispatcherCalendarWidget(QWidget):
             alerts.append("Vehicle unavailable")
         if not self._has_prepayment(reserve):
             alerts.append("Prepayment pending")
+        if conflict_reserves and reserve in conflict_reserves:
+            alerts.append("⚠️ Driver double-booked")
         # Add task count for day
         tasks = self._read_tasks_for_date(date_str)
         t_for_res = [
@@ -1072,12 +1429,23 @@ class DispatcherCalendarWidget(QWidget):
         pass
 
     def _read_tasks_for_date(self, date_str) -> list[dict]:
-        return [t for t in self._read_tasks() if t.get("date") == date_str]
+        legacy = ""
+        try:
+            legacy = datetime.strptime(date_str, "%Y-%m-%d").strftime(
+                "%m/%d/%Y"
+            )
+        except Exception:
+            legacy = ""
+        return [
+            t
+            for t in self._read_tasks()
+            if t.get("date") in {date_str, legacy}
+        ]
 
     @pyqtSlot()
     def _create_task(self) -> None:
         items = self.day_table.selectedItems()
-        date_str = self.calendar.selectedDate().toString("MM/dd/yyyy")
+        date_str = self.calendar.selectedDate().toPyDate().isoformat()
         reserve = items[0].text() if items else ""
         text = (
             "Buy beverages / Pre-start vehicle / Call client / Ensure payment."
@@ -1095,22 +1463,222 @@ class DispatcherCalendarWidget(QWidget):
 
     @pyqtSlot()
     def _verify_selected_task(self) -> None:
-        # Mark first open task done for the selected reserve
+        selected_item = None
+        if hasattr(self, "todo_list") and self.todo_list is not None:
+            selected_item = self.todo_list.currentItem()
+        if selected_item is None and hasattr(self, "task_list"):
+            selected_item = self.task_list.currentItem()
+
+        selected_task_id = (
+            int(selected_item.data(Qt.ItemDataRole.UserRole))
+            if selected_item
+            and selected_item.data(Qt.ItemDataRole.UserRole)
+            else 0
+        )
+
+        # Fallback: mark first open task for selected reserve.
         items = self.day_table.selectedItems()
         reserve = items[0].text() if items else ""
         try:
             with DatabaseContext(self.db, auto_commit=True) as cur:
-                cur.execute("""
-                    UPDATE dispatch_tasks SET status='done'
-                    WHERE task_id = (
-                        SELECT task_id FROM dispatch_tasks
-                        WHERE reserve_number=%s AND status='open'
-                        ORDER BY task_id LIMIT 1
+                if selected_task_id:
+                    cur.execute(
+                        """
+                        UPDATE dispatch_tasks
+                        SET status='done'
+                        WHERE task_id=%s
+                        """,
+                        (selected_task_id,),
                     )
-                """, (reserve,))
+                else:
+                    cur.execute(
+                        """
+                        UPDATE dispatch_tasks SET status='done'
+                        WHERE task_id = (
+                            SELECT task_id FROM dispatch_tasks
+                            WHERE reserve_number=%s AND status='open'
+                            ORDER BY task_id LIMIT 1
+                        )
+                        """,
+                        (reserve,),
+                    )
         except Exception as e:
             QMessageBox.warning(self, "Task Error", str(e))
         self._load_day(self.calendar.selectedDate())
+
+    @pyqtSlot()
+    def _delete_selected_task(self) -> None:
+        selected_item = None
+        if hasattr(self, "todo_list") and self.todo_list is not None:
+            selected_item = self.todo_list.currentItem()
+        if selected_item is None and hasattr(self, "task_list"):
+            selected_item = self.task_list.currentItem()
+        if selected_item is None:
+            QMessageBox.information(
+                self,
+                "Delete To-Do",
+                "Select a to-do item first.",
+            )
+            return
+
+        task_id = int(selected_item.data(Qt.ItemDataRole.UserRole) or 0)
+        if not task_id:
+            QMessageBox.warning(
+                self,
+                "Delete To-Do",
+                "Could not determine task id for this item.",
+            )
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    "DELETE FROM dispatch_tasks WHERE task_id=%s",
+                    (task_id,),
+                )
+        except Exception as e:
+            QMessageBox.warning(self, "Delete To-Do", str(e))
+            return
+        self._load_day(self.calendar.selectedDate())
+
+    def _selected_row_payload(self) -> dict:
+        row = self.day_table.currentRow()
+        if row < 0:
+            return {}
+        def _txt(col: int) -> str:
+            item = self.day_table.item(row, col)
+            return (item.text() if item else "").strip()
+
+        return {
+            "reserve": _txt(0),
+            "client": _txt(1),
+            "entry_type": _txt(2),
+            "pickup": _txt(4),
+            "driver": _txt(8),
+            "status": _txt(9),
+            "alerts": _txt(11),
+        }
+
+    def _selected_todo_payload(self) -> dict:
+        selected_item = None
+        if hasattr(self, "main_todo_list") and self.main_todo_list is not None:
+            selected_item = self.main_todo_list.currentItem()
+        if hasattr(self, "todo_list") and self.todo_list is not None:
+            selected_item = selected_item or self.todo_list.currentItem()
+        if selected_item is None and hasattr(self, "task_list"):
+            selected_item = self.task_list.currentItem()
+        if selected_item is None:
+            return {}
+
+        return {
+            "task_id": int(selected_item.data(Qt.ItemDataRole.UserRole) or 0),
+            "date": str(
+                selected_item.data(Qt.ItemDataRole.UserRole + 1) or ""
+            ),
+            "reserve": str(
+                selected_item.data(Qt.ItemDataRole.UserRole + 2) or ""
+            ),
+            "text": str(selected_item.data(Qt.ItemDataRole.UserRole + 3) or ""),
+            "status": str(
+                selected_item.data(Qt.ItemDataRole.UserRole + 4) or "open"
+            ),
+        }
+
+    def _focus_todo_item_by_task_id(self, task_id: int) -> None:
+        """Keep both list views aligned on the same selected task."""
+        if task_id <= 0:
+            return
+        for list_name in ("main_todo_list", "todo_list", "task_list"):
+            widget = getattr(self, list_name, None)
+            if widget is None:
+                continue
+            for i in range(widget.count()):
+                item = widget.item(i)
+                current_id = int(item.data(Qt.ItemDataRole.UserRole) or 0)
+                if current_id == task_id:
+                    widget.setCurrentRow(i)
+                    break
+
+    def _show_todo_context_menu(self, position) -> None:
+        """Right-click context menu for to-do/task list items."""
+        source = self.sender()
+        if not isinstance(source, QListWidget):
+            return
+
+        item = source.itemAt(position)
+        if item is None:
+            return
+
+        task_id = int(item.data(Qt.ItemDataRole.UserRole) or 0)
+        self._focus_todo_item_by_task_id(task_id)
+
+        menu = QMenu()
+        post_task_action = menu.addAction("📌 Post Selected To-Do to Outlook")
+        post_task_action.triggered.connect(
+            self._post_selected_todo_to_outlook_task
+        )
+
+        complete_action = menu.addAction("✅ Complete Selected To-Do")
+        complete_action.triggered.connect(self._verify_selected_task)
+
+        delete_action = menu.addAction("🗑️ Delete Selected To-Do")
+        delete_action.triggered.connect(self._delete_selected_task)
+
+        menu.addSeparator()
+        mode_label = str(self.combo_combined_mode.currentText() or "").strip()
+        run_mode_action = menu.addAction(
+            f"▶ Run Combined Mode On Selected Day Row ({mode_label})"
+        )
+        run_mode_action.triggered.connect(self._run_selected_combined_action)
+
+        menu.exec(source.mapToGlobal(position))
+
+    @pyqtSlot()
+    def _add_selected_to_todo(self) -> None:
+        payload = self._selected_row_payload()
+        if not payload:
+            QMessageBox.information(
+                self,
+                "Add To-Do",
+                "Select a day-view row first.",
+            )
+            return
+
+        if not self._insert_todo_for_payload(payload):
+            return
+
+        self._load_day(self.calendar.selectedDate())
+        QMessageBox.information(self, "Add To-Do", "Added to daily to-do list.")
+
+    def _insert_todo_for_payload(self, payload: dict) -> bool:
+        """Insert a to-do row for selected calendar payload."""
+        date_str = self.calendar.selectedDate().toPyDate().isoformat()
+        reserve = payload.get("reserve", "")
+        entry_type = payload.get("entry_type", "")
+        client = payload.get("client", "")
+        pickup = payload.get("pickup", "")
+        alerts = payload.get("alerts", "")
+        text = (
+            f"{entry_type or 'Item'} {reserve or ''} {client or ''}"
+            f" @ {pickup or 'TBD'}"
+        ).strip()
+        if alerts:
+            text = f"{text} | {alerts}"
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO dispatch_tasks
+                        (reserve_number, task_date, task_text, status)
+                    VALUES (%s, %s, %s, 'open')
+                    """,
+                    (reserve, date_str, text),
+                )
+        except Exception as e:
+            QMessageBox.warning(self, "Add To-Do", str(e))
+            return False
+        return True
 
     @pyqtSlot()
     def _prepayment_check_selected(self) -> None:
@@ -1141,7 +1709,40 @@ class DispatcherCalendarWidget(QWidget):
             )
             return False
 
-    # ===== Outlook Sync Context Menu =====
+    def _find_driver_conflicts_for_date(self, date_py) -> set[str]:
+        """Return set of reserve_numbers that have a driver double-booking."""
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute("""
+                    SELECT DISTINCT c1.reserve_number, c2.reserve_number
+                    FROM charters c1
+                    JOIN charters c2
+                        ON c1.employee_id = c2.employee_id
+                        AND c1.charter_id < c2.charter_id
+                        AND c1.charter_date = c2.charter_date
+                        AND c1.pickup_time IS NOT NULL
+                        AND c2.pickup_time IS NOT NULL
+                        AND COALESCE(c1.do_time, c1.dropoff_time) IS NOT NULL
+                        AND COALESCE(c2.do_time, c2.dropoff_time) IS NOT NULL
+                        AND c1.pickup_time < COALESCE(c2.do_time, c2.dropoff_time)
+                        AND c2.pickup_time < COALESCE(c1.do_time, c1.dropoff_time)
+                    WHERE c1.charter_date = %s
+                    AND c1.status NOT IN ('cancelled', 'no-show', 'Cancelled')
+                    AND c2.status NOT IN ('cancelled', 'no-show', 'Cancelled')
+                    AND c1.employee_id IS NOT NULL
+                """, (date_py,))
+                conflicts: set[str] = set()
+                for r1, r2 in cur.fetchall():
+                    if r1:
+                        conflicts.add(str(r1))
+                    if r2:
+                        conflicts.add(str(r2))
+                return conflicts
+        except Exception as e:
+            logger.error("Failed to check driver conflicts: %s", e)
+            return set()
+
+
     def _show_context_menu(self, position) -> None:
         """Right-click context menu for Outlook sync actions."""
         menu = QMenu()
@@ -1158,6 +1759,43 @@ class DispatcherCalendarWidget(QWidget):
 
         reserve_number = reserve_item.text()
         outlook_indicator = outlook_item.text()
+
+        add_todo_action = menu.addAction("📝 Add Selected Row to Daily To-Do")
+        add_todo_action.triggered.connect(self._add_selected_to_todo)
+
+        post_outlook_action = menu.addAction(
+            "📤 Post Selected Row to Arrow Calendar"
+        )
+        post_outlook_action.triggered.connect(self._post_selected_row_to_outlook)
+
+        post_outlook_task_action = menu.addAction(
+            "📌 Post Selected Row as Outlook Task"
+        )
+        post_outlook_task_action.triggered.connect(
+            self._post_selected_row_to_outlook_task
+        )
+
+        add_and_post_action = menu.addAction(
+            "⚡ Add To-Do + Post as Outlook Task"
+        )
+        add_and_post_action.triggered.connect(
+            self._add_selected_to_todo_and_post_outlook_task
+        )
+
+        add_post_all_action = menu.addAction(
+            "🚀 Add To-Do + Outlook Task + Arrow Calendar"
+        )
+        add_post_all_action.triggered.connect(
+            self._add_selected_to_todo_post_task_and_calendar
+        )
+
+        mode_label = str(self.combo_combined_mode.currentText() or "").strip()
+        run_mode_action = menu.addAction(
+            f"▶ Run Combined Mode ({mode_label})"
+        )
+        run_mode_action.triggered.connect(self._run_selected_combined_action)
+
+        menu.addSeparator()
 
         # Menu actions based on sync status
         if outlook_indicator == "🔴":  # not in calendar
@@ -1190,6 +1828,319 @@ class DispatcherCalendarWidget(QWidget):
         legend_action.triggered.connect(self._show_color_legend)
 
         menu.exec(self.day_table.mapToGlobal(position))
+
+    @pyqtSlot()
+    def _post_selected_row_to_outlook(self) -> None:
+        payload = self._selected_row_payload()
+        if not payload:
+            QMessageBox.information(
+                self,
+                "Post to Outlook",
+                "Select a day-view row first.",
+            )
+            return
+
+        if self._post_payload_to_arrow_new(payload, quiet=False):
+            QMessageBox.information(
+                self,
+                "Post to Outlook",
+                "Posted selected item to Arrow Calendar.",
+            )
+
+    def _post_payload_to_arrow_new(self, payload: dict, quiet: bool = False) -> bool:
+        reserve = str(payload.get("reserve") or "").strip()
+        if reserve:
+            return bool(self._sync_to_outlook(reserve, quiet=quiet))
+
+        folder = self._find_outlook_calendar_folder("arrow new")
+        if folder is None:
+            if not quiet:
+                QMessageBox.warning(
+                    self,
+                    "Post to Outlook",
+                    "Could not find Outlook calendar 'arrow new'.",
+                )
+            return False
+
+        selected_date = self.calendar.selectedDate().toPyDate()
+        raw_pickup = payload.get("pickup", "")
+        start_time = time(9, 0)
+        try:
+            if raw_pickup:
+                start_time = datetime.strptime(raw_pickup[:5], "%H:%M").time()
+        except Exception:
+            start_time = time(9, 0)
+
+        start_dt = datetime.combine(selected_date, start_time)
+        end_dt = start_dt + timedelta(hours=1)
+        subject = (
+            f"{payload.get('entry_type') or 'Dispatch Item'} - "
+            f"{payload.get('client') or 'No Client'}"
+        )
+        body = (
+            f"Date: {selected_date.isoformat()}\n"
+            f"Status: {payload.get('status') or ''}\n"
+            f"Alerts: {payload.get('alerts') or ''}\n"
+            "Created from Dispatcher Calendar day view."
+        )
+
+        try:
+            appt = folder.Items.Add(1)  # olAppointmentItem
+            appt.Subject = subject
+            appt.Start = start_dt
+            appt.End = end_dt
+            appt.Body = body
+            appt.Categories = "ALMS"
+            appt.Save()
+        except Exception as e:
+            if not quiet:
+                QMessageBox.warning(self, "Post to Outlook", str(e))
+            return False
+        return True
+
+    def _parse_task_due_date(self, raw_value: str):
+        text = str(raw_value or "").strip()
+        if not text:
+            return self.calendar.selectedDate().toPyDate()
+        for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(text, fmt).date()
+            except Exception:
+                continue
+        return self.calendar.selectedDate().toPyDate()
+
+    def _create_outlook_task(self, *, subject: str, body: str, due_date) -> bool:
+        namespace = self._get_outlook_namespace()
+        if namespace is None:
+            QMessageBox.warning(
+                self,
+                "Outlook Task",
+                (
+                    "Outlook integration is unavailable. pywin32 may not "
+                    "be installed."
+                ),
+            )
+            return False
+        try:
+            task_folder = namespace.GetDefaultFolder(13)  # olFolderTasks
+            task = task_folder.Items.Add(3)  # olTaskItem
+            task.Subject = subject
+            task.Body = body
+            task.DueDate = due_date
+            task.Categories = "ALMS"
+            task.Save()
+            return True
+        except Exception as e:
+            QMessageBox.warning(self, "Outlook Task", str(e))
+            return False
+
+    @pyqtSlot()
+    def _post_selected_row_to_outlook_task(self) -> None:
+        payload = self._selected_row_payload()
+        if not payload:
+            QMessageBox.information(
+                self,
+                "Outlook Task",
+                "Select a day-view row first.",
+            )
+            return
+
+        selected_date = self.calendar.selectedDate().toPyDate()
+        reserve = payload.get("reserve", "")
+        subject = (
+            f"Dispatch: {payload.get('entry_type') or 'Item'} "
+            f"{reserve or ''} {payload.get('client') or ''}"
+        ).strip()
+        body = (
+            f"Date: {selected_date.isoformat()}\n"
+            f"Pickup: {payload.get('pickup') or ''}\n"
+            f"Driver: {payload.get('driver') or ''}\n"
+            f"Status: {payload.get('status') or ''}\n"
+            f"Alerts: {payload.get('alerts') or ''}\n"
+            "Created from Dispatcher Calendar Day View."
+        )
+        if self._create_outlook_task(
+            subject=subject,
+            body=body,
+            due_date=selected_date,
+        ):
+            QMessageBox.information(
+                self,
+                "Outlook Task",
+                "Posted selected row as an Outlook task.",
+            )
+
+    @pyqtSlot()
+    def _add_selected_to_todo_and_post_outlook_task(self) -> None:
+        payload = self._selected_row_payload()
+        if not payload:
+            QMessageBox.information(
+                self,
+                "Add + Outlook Task",
+                "Select a day-view row first.",
+            )
+            return
+
+        if not self._insert_todo_for_payload(payload):
+            return
+
+        selected_date = self.calendar.selectedDate().toPyDate()
+        reserve = payload.get("reserve", "")
+        subject = (
+            f"Dispatch: {payload.get('entry_type') or 'Item'} "
+            f"{reserve or ''} {payload.get('client') or ''}"
+        ).strip()
+        body = (
+            f"Date: {selected_date.isoformat()}\n"
+            f"Pickup: {payload.get('pickup') or ''}\n"
+            f"Driver: {payload.get('driver') or ''}\n"
+            f"Status: {payload.get('status') or ''}\n"
+            f"Alerts: {payload.get('alerts') or ''}\n"
+            "Created from Dispatcher Calendar Day View."
+        )
+        posted = self._create_outlook_task(
+            subject=subject,
+            body=body,
+            due_date=selected_date,
+        )
+
+        self._load_day(self.calendar.selectedDate())
+        if posted:
+            QMessageBox.information(
+                self,
+                "Add + Outlook Task",
+                "Added to daily to-do list and posted as Outlook task.",
+            )
+
+    @pyqtSlot()
+    def _add_selected_to_todo_and_post_arrow_new(self) -> None:
+        payload = self._selected_row_payload()
+        if not payload:
+            QMessageBox.information(
+                self,
+                "Add + Arrow Calendar",
+                "Select a day-view row first.",
+            )
+            return
+
+        if not self._insert_todo_for_payload(payload):
+            return
+
+        cal_posted = self._post_payload_to_arrow_new(payload, quiet=True)
+        self._load_day(self.calendar.selectedDate())
+        if cal_posted:
+            QMessageBox.information(
+                self,
+                "Add + Arrow Calendar",
+                "Added to daily to-do list and posted to Arrow Calendar.",
+            )
+        else:
+            QMessageBox.warning(
+                self,
+                "Add + Arrow Calendar",
+                "Added to daily to-do list, but Arrow Calendar posting failed.",
+            )
+
+    @pyqtSlot()
+    def _run_selected_combined_action(self) -> None:
+        mode = str(self.combo_combined_mode.currentData() or "TODO_TASK")
+        if mode == "TODO_TASK":
+            self._add_selected_to_todo_and_post_outlook_task()
+            return
+        if mode == "TODO_ARROW":
+            self._add_selected_to_todo_and_post_arrow_new()
+            return
+        self._add_selected_to_todo_post_task_and_calendar()
+
+    @pyqtSlot()
+    def _add_selected_to_todo_post_task_and_calendar(self) -> None:
+        payload = self._selected_row_payload()
+        if not payload:
+            QMessageBox.information(
+                self,
+                "To-Do + Task + Arrow Calendar",
+                "Select a day-view row first.",
+            )
+            return
+
+        if not self._insert_todo_for_payload(payload):
+            return
+
+        selected_date = self.calendar.selectedDate().toPyDate()
+        reserve = payload.get("reserve", "")
+        subject = (
+            f"Dispatch: {payload.get('entry_type') or 'Item'} "
+            f"{reserve or ''} {payload.get('client') or ''}"
+        ).strip()
+        body = (
+            f"Date: {selected_date.isoformat()}\n"
+            f"Pickup: {payload.get('pickup') or ''}\n"
+            f"Driver: {payload.get('driver') or ''}\n"
+            f"Status: {payload.get('status') or ''}\n"
+            f"Alerts: {payload.get('alerts') or ''}\n"
+            "Created from Dispatcher Calendar Day View."
+        )
+        task_posted = self._create_outlook_task(
+            subject=subject,
+            body=body,
+            due_date=selected_date,
+        )
+        cal_posted = self._post_payload_to_arrow_new(payload, quiet=True)
+
+        self._load_day(self.calendar.selectedDate())
+        if task_posted and cal_posted:
+            QMessageBox.information(
+                self,
+                "To-Do + Task + Arrow Calendar",
+                "Added to daily to-do list and posted to Outlook task + Arrow Calendar.",
+            )
+        elif task_posted or cal_posted:
+            QMessageBox.information(
+                self,
+                "To-Do + Task + Arrow Calendar",
+                "Added to daily to-do list. One Outlook post succeeded.",
+            )
+        else:
+            QMessageBox.warning(
+                self,
+                "To-Do + Task + Arrow Calendar",
+                "Added to daily to-do list, but Outlook posting failed.",
+            )
+
+    @pyqtSlot()
+    def _post_selected_todo_to_outlook_task(self) -> None:
+        payload = self._selected_todo_payload()
+        if not payload:
+            QMessageBox.information(
+                self,
+                "Outlook Task",
+                "Select a to-do item first.",
+            )
+            return
+
+        due_date = self._parse_task_due_date(payload.get("date", ""))
+        reserve = payload.get("reserve", "")
+        subject = (
+            f"To-Do: {payload.get('text') or 'Dispatch Task'}"
+            f" {f'(Reserve {reserve})' if reserve else ''}"
+        ).strip()
+        body = (
+            f"Task ID: {payload.get('task_id') or ''}\n"
+            f"Reserve: {reserve or ''}\n"
+            f"Status: {payload.get('status') or ''}\n"
+            f"Date: {due_date.isoformat()}\n"
+            "Created from ALMS Daily To-Do panel."
+        )
+        if self._create_outlook_task(
+            subject=subject,
+            body=body,
+            due_date=due_date,
+        ):
+            QMessageBox.information(
+                self,
+                "Outlook Task",
+                "Posted selected to-do as an Outlook task.",
+            )
 
     def _extract_reserve_number(self, text: str) -> str:
         """Extract reserve number from free-form Outlook text."""
@@ -1844,6 +2795,33 @@ class DispatcherCalendarWidget(QWidget):
         QMessageBox.information(self, "Outlook Sync Legend", legend)
 
     # ===== Outlook Parse & Review =====
+
+    def _calendar_sync_lower_bound_date(self):
+        """Return forward-only lower bound date for Arrow sync actions.
+
+        Env override:
+          - ALMS_ARROW_SYNC_SCOPE=today  -> today forward (default)
+          - ALMS_ARROW_SYNC_SCOPE=week   -> this week forward (Mon)
+        """
+        today = datetime.now().date()
+        scope = (os.getenv("ALMS_ARROW_SYNC_SCOPE", "today") or "today").strip().lower()
+        if scope in {"week", "this_week", "week_forward"}:
+            return today - timedelta(days=today.weekday())
+        return today
+
+    def _calendar_sync_scope_label(self) -> str:
+        """Describe the visible forward-only Arrow sync scope."""
+        scope = (os.getenv("ALMS_ARROW_SYNC_SCOPE", "today") or "today").strip().lower()
+        if scope in {"week", "this_week", "week_forward"}:
+            return "this week forward"
+        return "today forward"
+
+    def _apply_forward_sync_window(self, month_start: datetime, month_end: datetime):
+        """Clamp month window to forward-only sync bounds."""
+        lower = self._calendar_sync_lower_bound_date()
+        effective_start = max(month_start, datetime.combine(lower, time(0, 0)))
+        return effective_start, month_end
+
     @pyqtSlot()
     def _parse_outlook_and_review(self) -> None:
         """Full month sync from Outlook into ALMS review data and charters."""
@@ -1854,6 +2832,15 @@ class DispatcherCalendarWidget(QWidget):
                 end_date = datetime(selected_date.year() + 1, 1, 1) - timedelta(seconds=1)
             else:
                 end_date = datetime(selected_date.year(), selected_date.month() + 1, 1) - timedelta(seconds=1)
+
+            start_date, end_date = self._apply_forward_sync_window(start_date, end_date)
+            if start_date > end_date:
+                QMessageBox.information(
+                    self,
+                    "Compare Arrow to ALMS",
+                    "No forward dates in this month to compare.",
+                )
+                return
 
             _, reserve_map, events = self._collect_outlook_events(start_date, end_date)
             if reserve_map is None:
@@ -1999,11 +2986,13 @@ class DispatcherCalendarWidget(QWidget):
             events_with_reserve = sum(1 for e in events if e.get("reserve_number"))
             events_without_reserve = len(events) - events_with_reserve
 
-            summary = "Outlook FULL sync complete (desktop_app).\n\n"
-            summary += f"ALMS charters in month: {len(reserves)}\n"
+            scope_lower = start_date.date()
+            summary = "Arrow to ALMS compare complete.\n\n"
+            summary += f"Scope start: {scope_lower} (forward only)\n"
+            summary += f"ALMS charters in scope: {len(reserves)}\n"
             summary += f"Matched by reserve number: {matched}\n"
             summary += f"Unmatched charters: {unmatched_charters}\n"
-            summary += f"Arrow New events scanned: {len(events)}\n"
+            summary += f"Arrow Calendar events scanned: {len(events)}\n"
             summary += f"Events with reserve number: {events_with_reserve}\n"
             summary += f"Events without reserve number: {events_without_reserve}\n"
             summary += f"Verified charter events: {verified_charter_events}\n"
@@ -2014,7 +3003,7 @@ class DispatcherCalendarWidget(QWidget):
             summary += f"Duplicate reserve events flagged: {duplicate_reserve_events}\n"
             summary += "Auto-generated reserve numbers used: 0"
 
-            QMessageBox.information(self, "Outlook Full Sync", summary)
+            QMessageBox.information(self, "Compare Arrow to ALMS", summary)
             self._load_day(self.calendar.selectedDate())
             # Refresh the sync review tab so new items appear immediately
             try:
@@ -2023,7 +3012,7 @@ class DispatcherCalendarWidget(QWidget):
                 pass
         except Exception as e:
             QMessageBox.warning(
-                self, "Outlook Parse", f"Error during Outlook review: {e}"
+                self, "Compare Arrow to ALMS", f"Error during Outlook review: {e}"
             )
 
     def _update_calendar_individual_approval(self) -> None:
@@ -2044,9 +3033,26 @@ class DispatcherCalendarWidget(QWidget):
                     selected_date.year(), selected_date.month() + 1, 1
                 ).addDays(-1)
 
+            month_start_dt = datetime.combine(start_date.toPyDate(), time(0, 0))
+            month_end_dt = datetime.combine(end_date.toPyDate(), time(23, 59))
+            effective_start_dt, effective_end_dt = self._apply_forward_sync_window(
+                month_start_dt,
+                month_end_dt,
+            )
+            if effective_start_dt > effective_end_dt:
+                QMessageBox.information(
+                    self,
+                    "Sync Arrow Calendar",
+                    "No forward dates in this month to sync.",
+                )
+                return
+
+            effective_start_date = effective_start_dt.date()
+            effective_end_date = effective_end_dt.date()
+
             _, reserve_map, outlook_events = self._collect_outlook_events(
-                datetime.combine(start_date.toPyDate(), time(0, 0)),
-                datetime.combine(end_date.toPyDate(), time(23, 59)),
+                effective_start_dt,
+                effective_end_dt,
             )
             if reserve_map is None:
                 QMessageBox.warning(
@@ -2071,7 +3077,7 @@ class DispatcherCalendarWidget(QWidget):
                           ('cancelled','no-show'))
                     ORDER BY charter_date, pickup_time
                 """,
-                    (start_date.toPyDate(), end_date.toPyDate()),
+                    (effective_start_date, effective_end_date),
                 )
 
                 alms_charters = cur.fetchall()
@@ -2182,8 +3188,8 @@ class DispatcherCalendarWidget(QWidget):
                 QMessageBox.information(
                     self,
                     "Calendar Sync",
-                    "No discrepancies found between ALMS and Outlook"
-                    "calendars.",
+                    "No discrepancies found between ALMS and Arrow"
+                    " in forward-only scope.",
                 )
                 return
 
@@ -2209,7 +3215,8 @@ class DispatcherCalendarWidget(QWidget):
                 QMessageBox.information(
                     self,
                     "Updates Applied",
-                    f"Updated {len(approved_updates)} calendar events.\n"
+                    f"Updated {len(approved_updates)} calendar events "
+                    f"({effective_start_date} to {effective_end_date}).\n"
                     f"Skipped {len(skipped_updates)} events.",
                 )
             else:
@@ -2445,7 +3452,8 @@ class DispatcherCalendarWidget(QWidget):
         dialog = QDialog(self)
         dialog.setWindowTitle("Calendar Event Details")
         dialog.setMinimumWidth(600)
-        dialog.setMinimumHeight(500)
+        dialog.resize(900, 620)
+        dialog.setSizeGripEnabled(True)
 
         layout = QVBoxLayout()
 
@@ -2632,14 +3640,222 @@ class DispatcherCalendarWidget(QWidget):
             )
 
     def _open_employee_calendar(self, driver_name, parent_dialog) -> None:
-        """Open employee calendar/availability view"""
-        QMessageBox.information(
-            parent_dialog,
-            "Employee Calendar",
-            f"Opening calendar for {driver_name}\n(Employee calendar view"
-            f"coming soon)",
-        )
-        # TODO: Implement employee calendar widget
+        """Open a month view of charters assigned to the selected driver."""
+        try:
+            from PyQt6.QtWidgets import QDialog
+
+            driver_label = (driver_name or "").strip()
+            if not driver_label:
+                QMessageBox.information(
+                    parent_dialog,
+                    "Employee Calendar",
+                    "No driver name was provided for this event.",
+                )
+                return
+
+            dialog = QDialog(self)
+            dialog.setWindowTitle(f"Employee Calendar - {driver_label}")
+            dialog.setMinimumWidth(900)
+            dialog.resize(1100, 720)
+            dialog.setSizeGripEnabled(True)
+
+            layout = QVBoxLayout(dialog)
+            header = QLabel(
+                f"<b>Driver:</b> {driver_label}<br>"
+                f"<b>Period:</b> {self.calendar.selectedDate().toString('MMMM yyyy')}"
+            )
+            header.setWordWrap(True)
+            layout.addWidget(header)
+
+            self._employee_calendar_table = QTableWidget(0, 6)
+            self._employee_calendar_table.setHorizontalHeaderLabels(
+                [
+                    "Date",
+                    "Reserve #",
+                    "Pickup",
+                    "Customer",
+                    "Status",
+                    "Charter ID",
+                ]
+            )
+            hdr = self._employee_calendar_table.horizontalHeader()
+            hdr.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            hdr.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+            hdr.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+            hdr.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+            hdr.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+            hdr.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
+            self._employee_calendar_table.setSelectionBehavior(
+                QTableWidget.SelectionBehavior.SelectRows
+            )
+            self._employee_calendar_table.setSelectionMode(
+                QTableWidget.SelectionMode.SingleSelection
+            )
+            self._employee_calendar_table.setEditTriggers(
+                QTableWidget.EditTrigger.NoEditTriggers
+            )
+            self._employee_calendar_table.cellDoubleClicked.connect(
+                self._open_employee_calendar_charter
+            )
+            layout.addWidget(self._employee_calendar_table)
+
+            buttons = QHBoxLayout()
+            refresh_btn = QPushButton("↺ Refresh")
+            refresh_btn.clicked.connect(
+                lambda: self._load_employee_calendar_rows(driver_label)
+            )
+            open_btn = QPushButton("📋 Open Charter")
+            open_btn.clicked.connect(self._open_selected_employee_charter)
+            close_btn = QPushButton("Close")
+            close_btn.clicked.connect(dialog.accept)
+            buttons.addWidget(refresh_btn)
+            buttons.addWidget(open_btn)
+            buttons.addStretch()
+            buttons.addWidget(close_btn)
+            layout.addLayout(buttons)
+
+            self._employee_calendar_driver_label = driver_label
+            self._load_employee_calendar_rows(driver_label)
+            dialog.exec()
+        except Exception as e:
+            logger.error("Failed to open employee calendar: %s", e)
+            QMessageBox.warning(
+                parent_dialog,
+                "Employee Calendar",
+                f"Could not open employee calendar for {driver_name}: {e}",
+            )
+
+    def _load_employee_calendar_rows(self, driver_label: str) -> None:
+        """Load this month's charters for the selected driver."""
+        table = getattr(self, "_employee_calendar_table", None)
+        if table is None:
+            return
+
+        selected_date = self.calendar.selectedDate()
+        start_date = datetime(selected_date.year(), selected_date.month(), 1).date()
+        if selected_date.month() == 12:
+            end_date = datetime(selected_date.year() + 1, 1, 1).date() - timedelta(days=1)
+        else:
+            end_date = datetime(selected_date.year(), selected_date.month() + 1, 1).date() - timedelta(days=1)
+
+        name_part = (driver_label or "").split("/")[0].strip() or (driver_label or "").strip()
+        rows = []
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT c.charter_date, c.reserve_number, c.pickup_time,
+                           c.client_display_name, c.status, c.charter_id
+                    FROM charters c
+                    LEFT JOIN employees e ON c.employee_id = e.employee_id
+                    WHERE c.charter_date BETWEEN %s AND %s
+                      AND (
+                          e.full_name ILIKE %s
+                          OR COALESCE(e.phone_number::text, '') ILIKE %s
+                      )
+                    ORDER BY c.charter_date, c.pickup_time NULLS LAST, c.charter_id
+                    """,
+                    (
+                        start_date,
+                        end_date,
+                        f"%{name_part}%",
+                        f"%{name_part}%",
+                    ),
+                )
+                rows = cur.fetchall()
+        except Exception as e:
+            logger.error("Failed to load employee calendar rows: %s", e)
+            QMessageBox.warning(
+                self,
+                "Employee Calendar",
+                f"Could not load calendar rows for {driver_label}: {e}",
+            )
+
+        table.setRowCount(len(rows))
+        for row_idx, row in enumerate(rows):
+            charter_date, reserve_number, pickup_time, customer, status, charter_id = row
+            values = [
+                str(charter_date or ""),
+                str(reserve_number or ""),
+                str(pickup_time or ""),
+                str(customer or ""),
+                str(status or ""),
+                str(charter_id or ""),
+            ]
+            for col_idx, value in enumerate(values):
+                table.setItem(row_idx, col_idx, QTableWidgetItem(value))
+
+    def _selected_employee_calendar_row(self) -> int | None:
+        table = getattr(self, "_employee_calendar_table", None)
+        if table is None:
+            return None
+        selection_model = table.selectionModel()
+        if not selection_model:
+            return None
+        rows = selection_model.selectedRows()
+        if not rows:
+            return None
+        return rows[0].row()
+
+    def _open_selected_employee_charter(self) -> None:
+        row = self._selected_employee_calendar_row()
+        if row is None:
+            QMessageBox.information(
+                self,
+                "Employee Calendar",
+                "Select one charter row first.",
+            )
+            return
+        self._open_employee_calendar_charter(row, 0)
+
+    def _open_employee_calendar_charter(self, row: int, _column: int) -> None:
+        table = getattr(self, "_employee_calendar_table", None)
+        if table is None or row < 0 or row >= table.rowCount():
+            return
+
+        reserve_item = table.item(row, 1)
+        charter_id_item = table.item(row, 5)
+        reserve_number = reserve_item.text().strip() if reserve_item else ""
+        charter_id = charter_id_item.text().strip() if charter_id_item else ""
+
+        if not reserve_number and not charter_id:
+            QMessageBox.information(
+                self,
+                "Employee Calendar",
+                "This row has no charter reference to open.",
+            )
+            return
+
+        try:
+            from main import CharterFormWidget
+
+            charter_form = CharterFormWidget(self.db)
+            if reserve_number and hasattr(charter_form, "load_charter_by_reserve"):
+                charter_form.load_charter_by_reserve(reserve_number)
+            elif charter_id and hasattr(charter_form, "load_charter"):
+                try:
+                    charter_form.load_charter(int(charter_id))
+                except Exception:
+                    pass
+
+            dialog = QDialog(self)
+            dialog.setWindowTitle(f"Charter {reserve_number or charter_id}")
+            dialog.setMinimumWidth(1100)
+            dialog.resize(1200, 760)
+            dialog.setSizeGripEnabled(True)
+            layout = QVBoxLayout(dialog)
+            layout.addWidget(charter_form)
+            close_btn = QPushButton("Close")
+            close_btn.clicked.connect(dialog.accept)
+            layout.addWidget(close_btn)
+            dialog.exec()
+        except Exception as e:
+            logger.error("Failed to open charter from employee calendar: %s", e)
+            QMessageBox.warning(
+                self,
+                "Open Charter",
+                f"Could not open charter {reserve_number or charter_id}: {e}",
+            )
 
     def _create_charter_from_calendar_dialog(
         self, reserve_number, pickup_time, notes, event_details, parent_dialog
@@ -2960,63 +4176,34 @@ class DispatcherCalendarWidget(QWidget):
             )
 
     def _open_existing_charter(self, reserve_number, charter_id) -> None:
-        """Open existing charter for editing with change tracking"""
+        """Open the drill-down Charter Detail dialog for the selected event."""
         try:
-            # Import and create charter form
-            from main import CharterFormWidget
-
-            charter_form = CharterFormWidget(self.db)
+            from drill_down_widgets import CharterDetailDialog
 
             normalized_reserve = str(reserve_number or "").strip()
             if normalized_reserve.isdigit():
                 normalized_reserve = normalized_reserve.zfill(6)
 
-            # Load the exact charter record so edits persist to the selected row.
-            loaded = False
-            if normalized_reserve and hasattr(
-                charter_form, "load_charter_by_reserve"
-            ):
-                charter_form.load_charter_by_reserve(normalized_reserve)
-                loaded = True
-            elif charter_id and hasattr(charter_form, "load_charter"):
-                charter_form.load_charter(charter_id)
-                loaded = True
+            charter_id_int = None
+            try:
+                charter_id_int = (
+                    int(charter_id) if str(charter_id).strip() else None
+                )
+            except Exception:
+                charter_id_int = None
 
-            if not loaded:
+            if not normalized_reserve and not charter_id_int:
                 raise ValueError(
                     "Could not load charter for the selected calendar row."
                 )
 
-            # Track original values for change detection
-            charter_form._original_calendar_data = {
-                "reserve_number": normalized_reserve,
-                "charter_id": charter_id,
-            }
-
-            # Override save method to ask for calendar update confirmation
-            original_save = charter_form.save_charter
-
-            def save_with_calendar_check() -> None:
-                # Check if key fields changed
-                if self._charter_fields_changed(charter_form):
-                    reply = QMessageBox.question(
-                        charter_form,
-                        "Calendar Update",
-                        "Charter details have changed.\nUpdate the calendar"
-                        "event to match?",
-                        QMessageBox.StandardButton.Yes
-                        | QMessageBox.StandardButton.No,
-                        QMessageBox.StandardButton.Yes,
-                    )
-
-                    if reply == QMessageBox.StandardButton.Yes:
-                        self._update_calendar_from_charter(charter_form)
-
-                # Call original save
-                original_save()
-
-            charter_form.save_charter = save_with_calendar_check
-            charter_form.show()
+            dialog = CharterDetailDialog(
+                self.db,
+                reserve_number=normalized_reserve or None,
+                parent=self,
+                charter_id=charter_id_int,
+            )
+            dialog.exec()
 
         except Exception as e:
             logger.error(f"Failed to open existing charter: {e}")

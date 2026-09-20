@@ -72,7 +72,7 @@ class BeverageManagementWidget(QWidget):
         layout = QVBoxLayout()
 
         # Title
-        title = QLabel("🍷 Beverage Management")
+        title = QLabel("🍷 Beverage")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 
@@ -364,7 +364,7 @@ class BeverageManagementWidget(QWidget):
         QMessageBox.warning(
             self,
             "Read-only Mode",
-            "Beverage Management write mode is disabled.",
+            "Beverage write mode is disabled.",
         )
         return False
 
