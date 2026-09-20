@@ -25,10 +25,17 @@ _APP_ROOT = (
 
 from common_widgets import StandardDateEdit
 from db_error_handling import DatabaseContext
+from vehicle_type_catalog import (
+    ensure_vehicle_type_catalog,
+    fetch_vehicle_type_catalog,
+    register_vehicle_type,
+)
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
@@ -53,7 +60,142 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+
+def _optional_date_text(field) -> str | None:
+    value = field.date()
+    return value.toString("yyyy-MM-dd") if value and value.isValid() else None
+
 logger = logging.getLogger(__name__)
+
+
+class LoanPaymentDialog(QDialog):
+    """Add/edit a single itemized loan or lease payment record.
+
+    Backed by vehicle_loan_payments, which supports lease payments,
+    loan payments, NSF/reversal events, buyouts/payouts, and final
+    settlements via the free-text payment_type field.
+    """
+
+    PAYMENT_TYPES = [
+        "monthly",
+        "down_payment",
+        "buyout",
+        "payout",
+        "refinance_payout",
+        "final_settlement",
+        "reversal",
+        "late_fee",
+        "nsf_fee",
+        "other",
+    ]
+
+    def __init__(self, parent=None, existing: dict | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle(
+            "Edit Payment" if existing else "Add Loan/Lease Payment"
+        )
+        self.existing = existing or {}
+
+        form = QFormLayout()
+
+        self.payment_date_input = StandardDateEdit(prefer_month_text=True)
+        self.payment_date_input.setCalendarPopup(True)
+        if self.existing.get("payment_date"):
+            self.payment_date_input.setDate(
+                QDate.fromString(
+                    str(self.existing["payment_date"]), "yyyy-MM-dd"
+                )
+            )
+        else:
+            self.payment_date_input.setDate(QDate.currentDate())
+
+        self.payment_type_input = QComboBox()
+        self.payment_type_input.addItems(self.PAYMENT_TYPES)
+        if self.existing.get("payment_type") in self.PAYMENT_TYPES:
+            self.payment_type_input.setCurrentText(
+                self.existing["payment_type"]
+            )
+
+        self.lender_name_input = QLineEdit(
+            self.existing.get("lender_name") or ""
+        )
+
+        self.gross_amount_input = QDoubleSpinBox()
+        self.gross_amount_input.setPrefix("$")
+        self.gross_amount_input.setMaximum(9999999.99)
+        self.gross_amount_input.setValue(
+            float(self.existing.get("gross_amount") or 0.0)
+        )
+        self.gross_amount_input.valueChanged.connect(
+            self._recalc_from_gross
+        )
+
+        self.gst_amount_input = QDoubleSpinBox()
+        self.gst_amount_input.setPrefix("$")
+        self.gst_amount_input.setMaximum(999999.99)
+        self.gst_amount_input.setValue(
+            float(self.existing.get("gst_amount") or 0.0)
+        )
+
+        self.net_amount_input = QDoubleSpinBox()
+        self.net_amount_input.setPrefix("$")
+        self.net_amount_input.setMaximum(9999999.99)
+        self.net_amount_input.setValue(
+            float(self.existing.get("net_amount") or 0.0)
+        )
+
+        self.nsf_related_input = QCheckBox("NSF-related")
+        self.nsf_related_input.setChecked(bool(self.existing.get("nsf_related")))
+
+        self.notes_input = QTextEdit()
+        self.notes_input.setFixedHeight(70)
+        self.notes_input.setPlainText(self.existing.get("notes") or "")
+
+        form.addRow("Payment Date", self.payment_date_input)
+        form.addRow("Payment Type", self.payment_type_input)
+        form.addRow("Lender Name", self.lender_name_input)
+        form.addRow("Gross Amount", self.gross_amount_input)
+        form.addRow("GST Amount", self.gst_amount_input)
+        form.addRow("Net Amount", self.net_amount_input)
+        form.addRow("", self.nsf_related_input)
+        form.addRow("Notes", self.notes_input)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        layout = QVBoxLayout()
+        layout.addLayout(form)
+        layout.addWidget(buttons)
+        self.setLayout(layout)
+
+    def _recalc_from_gross(self, gross: float) -> None:
+        # Convenience only: suggest a 5% GST split; user can override.
+        if self.gst_amount_input.value() == 0.0 and gross > 0:
+            gst = round(gross * (5.0 / 105.0), 2)
+            self.gst_amount_input.blockSignals(True)
+            self.gst_amount_input.setValue(gst)
+            self.gst_amount_input.blockSignals(False)
+            self.net_amount_input.blockSignals(True)
+            self.net_amount_input.setValue(round(gross - gst, 2))
+            self.net_amount_input.blockSignals(False)
+
+    def get_data(self) -> dict:
+        return {
+            "payment_date": self.payment_date_input.date().toString(
+                "yyyy-MM-dd"
+            ),
+            "payment_type": self.payment_type_input.currentText(),
+            "lender_name": self.lender_name_input.text().strip() or None,
+            "gross_amount": self.gross_amount_input.value(),
+            "gst_amount": self.gst_amount_input.value(),
+            "net_amount": self.net_amount_input.value(),
+            "nsf_related": self.nsf_related_input.isChecked(),
+            "notes": self.notes_input.toPlainText().strip() or None,
+        }
 
 
 class VehicleManagementWidget(QWidget):
@@ -62,9 +204,8 @@ class VehicleManagementWidget(QWidget):
         self.db = db
         self.current_vehicle_id = None
         self.lease_docs_root = _APP_ROOT / "data" / "vehicle_lease_docs"
-        # Detect optional schema features once so the widget can adapt safely
-        self.has_vehicle_code = self._column_exists("vehicles", "vehicle_code")
         self._ensure_lease_schema()
+        ensure_vehicle_type_catalog(self.db)
         self.init_ui()
         self.load_vehicles()
 
@@ -141,6 +282,58 @@ class VehicleManagementWidget(QWidget):
                     """)
         except Exception as e:
             logger.error(f"Failed to ensure lease schema: {e}")
+
+    def _load_vehicle_type_options(self) -> None:
+        """Populate the Type dropdown from vehicle_type_catalog, grouped
+        and sorted by passenger capacity so same-capacity types cluster
+        together; sort_order is the tiebreaker within a capacity group."""
+        current_text = self.type_input.currentText()
+        self.type_input.blockSignals(True)
+        self.type_input.clear()
+        try:
+            rows = fetch_vehicle_type_catalog(self.db)
+        except Exception as e:
+            logger.error(f"Failed to load vehicle type catalog: {e}")
+            rows = []
+
+        last_capacity = object()
+        for type_name, capacity, _pricing_type in rows:
+            if capacity != last_capacity:
+                label = (
+                    f"── {capacity} pax ──"
+                    if capacity is not None
+                    else "── Other ──"
+                )
+                self.type_input.addItem(label)
+                idx = self.type_input.count() - 1
+                item = self.type_input.model().item(idx)
+                if item is not None:
+                    item.setEnabled(False)
+                last_capacity = capacity
+            self.type_input.addItem(type_name)
+
+        if current_text:
+            idx = self.type_input.findText(current_text)
+            if idx == -1:
+                self.type_input.addItem(current_text)
+                idx = self.type_input.findText(current_text)
+            self.type_input.setCurrentIndex(idx)
+        self.type_input.blockSignals(False)
+
+    def _ensure_vehicle_type_in_catalog(
+        self, type_name: str, passenger_capacity: int | None
+    ) -> None:
+        """Auto-register a newly typed vehicle type into the catalog so it
+        is available (grouped/sorted) next time, per 'used when adding
+        vehicles'."""
+        type_name = (type_name or "").strip()
+        if not type_name:
+            return
+        try:
+            if register_vehicle_type(self.db, type_name, passenger_capacity):
+                self._load_vehicle_type_options()
+        except Exception as e:
+            logger.error(f"Failed to auto-register vehicle type: {e}")
 
     def _column_exists(
         self, table_name: str, column_name: str, schema: str = "public"
@@ -255,8 +448,16 @@ class VehicleManagementWidget(QWidget):
             "🔧 Maintenance",
         )
         self.tabs.addTab(
+            self._wrap_in_scroll_area(self._create_fluids_parts_tab()),
+            "🛢️ Fluids & Parts",
+        )
+        self.tabs.addTab(
             self._wrap_in_scroll_area(self._create_insurance_tab()),
             "🛡️ Insurance & Registration",
+        )
+        self.tabs.addTab(
+            self._wrap_in_scroll_area(self._create_purchase_lifecycle_tab()),
+            "💲 Purchase & Lifecycle",
         )
         self.tabs.addTab(
             self._wrap_in_scroll_area(self._create_lease_tab()),
@@ -338,15 +539,13 @@ class VehicleManagementWidget(QWidget):
 
         self.vehicle_number_input = QLineEdit()
         self.vin_input = QLineEdit()
-        self.vehicle_code_input = QLineEdit()
-        if not self.has_vehicle_code:
-            self.vehicle_code_input.setDisabled(True)
-            self.vehicle_code_input.setPlaceholderText(
-                "vehicle_code column not present in DB"
-            )
+        # Fleet Number is not an independent field: it always mirrors
+        # Vehicle Number (e.g. "L-26"), so it is read-only and kept in sync.
         self.fleet_number_input = QLineEdit()
-        self.fleet_position_input = QSpinBox()
-        self.fleet_position_input.setMaximum(999)
+        self.fleet_number_input.setReadOnly(True)
+        self.vehicle_number_input.textChanged.connect(
+            self.fleet_number_input.setText
+        )
         self.license_plate_input = QLineEdit()
         self.make_input = QLineEdit()
         self.model_input = QLineEdit()
@@ -354,21 +553,9 @@ class VehicleManagementWidget(QWidget):
         self.year_input.setRange(1900, 2100)
         self.year_input.setValue(datetime.now().year)
         self.type_input = QComboBox()
-        self.type_input.addItems(
-            [
-                "Sedan",
-                "SUV",
-                "Shuttle Bus",
-                "Party Bus",
-                "Limo",
-                "Bus",
-                "small_suv",
-                "large_suv",
-                "small_bus",
-                "large_bus",
-                "unknown",
-            ]
-        )
+        self.type_input.setEditable(True)
+        self._load_vehicle_type_options()
+        self.type_input.setCurrentIndex(-1)
         self.vehicle_category_input = QLineEdit()
         self.vehicle_class_input = QLineEdit()
         self.passenger_capacity_input = QSpinBox()
@@ -379,16 +566,13 @@ class VehicleManagementWidget(QWidget):
         # Pair short fields two-per-row so the form uses the width instead of
         # stacking 14 single fields down the page.
         for _w in (
-            self.vehicle_number_input, self.vin_input, self.vehicle_code_input,
+            self.vehicle_number_input, self.vin_input,
             self.fleet_number_input, self.license_plate_input, self.make_input,
             self.model_input, self.vehicle_category_input,
             self.vehicle_class_input,
         ):
             _w.setMaximumWidth(220)
-        for _w in (
-            self.fleet_position_input, self.year_input,
-            self.passenger_capacity_input,
-        ):
+        for _w in (self.year_input, self.passenger_capacity_input):
             _w.setMaximumWidth(120)
         self.type_input.setMaximumWidth(220)
 
@@ -403,14 +587,13 @@ class VehicleManagementWidget(QWidget):
 
         _pair("Vehicle Number*", self.vehicle_number_input,
               "VIN Number", self.vin_input)
-        _pair("Vehicle Code", self.vehicle_code_input,
-              "Fleet Number", self.fleet_number_input)
-        _pair("Fleet Position", self.fleet_position_input,
-              "License Plate*", self.license_plate_input)
-        _pair("Make*", self.make_input, "Model*", self.model_input)
-        _pair("Year*", self.year_input, "Type", self.type_input)
-        _pair("Category", self.vehicle_category_input,
-              "Class", self.vehicle_class_input)
+        _pair("License Plate*", self.license_plate_input,
+              "Make*", self.make_input)
+        _pair("Model*", self.model_input, "Year*", self.year_input)
+        _pair("Type", self.type_input,
+              "Category", self.vehicle_category_input)
+        layout.addRow("Fleet Number", self.fleet_number_input)
+        layout.addRow("Class", self.vehicle_class_input)
         layout.addRow("Passenger Capacity", self.passenger_capacity_input)
         layout.addRow("Description", self.description_input)
 
@@ -441,6 +624,10 @@ class VehicleManagementWidget(QWidget):
             ]
         )
         self.is_active_input = QCheckBox("Active")
+        self.red_deer_compliant_input = QCheckBox("Red Deer Bylaw Compliant")
+        self.requires_class_2_input = QCheckBox(
+            "Requires Class 2 Driver's License"
+        )
         self.commission_date_input = StandardDateEdit(prefer_month_text=True)
         self.commission_date_input.setCalendarPopup(True)
         self.commission_date_input.setDate(QDate.currentDate())
@@ -487,6 +674,8 @@ class VehicleManagementWidget(QWidget):
 
         _pair("Operational Status", self.operational_status_input,
               "Is Active", self.is_active_input)
+        _pair("Red Deer Bylaw Compliant", self.red_deer_compliant_input,
+              "Requires Class 2 License", self.requires_class_2_input)
         _pair("Commission Date", self.commission_date_input,
               "Decommission Date", self.decommission_date_input)
         _pair("Exterior Color", self.ext_color_input,
@@ -553,6 +742,170 @@ class VehicleManagementWidget(QWidget):
         outer.addStretch()
         return widget
 
+    def _create_fluids_parts_tab(self) -> object:
+        """Create the Fluids, Parts & Service Intervals tab"""
+        widget = QWidget()
+        layout = QFormLayout()
+
+        self.odometer_type_input = QComboBox()
+        self.odometer_type_input.addItems(["km", "miles"])
+        self.curb_weight_input = QSpinBox()
+        self.curb_weight_input.setMaximum(99999)
+        self.curb_weight_input.setSuffix(" kg")
+        self.gross_vehicle_weight_input = QSpinBox()
+        self.gross_vehicle_weight_input.setMaximum(99999)
+        self.gross_vehicle_weight_input.setSuffix(" kg")
+
+        self.engine_oil_type_input = QLineEdit()
+        self.oil_quantity_input = QLineEdit()
+        self.oil_filter_number_input = QLineEdit()
+        self.oil_change_interval_km_input = QSpinBox()
+        self.oil_change_interval_km_input.setMaximum(999999)
+        self.oil_change_interval_km_input.setSuffix(" km")
+        self.oil_change_interval_months_input = QSpinBox()
+        self.oil_change_interval_months_input.setMaximum(120)
+        self.oil_change_interval_months_input.setSuffix(" mo")
+
+        self.fuel_type_input = QLineEdit()
+        self.fuel_filter_number_input = QLineEdit()
+        self.fuel_filter_interval_km_input = QSpinBox()
+        self.fuel_filter_interval_km_input.setMaximum(999999)
+        self.fuel_filter_interval_km_input.setSuffix(" km")
+
+        self.transmission_fluid_type_input = QLineEdit()
+        self.transmission_fluid_quantity_input = QLineEdit()
+        self.transmission_service_interval_km_input = QSpinBox()
+        self.transmission_service_interval_km_input.setMaximum(999999)
+        self.transmission_service_interval_km_input.setSuffix(" km")
+
+        self.coolant_type_input = QLineEdit()
+        self.coolant_quantity_input = QLineEdit()
+        self.coolant_change_interval_km_input = QSpinBox()
+        self.coolant_change_interval_km_input.setMaximum(999999)
+        self.coolant_change_interval_km_input.setSuffix(" km")
+
+        self.brake_fluid_type_input = QLineEdit()
+        self.brake_fluid_change_interval_months_input = QSpinBox()
+        self.brake_fluid_change_interval_months_input.setMaximum(120)
+        self.brake_fluid_change_interval_months_input.setSuffix(" mo")
+        self.power_steering_fluid_type_input = QLineEdit()
+
+        self.belt_size_input = QLineEdit()
+        self.serpentine_belt_part_number_input = QLineEdit()
+        self.tire_size_input = QLineEdit()
+        self.tire_pressure_input = QLineEdit()
+        self.air_filter_part_number_input = QLineEdit()
+        self.air_filter_interval_km_input = QSpinBox()
+        self.air_filter_interval_km_input.setMaximum(999999)
+        self.air_filter_interval_km_input.setSuffix(" km")
+        self.cabin_filter_part_number_input = QLineEdit()
+
+        for _w in (
+            self.engine_oil_type_input, self.oil_quantity_input,
+            self.oil_filter_number_input, self.fuel_type_input,
+            self.fuel_filter_number_input, self.transmission_fluid_type_input,
+            self.transmission_fluid_quantity_input, self.coolant_type_input,
+            self.coolant_quantity_input, self.brake_fluid_type_input,
+            self.power_steering_fluid_type_input, self.belt_size_input,
+            self.serpentine_belt_part_number_input, self.tire_size_input,
+            self.tire_pressure_input, self.air_filter_part_number_input,
+            self.cabin_filter_part_number_input,
+        ):
+            _w.setMaximumWidth(220)
+        for _w in (
+            self.curb_weight_input, self.gross_vehicle_weight_input,
+            self.oil_change_interval_km_input,
+            self.oil_change_interval_months_input,
+            self.fuel_filter_interval_km_input,
+            self.transmission_service_interval_km_input,
+            self.coolant_change_interval_km_input,
+            self.brake_fluid_change_interval_months_input,
+            self.air_filter_interval_km_input,
+        ):
+            _w.setMaximumWidth(140)
+        self.odometer_type_input.setMaximumWidth(120)
+
+        def _pair(label1, widget1, label2, widget2):
+            row = QHBoxLayout()
+            row.addWidget(widget1)
+            row.addSpacing(24)
+            row.addWidget(QLabel(label2))
+            row.addWidget(widget2)
+            row.addStretch()
+            layout.addRow(label1, row)
+
+        _pair("Odometer Type", self.odometer_type_input,
+              "Curb Weight", self.curb_weight_input)
+        layout.addRow("Gross Vehicle Weight", self.gross_vehicle_weight_input)
+
+        oil_header = QLabel("Oil")
+        oil_header.setStyleSheet("font-weight: bold; margin-top: 8px;")
+        layout.addRow(oil_header)
+        _pair("Engine Oil Type", self.engine_oil_type_input,
+              "Oil Quantity", self.oil_quantity_input)
+        _pair("Oil Filter #", self.oil_filter_number_input,
+              "Change Interval (km)", self.oil_change_interval_km_input)
+        layout.addRow(
+            "Change Interval (months)", self.oil_change_interval_months_input
+        )
+
+        fuel_header = QLabel("Fuel")
+        fuel_header.setStyleSheet("font-weight: bold; margin-top: 8px;")
+        layout.addRow(fuel_header)
+        _pair("Fuel Type", self.fuel_type_input,
+              "Fuel Filter #", self.fuel_filter_number_input)
+        layout.addRow(
+            "Fuel Filter Interval (km)", self.fuel_filter_interval_km_input
+        )
+
+        trans_header = QLabel("Transmission")
+        trans_header.setStyleSheet("font-weight: bold; margin-top: 8px;")
+        layout.addRow(trans_header)
+        _pair("Fluid Type", self.transmission_fluid_type_input,
+              "Fluid Quantity", self.transmission_fluid_quantity_input)
+        layout.addRow(
+            "Service Interval (km)",
+            self.transmission_service_interval_km_input,
+        )
+
+        coolant_header = QLabel("Coolant")
+        coolant_header.setStyleSheet("font-weight: bold; margin-top: 8px;")
+        layout.addRow(coolant_header)
+        _pair("Coolant Type", self.coolant_type_input,
+              "Coolant Quantity", self.coolant_quantity_input)
+        layout.addRow(
+            "Change Interval (km)", self.coolant_change_interval_km_input
+        )
+
+        brakes_header = QLabel("Brakes & Steering")
+        brakes_header.setStyleSheet("font-weight: bold; margin-top: 8px;")
+        layout.addRow(brakes_header)
+        _pair("Brake Fluid Type", self.brake_fluid_type_input,
+              "Change Interval (months)",
+              self.brake_fluid_change_interval_months_input)
+        layout.addRow(
+            "Power Steering Fluid Type", self.power_steering_fluid_type_input
+        )
+
+        other_header = QLabel("Belts, Tires & Filters")
+        other_header.setStyleSheet("font-weight: bold; margin-top: 8px;")
+        layout.addRow(other_header)
+        _pair("Belt Size", self.belt_size_input,
+              "Serpentine Belt Part #", self.serpentine_belt_part_number_input)
+        _pair("Tire Size", self.tire_size_input,
+              "Tire Pressure", self.tire_pressure_input)
+        _pair("Air Filter Part #", self.air_filter_part_number_input,
+              "Air Filter Interval (km)", self.air_filter_interval_km_input)
+        layout.addRow(
+            "Cabin Filter Part #", self.cabin_filter_part_number_input
+        )
+
+        layout.setVerticalSpacing(10)
+        outer = QVBoxLayout(widget)
+        outer.addLayout(layout)
+        outer.addStretch()
+        return widget
+
     def _create_insurance_tab(self) -> object:
         """Create the Insurance & Registration tab"""
         widget = QWidget()
@@ -572,10 +925,30 @@ class VehicleManagementWidget(QWidget):
         self.financing_notes_input = QTextEdit()
         self.financing_notes_input.setFixedHeight(80)
 
+        # CVIP (Commercial Vehicle Inspection Program) compliance
+        self.cvip_inspection_number_input = QLineEdit()
+        self.cvip_compliance_status_input = QComboBox()
+        self.cvip_compliance_status_input.addItems(
+            ["compliant", "expired", "pending", "not_required"]
+        )
+        self.last_cvip_date_input = StandardDateEdit(prefer_month_text=True)
+        self.last_cvip_date_input.setCalendarPopup(True)
+        self.last_cvip_date_input.setSpecialValueText("N/A")
+        self.cvip_expiry_date_input = StandardDateEdit(prefer_month_text=True)
+        self.cvip_expiry_date_input.setCalendarPopup(True)
+        self.cvip_expiry_date_input.setSpecialValueText("N/A")
+        self.next_cvip_due_input = StandardDateEdit(prefer_month_text=True)
+        self.next_cvip_due_input.setCalendarPopup(True)
+        self.next_cvip_due_input.setSpecialValueText("N/A")
+
         self.insurance_policy_input.setMaximumWidth(220)
         self.financing_status_input.setMaximumWidth(160)
+        self.cvip_inspection_number_input.setMaximumWidth(220)
+        self.cvip_compliance_status_input.setMaximumWidth(160)
         for _w in (
             self.policy_end_date_input, self.registration_expiry_input,
+            self.last_cvip_date_input, self.cvip_expiry_date_input,
+            self.next_cvip_due_input,
         ):
             _w.setMaximumWidth(160)
 
@@ -593,6 +966,139 @@ class VehicleManagementWidget(QWidget):
         _pair("Policy End Date", self.policy_end_date_input,
               "Registration Expiry", self.registration_expiry_input)
         layout.addRow("Financing Notes", self.financing_notes_input)
+
+        cvip_header = QLabel("CVIP (Commercial Vehicle Inspection)")
+        cvip_header.setStyleSheet("font-weight: bold; margin-top: 8px;")
+        layout.addRow(cvip_header)
+        _pair("CVIP Inspection #", self.cvip_inspection_number_input,
+              "CVIP Status", self.cvip_compliance_status_input)
+        _pair("Last CVIP Date", self.last_cvip_date_input,
+              "CVIP Expiry Date", self.cvip_expiry_date_input)
+        layout.addRow("Next CVIP Due", self.next_cvip_due_input)
+
+        layout.setVerticalSpacing(10)
+        outer = QVBoxLayout(widget)
+        outer.addLayout(layout)
+        outer.addStretch()
+        return widget
+
+    def _create_purchase_lifecycle_tab(self) -> object:
+        """Create the Purchase, Finance & Lifecycle tab"""
+        widget = QWidget()
+        layout = QFormLayout()
+
+        self.purchase_date_input = StandardDateEdit(prefer_month_text=True)
+        self.purchase_date_input.setCalendarPopup(True)
+        self.purchase_date_input.setSpecialValueText("N/A")
+        self.purchase_price_input = QDoubleSpinBox()
+        self.purchase_price_input.setPrefix("$")
+        self.purchase_price_input.setMaximum(9999999.99)
+        self.purchase_vendor_input = QLineEdit()
+        self.finance_partner_input = QLineEdit()
+        self.financing_amount_input = QDoubleSpinBox()
+        self.financing_amount_input.setPrefix("$")
+        self.financing_amount_input.setMaximum(9999999.99)
+        self.vehicle_monthly_payment_input = QDoubleSpinBox()
+        self.vehicle_monthly_payment_input.setPrefix("$")
+        self.vehicle_monthly_payment_input.setMaximum(999999.99)
+
+        self.sale_date_input = StandardDateEdit(prefer_month_text=True)
+        self.sale_date_input.setCalendarPopup(True)
+        self.sale_date_input.setSpecialValueText("N/A")
+        self.sale_price_input = QDoubleSpinBox()
+        self.sale_price_input.setPrefix("$")
+        self.sale_price_input.setMaximum(9999999.99)
+        self.writeoff_date_input = StandardDateEdit(prefer_month_text=True)
+        self.writeoff_date_input.setCalendarPopup(True)
+        self.writeoff_date_input.setSpecialValueText("N/A")
+        self.writeoff_reason_input = QLineEdit()
+        self.repossession_date_input = StandardDateEdit(
+            prefer_month_text=True
+        )
+        self.repossession_date_input.setCalendarPopup(True)
+        self.repossession_date_input.setSpecialValueText("N/A")
+        self.lifecycle_status_input = QComboBox()
+        self.lifecycle_status_input.addItems(
+            ["in_service", "sold", "written_off", "repossessed", "retired"]
+        )
+
+        self.is_in_maintenance_input = QCheckBox("Currently in maintenance")
+        self.maintenance_start_date_input = StandardDateEdit(
+            prefer_month_text=True
+        )
+        self.maintenance_start_date_input.setCalendarPopup(True)
+        self.maintenance_start_date_input.setSpecialValueText("N/A")
+        self.maintenance_end_date_input = StandardDateEdit(
+            prefer_month_text=True
+        )
+        self.maintenance_end_date_input.setCalendarPopup(True)
+        self.maintenance_end_date_input.setSpecialValueText("N/A")
+        self.return_to_service_date_input = StandardDateEdit(
+            prefer_month_text=True
+        )
+        self.return_to_service_date_input.setCalendarPopup(True)
+        self.return_to_service_date_input.setSpecialValueText("N/A")
+
+        self.vehicle_notes_input = QTextEdit()
+        self.vehicle_notes_input.setFixedHeight(100)
+
+        self.purchase_vendor_input.setMaximumWidth(220)
+        self.finance_partner_input.setMaximumWidth(220)
+        self.writeoff_reason_input.setMaximumWidth(220)
+        self.lifecycle_status_input.setMaximumWidth(160)
+        for _w in (
+            self.purchase_date_input, self.purchase_price_input,
+            self.financing_amount_input, self.vehicle_monthly_payment_input,
+            self.sale_date_input, self.sale_price_input,
+            self.writeoff_date_input, self.repossession_date_input,
+            self.maintenance_start_date_input,
+            self.maintenance_end_date_input,
+            self.return_to_service_date_input,
+        ):
+            _w.setMaximumWidth(160)
+
+        def _pair(label1, widget1, label2, widget2):
+            row = QHBoxLayout()
+            row.addWidget(widget1)
+            row.addSpacing(24)
+            row.addWidget(QLabel(label2))
+            row.addWidget(widget2)
+            row.addStretch()
+            layout.addRow(label1, row)
+
+        purchase_header = QLabel("Purchase & Financing")
+        purchase_header.setStyleSheet("font-weight: bold;")
+        layout.addRow(purchase_header)
+        _pair("Purchase Date", self.purchase_date_input,
+              "Purchase Price", self.purchase_price_input)
+        layout.addRow("Purchase Vendor", self.purchase_vendor_input)
+        _pair("Finance Partner", self.finance_partner_input,
+              "Financing Amount", self.financing_amount_input)
+        layout.addRow(
+            "Monthly Payment", self.vehicle_monthly_payment_input
+        )
+
+        disposal_header = QLabel("Sale / Write-off / Repossession")
+        disposal_header.setStyleSheet("font-weight: bold; margin-top: 8px;")
+        layout.addRow(disposal_header)
+        _pair("Sale Date", self.sale_date_input,
+              "Sale Price", self.sale_price_input)
+        _pair("Write-off Date", self.writeoff_date_input,
+              "Write-off Reason", self.writeoff_reason_input)
+        layout.addRow("Repossession Date", self.repossession_date_input)
+        layout.addRow("Lifecycle Status", self.lifecycle_status_input)
+
+        downtime_header = QLabel("Maintenance Downtime")
+        downtime_header.setStyleSheet("font-weight: bold; margin-top: 8px;")
+        layout.addRow(downtime_header)
+        layout.addRow(self.is_in_maintenance_input)
+        _pair("Maintenance Start", self.maintenance_start_date_input,
+              "Maintenance End", self.maintenance_end_date_input)
+        layout.addRow(
+            "Return to Service Date", self.return_to_service_date_input
+        )
+
+        layout.addRow("Vehicle Notes", self.vehicle_notes_input)
 
         layout.setVerticalSpacing(10)
         outer = QVBoxLayout(widget)
@@ -669,6 +1175,10 @@ class VehicleManagementWidget(QWidget):
         self.monthly_payment_input = QDoubleSpinBox()
         self.monthly_payment_input.setPrefix("$")
         self.monthly_payment_input.setMaximum(9999999.99)
+        self.interest_rate_input = QDoubleSpinBox()
+        self.interest_rate_input.setSuffix("%")
+        self.interest_rate_input.setRange(0.0, 99.9999)
+        self.interest_rate_input.setDecimals(4)
         self.buyout_amount_input = QDoubleSpinBox()
         self.buyout_amount_input.setPrefix("$")
         self.buyout_amount_input.setMaximum(9999999.99)
@@ -681,6 +1191,24 @@ class VehicleManagementWidget(QWidget):
         self.expected_total_input = QDoubleSpinBox()
         self.expected_total_input.setPrefix("$")
         self.expected_total_input.setMaximum(99999999.99)
+
+        # Refinance / payout tracking
+        self.is_refinanced_input = QCheckBox(
+            "This lease/loan was refinanced or replaced"
+        )
+        self.previous_lender_input = QLineEdit()
+        self.previous_lender_input.setPlaceholderText(
+            "Original lender before refinance"
+        )
+        self.refinance_date_input = StandardDateEdit(prefer_month_text=True)
+        self.refinance_date_input.setCalendarPopup(True)
+        self.refinance_date_input.setSpecialValueText("N/A")
+        self.payout_date_input = StandardDateEdit(prefer_month_text=True)
+        self.payout_date_input.setCalendarPopup(True)
+        self.payout_date_input.setSpecialValueText("N/A")
+        self.payout_amount_input = QDoubleSpinBox()
+        self.payout_amount_input.setPrefix("$")
+        self.payout_amount_input.setMaximum(9999999.99)
 
         self.missed_payments_input = QSpinBox()
         self.missed_payments_input.setMaximum(999)
@@ -747,6 +1275,7 @@ class VehicleManagementWidget(QWidget):
         left_form.addRow("Lease End", self.lease_end_date_input)
         left_form.addRow("Payment Day", self.payment_day_input)
         left_form.addRow("Monthly Payment", self.monthly_payment_input)
+        left_form.addRow("Interest Rate (APR)", self.interest_rate_input)
         left_form.addRow("Down Payment", self.down_payment_input)
         left_form.addRow("Buyout Amount", self.buyout_amount_input)
         left_form.addRow("Contract Total", self.contract_total_input)
@@ -781,6 +1310,25 @@ class VehicleManagementWidget(QWidget):
 
         profile_group.setLayout(profile_layout)
         layout.addWidget(profile_group)
+
+        refinance_group = QGroupBox("Refinance / Payout Tracking")
+        refinance_layout = QGridLayout()
+        refinance_left = QFormLayout()
+        refinance_right = QFormLayout()
+        refinance_left.addRow("Previous Lender", self.previous_lender_input)
+        refinance_left.addRow("Refinance Date", self.refinance_date_input)
+        refinance_right.addRow("Payout Date", self.payout_date_input)
+        refinance_right.addRow("Payout Amount", self.payout_amount_input)
+        refinance_left_widget = QWidget()
+        refinance_left_widget.setLayout(refinance_left)
+        refinance_right_widget = QWidget()
+        refinance_right_widget.setLayout(refinance_right)
+        refinance_layout.addWidget(self.is_refinanced_input, 0, 0, 1, 2)
+        refinance_layout.addWidget(refinance_left_widget, 1, 0)
+        refinance_layout.addWidget(refinance_right_widget, 1, 1)
+        refinance_group.setLayout(refinance_layout)
+        layout.addWidget(refinance_group)
+
 
         compliance_group = QGroupBox("Compliance Evidence")
         compliance_layout = QVBoxLayout()
@@ -818,6 +1366,53 @@ class VehicleManagementWidget(QWidget):
         docs_group.setLayout(docs_layout)
         layout.addWidget(docs_group)
 
+        payments_group = QGroupBox("Payment History (Loan/Lease Ledger)")
+        payments_layout = QVBoxLayout()
+        self.loan_payments_table = QTableWidget()
+        self.loan_payments_table.setColumnCount(8)
+        self.loan_payments_table.setHorizontalHeaderLabels(
+            [
+                "Date",
+                "Type",
+                "Lender",
+                "Gross",
+                "GST",
+                "Net",
+                "NSF",
+                "Notes",
+            ]
+        )
+        self.loan_payments_table.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
+        self.loan_payments_table.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.loan_payments_table.horizontalHeader().setStretchLastSection(
+            True
+        )
+        self.loan_payments_table.setMinimumHeight(160)
+        payments_layout.addWidget(self.loan_payments_table)
+
+        payments_btn_layout = QHBoxLayout()
+        add_payment_btn = QPushButton("➕ Add Payment")
+        add_payment_btn.clicked.connect(self.add_loan_payment)
+        edit_payment_btn = QPushButton("✏️ Edit Selected")
+        edit_payment_btn.clicked.connect(self.edit_loan_payment)
+        delete_payment_btn = QPushButton("🗑️ Delete Selected")
+        delete_payment_btn.clicked.connect(self.delete_loan_payment)
+        refresh_payment_btn = QPushButton("🔄 Refresh")
+        refresh_payment_btn.clicked.connect(self.load_loan_payment_history)
+        payments_btn_layout.addWidget(add_payment_btn)
+        payments_btn_layout.addWidget(edit_payment_btn)
+        payments_btn_layout.addWidget(delete_payment_btn)
+        payments_btn_layout.addWidget(refresh_payment_btn)
+        payments_btn_layout.addStretch()
+        payments_layout.addLayout(payments_btn_layout)
+
+        payments_group.setLayout(payments_layout)
+        layout.addWidget(payments_group)
+
         report_btn_layout = QHBoxLayout()
         cra_report_btn = QPushButton("📋 Generate CRA Lease Compliance Report")
         cra_report_btn.clicked.connect(self._generate_cra_lease_report)
@@ -842,14 +1437,13 @@ class VehicleManagementWidget(QWidget):
         # Identification
         self.vehicle_number_input.clear()
         self.vin_input.clear()
-        self.vehicle_code_input.clear()
-        self.fleet_number_input.clear()
-        self.fleet_position_input.setValue(0)
+        # fleet_number_input is auto-synced via vehicle_number_input's
+        # textChanged signal, so it clears itself above.
         self.license_plate_input.clear()
         self.make_input.clear()
         self.model_input.clear()
         self.year_input.setValue(datetime.now().year)
-        self.type_input.setCurrentIndex(0)
+        self.type_input.setCurrentIndex(-1)
         self.vehicle_category_input.clear()
         self.vehicle_class_input.clear()
         self.passenger_capacity_input.setValue(0)
@@ -858,6 +1452,8 @@ class VehicleManagementWidget(QWidget):
         # Status & Specs
         self.operational_status_input.setCurrentText("Active")
         self.is_active_input.setChecked(True)
+        self.red_deer_compliant_input.setChecked(False)
+        self.requires_class_2_input.setChecked(False)
         self.commission_date_input.setDate(QDate.currentDate())
         self.decommission_date_input.setDate(QDate.currentDate())
         self.ext_color_input.clear()
@@ -875,12 +1471,65 @@ class VehicleManagementWidget(QWidget):
         self.service_odometer_input.setValue(0)
         self.maintenance_notes_input.clear()
 
+        # Fluids & Parts
+        self.odometer_type_input.setCurrentIndex(0)
+        self.curb_weight_input.setValue(0)
+        self.gross_vehicle_weight_input.setValue(0)
+        self.engine_oil_type_input.clear()
+        self.oil_quantity_input.clear()
+        self.oil_filter_number_input.clear()
+        self.oil_change_interval_km_input.setValue(0)
+        self.oil_change_interval_months_input.setValue(0)
+        self.fuel_type_input.clear()
+        self.fuel_filter_number_input.clear()
+        self.fuel_filter_interval_km_input.setValue(0)
+        self.transmission_fluid_type_input.clear()
+        self.transmission_fluid_quantity_input.clear()
+        self.transmission_service_interval_km_input.setValue(0)
+        self.coolant_type_input.clear()
+        self.coolant_quantity_input.clear()
+        self.coolant_change_interval_km_input.setValue(0)
+        self.brake_fluid_type_input.clear()
+        self.brake_fluid_change_interval_months_input.setValue(0)
+        self.power_steering_fluid_type_input.clear()
+        self.belt_size_input.clear()
+        self.serpentine_belt_part_number_input.clear()
+        self.tire_size_input.clear()
+        self.tire_pressure_input.clear()
+        self.air_filter_part_number_input.clear()
+        self.air_filter_interval_km_input.setValue(0)
+        self.cabin_filter_part_number_input.clear()
+
         # Insurance
         self.insurance_policy_input.clear()
         self.policy_end_date_input.setDate(QDate.currentDate())
         self.registration_expiry_input.setDate(QDate.currentDate())
         self.financing_status_input.setCurrentText("Owned")
         self.financing_notes_input.clear()
+        self.cvip_inspection_number_input.clear()
+        self.cvip_compliance_status_input.setCurrentIndex(0)
+        self.last_cvip_date_input.setDate(QDate.currentDate())
+        self.cvip_expiry_date_input.setDate(QDate.currentDate())
+        self.next_cvip_due_input.setDate(QDate.currentDate())
+
+        # Purchase & Lifecycle
+        self.purchase_date_input.setDate(QDate.currentDate())
+        self.purchase_price_input.setValue(0.0)
+        self.purchase_vendor_input.clear()
+        self.finance_partner_input.clear()
+        self.financing_amount_input.setValue(0.0)
+        self.vehicle_monthly_payment_input.setValue(0.0)
+        self.sale_date_input.setDate(QDate.currentDate())
+        self.sale_price_input.setValue(0.0)
+        self.writeoff_date_input.setDate(QDate.currentDate())
+        self.writeoff_reason_input.clear()
+        self.repossession_date_input.setDate(QDate.currentDate())
+        self.lifecycle_status_input.setCurrentIndex(0)
+        self.is_in_maintenance_input.setChecked(False)
+        self.maintenance_start_date_input.setDate(QDate.currentDate())
+        self.maintenance_end_date_input.setDate(QDate.currentDate())
+        self.return_to_service_date_input.setDate(QDate.currentDate())
+        self.vehicle_notes_input.clear()
 
         # Documents
         self.documents_list.clear()
@@ -907,26 +1556,27 @@ class VehicleManagementWidget(QWidget):
                     """)
                 actual_cols = {r[0] for r in cur.fetchall()}
 
-                vehicle_number = self.vehicle_table.item(row, 0).text()
+                vehicle_id = self.vehicle_table.item(row, 0).data(
+                    Qt.ItemDataRole.UserRole
+                )
                 # Desired columns in priority order
                 desired = [
                     "vehicle_id",
                     "vehicle_number",
                     "vin_number",
-                    "vehicle_code",
-                    "fleet_number",
-                    "fleet_position",
                     "license_plate",
                     "make",
                     "model",
                     "year",
-                    "type",
+                    "vehicle_type",
                     "vehicle_category",
                     "vehicle_class",
                     "passenger_capacity",
                     "description",
                     "operational_status",
                     "is_active",
+                    "red_deer_compliant",
+                    "requires_class_2",
                     "commission_date",
                     "decommission_date",
                     "ext_color",
@@ -945,6 +1595,55 @@ class VehicleManagementWidget(QWidget):
                     "registration_expiry",
                     "financing_status",
                     "financing_notes",
+                    "odometer_type",
+                    "curb_weight",
+                    "gross_vehicle_weight",
+                    "engine_oil_type",
+                    "oil_quantity",
+                    "oil_filter_number",
+                    "oil_change_interval_km",
+                    "oil_change_interval_months",
+                    "fuel_type",
+                    "fuel_filter_number",
+                    "fuel_filter_interval_km",
+                    "transmission_fluid_type",
+                    "transmission_fluid_quantity",
+                    "transmission_service_interval_km",
+                    "coolant_type",
+                    "coolant_quantity",
+                    "coolant_change_interval_km",
+                    "brake_fluid_type",
+                    "brake_fluid_change_interval_months",
+                    "power_steering_fluid_type",
+                    "belt_size",
+                    "serpentine_belt_part_number",
+                    "tire_size",
+                    "tire_pressure",
+                    "air_filter_part_number",
+                    "air_filter_interval_km",
+                    "cabin_filter_part_number",
+                    "cvip_inspection_number",
+                    "cvip_compliance_status",
+                    "last_cvip_date",
+                    "cvip_expiry_date",
+                    "next_cvip_due",
+                    "purchase_date",
+                    "purchase_price",
+                    "purchase_vendor",
+                    "finance_partner",
+                    "financing_amount",
+                    "monthly_payment",
+                    "sale_date",
+                    "sale_price",
+                    "writeoff_date",
+                    "writeoff_reason",
+                    "repossession_date",
+                    "lifecycle_status",
+                    "is_in_maintenance",
+                    "maintenance_start_date",
+                    "maintenance_end_date",
+                    "return_to_service_date",
+                    "notes",
                 ]
                 # Only include columns that actually exist
                 columns = [c for c in desired if c in actual_cols]
@@ -954,10 +1653,10 @@ class VehicleManagementWidget(QWidget):
                     f"""
                     SELECT {select_clause}
                     FROM vehicles
-                    WHERE vehicle_number = %s
+                    WHERE vehicle_id = %s
                     LIMIT 1
                     """,
-                    (vehicle_number,),
+                    (vehicle_id,),
                 )
                 result = cur.fetchone()
 
@@ -970,18 +1669,8 @@ class VehicleManagementWidget(QWidget):
                     row_data.get("vehicle_number") or ""
                 )
                 self.vin_input.setText(row_data.get("vin_number") or "")
-                if self.has_vehicle_code:
-                    self.vehicle_code_input.setText(
-                        row_data.get("vehicle_code") or ""
-                    )
-                else:
-                    self.vehicle_code_input.clear()
-                self.fleet_number_input.setText(
-                    row_data.get("fleet_number") or ""
-                )
-                self.fleet_position_input.setValue(
-                    row_data.get("fleet_position") or 0
-                )
+                # fleet_number_input auto-syncs from vehicle_number_input
+                # above via the textChanged connection.
                 self.license_plate_input.setText(
                     row_data.get("license_plate") or ""
                 )
@@ -992,7 +1681,7 @@ class VehicleManagementWidget(QWidget):
                 )
 
                 # Ensure type value is selectable; add on the fly if new
-                vehicle_type_val = row_data.get("type") or "Sedan"
+                vehicle_type_val = row_data.get("vehicle_type") or "Sedan"
                 if (
                     vehicle_type_val
                     and self.type_input.findText(vehicle_type_val) == -1
@@ -1032,6 +1721,14 @@ class VehicleManagementWidget(QWidget):
                 self.is_active_input.setChecked(
                     is_active_val if is_active_val is not None else True
                 )
+                if "red_deer_compliant" in columns:
+                    self.red_deer_compliant_input.setChecked(
+                        bool(row_data.get("red_deer_compliant"))
+                    )
+                if "requires_class_2" in columns:
+                    self.requires_class_2_input.setChecked(
+                        bool(row_data.get("requires_class_2"))
+                    )
                 if row_data.get("commission_date"):
                     self.commission_date_input.setDate(
                         QDate.fromString(
@@ -1132,6 +1829,154 @@ class VehicleManagementWidget(QWidget):
                     self.financing_notes_input.setText(
                         row_data.get("financing_notes") or ""
                     )
+
+                def _set_date(widget, key):
+                    if key in columns and row_data.get(key):
+                        widget.setDate(
+                            QDate.fromString(str(row_data.get(key)),
+                                              "yyyy-MM-dd")
+                        )
+
+                def _set_text(widget, key, default=""):
+                    if key in columns:
+                        widget.setText(row_data.get(key) or default)
+
+                def _set_int(widget, key, default=0):
+                    if key in columns:
+                        widget.setValue(row_data.get(key) or default)
+
+                def _set_float(widget, key, default=0.0):
+                    if key in columns:
+                        val = row_data.get(key)
+                        widget.setValue(float(val) if val else default)
+
+                def _set_checked(widget, key):
+                    if key in columns:
+                        widget.setChecked(bool(row_data.get(key)))
+
+                def _set_combo(widget, key, default=None):
+                    if key in columns:
+                        val = row_data.get(key) or default
+                        if val and widget.findText(val) == -1:
+                            widget.addItem(val)
+                        if val:
+                            widget.setCurrentText(val)
+
+                # Fluids & Parts
+                _set_combo(self.odometer_type_input, "odometer_type", "km")
+                _set_int(self.curb_weight_input, "curb_weight")
+                _set_int(
+                    self.gross_vehicle_weight_input, "gross_vehicle_weight"
+                )
+                _set_text(self.engine_oil_type_input, "engine_oil_type")
+                _set_text(self.oil_quantity_input, "oil_quantity")
+                _set_text(self.oil_filter_number_input, "oil_filter_number")
+                _set_int(
+                    self.oil_change_interval_km_input,
+                    "oil_change_interval_km",
+                )
+                _set_int(
+                    self.oil_change_interval_months_input,
+                    "oil_change_interval_months",
+                )
+                _set_text(self.fuel_type_input, "fuel_type")
+                _set_text(self.fuel_filter_number_input, "fuel_filter_number")
+                _set_int(
+                    self.fuel_filter_interval_km_input,
+                    "fuel_filter_interval_km",
+                )
+                _set_text(
+                    self.transmission_fluid_type_input,
+                    "transmission_fluid_type",
+                )
+                _set_text(
+                    self.transmission_fluid_quantity_input,
+                    "transmission_fluid_quantity",
+                )
+                _set_int(
+                    self.transmission_service_interval_km_input,
+                    "transmission_service_interval_km",
+                )
+                _set_text(self.coolant_type_input, "coolant_type")
+                _set_text(self.coolant_quantity_input, "coolant_quantity")
+                _set_int(
+                    self.coolant_change_interval_km_input,
+                    "coolant_change_interval_km",
+                )
+                _set_text(self.brake_fluid_type_input, "brake_fluid_type")
+                _set_int(
+                    self.brake_fluid_change_interval_months_input,
+                    "brake_fluid_change_interval_months",
+                )
+                _set_text(
+                    self.power_steering_fluid_type_input,
+                    "power_steering_fluid_type",
+                )
+                _set_text(self.belt_size_input, "belt_size")
+                _set_text(
+                    self.serpentine_belt_part_number_input,
+                    "serpentine_belt_part_number",
+                )
+                _set_text(self.tire_size_input, "tire_size")
+                _set_text(self.tire_pressure_input, "tire_pressure")
+                _set_text(
+                    self.air_filter_part_number_input,
+                    "air_filter_part_number",
+                )
+                _set_int(
+                    self.air_filter_interval_km_input,
+                    "air_filter_interval_km",
+                )
+                _set_text(
+                    self.cabin_filter_part_number_input,
+                    "cabin_filter_part_number",
+                )
+
+                # CVIP
+                _set_text(
+                    self.cvip_inspection_number_input,
+                    "cvip_inspection_number",
+                )
+                _set_combo(
+                    self.cvip_compliance_status_input,
+                    "cvip_compliance_status",
+                    "compliant",
+                )
+                _set_date(self.last_cvip_date_input, "last_cvip_date")
+                _set_date(self.cvip_expiry_date_input, "cvip_expiry_date")
+                _set_date(self.next_cvip_due_input, "next_cvip_due")
+
+                # Purchase & Lifecycle
+                _set_date(self.purchase_date_input, "purchase_date")
+                _set_float(self.purchase_price_input, "purchase_price")
+                _set_text(self.purchase_vendor_input, "purchase_vendor")
+                _set_text(self.finance_partner_input, "finance_partner")
+                _set_float(self.financing_amount_input, "financing_amount")
+                _set_float(
+                    self.vehicle_monthly_payment_input, "monthly_payment"
+                )
+                _set_date(self.sale_date_input, "sale_date")
+                _set_float(self.sale_price_input, "sale_price")
+                _set_date(self.writeoff_date_input, "writeoff_date")
+                _set_text(self.writeoff_reason_input, "writeoff_reason")
+                _set_date(self.repossession_date_input, "repossession_date")
+                _set_combo(
+                    self.lifecycle_status_input, "lifecycle_status",
+                    "in_service",
+                )
+                _set_checked(self.is_in_maintenance_input, "is_in_maintenance")
+                _set_date(
+                    self.maintenance_start_date_input,
+                    "maintenance_start_date",
+                )
+                _set_date(
+                    self.maintenance_end_date_input, "maintenance_end_date"
+                )
+                _set_date(
+                    self.return_to_service_date_input,
+                    "return_to_service_date",
+                )
+                _set_text(self.vehicle_notes_input, "notes")
 
                 self._load_lease_profile()
 
@@ -1239,6 +2084,9 @@ class VehicleManagementWidget(QWidget):
                             str(last_service)[:10] if last_service else "N/A"
                         ),
                     ]
+                    items[0].setData(
+                        Qt.ItemDataRole.UserRole, vehicle_id
+                    )
                     for col_idx, item in enumerate(items):
                         self.vehicle_table.setItem(row_idx, col_idx, item)
 
@@ -1339,17 +2187,11 @@ class VehicleManagementWidget(QWidget):
             data = {
                 "vehicle_number": self.vehicle_number_input.text().strip(),
                 "vin_number": self.vin_input.text().strip() or None,
-                "fleet_number": self.fleet_number_input.text().strip() or None,
-                "fleet_position": (
-                    self.fleet_position_input.value()
-                    if self.fleet_position_input.value() > 0
-                    else None
-                ),
                 "license_plate": self.license_plate_input.text().strip(),
                 "make": self.make_input.text().strip(),
                 "model": self.model_input.text().strip(),
                 "year": self.year_input.value(),
-                "type": self.type_input.currentText(),
+                "vehicle_type": self.type_input.currentText(),
                 "vehicle_category": self.vehicle_category_input.text().strip()
                 or None,
                 "vehicle_class": self.vehicle_class_input.text().strip()
@@ -1365,17 +2207,15 @@ class VehicleManagementWidget(QWidget):
                     self.operational_status_input.currentText()
                 ),
                 "is_active": self.is_active_input.isChecked(),
+                "red_deer_compliant": (
+                    self.red_deer_compliant_input.isChecked()
+                ),
+                "requires_class_2": self.requires_class_2_input.isChecked(),
                 "commission_date": (
-                    self.commission_date_input.date().toString("yyyy-MM-dd")
-                    if self.commission_date_input.date().isValid()
-                    else None
+                    _optional_date_text(self.commission_date_input)
                 ),
                 "decommission_date": (
-                    self.decommission_date_input.date().toString("yyyy-MM-dd")
-                    if self.decommission_date_input.date().isValid()
-                    and self.decommission_date_input.specialValueText()
-                    != self.decommission_date_input.text()
-                    else None
+                    _optional_date_text(self.decommission_date_input)
                 ),
                 "ext_color": self.ext_color_input.text().strip() or None,
                 "int_color": self.int_color_input.text().strip() or None,
@@ -1400,18 +2240,10 @@ class VehicleManagementWidget(QWidget):
                     else None
                 ),
                 "next_service_due": (
-                    self.next_service_due_input.date().toString("yyyy-MM-dd")
-                    if self.next_service_due_input.date().isValid()
-                    and self.next_service_due_input.specialValueText()
-                    != self.next_service_due_input.text()
-                    else None
+                    _optional_date_text(self.next_service_due_input)
                 ),
                 "last_service_date": (
-                    self.last_service_date_input.date().toString("yyyy-MM-dd")
-                    if self.last_service_date_input.date().isValid()
-                    and self.last_service_date_input.specialValueText()
-                    != self.last_service_date_input.text()
-                    else None
+                    _optional_date_text(self.last_service_date_input)
                 ),
                 "service_type": self.service_type_input.text().strip() or None,
                 "service_cost": (
@@ -1427,31 +2259,191 @@ class VehicleManagementWidget(QWidget):
                     self.insurance_policy_input.text().strip() or None
                 ),
                 "policy_end_date": (
-                    self.policy_end_date_input.date().toString("yyyy-MM-dd")
-                    if self.policy_end_date_input.date().isValid()
-                    and self.policy_end_date_input.specialValueText()
-                    != self.policy_end_date_input.text()
-                    else None
+                    _optional_date_text(self.policy_end_date_input)
                 ),
                 "registration_expiry": (
-                    self.registration_expiry_input.date().toString(
-                        "yyyy-MM-dd"
-                    )
-                    if self.registration_expiry_input.date().isValid()
-                    and self.registration_expiry_input.specialValueText()
-                    != self.registration_expiry_input.text()
-                    else None
+                    _optional_date_text(self.registration_expiry_input)
                 ),
                 "financing_status": self.financing_status_input.currentText(),
                 "financing_notes": (
                     self.financing_notes_input.toPlainText().strip() or None
                 ),
+                "odometer_type": self.odometer_type_input.currentText(),
+                "curb_weight": (
+                    self.curb_weight_input.value()
+                    if self.curb_weight_input.value() > 0 else None
+                ),
+                "gross_vehicle_weight": (
+                    self.gross_vehicle_weight_input.value()
+                    if self.gross_vehicle_weight_input.value() > 0 else None
+                ),
+                "engine_oil_type": (
+                    self.engine_oil_type_input.text().strip() or None
+                ),
+                "oil_quantity": self.oil_quantity_input.text().strip() or None,
+                "oil_filter_number": (
+                    self.oil_filter_number_input.text().strip() or None
+                ),
+                "oil_change_interval_km": (
+                    self.oil_change_interval_km_input.value()
+                    if self.oil_change_interval_km_input.value() > 0
+                    else None
+                ),
+                "oil_change_interval_months": (
+                    self.oil_change_interval_months_input.value()
+                    if self.oil_change_interval_months_input.value() > 0
+                    else None
+                ),
+                "fuel_type": self.fuel_type_input.text().strip() or None,
+                "fuel_filter_number": (
+                    self.fuel_filter_number_input.text().strip() or None
+                ),
+                "fuel_filter_interval_km": (
+                    self.fuel_filter_interval_km_input.value()
+                    if self.fuel_filter_interval_km_input.value() > 0
+                    else None
+                ),
+                "transmission_fluid_type": (
+                    self.transmission_fluid_type_input.text().strip() or None
+                ),
+                "transmission_fluid_quantity": (
+                    self.transmission_fluid_quantity_input.text().strip()
+                    or None
+                ),
+                "transmission_service_interval_km": (
+                    self.transmission_service_interval_km_input.value()
+                    if self.transmission_service_interval_km_input.value() > 0
+                    else None
+                ),
+                "coolant_type": self.coolant_type_input.text().strip() or None,
+                "coolant_quantity": (
+                    self.coolant_quantity_input.text().strip() or None
+                ),
+                "coolant_change_interval_km": (
+                    self.coolant_change_interval_km_input.value()
+                    if self.coolant_change_interval_km_input.value() > 0
+                    else None
+                ),
+                "brake_fluid_type": (
+                    self.brake_fluid_type_input.text().strip() or None
+                ),
+                "brake_fluid_change_interval_months": (
+                    self.brake_fluid_change_interval_months_input.value()
+                    if self.brake_fluid_change_interval_months_input.value()
+                    > 0 else None
+                ),
+                "power_steering_fluid_type": (
+                    self.power_steering_fluid_type_input.text().strip()
+                    or None
+                ),
+                "belt_size": self.belt_size_input.text().strip() or None,
+                "serpentine_belt_part_number": (
+                    self.serpentine_belt_part_number_input.text().strip()
+                    or None
+                ),
+                "tire_size": self.tire_size_input.text().strip() or None,
+                "tire_pressure": (
+                    self.tire_pressure_input.text().strip() or None
+                ),
+                "air_filter_part_number": (
+                    self.air_filter_part_number_input.text().strip() or None
+                ),
+                "air_filter_interval_km": (
+                    self.air_filter_interval_km_input.value()
+                    if self.air_filter_interval_km_input.value() > 0
+                    else None
+                ),
+                "cabin_filter_part_number": (
+                    self.cabin_filter_part_number_input.text().strip()
+                    or None
+                ),
+                "cvip_inspection_number": (
+                    self.cvip_inspection_number_input.text().strip() or None
+                ),
+                "cvip_compliance_status": (
+                    self.cvip_compliance_status_input.currentText()
+                ),
+                "last_cvip_date": (
+                    _optional_date_text(self.last_cvip_date_input)
+                ),
+                "cvip_expiry_date": (
+                    _optional_date_text(self.cvip_expiry_date_input)
+                ),
+                "next_cvip_due": (
+                    _optional_date_text(self.next_cvip_due_input)
+                ),
+                "purchase_date": (
+                    _optional_date_text(self.purchase_date_input)
+                ),
+                "purchase_price": (
+                    self.purchase_price_input.value()
+                    if self.purchase_price_input.value() > 0 else None
+                ),
+                "purchase_vendor": (
+                    self.purchase_vendor_input.text().strip() or None
+                ),
+                "finance_partner": (
+                    self.finance_partner_input.text().strip() or None
+                ),
+                "financing_amount": (
+                    self.financing_amount_input.value()
+                    if self.financing_amount_input.value() > 0 else None
+                ),
+                "monthly_payment": (
+                    self.vehicle_monthly_payment_input.value()
+                    if self.vehicle_monthly_payment_input.value() > 0
+                    else None
+                ),
+                "sale_date": _optional_date_text(self.sale_date_input),
+                "sale_price": (
+                    self.sale_price_input.value()
+                    if self.sale_price_input.value() > 0 else None
+                ),
+                "writeoff_date": (
+                    _optional_date_text(self.writeoff_date_input)
+                ),
+                "writeoff_reason": (
+                    self.writeoff_reason_input.text().strip() or None
+                ),
+                "repossession_date": (
+                    _optional_date_text(self.repossession_date_input)
+                ),
+                "lifecycle_status": (
+                    self.lifecycle_status_input.currentText()
+                ),
+                "is_in_maintenance": (
+                    self.is_in_maintenance_input.isChecked()
+                ),
+                "maintenance_start_date": (
+                    _optional_date_text(self.maintenance_start_date_input)
+                ),
+                "maintenance_end_date": (
+                    _optional_date_text(self.maintenance_end_date_input)
+                ),
+                "return_to_service_date": (
+                    _optional_date_text(self.return_to_service_date_input)
+                ),
+                "notes": self.vehicle_notes_input.toPlainText().strip()
+                or None,
             }
 
-            if self.has_vehicle_code:
-                data["vehicle_code"] = (
-                    self.vehicle_code_input.text().strip() or None
+            self._ensure_vehicle_type_in_catalog(
+                data.get("vehicle_type"), data.get("passenger_capacity")
+            )
+
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public' AND table_name = 'vehicles'
+                    """
                 )
+                actual_columns = {row[0] for row in cur.fetchall()}
+            data = {
+                key: value for key, value in data.items()
+                if key in actual_columns
+            }
 
             if self.current_vehicle_id:
                 # Update existing vehicle
@@ -1764,10 +2756,16 @@ class VehicleManagementWidget(QWidget):
         self.payment_day_input.setValue(0)
         self.down_payment_input.setValue(0.0)
         self.monthly_payment_input.setValue(0.0)
+        self.interest_rate_input.setValue(0.0)
         self.buyout_amount_input.setValue(0.0)
         self.contract_total_input.setValue(0.0)
         self.security_deposit_input.setValue(0.0)
         self.expected_total_input.setValue(0.0)
+        self.is_refinanced_input.setChecked(False)
+        self.previous_lender_input.clear()
+        self.refinance_date_input.setDate(QDate())
+        self.payout_date_input.setDate(QDate())
+        self.payout_amount_input.setValue(0.0)
         self.missed_payments_input.setValue(0)
         self.nsf_count_input.setValue(0)
         self.nsf_fee_total_input.setValue(0.0)
@@ -1792,14 +2790,20 @@ class VehicleManagementWidget(QWidget):
                 cur.execute(
                     """
                     SELECT
-                        lease_status, lease_type, lessor_name, contract_number,
+                        lease_status, lease_type, lessor_name,
+                        lessor_gst_number, contract_number,
                         lease_start_date, lease_end_date, payment_day,
-                        down_payment, monthly_payment, buyout_amount,
+                        down_payment, monthly_payment, interest_rate,
+                        buyout_amount,
                         contract_total,
                         security_deposit, expected_total_cost,
+                        is_refinanced, previous_lender, refinance_date,
+                        payout_date, payout_amount,
                         missed_payments_count, nsf_payment_count,
                         nsf_fee_total, late_fee_total,
                         business_use_percent,
+                        vehicle_type, gst_per_payment_amount,
+                        total_gst_charged, itc_amount, itc_verified,
                         has_signed_lease, has_payment_schedule,
                         has_insurance_proof,
                         has_buyout_terms, has_vendor_statement, notes
@@ -1813,6 +2817,7 @@ class VehicleManagementWidget(QWidget):
                 if not row:
                     self._clear_lease_fields()
                     self._load_lease_documents()
+                    self.load_loan_payment_history()
                     return
 
                 (
@@ -1826,10 +2831,16 @@ class VehicleManagementWidget(QWidget):
                     payment_day,
                     down_payment,
                     monthly_payment,
+                    interest_rate,
                     buyout_amount,
                     contract_total,
                     security_deposit,
                     expected_total_cost,
+                    is_refinanced,
+                    previous_lender,
+                    refinance_date,
+                    payout_date,
+                    payout_amount,
                     missed_count,
                     nsf_count,
                     nsf_fee_total,
@@ -1864,6 +2875,7 @@ class VehicleManagementWidget(QWidget):
             self.payment_day_input.setValue(payment_day or 0)
             self.down_payment_input.setValue(float(down_payment or 0.0))
             self.monthly_payment_input.setValue(float(monthly_payment or 0.0))
+            self.interest_rate_input.setValue(float(interest_rate or 0.0))
             self.buyout_amount_input.setValue(float(buyout_amount or 0.0))
             self.contract_total_input.setValue(float(contract_total or 0.0))
             self.security_deposit_input.setValue(
@@ -1872,6 +2884,21 @@ class VehicleManagementWidget(QWidget):
             self.expected_total_input.setValue(
                 float(expected_total_cost or 0.0)
             )
+            self.is_refinanced_input.setChecked(bool(is_refinanced))
+            self.previous_lender_input.setText(previous_lender or "")
+            if refinance_date:
+                self.refinance_date_input.setDate(
+                    QDate.fromString(str(refinance_date), "yyyy-MM-dd")
+                )
+            else:
+                self.refinance_date_input.setDate(QDate())
+            if payout_date:
+                self.payout_date_input.setDate(
+                    QDate.fromString(str(payout_date), "yyyy-MM-dd")
+                )
+            else:
+                self.payout_date_input.setDate(QDate())
+            self.payout_amount_input.setValue(float(payout_amount or 0.0))
             self.missed_payments_input.setValue(missed_count or 0)
             self.nsf_count_input.setValue(nsf_count or 0)
             self.nsf_fee_total_input.setValue(float(nsf_fee_total or 0.0))
@@ -1895,6 +2922,7 @@ class VehicleManagementWidget(QWidget):
             self.has_vendor_statement_input.setChecked(bool(has_statement))
             self.lease_notes_input.setText(notes or "")
             self._load_lease_documents()
+            self.load_loan_payment_history()
         except Exception as e:
             logger.error(f"Failed to load lease profile: {e}")
             QMessageBox.warning(
@@ -1931,10 +2959,35 @@ class VehicleManagementWidget(QWidget):
             ),
             "down_payment": self.down_payment_input.value(),
             "monthly_payment": self.monthly_payment_input.value(),
+            "interest_rate": (
+                self.interest_rate_input.value()
+                if self.interest_rate_input.value() > 0
+                else None
+            ),
             "buyout_amount": self.buyout_amount_input.value(),
             "contract_total": self.contract_total_input.value(),
             "security_deposit": self.security_deposit_input.value(),
             "expected_total_cost": self.expected_total_input.value(),
+            "is_refinanced": self.is_refinanced_input.isChecked(),
+            "previous_lender": self.previous_lender_input.text().strip()
+            or None,
+            "refinance_date": (
+                self.refinance_date_input.date().toString("yyyy-MM-dd")
+                if self.refinance_date_input.date().isValid()
+                and self.refinance_date_input.date().year() > 1
+                else None
+            ),
+            "payout_date": (
+                self.payout_date_input.date().toString("yyyy-MM-dd")
+                if self.payout_date_input.date().isValid()
+                and self.payout_date_input.date().year() > 1
+                else None
+            ),
+            "payout_amount": (
+                self.payout_amount_input.value()
+                if self.payout_amount_input.value() > 0
+                else None
+            ),
             "missed_payments_count": self.missed_payments_input.value(),
             "nsf_payment_count": self.nsf_count_input.value(),
             "nsf_fee_total": self.nsf_fee_total_input.value(),
@@ -1969,9 +3022,12 @@ class VehicleManagementWidget(QWidget):
                         lease_status, lease_type, lessor_name,
                         lessor_gst_number, contract_number,
                         lease_start_date, lease_end_date, payment_day,
-                        down_payment, monthly_payment, buyout_amount,
+                        down_payment, monthly_payment, interest_rate,
+                        buyout_amount,
                         contract_total,
                         security_deposit, expected_total_cost,
+                        is_refinanced, previous_lender, refinance_date,
+                        payout_date, payout_amount,
                         missed_payments_count, nsf_payment_count,
                         nsf_fee_total, late_fee_total,
                         business_use_percent,
@@ -1987,7 +3043,10 @@ class VehicleManagementWidget(QWidget):
                         %s, %s, %s,
                         %s, %s, %s, %s,
                         %s, %s,
-                        %s, %s, %s, %s,
+                        %s, %s, %s,
+                        %s, %s,
+                        %s, %s,
+                        %s, %s, %s,
                         %s,
                         %s, %s, %s, %s, %s,
                         %s, %s, %s,
@@ -2006,10 +3065,16 @@ class VehicleManagementWidget(QWidget):
                         payment_day = EXCLUDED.payment_day,
                         down_payment = EXCLUDED.down_payment,
                         monthly_payment = EXCLUDED.monthly_payment,
+                        interest_rate = EXCLUDED.interest_rate,
                         buyout_amount = EXCLUDED.buyout_amount,
                         contract_total = EXCLUDED.contract_total,
                         security_deposit = EXCLUDED.security_deposit,
                         expected_total_cost = EXCLUDED.expected_total_cost,
+                        is_refinanced = EXCLUDED.is_refinanced,
+                        previous_lender = EXCLUDED.previous_lender,
+                        refinance_date = EXCLUDED.refinance_date,
+                        payout_date = EXCLUDED.payout_date,
+                        payout_amount = EXCLUDED.payout_amount,
                         missed_payments_count = EXCLUDED.missed_payments_count,
                         nsf_payment_count = EXCLUDED.nsf_payment_count,
                         nsf_fee_total = EXCLUDED.nsf_fee_total,
@@ -2041,10 +3106,16 @@ class VehicleManagementWidget(QWidget):
                         data["payment_day"],
                         data["down_payment"],
                         data["monthly_payment"],
+                        data["interest_rate"],
                         data["buyout_amount"],
                         data["contract_total"],
                         data["security_deposit"],
                         data["expected_total_cost"],
+                        data["is_refinanced"],
+                        data["previous_lender"],
+                        data["refinance_date"],
+                        data["payout_date"],
+                        data["payout_amount"],
                         data["missed_payments_count"],
                         data["nsf_payment_count"],
                         data["nsf_fee_total"],
@@ -2067,6 +3138,239 @@ class VehicleManagementWidget(QWidget):
             logger.error(f"Failed to save lease profile: {e}")
             QMessageBox.warning(
                 self, "Lease Save Error", f"Failed to save lease profile: {e}"
+            )
+
+    def load_loan_payment_history(self) -> None:
+        """Populate the Payment History table for the current vehicle."""
+        self.loan_payments_table.setRowCount(0)
+        if not self.current_vehicle_id:
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT id, payment_date, payment_type, lender_name,
+                           gross_amount, gst_amount, net_amount,
+                           nsf_related, notes
+                    FROM vehicle_loan_payments
+                    WHERE vehicle_id = %s
+                    ORDER BY payment_date DESC, id DESC
+                    """,
+                    (self.current_vehicle_id,),
+                )
+                rows = cur.fetchall()
+
+            self.loan_payments_table.setRowCount(len(rows))
+            for row_idx, (
+                payment_id,
+                payment_date,
+                payment_type,
+                lender_name,
+                gross_amount,
+                gst_amount,
+                net_amount,
+                nsf_related,
+                notes,
+            ) in enumerate(rows):
+                date_item = QTableWidgetItem(
+                    str(payment_date) if payment_date else ""
+                )
+                date_item.setData(Qt.ItemDataRole.UserRole, payment_id)
+                self.loan_payments_table.setItem(row_idx, 0, date_item)
+                self.loan_payments_table.setItem(
+                    row_idx, 1, QTableWidgetItem(payment_type or "")
+                )
+                self.loan_payments_table.setItem(
+                    row_idx, 2, QTableWidgetItem(lender_name or "")
+                )
+                self.loan_payments_table.setItem(
+                    row_idx,
+                    3,
+                    QTableWidgetItem(f"${float(gross_amount or 0.0):.2f}"),
+                )
+                self.loan_payments_table.setItem(
+                    row_idx,
+                    4,
+                    QTableWidgetItem(f"${float(gst_amount or 0.0):.2f}"),
+                )
+                self.loan_payments_table.setItem(
+                    row_idx,
+                    5,
+                    QTableWidgetItem(f"${float(net_amount or 0.0):.2f}"),
+                )
+                self.loan_payments_table.setItem(
+                    row_idx,
+                    6,
+                    QTableWidgetItem("Yes" if nsf_related else ""),
+                )
+                self.loan_payments_table.setItem(
+                    row_idx, 7, QTableWidgetItem(notes or "")
+                )
+        except Exception as e:
+            logger.error(f"Failed to load loan payment history: {e}")
+            QMessageBox.warning(
+                self,
+                "Payment History Load Error",
+                f"Failed to load payment history: {e}",
+            )
+
+    def _selected_loan_payment_id(self):
+        selected = self.loan_payments_table.selectedItems()
+        if not selected:
+            return None
+        row = selected[0].row()
+        date_item = self.loan_payments_table.item(row, 0)
+        return date_item.data(Qt.ItemDataRole.UserRole) if date_item else None
+
+    def add_loan_payment(self) -> None:
+        if not self.current_vehicle_id:
+            QMessageBox.warning(
+                self,
+                "No Vehicle",
+                "Save the vehicle first before adding loan/lease payments.",
+            )
+            return
+
+        dialog = LoanPaymentDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        data = dialog.get_data()
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO vehicle_loan_payments (
+                        vehicle_id, payment_date, payment_type,
+                        lender_name, gross_amount, gst_amount, net_amount,
+                        nsf_related, notes, created_by
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        self.current_vehicle_id,
+                        data["payment_date"],
+                        data["payment_type"],
+                        data["lender_name"],
+                        data["gross_amount"],
+                        data["gst_amount"],
+                        data["net_amount"],
+                        data["nsf_related"],
+                        data["notes"],
+                        getattr(self.db, "current_user", None) or "desktop_app",
+                    ),
+                )
+            self.load_loan_payment_history()
+        except Exception as e:
+            logger.error(f"Failed to add loan payment: {e}")
+            QMessageBox.warning(
+                self, "Add Payment Error", f"Failed to add payment: {e}"
+            )
+
+    def edit_loan_payment(self) -> None:
+        payment_id = self._selected_loan_payment_id()
+        if not payment_id:
+            QMessageBox.information(
+                self, "No Selection", "Select a payment row to edit first."
+            )
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=False) as cur:
+                cur.execute(
+                    """
+                    SELECT payment_date, payment_type, lender_name,
+                           gross_amount, gst_amount, net_amount,
+                           nsf_related, notes
+                    FROM vehicle_loan_payments
+                    WHERE id = %s
+                    """,
+                    (payment_id,),
+                )
+                row = cur.fetchone()
+        except Exception as e:
+            logger.error(f"Failed to load loan payment for edit: {e}")
+            QMessageBox.warning(
+                self, "Edit Payment Error", f"Failed to load payment: {e}"
+            )
+            return
+
+        if not row:
+            return
+
+        existing = {
+            "payment_date": row[0],
+            "payment_type": row[1],
+            "lender_name": row[2],
+            "gross_amount": row[3],
+            "gst_amount": row[4],
+            "net_amount": row[5],
+            "nsf_related": row[6],
+            "notes": row[7],
+        }
+        dialog = LoanPaymentDialog(self, existing=existing)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        data = dialog.get_data()
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    """
+                    UPDATE vehicle_loan_payments
+                    SET payment_date = %s, payment_type = %s,
+                        lender_name = %s, gross_amount = %s,
+                        gst_amount = %s, net_amount = %s,
+                        nsf_related = %s, notes = %s
+                    WHERE id = %s
+                    """,
+                    (
+                        data["payment_date"],
+                        data["payment_type"],
+                        data["lender_name"],
+                        data["gross_amount"],
+                        data["gst_amount"],
+                        data["net_amount"],
+                        data["nsf_related"],
+                        data["notes"],
+                        payment_id,
+                    ),
+                )
+            self.load_loan_payment_history()
+        except Exception as e:
+            logger.error(f"Failed to update loan payment: {e}")
+            QMessageBox.warning(
+                self, "Edit Payment Error", f"Failed to update payment: {e}"
+            )
+
+    def delete_loan_payment(self) -> None:
+        payment_id = self._selected_loan_payment_id()
+        if not payment_id:
+            QMessageBox.information(
+                self, "No Selection", "Select a payment row to delete first."
+            )
+            return
+
+        confirm = QMessageBox.question(
+            self,
+            "Delete Payment",
+            "Delete this loan/lease payment record? This cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            with DatabaseContext(self.db, auto_commit=True) as cur:
+                cur.execute(
+                    "DELETE FROM vehicle_loan_payments WHERE id = %s",
+                    (payment_id,),
+                )
+            self.load_loan_payment_history()
+        except Exception as e:
+            logger.error(f"Failed to delete loan payment: {e}")
+            QMessageBox.warning(
+                self, "Delete Payment Error", f"Failed to delete payment: {e}"
             )
 
     def _load_lease_documents(self) -> None:
