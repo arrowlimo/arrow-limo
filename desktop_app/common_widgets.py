@@ -11,9 +11,252 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QLineEdit,
     QPushButton,
+    QTableWidgetItem,
     QTextEdit,
     QVBoxLayout,
 )
+
+PAYMENT_METHOD_LABELS = {
+    "cash": "Cash",
+    "cheque": "Cheque",
+    "credit_card": "Credit Card",
+    "debit_card": "Debit Card",
+    "bank_debit": "Bank Debit",
+    "bank_transfer": "Bank Transfer",
+    "pre_authorized_debit": "Pre-authorized Debit",
+    "bank_deposit": "Bank Deposit",
+    "bank_draft": "Bank Draft",
+    "loan": "Related Personal Loan",
+    "reimbursement": "Reimbursement",
+    "trade": "Trade",
+    "escrow_hold": "Escrow Hold",
+    "credit_adjustment": "Credit Adjustment",
+    "other": "Other",
+}
+
+PAYMENT_METHOD_CHOICES = [""] + list(PAYMENT_METHOD_LABELS.values())
+
+_PAYMENT_METHOD_ALIASES = {
+    "cash": "cash",
+    "cheque": "cheque",
+    "check": "cheque",
+    "credit": "credit_card",
+    "credit card": "credit_card",
+    "credit_card": "credit_card",
+    "debit": "debit_card",
+    "debit card": "debit_card",
+    "debit_card": "debit_card",
+    "debit/credit_card": "debit_card",
+    "bank debit": "bank_debit",
+    "bank_debit": "bank_debit",
+    "bank charge": "bank_debit",
+    "cibc banking": "bank_debit",
+    "transfer": "bank_transfer",
+    "bank transfer": "bank_transfer",
+    "bank_transfer": "bank_transfer",
+    "etransfer": "bank_transfer",
+    "e-transfer": "bank_transfer",
+    "pre-authorized debit": "pre_authorized_debit",
+    "pre authorized debit": "pre_authorized_debit",
+    "pre_authorized_debit": "pre_authorized_debit",
+    "bank deposit": "bank_deposit",
+    "bank_deposit": "bank_deposit",
+    "deposit": "bank_deposit",
+    "bank draft": "bank_draft",
+    "bank_draft": "bank_draft",
+    "loan": "loan",
+    "related personal loan": "loan",
+    "rpl": "loan",
+    "reimbursement": "reimbursement",
+    "reimburse_other": "reimbursement",
+    "trade": "trade",
+    "trade of services": "trade",
+    "trade_of_services": "trade",
+    "escrow hold": "escrow_hold",
+    "escrow_hold": "escrow_hold",
+    "credit adjustment": "credit_adjustment",
+    "credit_adjustment": "credit_adjustment",
+    "other": "other",
+    "unknown": "other",
+}
+
+
+def normalize_payment_method(method: str | None) -> str:
+    """Return the canonical database value for a payment method."""
+    value = str(method or "").strip()
+    if not value:
+        return ""
+    lowered = value.lower()
+    if lowered.startswith("bank draft"):
+        return "bank_draft"
+    return _PAYMENT_METHOD_ALIASES.get(lowered, "other")
+
+
+def display_payment_method(method: str | None) -> str:
+    """Return the standard user-facing label for a payment method."""
+    canonical = normalize_payment_method(method)
+    return PAYMENT_METHOD_LABELS.get(canonical, "")
+
+
+STANDARD_DATE_DISPLAY_FORMAT = "dd-MMM-yyyy"
+
+# Day-first separated formats are tried before month-first ones so a receipt
+# date like 20/07/2013 reads as 20 July. Unambiguous month-first values such as
+# 12/25/2013 are invalid day-first and still fall through to the legacy forms.
+DATE_INPUT_FORMATS = (
+    "dd-MMM-yyyy",
+    "d-MMM-yyyy",
+    "dd/MMM/yyyy",
+    "d/MMM/yyyy",
+    "dd-MMMM-yyyy",
+    "d-MMMM-yyyy",
+    "dd/MM/yyyy",
+    "d/M/yyyy",
+    "dd-MM-yyyy",
+    "d-M-yyyy",
+    "dd.MM.yyyy",
+    "d.M.yyyy",
+    "yyyy-MM-dd",
+    "yyyy/MM/dd",
+    "yyyy/MMM/dd",
+    "yyyy/MMMM/d",
+    "MM/dd/yyyy",
+    "M/d/yyyy",
+    "MM-dd-yyyy",
+    "M-d-yyyy",
+    "dd MMM yyyy",
+    "d MMM yyyy",
+    "dd MMMM yyyy",
+    "d MMMM yyyy",
+    "MMM dd yyyy",
+    "MMM d yyyy",
+    "MMMM dd yyyy",
+    "MMMM d yyyy",
+)
+
+_MONTH_LENGTH_NAMES = (
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)
+
+
+def parse_flexible_date(text: str) -> QDate:
+    """Parse user-typed date text, preferring day-first interpretation."""
+    text = str(text or "").strip()
+    if not text:
+        return QDate()
+
+    lowered = text.lower()
+    if lowered == "t":
+        return QDate.currentDate()
+    if lowered == "y":
+        return QDate.currentDate().addDays(-1)
+
+    for fmt in DATE_INPUT_FORMATS:
+        parsed = QDate.fromString(text, fmt)
+        if parsed.isValid():
+            return parsed
+
+    digits = "".join(c for c in text if c.isdigit())
+    if len(digits) == 8:
+        for fmt in ("ddMMyyyy", "yyyyMMdd"):
+            parsed = QDate.fromString(digits, fmt)
+            if parsed.isValid():
+                return parsed
+    return QDate()
+
+
+def describe_invalid_date(text: str) -> str:
+    """Explain in plain language why typed date text was not accepted."""
+    text = str(text or "").strip()
+    if not text:
+        return "Enter a date such as 20-Jul-2013, 20/07/2013, or 20072013."
+
+    digits = [part for part in "".join(
+        c if c.isdigit() else " " for c in text
+    ).split() if part]
+
+    day = month = year = None
+    if len(digits) == 3:
+        first, second, third = digits
+        if len(first) == 4:
+            year, month, day = int(first), int(second), int(third)
+        else:
+            day, month, year = int(first), int(second), int(third)
+    elif len(digits) == 1 and len(digits[0]) == 8:
+        day, month, year = (
+            int(digits[0][:2]),
+            int(digits[0][2:4]),
+            int(digits[0][4:]),
+        )
+
+    if day is not None and month is not None and year is not None:
+        if 1 <= month <= 12 and day >= 1:
+            days_in_month = QDate(year, month, 1).daysInMonth()
+            if days_in_month and day > days_in_month:
+                return (
+                    f"{_MONTH_LENGTH_NAMES[month - 1]} {year} has only "
+                    f"{days_in_month} days, so day {day} does not exist. "
+                    "The previous date was kept."
+                )
+        if month > 12:
+            return (
+                f"There is no month {month}. Dates are read day first, "
+                "for example 20/07/2013 is 20-Jul-2013."
+            )
+
+    return (
+        "Date not recognized. Use day first, for example 20-Jul-2013, "
+        "20/07/2013, or 20072013."
+    )
+
+
+def format_date_display(value) -> str:
+    """Format a date-like value as DD-Mon-YYYY without changing storage."""
+    if value in (None, ""):
+        return ""
+    if isinstance(value, QDate):
+        return value.toString(STANDARD_DATE_DISPLAY_FORMAT) if value.isValid() else ""
+    if hasattr(value, "strftime"):
+        return value.strftime("%d-%b-%Y")
+    text = str(value).strip()
+    iso = QDate.fromString(text[:10], "yyyy-MM-dd")
+    if iso.isValid():
+        return iso.toString(STANDARD_DATE_DISPLAY_FORMAT)
+    parsed = parse_flexible_date(text)
+    if parsed.isValid():
+        return parsed.toString(STANDARD_DATE_DISPLAY_FORMAT)
+    return text
+
+
+class DateSortItem(QTableWidgetItem):
+    """Display DD-Mon-YYYY while retaining chronological table sorting."""
+
+    def __init__(self, value) -> None:
+        super().__init__(format_date_display(value))
+        if isinstance(value, QDate):
+            sort_key = value.toString("yyyy-MM-dd")
+        elif hasattr(value, "strftime"):
+            sort_key = value.strftime("%Y-%m-%d")
+        else:
+            sort_key = str(value or "")[:10]
+        self._sort_key = sort_key
+        self.setData(Qt.ItemDataRole.UserRole, sort_key)
+
+    def __lt__(self, other) -> bool:
+        if isinstance(other, DateSortItem):
+            return self._sort_key < other._sort_key
+        return super().__lt__(other)
 
 
 class CurrencyInput(QLineEdit):
@@ -57,6 +300,11 @@ class CurrencyInput(QLineEdit):
     def mousePressEvent(self, event) -> None:
         """Select all on any mouse click"""
         super().mousePressEvent(event)
+        QTimer.singleShot(0, self.selectAll)
+
+    def focusInEvent(self, event) -> None:
+        """Select the complete amount for immediate replacement."""
+        super().focusInEvent(event)
         QTimer.singleShot(0, self.selectAll)
 
     def mouseDoubleClickEvent(self, event) -> None:
@@ -147,8 +395,9 @@ class CurrencyInput(QLineEdit):
 
 
 class StandardDateEdit(QLineEdit):
-    """Unified date input: full-string typing with MM/dd/yyyy mask and QDate
-    helpers.
+    """Unified date input with full-value replacement and QDate helpers.
+
+    Dates display as ``dd-MMM-yyyy`` so the month is always unambiguous.
     Drop-in replacement for prior QDateEdit usage in this app.
     """
 
@@ -156,20 +405,25 @@ class StandardDateEdit(QLineEdit):
     dateChanged = pyqtSignal(QDate)
 
     def __init__(
-        self, parent=None, prefer_month_text=False, allow_blank: bool = False
+        self,
+        parent=None,
+        prefer_month_text=False,
+        allow_blank: bool = False,
+        select_all_on_click: bool = True,
     ) -> None:
         super().__init__(parent)
         self._allow_blank = allow_blank
+        self._select_all_on_click = select_all_on_click
         self._has_value = not allow_blank
         self._current_date = QDate.currentDate()
         self._is_formatting = False
-        self.display_format = "MM/dd/yyyy"  # Keep consistent mask for typing
-        self.setMaxLength(10)
+        self.display_format = "dd-MMM-yyyy"
+        self.setMaxLength(20)
         if allow_blank:
             self.setText("")
         else:
             self.setText(self._current_date.toString(self.display_format))
-        self.setPlaceholderText("MM/DD/YYYY")
+        self.setPlaceholderText("DD-Mon-YYYY")
         self.setClearButtonEnabled(True)
         self.setMaximumWidth(130)
         # QDateEdit compatibility fields
@@ -179,8 +433,8 @@ class StandardDateEdit(QLineEdit):
         self._special_value_text = None
         self.setToolTip(
             "<b>📅 Date Input</b><br>"
-            "Type full date like 09/15/2012 or 09152012.<br>"
-            "Mask applies after typing. +/- keys change day."
+            "Type 07-Jul-2007, 07072007, or 07/07/2007.<br>"
+            "The month is displayed as text. +/- keys change day."
         )
         self.textChanged.connect(self._on_text_changed)
 
@@ -192,7 +446,9 @@ class StandardDateEdit(QLineEdit):
         return bool(getattr(self, "_calendar_popup_enabled", False))
 
     def setDisplayFormat(self, fmt: str) -> None:
-        self.display_format = fmt or self.display_format
+        self.display_format = "dd-MMM-yyyy"
+        if self._has_value:
+            self.setDate(self._current_date)
 
     def lineEdit(self) -> object:
         return self
@@ -241,11 +497,13 @@ class StandardDateEdit(QLineEdit):
 
     def focusInEvent(self, event) -> None:
         super().focusInEvent(event)
-        QTimer.singleShot(0, self.selectAll)
+        if self._select_all_on_click:
+            QTimer.singleShot(0, self.selectAll)
 
     def mousePressEvent(self, event) -> None:
         super().mousePressEvent(event)
-        QTimer.singleShot(0, self.selectAll)
+        if self._select_all_on_click:
+            QTimer.singleShot(0, self.selectAll)
 
     def keyPressEvent(self, event) -> None:
         # Support +/- day adjustments
@@ -266,23 +524,7 @@ class StandardDateEdit(QLineEdit):
             return
         if self._allow_blank and not text.strip():
             self._has_value = False
-            return
-        try:
-            digits = "".join(c for c in text if c.isdigit())
-            if not digits:
-                return
-            formatted = digits
-            if len(digits) > 2:
-                formatted = digits[:2] + "/" + digits[2:]
-            if len(digits) > 4:
-                formatted = digits[:2] + "/" + digits[2:4] + "/" + digits[4:8]
-            if formatted != text:
-                self._is_formatting = True
-                self.setText(formatted)
-                self.setCursorPosition(len(formatted))
-                self._is_formatting = False
-        except Exception:
-            self._is_formatting = False
+        # Leave text untouched while typing; normalize only on focus-out.
 
     def _validate_final(self) -> None:
         try:
@@ -306,7 +548,7 @@ class StandardDateEdit(QLineEdit):
                     )
                 self._is_formatting = False
                 return
-            parsed = QDate.fromString(text, "MM/dd/yyyy")
+            parsed = self._parse_date_text(text)
             if parsed.isValid():
                 changed = parsed != self._current_date
                 self._current_date = parsed
@@ -320,34 +562,8 @@ class StandardDateEdit(QLineEdit):
                 if changed:
                     self.dateChanged.emit(self._current_date)
             else:
-                # try lenient fallback: MMDDYYYY
-                digits = "".join(c for c in text if c.isdigit())
-                if len(digits) == 8:
-                    m, d, y = (
-                        int(digits[:2]),
-                        int(digits[2:4]),
-                        int(digits[4:]),
-                    )
-                    candidate = QDate(y, m, d)
-                    if candidate.isValid():
-                        changed = candidate != self._current_date
-                        self._current_date = candidate
-                        self._has_value = True
-                        self._is_formatting = True
-                        if (
-                            self._special_value_text
-                            and candidate == self._min_date
-                        ):
-                            self.setText(self._special_value_text)
-                        else:
-                            self.setText(
-                                candidate.toString(self.display_format)
-                            )
-                        self._is_formatting = False
-                        if changed:
-                            self.dateChanged.emit(self._current_date)
-                        return
-                # restore previous on failure
+                # restore previous on failure and explain why
+                self.setToolTip(describe_invalid_date(text))
                 self._is_formatting = True
                 if (
                     self._special_value_text
@@ -361,6 +577,10 @@ class StandardDateEdit(QLineEdit):
                 self._is_formatting = False
         except Exception:
             self._is_formatting = False
+
+    @staticmethod
+    def _parse_date_text(text: str) -> QDate:
+        return parse_flexible_date(text)
 
     # QDateEdit compatibility helpers
     def setSpecialValueText(self, text: str) -> None:

@@ -226,8 +226,8 @@ class DateInput(QLineEdit):
         super().__init__(parent)
         today = QDate.currentDate()
         self._current_date = today
-        self.setText(today.toString("MM/dd/yyyy"))
-        self.setPlaceholderText("MM/DD/YYYY or Jan 01 2012")
+        self.setText(today.toString("dd-MMM-yyyy"))
+        self.setPlaceholderText("DD-Mon-YYYY or 31012013")
         self.setMaxLength(50)  # Allow long text formats
 
         # Validation color support
@@ -239,11 +239,11 @@ class DateInput(QLineEdit):
         # Rich tooltip with format examples
         self.setToolTip(
             "<b>📅 Date Input</b><br>"
-            "<font color='green'><b>Flexible formats:</b></font><br>"
-            "• 01/15/2012 or 01-15-2012<br>"
-            "• Jan 01 2012 or January 1 2012<br>"
-            "• 20120115 (compact)<br>"
-            "• 2012-01-15 (ISO)<br>"
+            "<font color='green'><b>Day first:</b></font><br>"
+            "• 20/07/2013 or 20-07-2013<br>"
+            "• 20-Jul-2013<br>"
+            "• 20072013 (compact)<br>"
+            "• 2013-07-20 (ISO)<br>"
             "<font color='blue'><b>Shortcuts:</b> t=today,"
             "y=yesterday</font><br>"
             "Just type and press Enter or Tab"
@@ -252,7 +252,7 @@ class DateInput(QLineEdit):
     def setDate(self, date) -> None:
         """Set date and update display"""
         self._current_date = date
-        self.setText(date.toString("MM/dd/yyyy"))
+        self.setText(date.toString("dd-MMM-yyyy"))
 
     def getDate(self) -> object:
         """Get current date as QDate"""
@@ -261,6 +261,10 @@ class DateInput(QLineEdit):
     def focusInEvent(self, event) -> None:
         """Select all text when field gets focus for easy replacement"""
         super().focusInEvent(event)
+        QTimer.singleShot(0, self.selectAll)
+
+    def mousePressEvent(self, event) -> None:
+        super().mousePressEvent(event)
         QTimer.singleShot(0, self.selectAll)
 
     def mouseDoubleClickEvent(self, event) -> None:
@@ -304,62 +308,37 @@ class DateInput(QLineEdit):
         text = self.text().strip()
 
         if not text:
-            self.setText(self._current_date.toString("MM/dd/yyyy"))
+            self.setText(self._current_date.toString("dd-MMM-yyyy"))
             self._set_field_style("neutral")
             return
 
         # Try multiple formats
-        parsed = None
+        from common_widgets import parse_flexible_date
 
-        # Format 1: MM/dd/yyyy or MM-dd-yyyy
-        for fmt in ["MM/dd/yyyy", "MM-dd-yyyy", "M/d/yyyy", "M-d-yyyy"]:
-            parsed = QDate.fromString(text, fmt)
-            if parsed.isValid():
-                break
-
-        # Format 2: yyyymmdd (compact)
-        if not parsed or not parsed.isValid():
-            if len(text) == 8 and text.isdigit():
-                parsed = QDate.fromString(text, "yyyyMMdd")
-
-        # Format 3: "Jan 01 2012" or "January 1 2012"
-        if not parsed or not parsed.isValid():
-            for fmt in [
-                "MMM dd yyyy",
-                "MMMM d yyyy",
-                "MMM d yyyy",
-                "MMMM dd yyyy",
-            ]:
-                parsed = QDate.fromString(text, fmt)
-                if parsed.isValid():
-                    break
-
-        # Format 4: "01 Jan 2012" (day first)
-        if not parsed or not parsed.isValid():
-            for fmt in [
-                "dd MMM yyyy",
-                "d MMM yyyy",
-                "dd MMMM yyyy",
-                "d MMMM yyyy",
-            ]:
-                parsed = QDate.fromString(text, fmt)
-                if parsed.isValid():
-                    break
-
-        # Format 5: ISO format yyyy-MM-dd
-        if not parsed or not parsed.isValid():
-            parsed = QDate.fromString(text, "yyyy-MM-dd")
+        parsed = parse_flexible_date(text)
 
         # If valid, update and format
         if parsed and parsed.isValid():
             self._current_date = parsed
-            self.setText(parsed.toString("MM/dd/yyyy"))
+            self.setText(parsed.toString("dd-MMM-yyyy"))
             self._set_field_style("valid")
         else:
-            # Invalid date - restore previous
-            self.setText(self._current_date.toString("MM/dd/yyyy"))
+            # Invalid date - restore previous and explain why
+            from common_widgets import describe_invalid_date
+
+            reason = describe_invalid_date(text)
+            self.setToolTip(reason)
+            self.setText(self._current_date.toString("dd-MMM-yyyy"))
             self._set_field_style("error")
             QTimer.singleShot(2000, lambda: self._set_field_style("neutral"))
+            parent = self.window()
+            if parent is not None:
+                status = getattr(parent, "statusBar", None)
+                if callable(status):
+                    try:
+                        status().showMessage(reason, 6000)
+                    except Exception:
+                        pass
 
     def _set_field_style(self, state) -> None:
         """Apply color style based on validation state"""

@@ -15,11 +15,19 @@ from decimal import Decimal
 import psycopg2
 
 logger = logging.getLogger(__name__)
+SEARCH_RESULT_LIMIT = 5_000
 from common_widgets import (
+    DateSortItem,
     PAYMENT_METHOD_CHOICES,
     StandardDateEdit,
     display_payment_method,
     normalize_payment_method,
+)
+from receipt_search_helpers import (
+    CalculatorDialog,
+    CurrencyInput,
+    DateInput,
+    NumericSortItem,
 )
 from PyQt6.QtCore import QDate, QSize, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import (
@@ -89,173 +97,6 @@ class SelectAllDoubleSpinBox(QDoubleSpinBox):
     def mouseDoubleClickEvent(self, event) -> None:
         super().mouseDoubleClickEvent(event)
         self._select_editor_text()
-
-
-class NumericSortItem(QTableWidgetItem):
-    """QTableWidgetItem that sorts by a stored numeric value rather than
-    display text.
-    """
-
-    def __init__(self, display_text: str, sort_value: float) -> None:
-        super().__init__(display_text)
-        self._sort_value = sort_value
-
-    def __lt__(self, other: "QTableWidgetItem") -> bool:
-        if isinstance(other, NumericSortItem):
-            return self._sort_value < other._sort_value
-        try:
-            return self._sort_value < float(
-                other.text().replace("$", "").replace(",", "")
-            )
-        except (ValueError, AttributeError):
-            return super().__lt__(other)
-
-
-class DateInput(QLineEdit):
-    """Flexible date input like Excel: supports multiple formats and shortcuts.
-
-    Supports:
-    - t / T = today
-    - y / Y = yesterday
-    - MM/DD/YYYY, M/D/YYYY
-    - YYYY-MM-DD, YYYY/MM/DD
-    - YYYYMMDD
-    - DD MMM YYYY, MMM DD YYYY, Month DD YYYY
-    """
-
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-        self._current_date = QDate.currentDate()
-        self.setText(self._current_date.toString("MM/dd/yyyy"))
-        self.setPlaceholderText("MM/DD/YYYY or Jan 01 2012 (t=yesterday)")
-        # Tooltip with examples
-        self.setToolTip(
-            "Examples: 01/17/2026, 1/7/2026, 2026-01-17, 20260117,\n"
-            "Jan 17 2026, 17 Jan 2026, January 17 2026, t (today), y "
-            "(yesterday)"
-        )
-        self.textChanged.connect(self._on_text_changed)
-
-    def focusInEvent(self, event) -> None:
-        super().focusInEvent(event)
-        QTimer.singleShot(0, self.selectAll)
-
-    def _on_text_changed(self, text: str) -> None:
-        parsed = self._parse_date(text.strip())
-        if parsed is None:
-            # Invalid → light red bg
-            self.setStyleSheet(
-                "background-color: #ffecec; border: 1px solid #cc0000;"
-            )
-        else:
-            self._current_date = parsed
-            # Valid → light green bg
-            self.setStyleSheet(
-                "background-color: #eaffea; border: 1px solid #00aa00;"
-            )
-
-    def _parse_date(self, s: str) -> QDate | None:
-        if not s:
-            return None
-        # Shortcuts
-        if s.lower() == "t":
-            return QDate.currentDate()
-        if s.lower() == "y":
-            return QDate.currentDate().addDays(-1)
-
-        # Try multiple formats
-        from datetime import datetime
-
-        fmts = [
-            "%m/%d/%Y",
-            "%m/%d/%y",
-            "%Y-%m-%d",
-            "%Y/%m/%d",
-            "%Y%m%d",
-            "%d %b %Y",
-            "%b %d %Y",
-            "%d %B %Y",
-            "%B %d %Y",
-        ]
-        for fmt in fmts:
-            try:
-                dt = datetime.strptime(s, fmt)
-                return QDate(dt.year, dt.month, dt.day)
-            except ValueError:
-                pass
-        # Fallback: try letting QDate parse ISO
-        qd = QDate.fromString(s, "yyyy-MM-dd")
-        if qd.isValid():
-            return qd
-        return None
-
-    # API compatibility
-    def date(self) -> QDate:
-        return self._current_date
-
-    def setDate(self, qdate: QDate) -> None:
-        if not isinstance(qdate, QDate):
-            return
-        self._current_date = qdate
-        self.setText(qdate.toString("MM/dd/yyyy"))
-
-
-class CalculatorDialog(QDialog):
-    """Simple calculator dialog for quick amount math."""
-
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle("Calculator")
-        layout = QVBoxLayout(self)
-        self.input = QLineEdit(self)
-        self.input.setPlaceholderText("Enter expression, e.g., 120+35.5-10")
-        layout.addWidget(self.input)
-        btns = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok
-            | QDialogButtonBox.StandardButton.Cancel,
-            parent=self,
-        )
-        btns.accepted.connect(self.accept)
-        btns.rejected.connect(self.reject)
-        layout.addWidget(btns)
-
-    def evaluate(self) -> Decimal | None:
-        text = (self.input.text() or "").strip()
-        if not text:
-            return None
-        # Allow only safe characters: digits, dot, parentheses, + - * /
-        allowed = set("0123456789.+-*/() ")
-        if any(ch not in allowed for ch in text):
-            return None
-        try:
-            # Evaluate in a restricted namespace
-            result = eval(text, {"__builtins__": {}}, {})
-            return Decimal(str(result))
-        except Exception:
-            return None
-
-
-class CurrencyInput(QLineEdit):
-    """Simple currency field with 2-decimal validation. Allows negative values
-    for returns/credits.
-    """
-
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-        validator = QDoubleValidator(
-            -1_000_000_000.0, 1_000_000_000.0, 2, self
-        )
-        validator.setNotation(QDoubleValidator.Notation.StandardNotation)
-        self.setValidator(validator)
-        self.setPlaceholderText("0.00")
-        self.setMaxLength(20)
-
-    def value(self) -> Decimal:
-        text = (self.text() or "0").replace(",", "").strip()
-        try:
-            return Decimal(text)
-        except Exception:
-            return Decimal("0")
 
 
 class ReceiptCompactDelegate(QStyledItemDelegate):
@@ -368,7 +209,9 @@ class _SearchWorker(QThread):
             rows = cur.fetchall()
             cur.close()
             if not self._cancelled:
-                self.results_ready.emit(rows, len(rows) == 2000)
+                self.results_ready.emit(
+                    rows, len(rows) == SEARCH_RESULT_LIMIT
+                )
         except Exception as e:
             if not self._cancelled:
                 self.error_occurred.emit(str(e))
@@ -755,6 +598,15 @@ class ReceiptSearchMatchWidget(QWidget):
         receipt_id_row.addStretch()
         search_form.addRow("Receipt ID:", receipt_id_row)
 
+        # GL Code filter (e.g. 5255 to pull up all CRA remittance receipts)
+        gl_code_row = QHBoxLayout()
+        self.gl_code_filter = QLineEdit()
+        self.gl_code_filter.setPlaceholderText("e.g., 5255")
+        self.gl_code_filter.setMaximumWidth(100)
+        gl_code_row.addWidget(self.gl_code_filter)
+        gl_code_row.addStretch()
+        search_form.addRow("GL Code:", gl_code_row)
+
         # Vendor filter — hidden backing widget; vendor_lookup combo drives it
         self.vendor_filter = QLineEdit()
         self.vendor_filter.setPlaceholderText("e.g., Fibrenew, Shell, etc.")
@@ -991,7 +843,7 @@ class ReceiptSearchMatchWidget(QWidget):
             for r, row in enumerate(rows):
                 tid, tdate, desc, amount, account, status = row
                 self.results_table.setItem(r, 0, QTableWidgetItem(str(tid)))
-                self.results_table.setItem(r, 1, QTableWidgetItem(str(tdate)))
+                self.results_table.setItem(r, 1, DateSortItem(tdate))
                 self.results_table.setItem(r, 2, QTableWidgetItem(desc or ""))
 
                 amt_item = QTableWidgetItem(
@@ -1097,23 +949,11 @@ class ReceiptSearchMatchWidget(QWidget):
         compact_row.addStretch()
         vbox.addLayout(compact_row)
 
-        # Charter Lookup Row (for quick reserve_number linking)
+        # Charter Lookup Row (for quick reserve_number linking). Most
+        # receipts are charter-related, so this stays always enabled
+        # (no "unlock" toggle needed).
         charter_box = QGroupBox("🔗 Charter Lookup")
         charter_form = QFormLayout(charter_box)
-        charter_mode_row = QHBoxLayout()
-        self.no_charter_radio = QRadioButton("No Charter")
-        self.no_charter_radio.setChecked(True)
-        self.charter_related_radio = QRadioButton("Charter")
-        self.no_charter_radio.toggled.connect(
-            lambda _checked: self._set_charter_controls_enabled()
-        )
-        self.charter_related_radio.toggled.connect(
-            lambda _checked: self._set_charter_controls_enabled()
-        )
-        charter_mode_row.addWidget(self.no_charter_radio)
-        charter_mode_row.addWidget(self.charter_related_radio)
-        charter_mode_row.addStretch()
-        charter_form.addRow("", charter_mode_row)
 
         charter_lookup_row = QHBoxLayout()
         self.charter_lookup_input = QLineEdit()
@@ -1153,8 +993,9 @@ class ReceiptSearchMatchWidget(QWidget):
         reverse_lookup_row.addWidget(self.reverse_charter_vehicle_lookup)
         self.reverse_lookup_btn = QPushButton("🔎 Find Charter")
         self.reverse_lookup_btn.setToolTip(
-            "Find charters by date and optional vehicle. Searches the lookup "
-            "date plus the next day for day-prior fuel stops."
+            "Find charters by date and optional vehicle. Auto-fills from "
+            "the Receipt Date field each time it's clicked, and also "
+            "searches the next day for day-prior fuel stops."
         )
         self.reverse_lookup_btn.clicked.connect(self._reverse_charter_lookup)
         reverse_lookup_row.addWidget(self.reverse_lookup_btn)
@@ -2040,6 +1881,8 @@ class ReceiptSearchMatchWidget(QWidget):
         self.vendor_lookup.setCurrentIndex(0)
         self.vendor_lookup.blockSignals(False)
         self.receipt_id_filter.clear()
+        if hasattr(self, "gl_code_filter"):
+            self.gl_code_filter.clear()
         self.amount_filter.setValue(0)
         self.date_range_days.setValue(0)
         self.amount_range.setValue(1.0)
@@ -2146,6 +1989,15 @@ class ReceiptSearchMatchWidget(QWidget):
             except ValueError:
                 pass  # Ignore invalid receipt ID
 
+        gl_code = (
+            self.gl_code_filter.text().strip()
+            if hasattr(self, "gl_code_filter")
+            else ""
+        )
+        if gl_code:
+            sql.append("AND r.gl_account_code ILIKE %s")
+            params.append(f"%{gl_code}%")
+
         vendor = (self.vendor_filter.text() or "").strip()
         if vendor:
             if (
@@ -2210,7 +2062,7 @@ class ReceiptSearchMatchWidget(QWidget):
             sql.append("ORDER BY r.receipt_date DESC, r.receipt_id DESC")
 
         # Cap results to prevent UI crash on very large datasets
-        sql.append("LIMIT 2000")
+        sql.append(f"LIMIT {SEARCH_RESULT_LIMIT}")
 
         return "\n".join(sql), params
 
@@ -2436,7 +2288,8 @@ class ReceiptSearchMatchWidget(QWidget):
             self.results_label.setStyleSheet("color: #ff8800; font-size: 9pt;")
         elif truncated:
             self.results_label.setText(
-                "⚠️ Showing first 2000 of 2000+ receipts — add filters to "
+                f"⚠️ Showing first {SEARCH_RESULT_LIMIT:,} of "
+                f"{SEARCH_RESULT_LIMIT:,}+ receipts — add filters to "
                 "narrow"
             )
             self.results_label.setStyleSheet(
@@ -2722,7 +2575,7 @@ class ReceiptSearchMatchWidget(QWidget):
                 is_nsf_pair = bool(row[16]) if len(row) > 16 else False
                 is_paper_verified = bool(row[17]) if len(row) > 17 else False
                 self.results_table.setItem(r, 0, QTableWidgetItem(str(rid)))
-                self.results_table.setItem(r, 1, QTableWidgetItem(str(rdate)))
+                self.results_table.setItem(r, 1, DateSortItem(rdate))
                 vendor_item = QTableWidgetItem(vendor or "")
                 # Store summary data for compact delegate
                 desc = row[8] if len(row) > 8 else ""
@@ -2974,13 +2827,6 @@ class ReceiptSearchMatchWidget(QWidget):
             try:
                 if hasattr(self, "new_charter_input"):
                     charter_text = charter_item.text() if charter_item else ""
-                    if (
-                        charter_text.strip()
-                        and hasattr(self, "charter_related_radio")
-                    ):
-                        self.charter_related_radio.setChecked(True)
-                    elif hasattr(self, "no_charter_radio"):
-                        self.no_charter_radio.setChecked(True)
                     self.new_charter_input.setText(charter_text)
             except Exception:
                 if hasattr(self, "new_charter_input"):
@@ -3196,8 +3042,6 @@ class ReceiptSearchMatchWidget(QWidget):
             self.new_charter_input.clear()
         if hasattr(self, "charter_details_label"):
             self.charter_details_label.clear()
-        if hasattr(self, "no_charter_radio"):
-            self.no_charter_radio.setChecked(True)
 
         self.new_vehicle_combo.setCurrentIndex(0)
         self.new_driver_combo.setCurrentIndex(0)
@@ -3393,7 +3237,8 @@ class ReceiptSearchMatchWidget(QWidget):
                         f"{gl_ex}\n{traceback.format_exc()}"
                     )
 
-            # Duplicate warning: ±$1, ±7 days by vendor - show details
+            # Duplicate warning: exact amount match, ±3 days, any vendor -
+            # show details
             duplicates = self._find_potential_duplicates(vendor, date, amount)
             if duplicates:
                 # Build detailed message showing all duplicates
@@ -4193,8 +4038,11 @@ class ReceiptSearchMatchWidget(QWidget):
     def _find_potential_duplicates(
         self, vendor: str, date, amount: Decimal
     ) -> list[tuple]:
-        """Find and return potential duplicate receipts (±$1, ±7 days)
-        with details.
+        """Find and return potential duplicate receipts: exact gross
+        amount match within ±3 days of the given date, across all
+        vendors (not just the vendor being entered), since duplicates
+        often have slightly different vendor text (e.g. OCR variants,
+        "Safeway" vs "Safeway - Cash Withdrawal").
 
         Returns list of tuples:
         (receipt_id, receipt_date, vendor_name, gross_amount, description,
@@ -4213,21 +4061,18 @@ class ReceiptSearchMatchWidget(QWidget):
                    FROM receipts r
                    LEFT JOIN banking_transactions bt
                           ON r.banking_transaction_id = bt.transaction_id
-                   WHERE r.vendor_name ILIKE %s
-                   AND r.receipt_date BETWEEN
-                       %s - INTERVAL '7 days' AND %s + INTERVAL '7 days'
-                   AND r.gross_amount BETWEEN %s AND %s
+                   WHERE r.receipt_date BETWEEN
+                       %s - INTERVAL '3 days' AND %s + INTERVAL '3 days'
+                   AND ROUND(r.gross_amount::numeric, 2) = %s
                    AND r.is_voided IS NOT TRUE
                    AND r.exclude_from_reports IS NOT TRUE
                    AND r.is_split_receipt IS NOT TRUE
                    ORDER BY r.receipt_date DESC, r.receipt_id DESC
                    LIMIT 10""",
                 [
-                    f"%{vendor} %",
                     date,
                     date,
-                    float(amount) - 1.0,
-                    float(amount) + 1.0,
+                    round(float(amount), 2),
                 ],
             )
             rows = cur.fetchall()
@@ -4290,11 +4135,11 @@ class ReceiptSearchMatchWidget(QWidget):
             amount = self.new_amount.value()
             date = self.new_date.date().toPyDate()
 
-            if not vendor or amount <= 0:
+            if amount <= 0:
                 QMessageBox.information(
                     self,
                     "Missing data",
-                    "Enter Vendor and Amount to check for duplicates.",
+                    "Enter an Amount to check for duplicates.",
                 )
                 return
 
@@ -4305,8 +4150,9 @@ class ReceiptSearchMatchWidget(QWidget):
                 QMessageBox.information(
                     self,
                     "No Duplicates",
-                    f"No potential duplicates found for {vendor} "
-                    f"~${amount:.2f} ±7 days.",
+                    f"No potential duplicates found for exactly "
+                    f"${amount:.2f} within ±3 days "
+                    f"({date.strftime('%Y-%m-%d')}).",
                 )
             else:
                 msg = f"Found {len(duplicates)} potential duplicate(s):\n\n"
@@ -4588,8 +4434,6 @@ class ReceiptSearchMatchWidget(QWidget):
                 if idx >= 0:
                     self.new_driver_combo.setCurrentIndex(idx)
             if reserve:
-                if hasattr(self, "charter_related_radio"):
-                    self.charter_related_radio.setChecked(True)
                 self.new_charter_input.setText(reserve)
                 self._populate_charter_details()
             if fuel:
@@ -5037,10 +4881,9 @@ class ReceiptSearchMatchWidget(QWidget):
                 logger.debug('Suppressed: %s', _e)
 
     def _is_charter_lookup_enabled(self) -> bool:
-        return bool(
-            getattr(self, "charter_related_radio", None)
-            and self.charter_related_radio.isChecked()
-        )
+        # Charter lookup is always available; most receipts are
+        # charter-related, so there's no separate unlock toggle.
+        return True
 
     def _set_charter_controls_enabled(self) -> None:
         enabled = self._is_charter_lookup_enabled()
@@ -5058,14 +4901,7 @@ class ReceiptSearchMatchWidget(QWidget):
             widget = getattr(self, attr, None)
             if widget is not None:
                 widget.setEnabled(enabled)
-        if not enabled:
-            if hasattr(self, "new_charter_input"):
-                self.new_charter_input.clear()
-            if hasattr(self, "charter_lookup_input"):
-                self.charter_lookup_input.clear()
-            if hasattr(self, "charter_details_label"):
-                self.charter_details_label.clear()
-        elif hasattr(self, "new_charter_input"):
+        if hasattr(self, "new_charter_input"):
             QTimer.singleShot(0, self._attach_charter_completer)
 
     def _populate_charter_details(self, _selected_text: str | None = None) -> None:
@@ -5164,7 +5000,7 @@ class ReceiptSearchMatchWidget(QWidget):
         self._select_driver_by_id_or_name(employee_id, driver_name)
 
         details = [
-            charter_date.strftime("%m/%d/%Y") if charter_date else "No date",
+            charter_date.strftime("%d-%b-%Y") if charter_date else "No date",
             f"Vehicle {vehicle_number}" if vehicle_number else "No vehicle",
         ]
         details.append(
@@ -5253,7 +5089,7 @@ class ReceiptSearchMatchWidget(QWidget):
         )
 
         details = [
-            charter["charter_date"].strftime("%m/%d/%Y")
+            charter["charter_date"].strftime("%d-%b-%Y")
             if charter.get("charter_date")
             else "No date",
             f"Vehicle {charter.get('vehicle_number')}"
@@ -5270,18 +5106,57 @@ class ReceiptSearchMatchWidget(QWidget):
         self.charter_details_label.setText(detail_text)
         self.charter_details_label.setToolTip(detail_text)
 
-    def _reverse_charter_lookup(self) -> None:
-        """Find charters by lookup date and optional vehicle, then fill form."""
+    def _open_charter_details_for_verification(
+        self, charter: dict, parent: QWidget | None = None
+    ) -> None:
+        """Open charter details temporarily without leaving the receipt."""
 
-        if not self._is_charter_lookup_enabled():
+        reserve_number = str(charter.get("reserve_number") or "").strip()
+        if not reserve_number:
             QMessageBox.information(
                 self,
-                "Charter Disabled",
-                "Select the Charter radio button before searching charters.",
+                "No Reserve Number",
+                "This charter row has no reserve number to open.",
             )
             return
 
         try:
+            from drill_down_widgets import CharterDetailDialog
+
+            main_window = self.window()
+            db = getattr(main_window, "db", None)
+            if db is None:
+                raise RuntimeError("The database connection is not available.")
+
+            dialog = CharterDetailDialog(
+                db,
+                reserve_number=reserve_number,
+                parent=parent or self,
+            )
+            dialog.setWindowTitle(
+                f"Verify Charter #{reserve_number} - Return to Receipt When Done"
+            )
+            for button in dialog.findChildren(QPushButton):
+                if button.text() == "Close":
+                    button.setText("↩ Return to Receipt")
+                    break
+            dialog.exec()
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Open Charter Failed",
+                f"Could not open charter {reserve_number}:\n\n{e}",
+            )
+
+    def _reverse_charter_lookup(self) -> None:
+        """Find charters by lookup date and optional vehicle, then fill
+        the receipt form's Charter #/Vehicle/Driver fields."""
+
+        try:
+            # Auto-fill the lookup date from the receipt date field so the
+            # user doesn't have to re-enter it every time.
+            if hasattr(self, "new_date"):
+                self.reverse_charter_date_lookup.setDate(self.new_date.date())
             lookup_date = self.reverse_charter_date_lookup.date().toPyDate()
             vehicle_text = (
                 self.reverse_charter_vehicle_lookup.text() or ""
@@ -5445,7 +5320,7 @@ class ReceiptSearchMatchWidget(QWidget):
             payloads.append(payload)
             values = [
                 reserve_number,
-                charter_date.strftime("%Y-%m-%d") if charter_date else "",
+                charter_date.strftime("%d-%b-%Y") if charter_date else "",
                 pickup_time.strftime("%H:%M") if pickup_time else "",
                 vehicle_number or "",
                 client_name or "",
@@ -5461,18 +5336,46 @@ class ReceiptSearchMatchWidget(QWidget):
             table.setCurrentCell(0, 0)
         layout.addWidget(table)
 
+        button_row = QHBoxLayout()
+        view_details_btn = QPushButton("🔎 Open Charter Details")
+        view_details_btn.setToolTip(
+            "Open the selected charter in a separate review window. Close it "
+            "to return here with the receipt form and lookup selection intact."
+        )
+        button_row.addWidget(view_details_btn)
+        button_row.addStretch(1)
+
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok
             | QDialogButtonBox.StandardButton.Cancel
         )
         buttons.accepted.connect(dlg.accept)
         buttons.rejected.connect(dlg.reject)
-        layout.addWidget(buttons)
+        button_row.addWidget(buttons)
+        layout.addLayout(button_row)
 
         def accept_current_row() -> None:
             if table.currentRow() >= 0:
                 dlg.accept()
 
+        def open_charter_details() -> None:
+            current_row = table.currentRow()
+            if current_row < 0:
+                QMessageBox.information(
+                    dlg,
+                    "No Charter Selected",
+                    "Select a charter row first.",
+                )
+                return
+            selected_item = table.item(current_row, 0)
+            charter = (
+                selected_item.data(Qt.ItemDataRole.UserRole)
+                if selected_item
+                else None
+            ) or payloads[current_row]
+            self._open_charter_details_for_verification(charter, parent=dlg)
+
+        view_details_btn.clicked.connect(open_charter_details)
         table.itemDoubleClicked.connect(lambda _item: accept_current_row())
 
         if dlg.exec() != QDialog.DialogCode.Accepted:
@@ -5742,22 +5645,89 @@ class ReceiptSearchMatchWidget(QWidget):
                                     FROM receipts r_chk
                                     WHERE r_chk.receipt_id =
                                         banking_transactions.reconciled_receipt_id
-                                )
                             )
                         )
                     )
-                    ORDER BY ABS(transaction_date - %s),
-                             LEAST(
-                                 ABS(COALESCE(credit_amount,0) - %s),
-                                 ABS(COALESCE(debit_amount,0) - %s)
-                             )
-                    LIMIT 20
-                    """,
-                    (amt, amt, date, date, date, amt, amt),
                 )
-                rows = cur.fetchall()
+                ORDER BY ABS(transaction_date - %s),
+                         LEAST(
+                             ABS(COALESCE(credit_amount,0) - %s),
+                             ABS(COALESCE(debit_amount,0) - %s)
+                         )
+                LIMIT 20
+                """,
+                (amt, amt, date, date, date, amt, amt),
+            )
+            rows = cur.fetchall()
             cur.close()
             if not rows:
+                # Nothing UNLINKED matched. Before saying "no matches", check
+                # whether the exact amount/date is already linked to an
+                # existing receipt - that almost always means this is a
+                # duplicate, not a genuinely new cash transaction, and the
+                # generic "No matches" message was misleading users into
+                # re-adding it.
+                cur2 = self.conn.cursor()
+                cur2.execute(
+                    """
+                    SELECT bt.transaction_id, bt.transaction_date,
+                           bt.description,
+                           COALESCE(bt.credit_amount, 0)
+                               - COALESCE(bt.debit_amount, 0) AS net_amount,
+                           r.receipt_id, r.vendor_name, r.receipt_date
+                    FROM banking_transactions bt
+                    LEFT JOIN receipts r
+                           ON r.receipt_id = COALESCE(
+                               bt.receipt_id, bt.reconciled_receipt_id
+                           )
+                    WHERE (
+                        ABS(COALESCE(bt.credit_amount, 0) - %s) < 0.02
+                        OR ABS(COALESCE(bt.debit_amount, 0) - %s) < 0.02
+                    )
+                    AND bt.transaction_date BETWEEN
+                        %s - INTERVAL '7 days' AND %s + INTERVAL '7 days'
+                    ORDER BY ABS(bt.transaction_date - %s)
+                    LIMIT 5
+                    """,
+                    (amt, amt, date, date, date),
+                )
+                linked_rows = cur2.fetchall()
+                cur2.close()
+
+                if linked_rows:
+                    msg = (
+                        f"No unlinked banking transactions found matching "
+                        f"${amt:,.2f} near {date}.\n\n"
+                        f"However, this amount/date already matches "
+                        f"existing banking record(s) linked to a receipt - "
+                        f"this may be a duplicate:\n\n"
+                    )
+                    for (
+                        txn_id,
+                        txn_date,
+                        txn_desc,
+                        txn_amt,
+                        rid,
+                        rvendor,
+                        rdate,
+                    ) in linked_rows:
+                        msg += (
+                            f"• Banking #{txn_id} ({txn_date}): "
+                            f"{txn_desc} ${abs(txn_amt):,.2f}"
+                        )
+                        if rid:
+                            msg += (
+                                f" -> already linked to Receipt #{rid} "
+                                f"({rdate}, {rvendor})"
+                            )
+                        msg += "\n"
+                    msg += (
+                        "\nVerify this is not a duplicate before adding a "
+                        "new receipt."
+                    )
+                    QMessageBox.warning(self, "Possible Duplicate", msg)
+                    return
+
                 QMessageBox.information(
                     self,
                     "No matches",
@@ -6214,7 +6184,7 @@ class ReceiptSearchMatchWidget(QWidget):
                 unmatched_receipts
             ):
                 receipts_table.setItem(r, 0, QTableWidgetItem(str(rid)))
-                receipts_table.setItem(r, 1, QTableWidgetItem(str(rdate)))
+                receipts_table.setItem(r, 1, DateSortItem(rdate))
                 receipts_table.setItem(r, 2, QTableWidgetItem(vendor or ""))
                 receipts_table.setItem(
                     r, 3, QTableWidgetItem(f"${amt:,.2f}" if amt else "")
@@ -6228,7 +6198,7 @@ class ReceiptSearchMatchWidget(QWidget):
             )
             for r, (bid, bdate, bdesc, bamt) in enumerate(unmatched_banking):
                 banking_table.setItem(r, 0, QTableWidgetItem(str(bid)))
-                banking_table.setItem(r, 1, QTableWidgetItem(str(bdate)))
+                banking_table.setItem(r, 1, DateSortItem(bdate))
                 banking_table.setItem(r, 2, QTableWidgetItem(bdesc or ""))
                 banking_table.setItem(
                     r, 3, QTableWidgetItem(f"${bamt:,.2f}" if bamt else "")

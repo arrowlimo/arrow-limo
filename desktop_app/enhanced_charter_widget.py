@@ -41,8 +41,8 @@ class DateInput(QLineEdit):
         today = QDate.currentDate()
         self._current_date = today
         if not blank_default:
-            self.setText(today.toString("MM/dd/yyyy"))
-        self.setPlaceholderText("MM/DD/YYYY or Jan 01 2012")
+            self.setText(today.toString("dd-MMM-yyyy"))
+        self.setPlaceholderText("DD-Mon-YYYY or 31012013")
         self.setMaxLength(50)  # Allow long text formats
 
         # Validation color support
@@ -67,7 +67,7 @@ class DateInput(QLineEdit):
     def setDate(self, date) -> None:
         """Set date and update display"""
         self._current_date = date
-        self.setText(date.toString("MM/dd/yyyy"))
+        self.setText(date.toString("dd-MMM-yyyy"))
 
     def getDate(self) -> object:
         """Get current date as QDate"""
@@ -76,6 +76,12 @@ class DateInput(QLineEdit):
     def focusInEvent(self, event) -> None:
         """Select all text when field gets focus for easy replacement"""
         super().focusInEvent(event)
+        from PyQt6.QtCore import QTimer
+
+        QTimer.singleShot(0, self.selectAll)
+
+    def mousePressEvent(self, event) -> None:
+        super().mousePressEvent(event)
         from PyQt6.QtCore import QTimer
 
         QTimer.singleShot(0, self.selectAll)
@@ -121,6 +127,12 @@ class DateInput(QLineEdit):
 
         super().keyPressEvent(event)
 
+    @staticmethod
+    def _parse_date_value(text: str) -> QDate:
+        from common_widgets import parse_flexible_date
+
+        return parse_flexible_date(text)
+
     def _parse_and_format(self) -> None:
         """Parse flexible date formats and format for database storage"""
         text = self.text().strip()
@@ -133,60 +145,23 @@ class DateInput(QLineEdit):
             )
             return
 
-        # Try multiple formats
-        parsed = None
-
-        # Format 1: MM/dd/yyyy or MM-dd-yyyy
-        for fmt in ["MM/dd/yyyy", "MM-dd-yyyy", "M/d/yyyy", "M-d-yyyy"]:
-            parsed = QDate.fromString(text, fmt)
-            if parsed.isValid():
-                break
-
-        # Format 2: yyyymmdd (compact)
-        if not parsed or not parsed.isValid():
-            if len(text) == 8 and text.isdigit():
-                parsed = QDate.fromString(text, "yyyyMMdd")
-
-        # Format 3: "Jan 01 2012" or "January 1 2012"
-        if not parsed or not parsed.isValid():
-            for fmt in [
-                "MMM dd yyyy",
-                "MMMM d yyyy",
-                "MMM d yyyy",
-                "MMMM dd yyyy",
-            ]:
-                parsed = QDate.fromString(text, fmt)
-                if parsed.isValid():
-                    break
-
-        # Format 4: "01 Jan 2012" (day first)
-        if not parsed or not parsed.isValid():
-            for fmt in [
-                "dd MMM yyyy",
-                "d MMM yyyy",
-                "dd MMMM yyyy",
-                "d MMMM yyyy",
-            ]:
-                parsed = QDate.fromString(text, fmt)
-                if parsed.isValid():
-                    break
-
-        # Format 5: ISO format yyyy-MM-dd
-        if not parsed or not parsed.isValid():
-            parsed = QDate.fromString(text, "yyyy-MM-dd")
+        parsed = self._parse_date_value(text)
 
         # If valid, update and format
         if parsed and parsed.isValid():
             self._current_date = parsed
-            self.setText(parsed.toString("MM/dd/yyyy"))
+            self.setText(parsed.toString("dd-MMM-yyyy"))
             self._validation_state = "valid"
             self.setStyleSheet(
                 "QLineEdit { border: 2px solid green; background-color:"
                 "#f0fff0;}"
             )
         else:
-            # Invalid date - restore previous
-            self.setText(self._current_date.toString("MM/dd/yyyy"))
+            # Invalid date - restore previous and explain why
+            from common_widgets import describe_invalid_date
+
+            self.setToolTip(describe_invalid_date(text))
+            self.setText(self._current_date.toString("dd-MMM-yyyy"))
             self._validation_state = "error"
             self.setStyleSheet(
                 "QLineEdit { border: 2px solid red; background-color:"
@@ -215,6 +190,7 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
     # Signal to notify main window to show/hide booking tab
     show_booking_tab_signal = pyqtSignal(dict)  # Emit with charter data dict
     print_run_sheet_signal = pyqtSignal(str)  # Emit reserve_number
+    bulk_print_selected_signal = pyqtSignal(list)  # Emit charter_ids
 
     def __init__(self, db) -> None:
         super().__init__()
@@ -224,7 +200,7 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
         layout = QVBoxLayout()
 
         # Title
-        title = QLabel("📋 Charter Management - Enhanced")
+        title = QLabel("📋 Charter Ops - Enhanced")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 
@@ -310,7 +286,7 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
                 "All",
                 "Pending",
                 "Booked",
-                "Completed",
+                "Closed",
                 "Cancelled",
             ]
         )
@@ -340,7 +316,7 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
         self.table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
         )
-        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
         self.table.doubleClicked.connect(self.on_charter_double_clicked)
         self.table.setSortingEnabled(True)  # ✅ Enable sorting on all columns
         self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -379,6 +355,18 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
         edit_btn = QPushButton("✏️ Edit Selected")
         edit_btn.clicked.connect(self.edit_selected)
         button_layout.addWidget(edit_btn)
+
+        select_all_btn = QPushButton("Select All Visible")
+        select_all_btn.clicked.connect(self.table.selectAll)
+        button_layout.addWidget(select_all_btn)
+
+        print_multi_btn = QPushButton("📚 Bulk Print Selected")
+        print_multi_btn.clicked.connect(self.open_bulk_print_selected)
+        button_layout.addWidget(print_multi_btn)
+
+        clear_sel_btn = QPushButton("Clear Selection")
+        clear_sel_btn.clicked.connect(self.table.clearSelection)
+        button_layout.addWidget(clear_sel_btn)
 
         lock_btn = QPushButton("🔒 Lock Selected")
         lock_btn.clicked.connect(self.lock_selected)
@@ -460,29 +448,21 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
         """Auto-fill 'To' date when 'From' date is completed, then reload"
         "data"""
 
-        from_text = self.date_from.text()
-        to_text = self.date_to.text()
-
-        # If From date is valid (10 chars) and To date is empty or still
-        # default (today), auto-fill
-        if len(from_text) == 10:
-            parsed_from = QDate.fromString(from_text, "MM/dd/yyyy")
-            if parsed_from.isValid():
-                # Only auto-fill if To is empty or hasn't been manually changed
-                if not to_text or len(to_text) < 10:
-                    self.date_to.setDate(parsed_from)
-
-                # Reload data with new date filter
-                self.load_data()
+        from_text = self.date_from.text().strip()
+        to_text = self.date_to.text().strip()
+        parsed_from = self.date_from._parse_date_value(from_text)
+        if parsed_from.isValid():
+            if not to_text:
+                self.date_to.setDate(parsed_from)
+            self.load_data()
 
     def _on_date_to_changed(self) -> None:
         """Reload data when 'To' date is completed"""
-        to_text = self.date_to.text()
-
-        if len(to_text) == 10:
-            parsed_to = QDate.fromString(to_text, "MM/dd/yyyy")
-            if parsed_to.isValid():
-                self.load_data()
+        parsed_to = self.date_to._parse_date_value(
+            self.date_to.text().strip()
+        )
+        if parsed_to.isValid():
+            self.load_data()
 
     def _clear_dates(self) -> None:
         """Reset date fields to default (365 days ago onwards, no upper"
@@ -521,15 +501,15 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
                 if (
                     date_from_text and len(date_from_text) >= 8
                 ):  # Has date text
-                    date_from_obj = QDate.fromString(
-                        date_from_text, "MM/dd/yyyy"
+                    date_from_obj = self.date_from._parse_date_value(
+                        date_from_text
                     )
                     if date_from_obj.isValid():
                         where_clauses.append("c.charter_date >= %s")
                         params.append(date_from_obj.toPyDate())
 
                 if date_to_text and len(date_to_text) >= 8:  # Has date text
-                    date_to_obj = QDate.fromString(date_to_text, "MM/dd/yyyy")
+                    date_to_obj = self.date_to._parse_date_value(date_to_text)
                     if date_to_obj.isValid():
                         where_clauses.append("c.charter_date <= %s")
                         params.append(date_to_obj.toPyDate())
@@ -542,6 +522,7 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
                 # Load charters with SQL-level date filtering
                 query = f"""
                     SELECT
+                        c.charter_id,
                         c.reserve_number,
                         COALESCE(cl.company_name, cl.client_name),
                         c.charter_date::date,
@@ -567,6 +548,7 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
 
                 for i, row in enumerate(rows):
                     (
+                        charter_id,
                         res_num,
                         client,
                         date,
@@ -577,9 +559,9 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
                         balance,
                     ) = row
 
-                    self.table.setItem(
-                        i, 0, QTableWidgetItem(str(res_num or ""))
-                    )
+                    res_item = QTableWidgetItem(str(res_num or ""))
+                    res_item.setData(Qt.ItemDataRole.UserRole, int(charter_id))
+                    self.table.setItem(i, 0, res_item)
                     self.table.setItem(
                         i, 1, QTableWidgetItem(str(client or ""))
                     )
@@ -616,21 +598,22 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
         balance_min = self.balance_filter.value()
         status_filter = self.status_filter.currentText()
 
-        # Parse date filters (DateInput format: MM/DD/YYYY -> convert to
-        # comparable format)
+        # Parse date filters through DateInput so display format is irrelevant.
         date_from_obj = None
         date_to_obj = None
         try:
             date_from_text = self.date_from.text().strip()
-            if date_from_text and len(date_from_text) == 10:
-                date_from_obj = QDate.fromString(date_from_text, "MM/dd/yyyy")
+            if date_from_text:
+                date_from_obj = self.date_from._parse_date_value(
+                    date_from_text
+                )
         except Exception as e:
             logger.error(f"Failed: {e}")
 
         try:
             date_to_text = self.date_to.text().strip()
-            if date_to_text and len(date_to_text) == 10:
-                date_to_obj = QDate.fromString(date_to_text, "MM/dd/yyyy")
+            if date_to_text:
+                date_to_obj = self.date_to._parse_date_value(date_to_text)
         except Exception as e:
             logger.error(f"Failed: {e}")
 
@@ -842,6 +825,35 @@ class EnhancedCharterListWidget(QWidget, DrillDownTableMixin):
             QMessageBox.warning(
                 self, "Warning", "Please select a charter first"
             )
+
+    def _selected_charter_ids(self) -> list[int]:
+        ids: list[int] = []
+        for item in self.table.selectedItems():
+            if item.column() != 0:
+                continue
+            charter_id = item.data(Qt.ItemDataRole.UserRole)
+            if charter_id:
+                try:
+                    ids.append(int(charter_id))
+                except Exception:
+                    continue
+        return ids
+
+    def open_bulk_print_selected(self) -> None:
+        """Open bulk-print flow for the currently selected visible rows."""
+        charter_ids = self._selected_charter_ids()
+        if not charter_ids:
+            QMessageBox.information(
+                self,
+                "No Selection",
+                "Select one or more visible charters first.",
+            )
+            return
+        self.bulk_print_selected_signal.emit(charter_ids)
+
+    def print_selected_invoices(self) -> None:
+        """Backward-compatible alias for legacy callers."""
+        self.open_bulk_print_selected()
 
     def lock_selected(self) -> None:
         """Lock selected charter"""

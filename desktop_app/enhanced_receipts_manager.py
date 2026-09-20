@@ -833,7 +833,7 @@ class EnhancedReceiptsManager(QWidget):
                         THEN ''
                         ELSE E'\n'
                     END ||
-                    'Manual verification marked from Enhanced Receipts Manager.',
+                    'Manual verification marked from Enhanced Receipts.',
                 receipt_reviewed_at = NOW()
             WHERE receipt_id = %s
             """,
@@ -859,7 +859,7 @@ class EnhancedReceiptsManager(QWidget):
                         ELSE E'\n'
                     END ||
                     'Manual double verification marked from Enhanced Receipts'
-                    'Manager.',
+                    'Panel.',
 
                 receipt_reviewed_at = NOW()
             WHERE receipt_id = %s
@@ -900,7 +900,7 @@ class EnhancedReceiptsManager(QWidget):
                 note.strip()
                 or (
                     "Flagged for manual investigation from "
-                    "Enhanced Receipts Manager."
+                    "Enhanced Receipts."
                 ),
                 receipt_id,
             ),
@@ -959,10 +959,10 @@ class EnhancedReceiptsManager(QWidget):
             date_to = self.date_to.getDate()
             if date_from:
                 sql.append("AND r.receipt_date >= %s")
-                params.append(date_from)
+                params.append(date_from.toPyDate() if hasattr(date_from, 'toPyDate') else date_from)
             if date_to:
                 sql.append("AND r.receipt_date <= %s")
-                params.append(date_to)
+                params.append(date_to.toPyDate() if hasattr(date_to, 'toPyDate') else date_to)
 
             # Month/Year filter
             month_idx = self.month_combo.currentIndex()
@@ -1179,7 +1179,9 @@ class EnhancedReceiptsManager(QWidget):
                     )
                 elif "date" in col_name:
                     item = SortableTableWidgetItem(
-                        str(value)[:10] if value else "",
+                        value.strftime("%d-%b-%Y")
+                        if hasattr(value, "strftime")
+                        else str(value)[:10] if value else "",
                         str(value)[:10] if value else "",
                     )
                 elif col_name == "business_personal":

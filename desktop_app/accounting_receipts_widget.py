@@ -14,11 +14,13 @@ and invoices with support for:
 import logging
 from datetime import datetime
 from decimal import Decimal
+import re
 
 from db_connection import DatabaseConnection
+from common_widgets import DateSortItem
 from form_widgets import CurrencyInput, DateInput, VendorSelector
 from multi_date_filter_builder import MultiDateFilterBuilder
-from PyQt6.QtCore import QDate, QSettings, Qt
+from PyQt6.QtCore import QDate, QSettings, Qt, QTimer
 from PyQt6.QtGui import QBrush, QColor, QFont, QKeySequence, QUndoStack
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -45,8 +47,11 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from receipt_search_match_widget import ReceiptSearchMatchWidget
+from ui_standards import create_page_header, wrap_in_scroll_area
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_FUEL_PRICE_PER_LITER = 1.129
 
 
 class AccountingReceiptsWidget(QWidget):
@@ -57,6 +62,8 @@ class AccountingReceiptsWidget(QWidget):
         super().__init__()
         self.db = db
         self.parent_tab_widget = parent_tab_widget
+        self._updating_fuel_liters = False
+        self._fuel_liters_manual_override = False
         self.gl_accounts: dict[str, str] = {}
         self.vehicles: dict[int, str] = {}
         # Initialize combo boxes early to prevent errors in load methods
@@ -85,21 +92,7 @@ class AccountingReceiptsWidget(QWidget):
             self._show_error(error_msg)
             return
 
-        try:
-            self.load_chart_accounts()
-        except Exception as e:
-            self._safe_rollback("load_chart_accounts")
-            logger.warning(f"Error in load_chart_accounts(): {e}")
-        try:
-            self.load_vehicles()
-        except Exception as e:
-            self._safe_rollback("load_vehicles")
-            logger.warning(f"Error in load_vehicles(): {e}")
-        try:
-            self.load_receipts()
-        except Exception as e:
-            self._safe_rollback("load_receipts")
-            logger.warning(f"Error in load_receipts(): {e}")
+        QTimer.singleShot(0, self._load_initial_data)
 
     def _safe_rollback(self, context: str) -> None:
         """Attempt rollback while preserving the original exception flow."""
@@ -135,19 +128,34 @@ class AccountingReceiptsWidget(QWidget):
         layout.addStretch()
         self.setLayout(layout)
 
+    def _load_initial_data(self) -> None:
+        """Load receipt data after the widget has finished constructing."""
+        for loader, context in (
+            (self.load_chart_accounts, "load_chart_accounts"),
+            (self.load_vehicles, "load_vehicles"),
+            (self.load_receipts, "load_receipts"),
+        ):
+            try:
+                loader()
+            except Exception as e:
+                self._safe_rollback(context)
+                logger.warning("Error in %s(): %s", context, e)
+
     def _create_simplified_receipts_tab(self) -> QWidget:
         """Create a simplified receipts interface without the crashing
         ReceiptSearchMatchWidget"""
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(8)
 
-        # Header
-        header = QLabel("💰 Receipts & Invoices")
-        header_font = QFont()
-        header_font.setPointSize(12)
-        header_font.setBold(True)
-        header.setFont(header_font)
-        layout.addWidget(header)
+        layout.addWidget(
+            create_page_header(
+                "💰 Receipts & Invoices",
+                "Search quickly, review the latest entries, and add new "
+                "receipts without leaving the page.",
+            )
+        )
 
         # Search area
         search_layout = QHBoxLayout()
@@ -194,7 +202,7 @@ class AccountingReceiptsWidget(QWidget):
             logger.warning(f"Error loading receipts: {e}")
 
         layout.addWidget(table)
-        return widget
+        return wrap_in_scroll_area(widget, minimum_height=500)
 
     def init_ui(self) -> None:
         # Single comprehensive Search & Match widget handles all
@@ -325,6 +333,17 @@ class AccountingReceiptsWidget(QWidget):
             " for automatic tax calculation.<br>Default: AB (GST 5%)"
         )
         self.tax_jurisdiction.currentTextChanged.connect(self.auto_calc_gst)
+        self.tax_jurisdiction.currentTextChanged.connect(self._update_currency_display)
+
+        # Currency display - auto-set based on tax jurisdiction
+        self.currency_display = QLabel("CAD")
+        self.currency_display.setToolTip(
+            "<b>Currency</b><br>Auto-set based on tax jurisdiction."
+            "<br>CAD for Canada, USD for US purchases"
+        )
+        self.currency_display.setStyleSheet(
+            "font-weight: bold; color: #0066cc; font-size: 11pt;"
+        )
 
         # PST/Additional Sales Tax input (for US or other provinces)
         self.pst_input = CurrencyInput()
@@ -351,6 +370,7 @@ class AccountingReceiptsWidget(QWidget):
         )
         self.gl_combo.currentIndexChanged.connect(
             self._maybe_set_gst_exempt_from_gl)
+        self.gl_combo.currentIndexChanged.connect(self._on_gl_changed)
 
         self.vehicle_combo = QComboBox()
         self.vehicle_combo.addItem("", None)
@@ -365,6 +385,27 @@ class AccountingReceiptsWidget(QWidget):
         self.fuel_amount_input.setSuffix(" L")
         self.fuel_amount_input.setMaximumWidth(120)
         self.fuel_amount_input.setToolTip("Fuel amount in liters (optional).")
+        self.fuel_amount_input.valueChanged.connect(self._on_fuel_liters_changed)
+
+        self.fuel_price_input = QDoubleSpinBox()
+        self.fuel_price_input.setRange(0.001, 99.999)
+        self.fuel_price_input.setDecimals(3)
+        self.fuel_price_input.setSingleStep(0.001)
+        self.fuel_price_input.setValue(DEFAULT_FUEL_PRICE_PER_LITER)
+        self.fuel_price_input.setSuffix(" /L")
+        self.fuel_price_input.setMaximumWidth(120)
+        self.fuel_price_input.setToolTip(
+            "Default fuel price used to estimate liters from receipt amount."
+        )
+        self.fuel_price_input.valueChanged.connect(self._on_fuel_price_changed)
+
+        self.auto_fuel_liters_check = QCheckBox("Auto-calc liters")
+        self.auto_fuel_liters_check.setChecked(True)
+        self.auto_fuel_liters_check.setToolTip(
+            "When enabled, fuel liters are estimated as Amount / Price per liter"
+            " for fuel receipts."
+        )
+        self.auto_fuel_liters_check.stateChanged.connect(self._on_auto_fuel_toggle)
 
         self.description_input = QTextEdit()
         self.description_input.setFixedHeight(60)
@@ -396,28 +437,11 @@ class AccountingReceiptsWidget(QWidget):
         self.save_btn.setToolTip("Save receipt to database [Ctrl+S]")
         self.save_btn.clicked.connect(self.save_receipt)
 
-        # Add format indicators for date
-        date_layout = QVBoxLayout()
-        date_layout.addWidget(self.date_edit)
-        date_hint = QLabel("📅 Format: MM/dd/yyyy, MM-dd-yyyy, or yyyymmdd")
-        date_hint.setStyleSheet(
-            "font-size: 9px; color: #666; margin-top: -5px;")
-        date_layout.addWidget(date_hint)
-        date_layout.setContentsMargins(0, 0, 0, 5)
-
-        # Add format indicators for amount
-        amount_layout = QVBoxLayout()
-        amount_layout.addWidget(self.amount_input)
-        amount_hint = QLabel("💵 Format: 10 (=10.00), 10.50, or .50 (=0.50)")
-        amount_hint.setStyleSheet(
-            "font-size: 9px; color: #666; margin-top: -5px;")
-        amount_layout.addWidget(amount_hint)
-        amount_layout.setContentsMargins(0, 0, 0, 5)
-
-        form_layout.addRow("Date", date_layout)
+        form_layout.addRow("Date", self.date_edit)
         form_layout.addRow("Vendor", self.vendor_input)
-        form_layout.addRow("Amount (tax incl)", amount_layout)
+        form_layout.addRow("Amount (tax incl)", self.amount_input)
         form_layout.addRow("Tax Jurisdiction", self.tax_jurisdiction)
+        form_layout.addRow("Currency", self.currency_display)
         form_layout.addRow("GST (auto)", self.gst_display)
         form_layout.addRow("PST / Sales Tax", self.pst_input)
         form_layout.addRow("GL Account", self.gl_combo)
@@ -439,6 +463,9 @@ class AccountingReceiptsWidget(QWidget):
         rv_row.addWidget(self.vehicle_combo)
         rv_row.addWidget(QLabel("Fuel:"))
         rv_row.addWidget(self.fuel_amount_input)
+        rv_row.addWidget(QLabel("Price/L:"))
+        rv_row.addWidget(self.fuel_price_input)
+        rv_row.addWidget(self.auto_fuel_liters_check)
         rv_row.addWidget(QLabel("Type:"))
         rv_row.addWidget(self.receipt_vehicle_type_label)
         rv_row.addStretch(1)
@@ -639,7 +666,7 @@ class AccountingReceiptsWidget(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Stretch
         )
-        self.table.setMinimumHeight(500)  # Show at least 12-15 rows
+        self.table.setMinimumHeight(380)  # Keep the grid usable on shorter screens
         self.table.setAlternatingRowColors(True)  # Better visibility
 
         # ============================================================================
@@ -745,6 +772,80 @@ class AccountingReceiptsWidget(QWidget):
         and recalculate GST"""
         # Delegate to auto_calc_gst which now handles PST too
         self.auto_calc_gst()
+        self._auto_fill_fuel_liters()
+
+    def _on_gl_changed(self, _index: int) -> None:
+        """Re-evaluate fuel liters when GL account changes."""
+        self._auto_fill_fuel_liters()
+
+    def _on_fuel_price_changed(self, _value: float) -> None:
+        """Recalculate liters when default fuel price changes."""
+        self._auto_fill_fuel_liters()
+
+    def _on_auto_fuel_toggle(self, state: int) -> None:
+        """Re-enable auto behavior when the user turns it back on."""
+        if state == Qt.CheckState.Checked.value:
+            self._fuel_liters_manual_override = False
+            self._auto_fill_fuel_liters()
+
+    def _on_fuel_liters_changed(self, value: float) -> None:
+        """Track manual edits so we do not overwrite user-entered liters."""
+        if self._updating_fuel_liters:
+            return
+        self._fuel_liters_manual_override = value > 0
+
+    def _is_fuel_gl_selected(self) -> bool:
+        """Return True when selected GL account appears to be fuel."""
+        gl_code = self.gl_combo.currentData()
+        gl_name = self.gl_accounts.get(gl_code, "") if gl_code else ""
+        gl_code_text = str(gl_code or "").strip()
+        gl_name_text = str(gl_name).lower()
+        return gl_code_text.startswith("5110") or "fuel" in gl_name_text
+
+    def _auto_fill_fuel_liters(self) -> None:
+        """Estimate liters from amount for fuel receipts when enabled."""
+        if not hasattr(self, "auto_fuel_liters_check"):
+            return
+        if not self.auto_fuel_liters_check.isChecked():
+            return
+        if not self._is_fuel_gl_selected():
+            return
+        if self._fuel_liters_manual_override and self.fuel_amount_input.value() > 0:
+            return
+
+        try:
+            amount_value = float(self.amount_input.get_value())
+            price_per_liter = float(self.fuel_price_input.value())
+        except Exception:
+            return
+
+        if amount_value <= 0 or price_per_liter <= 0:
+            return
+
+        liters = round(amount_value / price_per_liter, 3)
+        self._updating_fuel_liters = True
+        try:
+            self.fuel_amount_input.setValue(liters)
+        finally:
+            self._updating_fuel_liters = False
+
+    def _update_currency_display(self) -> None:
+        """Update currency display based on selected tax jurisdiction.
+        US purchases are USD, all Canadian purchases are CAD."""
+        try:
+            jurisdiction = self.tax_jurisdiction.currentText()
+            if "US" in jurisdiction:
+                self.currency_display.setText("USD")
+                self.currency_display.setStyleSheet(
+                    "font-weight: bold; color: #cc0000; font-size: 11pt;"
+                )
+            else:
+                self.currency_display.setText("CAD")
+                self.currency_display.setStyleSheet(
+                    "font-weight: bold; color: #0066cc; font-size: 11pt;"
+                )
+        except Exception as _e:
+            logger.debug('Currency display update failed: %s', _e)
 
     def auto_calc_gst(self) -> None:
         """Calculate GST and PST based on jurisdiction"""
@@ -1087,9 +1188,7 @@ class AccountingReceiptsWidget(QWidget):
                 checkbox.setData(Qt.ItemDataRole.UserRole, receipt_id)
                 self.table.setItem(i, 0, checkbox)
 
-                date_item = QTableWidgetItem(
-                    receipt_date.strftime("%Y-%m-%d") if receipt_date else ""
-                )
+                date_item = DateSortItem(receipt_date)
                 self.table.setItem(i, 1, date_item)
                 self.table.setItem(i, 2, QTableWidgetItem(vendor or ""))
                 self.table.setItem(i, 3, QTableWidgetItem(category or ""))
@@ -1735,6 +1834,10 @@ class AccountingReceiptsWidget(QWidget):
             if hasattr(self, "tax_jurisdiction")
             else None
         )
+
+        # Determine currency based on jurisdiction
+        currency = "USD" if "US" in (tax_jurisdiction or "") else "CAD"
+
         category = None
         if hasattr(self.vendor_input, "get_suggested_category"):
             category = self.vendor_input.get_suggested_category()
@@ -1770,11 +1873,11 @@ class AccountingReceiptsWidget(QWidget):
                 INSERT INTO receipts (
                     receipt_date, vendor_name, canonical_vendor,
                     gross_amount, gst_amount, net_amount, gst_code, sales_tax,
-                    tax_jurisdiction, category, description, vehicle_id,
+                    tax_jurisdiction, currency, category, description, vehicle_id,
                     fuel_amount, owner_personal_amount, gl_account_code,
                     gl_account_name, is_paper_verified)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
-                            %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
                 RETURNING receipt_id
                 """,
                 (
@@ -1787,6 +1890,7 @@ class AccountingReceiptsWidget(QWidget):
                     gst_code,
                     pst_val,
                     tax_jurisdiction,
+                    currency,
                     category,
                     self.description_input.toPlainText().strip() or None,
                     vehicle_id,
@@ -1803,7 +1907,7 @@ class AccountingReceiptsWidget(QWidget):
                 self, "Saved", f"Receipt #{receipt_id} saved")
             self._track_category_usage(category)
             self.undo_stack.clear()
-            self.reset_form()
+            self.reset_form(preserve_tax_jurisdiction=True)
             self.load_receipts()
         except Exception as e:
             self.db.rollback()
@@ -1811,18 +1915,112 @@ class AccountingReceiptsWidget(QWidget):
             QMessageBox.critical(self, "Save Failed",
                                  f"Could not save receipt:\n{e}")
 
-    def reset_form(self) -> None:
+    def reset_form(self, preserve_tax_jurisdiction: bool = False) -> None:
+        saved_tax_jurisdiction = (
+            (self.tax_jurisdiction.currentText() or "").strip()
+            if preserve_tax_jurisdiction
+            else ""
+        )
+
         self.date_edit.setDate(QDate.currentDate())
         self.vendor_input.clear()
         self.amount_input.setValue(0.0)
         self.gst_display.setText("$0.00")
         self.pst_input.setText("0.00")
         self.tax_jurisdiction.setCurrentIndex(0)  # Reset to AB (GST 5%)
+        self.currency_display.setText("CAD")  # Reset to CAD
+        self.currency_display.setStyleSheet(
+            "font-weight: bold; color: #0066cc; font-size: 11pt;"
+        )
         self.gl_combo.setCurrentIndex(0)
         if hasattr(self, "fuel_amount_input"):
             self.fuel_amount_input.setValue(0)
+        if hasattr(self, "fuel_price_input"):
+            self.fuel_price_input.setValue(DEFAULT_FUEL_PRICE_PER_LITER)
+        if hasattr(self, "auto_fuel_liters_check"):
+            self.auto_fuel_liters_check.setChecked(True)
+        self._fuel_liters_manual_override = False
         self.vehicle_combo.setCurrentIndex(0)
         self.description_input.clear()
         self.personal_check.setChecked(False)
         self.driver_personal_check.setChecked(False)
         self.gst_exempt_check.setChecked(False)
+
+        if saved_tax_jurisdiction:
+            idx = self.tax_jurisdiction.findText(saved_tax_jurisdiction)
+            if idx < 0:
+                target_upper = saved_tax_jurisdiction.upper()
+                for i in range(self.tax_jurisdiction.count()):
+                    text = (self.tax_jurisdiction.itemText(i) or "").strip()
+                    if text.upper().startswith(target_upper):
+                        idx = i
+                        break
+            if idx < 0:
+                normalized_target = self._normalize_tax_jurisdiction_key(
+                    saved_tax_jurisdiction
+                )
+                if normalized_target:
+                    for i in range(self.tax_jurisdiction.count()):
+                        text = (
+                            self.tax_jurisdiction.itemText(i) or ""
+                        ).strip()
+                        if (
+                            self._normalize_tax_jurisdiction_key(text)
+                            == normalized_target
+                        ):
+                            idx = i
+                            break
+            if idx >= 0:
+                self.tax_jurisdiction.setCurrentIndex(idx)
+
+    def _normalize_tax_jurisdiction_key(self, value: str | None) -> str:
+        text = (value or "").strip().upper()
+        if not text:
+            return ""
+
+        name_to_code = {
+            "ALBERTA": "AB",
+            "BRITISH COLUMBIA": "BC",
+            "SASKATCHEWAN": "SK",
+            "MANITOBA": "MB",
+            "ONTARIO": "ON",
+            "QUEBEC": "QC",
+            "NEW BRUNSWICK": "NB",
+            "NOVA SCOTIA": "NS",
+            "PRINCE EDWARD ISLAND": "PE",
+            "NEWFOUNDLAND": "NL",
+            "NEWFOUNDLAND AND LABRADOR": "NL",
+            "YUKON": "YT",
+            "NORTHWEST TERRITORIES": "NT",
+            "NUNAVUT": "NU",
+            "UNITED STATES": "US",
+            "USA": "US",
+        }
+
+        for name, code in name_to_code.items():
+            if name in text:
+                return code
+
+        compact = re.sub(r"[^A-Z]+", " ", text).strip()
+        if not compact:
+            return ""
+        token = compact.split()[0]
+        if token in {
+            "AB",
+            "BC",
+            "SK",
+            "MB",
+            "ON",
+            "QC",
+            "NB",
+            "NS",
+            "PE",
+            "NL",
+            "YT",
+            "NT",
+            "NU",
+            "US",
+            "OTHER",
+        }:
+            return token
+        return ""

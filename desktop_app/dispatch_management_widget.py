@@ -8,7 +8,7 @@ import logging
 import os
 from datetime import date, datetime
 
-from common_widgets import StandardDateEdit
+from common_widgets import StandardDateEdit, parse_flexible_date
 from db_connection import DatabaseConnection
 from db_error_handling import DatabaseContext
 from PyQt6.QtCore import QDate, QSettings, Qt, QThread, QTimer, pyqtSignal
@@ -88,7 +88,7 @@ class _NumericTableWidgetItem(QTableWidgetItem):
 
 
 class _DateTableWidgetItem(QTableWidgetItem):
-    """QTableWidgetItem that displays MM/DD/YYYY but sorts by ISO date."""
+    """Date item that displays dd-Mon-yyyy but sorts by ISO date."""
 
     def __init__(self, display_text: str, iso_value: str) -> None:
         super().__init__(display_text)
@@ -661,7 +661,7 @@ class DispatchManagementWidget(QWidget):
             prefer_month_text=True, allow_blank=True
         )
         self.date_find_input.setCalendarPopup(True)
-        self.date_find_input.setPlaceholderText("MM/DD/YYYY")
+        self.date_find_input.setPlaceholderText("DD-Mon-YYYY")
         self.date_find_input.setMaximumWidth(115)
         self.date_find_input.returnPressed.connect(self._apply_specific_date)
         row1.addWidget(self.date_find_input)
@@ -1151,7 +1151,7 @@ class DispatchManagementWidget(QWidget):
             date_display = raw_date
             parsed_row_date = QDate.fromString(raw_date[:10], "yyyy-MM-dd")
             if parsed_row_date.isValid():
-                date_display = parsed_row_date.toString("MM/dd/yyyy")
+                date_display = parsed_row_date.toString("dd-MMM-yyyy")
 
             # Derive day-of-week abbreviation from charter_date
             try:
@@ -1366,9 +1366,7 @@ class DispatchManagementWidget(QWidget):
         self._date_filter_mode = "exact"
         self._date_filter_active = True
         self.date_filter.setDate(QDate.currentDate())
-        self.date_find_input.setText(
-            QDate.currentDate().toString("MM/dd/yyyy")
-        )
+        self.date_find_input.setDate(QDate.currentDate())
         self._update_date_scope_controls()
         self._save_dispatch_filters()
         self._date_reload_timer.stop()
@@ -1407,36 +1405,12 @@ class DispatchManagementWidget(QWidget):
 
     def _on_date_changed(self) -> None:
         self._date_filter_active = self._date_filter_mode != "all"
-        self.date_find_input.setText(
-            self.date_filter.date().toString("MM/dd/yyyy")
-        )
+        self.date_find_input.setDate(self.date_filter.date())
         self._save_dispatch_filters()
         self.filter_bookings()
 
     def _parse_date_entry(self, text: str) -> QDate:
-        for fmt in (
-            "MM/dd/yyyy",
-            "M/d/yyyy",
-            "MM-dd-yyyy",
-            "M-d-yyyy",
-            "yyyy-MM-dd",
-            "yyyy/M/d",
-            "yyyy/MM/dd",
-        ):
-            parsed = QDate.fromString(text, fmt)
-            if parsed.isValid():
-                return parsed
-
-        digits = "".join(c for c in text if c.isdigit())
-        if len(digits) == 8:
-            parsed = QDate(
-                int(digits[4:8]),
-                int(digits[0:2]),
-                int(digits[2:4]),
-            )
-            if parsed.isValid():
-                return parsed
-        return QDate()
+        return parse_flexible_date(text)
 
     def _apply_specific_date(self) -> None:
         txt = self.date_find_input.text().strip()
@@ -1449,7 +1423,7 @@ class DispatchManagementWidget(QWidget):
             QMessageBox.warning(
                 self,
                 "Invalid Date",
-                "Use MM/DD/YYYY, for example 06/11/2026.",
+                "Use DD-Mon-YYYY, for example 11-Jun-2026.",
             )
             return
 
