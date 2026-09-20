@@ -13,10 +13,30 @@ setup_alms_user.sql
 ALMS_USER_SETUP.md
 
 # Desktop application (not needed for web)
+# Most desktop modules predate this rule and are already tracked; gitignore
+# does not affect them. New modules, however, are silently excluded - which
+# broke fresh clones when tracked files imported them. Every module below is
+# imported by an already-tracked file, so it must stay in the repo.
 desktop_app/*
-!desktop_app/period_close_management_widget.py
+!desktop_app/accounting_report_helpers.py
+!desktop_app/audit_management_widget.py
+!desktop_app/bank_statement_import_dialog.py
+!desktop_app/charter_form_db_helpers.py
+!desktop_app/charter_form_helpers.py
+!desktop_app/close_control_center_widget.py
+!desktop_app/drill_down_dialogs.py
+!desktop_app/employee_pay_banking_linker.py
+!desktop_app/employee_work_items.py
+!desktop_app/employee_work_schedule_widget.py
 !desktop_app/friendly_input_behavior.py
+!desktop_app/payment_linker_widget.py
+!desktop_app/payroll_t4_review.py
+!desktop_app/period_close_management_widget.py
+!desktop_app/receipt_search_helpers.py
+!desktop_app/staff_loan_account_widget.py
+!desktop_app/tax_return_tabs.py
 !desktop_app/vehicle_type_catalog.py
+!desktop_app/vendor_invoice_helpers.py
 
 # Data processing scripts (not needed for web)
 scripts/
