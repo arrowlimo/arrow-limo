@@ -15,6 +15,8 @@ ALMS_USER_SETUP.md
 # Desktop application (not needed for web)
 desktop_app/*
 !desktop_app/period_close_management_widget.py
+!desktop_app/friendly_input_behavior.py
+!desktop_app/vehicle_type_catalog.py
 
 # Data processing scripts (not needed for web)
 scripts/
@@ -221,6 +223,13 @@ quickbooks/*.pdf
 
 # Executable installers
 *.exe
+
+# Rollback copies of the built desktop app (~92 MB each) and manual snapshots
+*.exe.backup
+*.exe.backup_*
+ArrowLimousineApp.pre-*.exe
+_manual_backup_*/
+bank_import_backup_*/
 
 # Local desktop deployment payloads (web deploy does not use these)
 install/
